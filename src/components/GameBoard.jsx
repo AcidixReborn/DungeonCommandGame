@@ -8,12 +8,14 @@ import { Factions, commanders, sampleCreatures, sampleOrderCards } from '../data
 import BoardTile from './BoardTile'
 import PlayerPanel from './PlayerPanel'
 import FactionSelector from './FactionSelector'
+import CommanderSelector from './CommanderSelector'
 import SimpleAI from '../ai/simpleAI'
 import './GameBoard.css'
 
 function GameBoard() {
   const [gameState, setGameState] = useState(null)
   const [gameConfig, setGameConfig] = useState(null)
+  const [factionConfig, setFactionConfig] = useState(null) // Stores faction selection before commander selection
   const [selectedTile, setSelectedTile] = useState(null)
   const [selectedCreatureIndex, setSelectedCreatureIndex] = useState(null)
   const [selectedOrderIndex, setSelectedOrderIndex] = useState(null)
@@ -24,38 +26,55 @@ function GameBoard() {
   const [draggingCreatureIndex, setDraggingCreatureIndex] = useState(null)
   const [dragOverTile, setDragOverTile] = useState(null)
   const [isAIThinking, setIsAIThinking] = useState(false)
+  const [renderCounter, setRenderCounter] = useState(0) // Force re-renders without destroying GameState
 
+  // Handler for faction selection - move to commander selection
+  const handleFactionSelected = (config) => {
+    setFactionConfig(config)
+  }
+
+  // Handler for commander selection - start the game
   const startNewGame = (config) => {
-    // Store the game configuration
+    // Store the final game configuration (with commanders selected)
     setGameConfig(config)
+
+    // Create 12 creature cards (3 copies of each unique creature)
+    const createCreatureDeck = (faction) => {
+      const deck = []
+      for (let i = 0; i < 3; i++) {
+        deck.push(...sampleCreatures[faction].map(c => new Creature(c)))
+      }
+      return deck
+    }
+
+    // Create 36 order cards (12 copies of each unique order)
+    const createOrderDeck = (faction) => {
+      const deck = []
+      for (let i = 0; i < 12; i++) {
+        deck.push(...sampleOrderCards[faction].map(o => new OrderCard(o)))
+      }
+      return deck
+    }
 
     const player1Setup = {
       playerId: Players.PLAYER1,
-      commander: new Commander(commanders[config.player1.faction][0]),
-      creatures: sampleCreatures[config.player1.faction].map(c => new Creature(c)),
-      orders: [
-        ...sampleOrderCards[config.player1.faction].map(o => new OrderCard(o)),
-        ...sampleOrderCards[config.player1.faction].map(o => new OrderCard(o)),
-        ...sampleOrderCards[config.player1.faction].map(o => new OrderCard(o))
-      ],
+      commander: new Commander(config.player1.commander),
+      creatures: createCreatureDeck(config.player1.faction),
+      orders: createOrderDeck(config.player1.faction),
       faction: config.player1.faction
     }
 
     const player2Setup = {
       playerId: Players.PLAYER2,
-      commander: new Commander(commanders[config.player2.faction][0]),
-      creatures: sampleCreatures[config.player2.faction].map(c => new Creature(c)),
-      orders: [
-        ...sampleOrderCards[config.player2.faction].map(o => new OrderCard(o)),
-        ...sampleOrderCards[config.player2.faction].map(o => new OrderCard(o)),
-        ...sampleOrderCards[config.player2.faction].map(o => new OrderCard(o))
-      ],
+      commander: new Commander(config.player2.commander),
+      creatures: createCreatureDeck(config.player2.faction),
+      orders: createOrderDeck(config.player2.faction),
       faction: config.player2.faction
     }
 
     const newGame = new GameState([player1Setup, player2Setup])
     setGameState(newGame)
-    setActionMessage('Game started! Deploy your creatures.')
+    setActionMessage('Game started! DEPLOY Phase: Click or drag creatures from your hand to your starting zone (colored tiles).')
   }
 
   const handleTileClick = (tile) => {
@@ -93,7 +112,7 @@ function GameBoard() {
 
           setSelectedCreatureIndex(null)
           setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
-          setGameState({ ...gameState })
+          setRenderCounter(prev => prev + 1)
         } else {
           setActionMessage('Tile is occupied!')
         }
@@ -170,7 +189,7 @@ function GameBoard() {
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
       setValidAttackTargets([])
-      setGameState({ ...gameState })
+      setRenderCounter(prev => prev + 1)
     } else {
       setActionMessage('Invalid move!')
     }
@@ -223,7 +242,7 @@ function GameBoard() {
     setSelectedBoardCreature(null)
     setValidMoveTiles([])
     setValidAttackTargets([])
-    setGameState({ ...gameState })
+    setRenderCounter(prev => prev + 1)
   }
 
   // Drag and Drop handlers
@@ -253,48 +272,75 @@ function GameBoard() {
   }
 
   const handleDrop = (tile, e) => {
-    if (draggingCreatureIndex === null || gameState.currentPhase !== GamePhases.DEPLOY) {
-      return
-    }
+    try {
+      console.log('=== DROP EVENT START ===')
+      console.log('Dragging creature index:', draggingCreatureIndex)
+      console.log('Current phase:', gameState?.currentPhase)
+      console.log('Tile:', tile)
 
-    const currentPlayer = gameState.getCurrentPlayerState()
-    const creatureCard = currentPlayer.creatureHand[draggingCreatureIndex]
+      if (draggingCreatureIndex === null || gameState.currentPhase !== GamePhases.DEPLOY) {
+        console.log('Drop cancelled: not in deploy phase or no creature selected')
+        return
+      }
 
-    // Check if tile is in player's starting zone
-    const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                             tile.startingZoneOwner === gameState.currentPlayer
+      const currentPlayer = gameState.getCurrentPlayerState()
+      console.log('Current player:', currentPlayer)
 
-    if (!isInStartingZone) {
-      setActionMessage('You can only deploy creatures in your starting zone!')
+      const creatureCard = currentPlayer.creatureHand[draggingCreatureIndex]
+      console.log('Creature card:', creatureCard)
+
+      // Check if tile is in player's starting zone
+      const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
+                               tile.startingZoneOwner === gameState.currentPlayer
+      console.log('Is in starting zone:', isInStartingZone)
+
+      if (!isInStartingZone) {
+        setActionMessage('You can only deploy creatures in your starting zone!')
+        setDraggingCreatureIndex(null)
+        setDragOverTile(null)
+        console.log('Drop failed: not in starting zone')
+        return
+      }
+
+      if (currentPlayer.canDeployCreature(creatureCard)) {
+        if (!tile.occupant) {
+          console.log('Creating creature instance...')
+          const creatureInstance = new CreatureInstance(creatureCard, gameState.currentPlayer)
+          creatureInstance.position = { x: tile.x, y: tile.y }
+
+          // Mark as deployed this turn (protected from attacks)
+          creatureInstance.markAsDeployed(gameState.turnNumber)
+          console.log('Creature instance created:', creatureInstance)
+
+          console.log('Adding to board...')
+          currentPlayer.creaturesInPlay.push(creatureInstance)
+          currentPlayer.creatureHand.splice(draggingCreatureIndex, 1)
+          tile.occupant = creatureInstance
+
+          console.log('Updating state...')
+          setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+          setRenderCounter(prev => prev + 1)
+          console.log('State updated successfully')
+        } else {
+          setActionMessage('Tile is occupied!')
+          console.log('Drop failed: tile occupied')
+        }
+      } else {
+        setActionMessage('Not enough leadership to deploy this creature!')
+        console.log('Drop failed: not enough leadership')
+      }
+
       setDraggingCreatureIndex(null)
       setDragOverTile(null)
-      return
+      console.log('=== DROP EVENT END ===')
+    } catch (error) {
+      console.error('!!! ERROR IN handleDrop !!!', error)
+      console.error('Error stack:', error.stack)
+      setActionMessage(`Error deploying creature: ${error.message}`)
+      setDraggingCreatureIndex(null)
+      setDragOverTile(null)
+      setRenderCounter(prev => prev + 1)
     }
-
-    if (currentPlayer.canDeployCreature(creatureCard)) {
-      if (!tile.occupant) {
-        const creatureInstance = new CreatureInstance(creatureCard, gameState.currentPlayer)
-        creatureInstance.position = { x: tile.x, y: tile.y }
-
-        // Mark as deployed this turn (protected from attacks)
-        creatureInstance.markAsDeployed(gameState.turnNumber)
-
-        currentPlayer.creaturesInPlay.push(creatureInstance)
-        currentPlayer.creatureHand.splice(draggingCreatureIndex, 1)
-
-        tile.occupant = creatureInstance
-
-        setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
-        setGameState({ ...gameState })
-      } else {
-        setActionMessage('Tile is occupied!')
-      }
-    } else {
-      setActionMessage('Not enough leadership to deploy this creature!')
-    }
-
-    setDraggingCreatureIndex(null)
-    setDragOverTile(null)
   }
 
   const advancePhase = () => {
@@ -319,7 +365,7 @@ function GameBoard() {
         break
     }
 
-    setGameState({ ...gameState })
+    setRenderCounter(prev => prev + 1)
   }
 
   // AI Turn Logic - Execute AI moves automatically
@@ -345,7 +391,7 @@ function GameBoard() {
       const result = ai.executeTurn()
 
       setActionMessage(`AI: ${result.message}`)
-      setGameState({ ...gameState })
+      setRenderCounter(prev => prev + 1)
 
       // Small delay before advancing phase
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -358,6 +404,40 @@ function GameBoard() {
 
     executeAITurn()
   }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber])
+
+  // Auto-execute REFRESH and CLEANUP phases only (ACTIVATE and DEPLOY require player actions)
+  useEffect(() => {
+    if (!gameState || !gameConfig || gameState.gameOver || isAIThinking) return
+
+    const currentPlayerId = gameState.currentPlayer
+    const isCurrentPlayerAI =
+      (currentPlayerId === Players.PLAYER1 && !gameConfig.player1.isHuman) ||
+      (currentPlayerId === Players.PLAYER2 && !gameConfig.player2.isHuman)
+
+    // Don't auto-execute if it's AI's turn (AI logic handles its own phases)
+    if (isCurrentPlayerAI) return
+
+    // Auto-execute REFRESH and CLEANUP phases for human players
+    if (gameState.currentPhase === GamePhases.REFRESH ||
+        gameState.currentPhase === GamePhases.CLEANUP) {
+      const executePhase = async () => {
+        // Show "Executing..." message
+        if (gameState.currentPhase === GamePhases.REFRESH) {
+          setActionMessage('Executing Refresh Phase...')
+        } else {
+          setActionMessage('Executing Cleanup Phase...')
+        }
+
+        // Small delay to show the message
+        await new Promise(resolve => setTimeout(resolve, 800))
+
+        // Execute the phase
+        advancePhase()
+      }
+
+      executePhase()
+    }
+  }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber, isAIThinking])
 
   const getPhaseButtonText = () => {
     if (!gameState) return 'Start Phase'
@@ -389,8 +469,14 @@ function GameBoard() {
     return null
   }
 
+  // Show faction selector first
+  if (!factionConfig) {
+    return <FactionSelector onStartGame={handleFactionSelected} />
+  }
+
+  // Show commander selector after factions are chosen
   if (!gameState) {
-    return <FactionSelector onStartGame={startNewGame} />
+    return <CommanderSelector factionConfig={factionConfig} onCommandersSelected={startNewGame} />
   }
 
   const currentPlayer = gameState.getCurrentPlayerState()
@@ -402,100 +488,99 @@ function GameBoard() {
     (currentPlayerId === Players.PLAYER2 && !gameConfig?.player2.isHuman)
 
   return (
-    <Container fluid className="game-board-container">
+    <div className="game-board-container" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Turn Info Header */}
-      <Row className="mb-3">
-        <Col>
-          <Card bg="dark" text="white">
-            <Card.Body className="d-flex justify-content-between align-items-center">
-              <div>
-                <h4 className="mb-0">
-                  Turn {gameState.turnNumber} - {currentPlayerId}
-                  <Badge bg="info" className="ms-3">{gameState.currentPhase}</Badge>
-                  {isAIThinking && <Badge bg="warning" className="ms-2">AI Thinking...</Badge>}
-                  {isCurrentPlayerAI && !isAIThinking && <Badge bg="secondary" className="ms-2">AI Player</Badge>}
-                </h4>
-              </div>
-              <div>
+      <div style={{ flexShrink: 0, marginBottom: '10px' }}>
+        <Card bg="dark" text="white">
+          <Card.Body className="d-flex justify-content-between align-items-center py-2">
+            <div>
+              <h5 className="mb-0">
+                Turn {gameState.turnNumber} - {currentPlayerId}
+                <Badge bg="info" className="ms-3">{gameState.currentPhase}</Badge>
+                {isAIThinking && <Badge bg="warning" className="ms-2">AI Thinking...</Badge>}
+                {isCurrentPlayerAI && !isAIThinking && <Badge bg="secondary" className="ms-2">AI Player</Badge>}
+              </h5>
+            </div>
+            <div>
+              {/* Show button for ACTIVATE and DEPLOY phases (player decision phases) */}
+              {(gameState.currentPhase === GamePhases.ACTIVATE || gameState.currentPhase === GamePhases.DEPLOY) && (
                 <Button
                   variant="primary"
+                  size="sm"
                   onClick={advancePhase}
                   disabled={isCurrentPlayerAI || isAIThinking}
                 >
                   {getPhaseButtonText()}
                 </Button>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+              )}
+              {/* Show status for auto-executing phases */}
+              {(gameState.currentPhase === GamePhases.REFRESH ||
+                gameState.currentPhase === GamePhases.CLEANUP) && !isCurrentPlayerAI && (
+                <Badge bg="warning" className="px-3 py-2">Auto-Executing...</Badge>
+              )}
+            </div>
+          </Card.Body>
+        </Card>
+      </div>
 
       {/* Action Message */}
       {actionMessage && (
-        <Row className="mb-2">
-          <Col>
-            <Alert variant="success" dismissible onClose={() => setActionMessage('')}>
-              {actionMessage}
-            </Alert>
-          </Col>
-        </Row>
+        <div style={{ flexShrink: 0, marginBottom: '10px' }}>
+          <Alert variant="success" dismissible onClose={() => setActionMessage('')} className="py-2 mb-0">
+            {actionMessage}
+          </Alert>
+        </div>
       )}
 
       {/* Game Over */}
       {gameState.gameOver && (
-        <Row className="mb-3">
-          <Col>
-            <Alert variant="warning">
-              <h4>Game Over!</h4>
-              <p>Winner: {gameState.winner}</p>
-            </Alert>
-          </Col>
-        </Row>
+        <div style={{ flexShrink: 0, marginBottom: '10px' }}>
+          <Alert variant="warning" className="py-2 mb-0">
+            <h5 className="mb-1">Game Over!</h5>
+            <p className="mb-0">Winner: {gameState.winner}</p>
+          </Alert>
+        </div>
       )}
 
-      <Row>
-        {/* Left Panel - Player 1 */}
-        <Col md={3}>
-          <PlayerPanel
-            player={gameState.players[Players.PLAYER1]}
-            playerId={Players.PLAYER1}
-            isCurrentPlayer={currentPlayerId === Players.PLAYER1}
-            isHuman={gameConfig?.player1.isHuman ?? true}
-            selectedCreature={currentPlayerId === Players.PLAYER1 ? selectedCreatureIndex : null}
-            selectedOrder={currentPlayerId === Players.PLAYER1 ? selectedOrderIndex : null}
-            onCreatureSelect={
-              currentPlayerId === Players.PLAYER1
-                ? (idx) => setSelectedCreatureIndex(idx)
-                : null
-            }
-            onOrderSelect={
-              currentPlayerId === Players.PLAYER1
-                ? (idx) => setSelectedOrderIndex(idx)
-                : null
-            }
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            currentPhase={gameState.currentPhase}
-          />
-        </Col>
-
-        {/* Center Panel - Game Board */}
-        <Col md={6}>
-          <Card bg="dark" text="white">
-            <Card.Header>
-              <h5>Battlefield</h5>
-              {selectedCreatureIndex !== null && (
-                <small className="text-warning">
-                  Click a tile to deploy selected creature
+      {/* Battlefield and Player Panel Side by Side */}
+      <div style={{ flex: 1, display: 'flex', gap: '10px', minHeight: 0 }}>
+        {/* Battlefield - Left Side */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <Card bg="dark" text="white" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Card.Header className="py-2">
+              <h6 className="mb-1">Battlefield</h6>
+              {gameState.currentPhase === GamePhases.REFRESH && (
+                <small className="text-info d-block" style={{ fontSize: '0.85rem' }}>
+                  REFRESH Phase: Click "Execute Refresh" to draw cards and untap creatures
+                </small>
+              )}
+              {gameState.currentPhase === GamePhases.ACTIVATE && (
+                <small className="text-info d-block" style={{ fontSize: '0.85rem' }}>
+                  ACTIVATE Phase: Click your creatures to move and attack
+                </small>
+              )}
+              {gameState.currentPhase === GamePhases.DEPLOY && (
+                <small className="text-success d-block" style={{ fontSize: '0.85rem' }}>
+                  DEPLOY Phase: Click/Drag creatures from hand to your starting zone (colored tiles)
+                </small>
+              )}
+              {gameState.currentPhase === GamePhases.CLEANUP && (
+                <small className="text-info d-block" style={{ fontSize: '0.85rem' }}>
+                  CLEANUP Phase: Click "End Turn" to finish
+                </small>
+              )}
+              {selectedCreatureIndex !== null && gameState.currentPhase === GamePhases.DEPLOY && (
+                <small className="text-warning d-block" style={{ fontSize: '0.85rem' }}>
+                  → Creature selected! Click or drag to a {currentPlayerId} starting zone tile
                 </small>
               )}
               {selectedBoardCreature && (
-                <small className="text-info d-block mt-1">
+                <small className="text-info d-block" style={{ fontSize: '0.85rem' }}>
                   {selectedBoardCreature.creature.name} selected - Click to move or attack
                 </small>
               )}
             </Card.Header>
-            <Card.Body>
+            <Card.Body style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
               <div className="board-grid">
                 {Array.from({ length: gameState.boardHeight }).map((_, y) => (
                   <div key={y} className="board-row">
@@ -535,34 +620,30 @@ function GameBoard() {
               </div>
             </Card.Body>
           </Card>
-        </Col>
+        </div>
 
-        {/* Right Panel - Player 2 */}
-        <Col md={3}>
+        {/* Current Player Panel - Right Side Vertical */}
+        <div style={{ width: '500px', flexShrink: 0 }}>
           <PlayerPanel
-            player={gameState.players[Players.PLAYER2]}
-            playerId={Players.PLAYER2}
-            isCurrentPlayer={currentPlayerId === Players.PLAYER2}
-            isHuman={gameConfig?.player2.isHuman ?? false}
-            selectedCreature={currentPlayerId === Players.PLAYER2 ? selectedCreatureIndex : null}
-            selectedOrder={currentPlayerId === Players.PLAYER2 ? selectedOrderIndex : null}
-            onCreatureSelect={
-              currentPlayerId === Players.PLAYER2
-                ? (idx) => setSelectedCreatureIndex(idx)
-                : null
+            player={currentPlayer}
+            playerId={currentPlayerId}
+            isCurrentPlayer={true}
+            isHuman={
+              (currentPlayerId === Players.PLAYER1 && gameConfig?.player1.isHuman) ||
+              (currentPlayerId === Players.PLAYER2 && gameConfig?.player2.isHuman)
             }
-            onOrderSelect={
-              currentPlayerId === Players.PLAYER2
-                ? (idx) => setSelectedOrderIndex(idx)
-                : null
-            }
+            selectedCreature={selectedCreatureIndex}
+            selectedOrder={selectedOrderIndex}
+            onCreatureSelect={(idx) => setSelectedCreatureIndex(idx)}
+            onOrderSelect={(idx) => setSelectedOrderIndex(idx)}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             currentPhase={gameState.currentPhase}
+            vertical={true}
           />
-        </Col>
-      </Row>
-    </Container>
+        </div>
+      </div>
+    </div>
   )
 }
 

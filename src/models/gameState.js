@@ -74,6 +74,14 @@ export class PlayerState {
     return drawn
   }
 
+  // Shuffle creature deck
+  shuffleCreatureDeck() {
+    for (let i = this.creatureDeck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.creatureDeck[i], this.creatureDeck[j]] = [this.creatureDeck[j], this.creatureDeck[i]]
+    }
+  }
+
   // Shuffle order deck
   shuffleOrderDeck() {
     for (let i = this.orderDeck.length - 1; i > 0; i--) {
@@ -127,7 +135,7 @@ export class GameState {
     })
 
     this.currentPlayer = this.activePlayers[0]
-    this.currentPhase = GamePhases.REFRESH
+    this.currentPhase = GamePhases.DEPLOY // Start in DEPLOY phase for initial setup
     this.turnNumber = 1
     this.gameOver = false
     this.winner = null
@@ -145,10 +153,15 @@ export class GameState {
   }
 
   initializeGame() {
-    // Shuffle order decks and draw starting hands for all active players
+    // Shuffle both decks and draw starting hands for all active players
     this.activePlayers.forEach(playerId => {
       const player = this.players[playerId]
+
+      // Shuffle both decks
+      player.shuffleCreatureDeck()
       player.shuffleOrderDeck()
+
+      // Draw starting hands from commander stats
       player.drawCreatureCards(player.commander.startingCreatureHandSize)
       player.drawOrderCards(player.commander.startingOrderHandSize)
     })
@@ -565,10 +578,10 @@ export class GameState {
     // Untap all creatures again (for immediate actions during opponent's turn)
     player.creaturesInPlay.forEach(creature => creature.untap())
 
-    // Draw back to hand limit (order cards)
-    const orderHandLimit = player.commander.startingOrderHandSize
-    const cardsToDraw = Math.max(0, orderHandLimit - player.orderHand.length)
-    player.drawOrderCards(cardsToDraw)
+    // Draw creature cards back to hand limit from commander stats
+    const creatureHandLimit = player.commander.startingCreatureHandSize
+    const cardsToDraw = Math.max(0, creatureHandLimit - player.creatureHand.length)
+    player.drawCreatureCards(cardsToDraw)
 
     // Auto-advance (which will end turn)
     this.advancePhase()
@@ -578,13 +591,10 @@ export class GameState {
   executeDeployPhase() {
     const player = this.getCurrentPlayerState()
 
-    // Increase leadership by 1
-    player.increaseLeadership(1)
-
-    // Draw back to creature hand limit
-    const creatureHandLimit = player.commander.startingCreatureHandSize
-    const cardsToDraw = Math.max(0, creatureHandLimit - player.creatureHand.length)
-    player.drawCreatureCards(cardsToDraw)
+    // Increase leadership by 1 (but not on turn 1 - the initial deployment)
+    if (this.turnNumber > 1) {
+      player.increaseLeadership(1)
+    }
 
     // Note: Actual deployment of creatures is handled by player actions
     // Auto-advance to cleanup phase

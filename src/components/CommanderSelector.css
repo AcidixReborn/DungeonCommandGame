@@ -1,0 +1,50 @@
+.commander-selector {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.commander-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-width: 2px;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  color: #ffffff !important;
+}
+
+.commander-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  border-color: #FFD700 !important;
+}
+
+.commander-card.selected {
+  border-color: #00FF00 !important;
+  border-width: 3px;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+  transform: translateY(-5px);
+}
+
+.commander-card .card-body {
+  color: #ffffff !important;
+}
+
+.commander-card .card-title {
+  color: #FFD700 !important;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.commander-stats {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+.commander-stats div {
+  padding: 3px 0;
+  color: #f0f0f0;
+}
+
+.commander-stats strong {
+  color: #FFD700;
+}

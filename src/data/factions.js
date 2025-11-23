@@ -9,126 +9,126 @@ export const Factions = {
   BLOOD_OF_GRUUMSH: 'Blood of Gruumsh'
 }
 
-// Commanders for each faction
+// Commanders for each faction - stats from actual cards
 export const commanders = {
   [Factions.STING_OF_LOLTH]: [
     {
       id: 'sol_cmd_1',
-      name: 'Viconia',
+      name: 'Aliszandra Malistros',
       faction: Factions.STING_OF_LOLTH,
-      startingCreatureHandSize: 2,
-      startingOrderHandSize: 6,
-      startingMorale: 20,
-      startingLeadership: 6,
-      specialAbilityDescription: 'Your creatures have +10 HP',
-      imageUrl: null
+      startingCreatureHandSize: 4,
+      startingOrderHandSize: 5,
+      startingMorale: 13,
+      startingLeadership: 7,
+      specialAbilityDescription: 'WALLS OF WEB: Add 2 to the Speed of each Spider and Drow you control.',
+      imageUrl: '/assets/commanders/Lolth_Commander_Card#1.webp'
     },
     {
       id: 'sol_cmd_2',
-      name: 'Rizzen',
+      name: 'Kalteros the Sellsword',
       faction: Factions.STING_OF_LOLTH,
       startingCreatureHandSize: 3,
-      startingOrderHandSize: 5,
-      startingMorale: 15,
-      startingLeadership: 6,
-      specialAbilityDescription: 'Draw an extra creature card each Deploy phase',
-      imageUrl: null
+      startingOrderHandSize: 4,
+      startingMorale: 12,
+      startingLeadership: 9,
+      specialAbilityDescription: 'SELLSWORD: Whenever a Drow you control collects a Treasure token, you can draw 1 Order card instead of gaining 1 Morale.',
+      imageUrl: '/assets/commanders/Lolth_Commander_Card#2.webp'
     }
   ],
   [Factions.HEART_OF_CORMYR]: [
     {
       id: 'hoc_cmd_1',
-      name: 'Aeron Kellan',
+      name: 'Rhynseera the Alarphon',
       faction: Factions.HEART_OF_CORMYR,
-      startingCreatureHandSize: 2,
+      startingCreatureHandSize: 3,
       startingOrderHandSize: 6,
-      startingMorale: 20,
-      startingLeadership: 6,
-      specialAbilityDescription: 'Your creatures deal +10 melee damage',
-      imageUrl: null
+      startingMorale: 12,
+      startingLeadership: 7,
+      specialAbilityDescription: 'SCROLLBOOK: Once during your turn, you can discard 1 Order card from your hand to draw 1 Order card.',
+      imageUrl: '/assets/commanders/Cormyr_Commander_Card#1.webp'
     },
     {
       id: 'hoc_cmd_2',
-      name: 'Elda the Ranger',
+      name: 'Valnar Trueblade',
       faction: Factions.HEART_OF_CORMYR,
-      startingCreatureHandSize: 2,
-      startingOrderHandSize: 7,
-      startingMorale: 18,
-      startingLeadership: 6,
-      specialAbilityDescription: 'Draw an extra order card each Refresh phase',
-      imageUrl: null
+      startingCreatureHandSize: 3,
+      startingOrderHandSize: 4,
+      startingMorale: 14,
+      startingLeadership: 7,
+      specialAbilityDescription: 'VERSATILE: Each Adventurer you control can use a standard action to move up to its Speed.',
+      imageUrl: '/assets/commanders/Cormyr_Commander_Card#2.webp'
     }
   ],
   [Factions.TYRANNY_OF_GOBLINS]: [
     {
       id: 'tog_cmd_1',
-      name: 'Gorzug',
+      name: 'Snig the Axe',
       faction: Factions.TYRANNY_OF_GOBLINS,
-      startingCreatureHandSize: 3,
-      startingOrderHandSize: 5,
-      startingMorale: 18,
+      startingCreatureHandSize: 5,
+      startingOrderHandSize: 4,
+      startingMorale: 14,
       startingLeadership: 7,
-      specialAbilityDescription: 'Start with +1 Leadership',
-      imageUrl: null
+      specialAbilityDescription: 'HORDE: You can deploy creatures during your Refresh Phase.',
+      imageUrl: '/assets/commanders/Goblins_Commander_Card#1.webp'
     },
     {
       id: 'tog_cmd_2',
-      name: 'Snarzak',
+      name: 'Tarkon Draal',
       faction: Factions.TYRANNY_OF_GOBLINS,
-      startingCreatureHandSize: 2,
-      startingOrderHandSize: 6,
-      startingMorale: 20,
-      startingLeadership: 6,
-      specialAbilityDescription: 'Your creatures have +1 Speed',
-      imageUrl: null
+      startingCreatureHandSize: 3,
+      startingOrderHandSize: 5,
+      startingMorale: 12,
+      startingLeadership: 9,
+      specialAbilityDescription: 'BLACK HAND OF BANE: Whenever an enemy creature cowers, its controller loses 1 extra Morale.',
+      imageUrl: '/assets/commanders/Goblins_Commander_Card#2.webp'
     }
   ],
   [Factions.CURSE_OF_UNDEATH]: [
     {
       id: 'cou_cmd_1',
-      name: 'Illydia Maethellyn',
+      name: 'Delthrin Everet',
       faction: Factions.CURSE_OF_UNDEATH,
-      startingCreatureHandSize: 2,
-      startingOrderHandSize: 6,
-      startingMorale: 20,
+      startingCreatureHandSize: 3,
+      startingOrderHandSize: 3,
+      startingMorale: 12,
       startingLeadership: 6,
-      specialAbilityDescription: 'When your creature is destroyed, add it to your hand',
-      imageUrl: null
+      specialAbilityDescription: 'BLOODTHIRSTY: Gain 1 Leadership for each enemy creature destroyed during your turn.',
+      imageUrl: '/assets/commanders/Undeath_Commander_Card#1.webp'
     },
     {
       id: 'cou_cmd_2',
-      name: 'Marthok Valen',
+      name: 'Morgana Valistova',
       faction: Factions.CURSE_OF_UNDEATH,
       startingCreatureHandSize: 3,
       startingOrderHandSize: 5,
-      startingMorale: 16,
+      startingMorale: 14,
       startingLeadership: 7,
-      specialAbilityDescription: 'Defeated creatures can be reanimated',
-      imageUrl: null
+      specialAbilityDescription: 'UNSTOPPABLE HORDES: All Undead creatures you control gain the Cower power. Lose 1 MORALE. Prevent 20 DAMAGE to this creature from 1 source.',
+      imageUrl: '/assets/commanders/Undeath_Commander_Card#2.webp'
     }
   ],
   [Factions.BLOOD_OF_GRUUMSH]: [
     {
       id: 'bog_cmd_1',
-      name: 'Kraak',
+      name: 'Drogar, Eye of Gruumsh',
       faction: Factions.BLOOD_OF_GRUUMSH,
-      startingCreatureHandSize: 2,
-      startingOrderHandSize: 6,
-      startingMorale: 22,
-      startingLeadership: 6,
-      specialAbilityDescription: 'Start with +2 Morale',
-      imageUrl: null
+      startingCreatureHandSize: 3,
+      startingOrderHandSize: 4,
+      startingMorale: 15,
+      startingLeadership: 7,
+      specialAbilityDescription: 'GRUUMSH COMMANDS IT: Creatures you control ignore difficult terrain.',
+      imageUrl: '/assets/commanders/Gruumsh_Commander_Card#1.webp'
     },
     {
       id: 'bog_cmd_2',
-      name: 'Uruth',
+      name: 'Lokar of the Stonelands',
       faction: Factions.BLOOD_OF_GRUUMSH,
-      startingCreatureHandSize: 2,
-      startingOrderHandSize: 6,
-      startingMorale: 20,
-      startingLeadership: 6,
-      specialAbilityDescription: 'Your creatures deal +5 damage when attacking',
-      imageUrl: null
+      startingCreatureHandSize: 3,
+      startingOrderHandSize: 3,
+      startingMorale: 11,
+      startingLeadership: 9,
+      specialAbilityDescription: 'ORC SCOUT: When you deploy starting Orc creatures, you can deploy 1 of them in any unoccupied Treasure square on the board.',
+      imageUrl: '/assets/commanders/Gruumsh_Commander_Card#2.webp'
     }
   ]
 }
