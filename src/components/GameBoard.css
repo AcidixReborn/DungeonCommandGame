@@ -1,0 +1,20 @@
+.game-board-container {
+  padding: 1rem;
+}
+
+.board-grid {
+  display: inline-block;
+  background-color: #1a1a1a;
+  padding: 10px;
+  border-radius: 8px;
+  border: 2px solid #444;
+}
+
+.board-row {
+  display: flex;
+  height: 60px;
+}
+
+.board-row:not(:last-child) {
+  border-bottom: 1px solid #333;
+}

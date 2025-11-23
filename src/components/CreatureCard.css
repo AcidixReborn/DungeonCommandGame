@@ -1,0 +1,116 @@
+.creature-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid #444;
+  max-width: 250px;
+  margin: 0.5rem;
+}
+
+.creature-card:hover {
+  border-color: #ffd700;
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.creature-card.selected {
+  border-color: #ffd700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+  transform: scale(1.02);
+}
+
+.creature-stats {
+  font-size: 0.9rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-weight: bold;
+  color: #aaa;
+}
+
+.stat-value {
+  color: #fff;
+}
+
+.special-abilities {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #555;
+}
+
+.special-ability-text {
+  font-size: 0.75rem;
+  color: #ddd;
+  font-style: italic;
+  margin-bottom: 0.25rem;
+}
+
+/* Compact version for hand display */
+.creature-card-compact {
+  background-color: #2a2a2a;
+  border: 2px solid #444;
+  border-radius: 4px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+  margin: 0.25rem;
+}
+
+.creature-card-compact.draggable {
+  cursor: grab;
+}
+
+.creature-card-compact.draggable:active {
+  cursor: grabbing;
+  opacity: 0.7;
+}
+
+.creature-card-compact:hover {
+  border-color: #ffd700;
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+}
+
+.creature-card-compact.selected {
+  border-color: #ffd700;
+  background-color: #3a3a2a;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.creature-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.creature-level {
+  background-color: #ffa500;
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 0.7rem;
+  margin-right: 0.5rem;
+}
+
+.creature-name {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.creature-stats-compact {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  color: #aaa;
+}
+
+.creature-stats-compact span {
+  white-space: nowrap;
+}

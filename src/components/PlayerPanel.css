@@ -1,0 +1,42 @@
+.player-panel {
+  margin-bottom: 1rem;
+}
+
+.player-panel.current-player {
+  box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
+}
+
+.stat-display {
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ffd700;
+  min-width: 60px;
+  display: inline-block;
+}
+
+.card-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hand-section {
+  border-top: 1px solid #444;
+  padding-top: 0.75rem;
+}
+
+.hand-section h6 {
+  margin-bottom: 0.5rem;
+  color: #aaa;
+}
+
+.card-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-height: 60px;
+}

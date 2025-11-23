@@ -1,0 +1,86 @@
+.order-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid #444;
+  max-width: 250px;
+  margin: 0.5rem;
+}
+
+.order-card:hover {
+  border-color: #87ceeb;
+  box-shadow: 0 4px 8px rgba(135, 206, 235, 0.3);
+  transform: translateY(-2px);
+}
+
+.order-card.selected {
+  border-color: #87ceeb;
+  box-shadow: 0 0 15px rgba(135, 206, 235, 0.6);
+  transform: scale(1.02);
+}
+
+.order-effect {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #555;
+}
+
+.effect-text {
+  font-size: 0.85rem;
+  color: #ddd;
+  margin-bottom: 0;
+}
+
+/* Compact version for hand display */
+.order-card-compact {
+  background-color: #1a2a3a;
+  border: 2px solid #444;
+  border-radius: 4px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+  margin: 0.25rem;
+}
+
+.order-card-compact:hover {
+  border-color: #87ceeb;
+  box-shadow: 0 2px 4px rgba(135, 206, 235, 0.3);
+}
+
+.order-card-compact.selected {
+  border-color: #87ceeb;
+  background-color: #2a3a4a;
+  box-shadow: 0 0 10px rgba(135, 206, 235, 0.5);
+}
+
+.order-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.order-level {
+  background-color: #ffa500;
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 0.7rem;
+  margin-right: 0.5rem;
+}
+
+.order-name {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.order-badges-compact {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.badge-small {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+}
