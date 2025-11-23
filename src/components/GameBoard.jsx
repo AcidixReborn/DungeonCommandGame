@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Container, Row, Col, Card, Button, Badge, Alert } from 'react-bootstrap'
 import { GameState, GamePhases, Players } from '../models/gameState'
 import { Creature, CreatureInstance } from '../models/creatures'
@@ -7,10 +7,13 @@ import { OrderCard } from '../models/orders'
 import { Factions, commanders, sampleCreatures, sampleOrderCards } from '../data/factions'
 import BoardTile from './BoardTile'
 import PlayerPanel from './PlayerPanel'
+import FactionSelector from './FactionSelector'
+import SimpleAI from '../ai/simpleAI'
 import './GameBoard.css'
 
 function GameBoard() {
   const [gameState, setGameState] = useState(null)
+  const [gameConfig, setGameConfig] = useState(null)
   const [selectedTile, setSelectedTile] = useState(null)
   const [selectedCreatureIndex, setSelectedCreatureIndex] = useState(null)
   const [selectedOrderIndex, setSelectedOrderIndex] = useState(null)
@@ -20,33 +23,34 @@ function GameBoard() {
   const [validAttackTargets, setValidAttackTargets] = useState([])
   const [draggingCreatureIndex, setDraggingCreatureIndex] = useState(null)
   const [dragOverTile, setDragOverTile] = useState(null)
+  const [isAIThinking, setIsAIThinking] = useState(false)
 
-  const startNewGame = () => {
-    // For now, create a 2-player game with Sting of Lolth vs Heart of Cormyr
-    // Later we'll add faction selection UI
+  const startNewGame = (config) => {
+    // Store the game configuration
+    setGameConfig(config)
 
     const player1Setup = {
       playerId: Players.PLAYER1,
-      commander: new Commander(commanders[Factions.STING_OF_LOLTH][0]),
-      creatures: sampleCreatures[Factions.STING_OF_LOLTH].map(c => new Creature(c)),
+      commander: new Commander(commanders[config.player1.faction][0]),
+      creatures: sampleCreatures[config.player1.faction].map(c => new Creature(c)),
       orders: [
-        ...sampleOrderCards[Factions.STING_OF_LOLTH].map(o => new OrderCard(o)),
-        ...sampleOrderCards[Factions.STING_OF_LOLTH].map(o => new OrderCard(o)), // Duplicate for full deck
-        ...sampleOrderCards[Factions.STING_OF_LOLTH].map(o => new OrderCard(o))
+        ...sampleOrderCards[config.player1.faction].map(o => new OrderCard(o)),
+        ...sampleOrderCards[config.player1.faction].map(o => new OrderCard(o)),
+        ...sampleOrderCards[config.player1.faction].map(o => new OrderCard(o))
       ],
-      faction: Factions.STING_OF_LOLTH
+      faction: config.player1.faction
     }
 
     const player2Setup = {
       playerId: Players.PLAYER2,
-      commander: new Commander(commanders[Factions.HEART_OF_CORMYR][0]),
-      creatures: sampleCreatures[Factions.HEART_OF_CORMYR].map(c => new Creature(c)),
+      commander: new Commander(commanders[config.player2.faction][0]),
+      creatures: sampleCreatures[config.player2.faction].map(c => new Creature(c)),
       orders: [
-        ...sampleOrderCards[Factions.HEART_OF_CORMYR].map(o => new OrderCard(o)),
-        ...sampleOrderCards[Factions.HEART_OF_CORMYR].map(o => new OrderCard(o)),
-        ...sampleOrderCards[Factions.HEART_OF_CORMYR].map(o => new OrderCard(o))
+        ...sampleOrderCards[config.player2.faction].map(o => new OrderCard(o)),
+        ...sampleOrderCards[config.player2.faction].map(o => new OrderCard(o)),
+        ...sampleOrderCards[config.player2.faction].map(o => new OrderCard(o))
       ],
-      faction: Factions.HEART_OF_CORMYR
+      faction: config.player2.faction
     }
 
     const newGame = new GameState([player1Setup, player2Setup])
@@ -318,6 +322,43 @@ function GameBoard() {
     setGameState({ ...gameState })
   }
 
+  // AI Turn Logic - Execute AI moves automatically
+  useEffect(() => {
+    if (!gameState || !gameConfig || gameState.gameOver || isAIThinking) return
+
+    // Check if current player is AI
+    const currentPlayerId = gameState.currentPlayer
+    const isCurrentPlayerAI =
+      (currentPlayerId === Players.PLAYER1 && !gameConfig.player1.isHuman) ||
+      (currentPlayerId === Players.PLAYER2 && !gameConfig.player2.isHuman)
+
+    if (!isCurrentPlayerAI) return
+
+    // AI should take its turn
+    const executeAITurn = async () => {
+      setIsAIThinking(true)
+
+      // Small delay so player can see what's happening
+      await new Promise(resolve => setTimeout(resolve, 800))
+
+      const ai = new SimpleAI(gameState, currentPlayerId)
+      const result = ai.executeTurn()
+
+      setActionMessage(`AI: ${result.message}`)
+      setGameState({ ...gameState })
+
+      // Small delay before advancing phase
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Auto-advance phase for AI
+      advancePhase()
+
+      setIsAIThinking(false)
+    }
+
+    executeAITurn()
+  }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber])
+
   const getPhaseButtonText = () => {
     if (!gameState) return 'Start Phase'
 
@@ -349,41 +390,16 @@ function GameBoard() {
   }
 
   if (!gameState) {
-    return (
-      <Container fluid>
-        <Row className="justify-content-center mt-5">
-          <Col md={6} className="text-center">
-            <Card bg="dark" text="white">
-              <Card.Header>
-                <h3>Dungeon Command - Digital Edition</h3>
-              </Card.Header>
-              <Card.Body>
-                <p className="mb-4">
-                  Welcome to Dungeon Command! This is a digital implementation of the
-                  tactical miniatures board game.
-                </p>
-                <Alert variant="info">
-                  <strong>Custom Rules:</strong>
-                  <ul className="text-start mt-2 mb-0">
-                    <li>No Cower mechanic (creatures take direct damage)</li>
-                    <li>Killing an enemy creature grants +1 morale</li>
-                    <li>Random board generation with terrain</li>
-                    <li>Up to 5 factions can play simultaneously</li>
-                  </ul>
-                </Alert>
-                <Button variant="success" size="lg" onClick={startNewGame}>
-                  Start New Game
-                </Button>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    )
+    return <FactionSelector onStartGame={startNewGame} />
   }
 
   const currentPlayer = gameState.getCurrentPlayerState()
   const currentPlayerId = gameState.currentPlayer
+
+  // Check if current player is AI
+  const isCurrentPlayerAI =
+    (currentPlayerId === Players.PLAYER1 && !gameConfig?.player1.isHuman) ||
+    (currentPlayerId === Players.PLAYER2 && !gameConfig?.player2.isHuman)
 
   return (
     <Container fluid className="game-board-container">
@@ -396,10 +412,16 @@ function GameBoard() {
                 <h4 className="mb-0">
                   Turn {gameState.turnNumber} - {currentPlayerId}
                   <Badge bg="info" className="ms-3">{gameState.currentPhase}</Badge>
+                  {isAIThinking && <Badge bg="warning" className="ms-2">AI Thinking...</Badge>}
+                  {isCurrentPlayerAI && !isAIThinking && <Badge bg="secondary" className="ms-2">AI Player</Badge>}
                 </h4>
               </div>
               <div>
-                <Button variant="primary" onClick={advancePhase}>
+                <Button
+                  variant="primary"
+                  onClick={advancePhase}
+                  disabled={isCurrentPlayerAI || isAIThinking}
+                >
                   {getPhaseButtonText()}
                 </Button>
               </div>
@@ -438,7 +460,7 @@ function GameBoard() {
             player={gameState.players[Players.PLAYER1]}
             playerId={Players.PLAYER1}
             isCurrentPlayer={currentPlayerId === Players.PLAYER1}
-            isHuman={true}
+            isHuman={gameConfig?.player1.isHuman ?? true}
             selectedCreature={currentPlayerId === Players.PLAYER1 ? selectedCreatureIndex : null}
             selectedOrder={currentPlayerId === Players.PLAYER1 ? selectedOrderIndex : null}
             onCreatureSelect={
@@ -521,7 +543,7 @@ function GameBoard() {
             player={gameState.players[Players.PLAYER2]}
             playerId={Players.PLAYER2}
             isCurrentPlayer={currentPlayerId === Players.PLAYER2}
-            isHuman={false}
+            isHuman={gameConfig?.player2.isHuman ?? false}
             selectedCreature={currentPlayerId === Players.PLAYER2 ? selectedCreatureIndex : null}
             selectedOrder={currentPlayerId === Players.PLAYER2 ? selectedOrderIndex : null}
             onCreatureSelect={
