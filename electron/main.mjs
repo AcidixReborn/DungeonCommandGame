@@ -1,17 +1,21 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+let mainWindow
+
 function createWindow() {
-  const mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+  const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY = process.env.MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY || path.join(__dirname, 'preload.cjs')
+
+  mainWindow = new BrowserWindow({
+    fullscreen: true,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
     },
     title: 'Dungeon Command - Digital Edition'
   })
@@ -21,7 +25,7 @@ function createWindow() {
   const isDev = !app.isPackaged
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.loadURL('http://localhost:5178')
     // Open DevTools in development
     mainWindow.webContents.openDevTools()
   } else {
@@ -31,6 +35,25 @@ function createWindow() {
   // Remove default menu bar for a cleaner look
   mainWindow.setMenuBarVisibility(false)
 }
+
+// IPC handlers for fullscreen toggle
+ipcMain.handle('toggle-fullscreen', () => {
+  if (mainWindow) {
+    const isFullScreen = mainWindow.isFullScreen()
+    mainWindow.setFullScreen(!isFullScreen)
+    return !isFullScreen
+  }
+  return false
+})
+
+ipcMain.handle('is-fullscreen', () => {
+  return mainWindow ? mainWindow.isFullScreen() : false
+})
+
+// IPC handler for quitting the app
+ipcMain.handle('quit-app', () => {
+  app.quit()
+})
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {

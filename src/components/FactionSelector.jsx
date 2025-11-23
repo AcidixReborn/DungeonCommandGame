@@ -89,22 +89,18 @@ function FactionSelector({ onStartGame }) {
   }
 
   return (
-    <Container fluid className="faction-selector">
-      <Row className="justify-content-center mt-4">
-        <Col md={10}>
-          <Card bg="dark" text="white" className="mb-4">
-            <Card.Header>
-              <h2 className="text-center mb-0">Dungeon Command - Choose Your Warband</h2>
-            </Card.Header>
-            <Card.Body>
-              <Alert variant="info">
-                <strong>Custom Rules Active:</strong>
-                <ul className="mb-0">
-                  <li>No Cower mechanic</li>
-                  <li>Killing an enemy creature grants +1 morale</li>
-                  <li>Protected deployment zones with turn-based immunity</li>
-                </ul>
-              </Alert>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Container fluid className="faction-selector" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '10px', overflow: 'hidden' }}>
+        <Row className="justify-content-center" style={{ flex: 1, minHeight: 0 }}>
+          <Col md={10} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Card bg="dark" text="white" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <Card.Header style={{ flexShrink: 0, padding: '10px' }}>
+                <h3 className="text-center mb-0">Dungeon Command - Choose Your Warband</h3>
+              </Card.Header>
+              <Card.Body style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
+                <Alert variant="info" style={{ padding: '8px', marginBottom: '8px', fontSize: '0.9rem' }}>
+                  <strong>Custom Rules:</strong> No Cower • Killing grants +1 morale • Protected deployment zones
+                </Alert>
 
               {error && (
                 <Alert variant="danger" dismissible onClose={() => setError('')}>
@@ -112,12 +108,12 @@ function FactionSelector({ onStartGame }) {
                 </Alert>
               )}
 
-              <Row>
+              <Row style={{ flex: 1, minHeight: 0 }}>
                 {/* Player 1 Selection */}
-                <Col md={6}>
-                  <Card bg="secondary" text="white" className="mb-3">
-                    <Card.Header>
-                      <h4>Player 1</h4>
+                <Col md={6} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                  <Card bg="secondary" text="white" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                    <Card.Header style={{ flexShrink: 0, padding: '10px' }}>
+                      <h5 className="mb-1">Player 1</h5>
                       <Form.Group>
                         <Form.Check
                           inline
@@ -137,7 +133,7 @@ function FactionSelector({ onStartGame }) {
                         />
                       </Form.Group>
                     </Card.Header>
-                    <Card.Body>
+                    <Card.Body style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
                       {Object.entries(factionInfo).map(([factionKey, info]) => (
                         <Card
                           key={factionKey}
@@ -145,12 +141,12 @@ function FactionSelector({ onStartGame }) {
                           onClick={() => handleFactionSelect('player1', factionKey)}
                           style={{ borderColor: info.color }}
                         >
-                          <Card.Body>
-                            <h5 style={{ color: info.color }}>{info.name}</h5>
-                            <p className="small mb-2">{info.description}</p>
+                          <Card.Body style={{ padding: '10px' }}>
+                            <h6 style={{ color: info.color, marginBottom: '5px' }}>{info.name}</h6>
+                            <p className="small mb-2" style={{ fontSize: '0.85rem' }}>{info.description}</p>
                             <div>
                               {info.strengths.map(strength => (
-                                <Badge key={strength} bg="dark" className="me-1">
+                                <Badge key={strength} bg="dark" className="me-1" style={{ fontSize: '0.75rem' }}>
                                   {strength}
                                 </Badge>
                               ))}
@@ -163,10 +159,10 @@ function FactionSelector({ onStartGame }) {
                 </Col>
 
                 {/* Player 2 Selection */}
-                <Col md={6}>
-                  <Card bg="secondary" text="white" className="mb-3">
-                    <Card.Header>
-                      <h4>Player 2</h4>
+                <Col md={6} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                  <Card bg="secondary" text="white" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                    <Card.Header style={{ flexShrink: 0, padding: '10px' }}>
+                      <h5 className="mb-1">Player 2</h5>
                       <Form.Group>
                         <Form.Check
                           inline
@@ -186,7 +182,7 @@ function FactionSelector({ onStartGame }) {
                         />
                       </Form.Group>
                     </Card.Header>
-                    <Card.Body>
+                    <Card.Body style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
                       {Object.entries(factionInfo).map(([factionKey, info]) => (
                         <Card
                           key={factionKey}
@@ -194,12 +190,12 @@ function FactionSelector({ onStartGame }) {
                           onClick={() => handleFactionSelect('player2', factionKey)}
                           style={{ borderColor: info.color }}
                         >
-                          <Card.Body>
-                            <h5 style={{ color: info.color }}>{info.name}</h5>
-                            <p className="small mb-2">{info.description}</p>
+                          <Card.Body style={{ padding: '10px' }}>
+                            <h6 style={{ color: info.color, marginBottom: '5px' }}>{info.name}</h6>
+                            <p className="small mb-2" style={{ fontSize: '0.85rem' }}>{info.description}</p>
                             <div>
                               {info.strengths.map(strength => (
-                                <Badge key={strength} bg="dark" className="me-1">
+                                <Badge key={strength} bg="dark" className="me-1" style={{ fontSize: '0.75rem' }}>
                                   {strength}
                                 </Badge>
                               ))}
@@ -212,7 +208,7 @@ function FactionSelector({ onStartGame }) {
                 </Col>
               </Row>
 
-              <div className="text-center mt-4">
+              <div className="text-center" style={{ flexShrink: 0, padding: '10px 0' }}>
                 <Button
                   variant="success"
                   size="lg"
@@ -227,6 +223,7 @@ function FactionSelector({ onStartGame }) {
         </Col>
       </Row>
     </Container>
+    </div>
   )
 }
 

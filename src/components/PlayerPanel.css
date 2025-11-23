@@ -6,6 +6,21 @@
   box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
 }
 
+.player-panel-horizontal {
+  margin-bottom: 1rem;
+  box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
+}
+
+.player-panel-vertical {
+  height: 100%;
+  box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
+}
+
+.player-panel-vertical .card-body {
+  height: 100%;
+  overflow-y: auto;
+}
+
 .stat-display {
   margin-bottom: 0.5rem;
 }
@@ -39,4 +54,66 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   min-height: 60px;
+}
+
+.card-hand-horizontal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 180px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  padding-bottom: 15px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+}
+
+.card-hand-horizontal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.card-hand-horizontal::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.card-hand-horizontal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.card-hand-horizontal::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.card-hand-vertical {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  padding-bottom: 15px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+}
+
+.card-hand-vertical::-webkit-scrollbar {
+  width: 8px;
+}
+
+.card-hand-vertical::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.card-hand-vertical::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.card-hand-vertical::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
