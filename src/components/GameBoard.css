@@ -1,3 +1,8 @@
+/* ============================================
+   STEP 4: CARTOON STYLE - GAME BOARD UI
+   Enhanced buttons, badges, alerts with depth
+   ============================================ */
+
 .game-board-container {
   height: 100%;
   overflow: hidden;
@@ -23,3 +28,221 @@
 }
 
 /* Removed border between rows for seamless connection */
+
+/* ============================================
+   CARTOON-STYLE BUTTONS
+   ============================================ */
+
+/* Primary buttons with vibrant cartoon depth */
+.game-board-container .btn-primary {
+  background: linear-gradient(135deg, #4a90e2 0%, #2e5c8a 100%);
+  border: 3px solid #5aa0f0;
+  border-bottom: 4px solid #1e4d7a;
+  border-right: 3px solid #1e4d7a;
+  color: #fff;
+  font-weight: 900;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    -1px -1px 0px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 0 1px #87ceeb,
+    2px 3px 0px rgba(30, 77, 122, 0.6),
+    inset 2px 2px 0px rgba(135, 206, 235, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+}
+
+.game-board-container .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5aa0f0 0%, #3e6c9a 100%);
+  border-color: #87ceeb;
+  border-bottom-color: #2e5c8a;
+  border-right-color: #2e5c8a;
+  box-shadow:
+    0 0 0 2px #b0e0ff,
+    0 0 15px rgba(135, 206, 235, 0.6),
+    3px 4px 0px rgba(46, 92, 138, 0.7),
+    inset 2px 2px 0px rgba(176, 224, 255, 0.4);
+  transform: translateY(-2px) scale(1.05);
+}
+
+.game-board-container .btn-primary:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    0 0 0 1px #87ceeb,
+    1px 2px 0px rgba(30, 77, 122, 0.6),
+    inset 2px 2px 0px rgba(135, 206, 235, 0.3);
+}
+
+.game-board-container .btn-primary:disabled {
+  background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+  border-color: #5a5a5a;
+  border-bottom-color: #1a1a1a;
+  border-right-color: #1a1a1a;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   CARTOON-STYLE BADGES
+   ============================================ */
+
+/* Info badges with cartoon depth */
+.game-board-container .badge.bg-info {
+  background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%) !important;
+  border: 2px solid #26c6da;
+  border-bottom: 3px solid #00838f;
+  border-right: 2px solid #00838f;
+  color: #000;
+  font-weight: 900;
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.3);
+  padding: 0.4rem 0.8rem;
+  box-shadow:
+    0 0 0 1px #4dd0e1,
+    1px 2px 0px rgba(0, 131, 143, 0.5),
+    inset 1px 1px 0px rgba(77, 208, 225, 0.4);
+}
+
+/* Warning badges with cartoon depth */
+.game-board-container .badge.bg-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+  border: 2px solid #ffd54f;
+  border-bottom: 3px solid #f57c00;
+  border-right: 2px solid #f57c00;
+  color: #000;
+  font-weight: 900;
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.3);
+  padding: 0.4rem 0.8rem;
+  box-shadow:
+    0 0 0 1px #ffe082,
+    1px 2px 0px rgba(245, 124, 0, 0.5),
+    inset 1px 1px 0px rgba(255, 224, 130, 0.4);
+}
+
+/* Secondary badges with cartoon depth */
+.game-board-container .badge.bg-secondary {
+  background: linear-gradient(135deg, #78909c 0%, #546e7a 100%) !important;
+  border: 2px solid #90a4ae;
+  border-bottom: 3px solid #37474f;
+  border-right: 2px solid #37474f;
+  color: #000;
+  font-weight: 900;
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.3);
+  padding: 0.4rem 0.8rem;
+  box-shadow:
+    0 0 0 1px #b0bec5,
+    1px 2px 0px rgba(55, 71, 79, 0.5),
+    inset 1px 1px 0px rgba(176, 190, 197, 0.4);
+}
+
+/* ============================================
+   CARTOON-STYLE ALERTS
+   ============================================ */
+
+/* Success alerts (action messages) */
+.game-board-container .alert-success {
+  background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+  border: 3px solid #81c784;
+  border-bottom: 4px solid #2e7d32;
+  border-right: 3px solid #2e7d32;
+  color: #000;
+  font-weight: bold;
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 0 0 1px #a5d6a7,
+    2px 3px 0px rgba(46, 125, 50, 0.5),
+    inset 2px 2px 0px rgba(129, 199, 132, 0.4);
+  border-radius: 8px;
+  animation: slideInBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Warning alerts (game over) */
+.game-board-container .alert-warning {
+  background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+  border: 3px solid #ffb74d;
+  border-bottom: 4px solid #ef6c00;
+  border-right: 3px solid #ef6c00;
+  color: #000;
+  font-weight: bold;
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 0 0 1px #ffcc80,
+    2px 3px 0px rgba(239, 108, 0, 0.5),
+    inset 2px 2px 0px rgba(255, 183, 77, 0.4);
+  border-radius: 8px;
+  animation: slideInBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Alert close button styling */
+.game-board-container .alert .btn-close {
+  filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.5));
+  opacity: 0.8;
+}
+
+.game-board-container .alert .btn-close:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* Bounce-in animation for alerts */
+@keyframes slideInBounce {
+  0% {
+    transform: translateY(-20px) scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(5px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================
+   CARTOON-STYLE CARDS (Turn Info, Battlefield)
+   ============================================ */
+
+/* Enhanced card styling with depth */
+.game-board-container .card.bg-dark {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%) !important;
+  border: 3px solid #3a3a3a;
+  border-bottom: 4px solid #0a0a0a;
+  border-right: 3px solid #0a0a0a;
+  box-shadow:
+    2px 3px 0px rgba(0, 0, 0, 0.4),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.05);
+}
+
+/* Card headers with emphasis */
+.game-board-container .card-header {
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+  border-bottom: 2px solid #4a4a4a;
+  box-shadow: 0 1px 0px rgba(255, 255, 255, 0.05);
+  font-weight: bold;
+}
+
+/* Phase instruction text with better visibility */
+.game-board-container .card-header small {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 0.3rem;
+}
+
+.game-board-container .card-header .text-info {
+  color: #4dd0e1 !important;
+  font-weight: bold;
+}
+
+.game-board-container .card-header .text-success {
+  color: #81c784 !important;
+  font-weight: bold;
+}
+
+.game-board-container .card-header .text-warning {
+  color: #ffb74d !important;
+  font-weight: bold;
+}

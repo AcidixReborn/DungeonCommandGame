@@ -1,3 +1,8 @@
+/* ============================================
+   STEP 4: CARTOON STYLE - APP LAYOUT
+   Enhanced modals, navbar, and global buttons
+   ============================================ */
+
 html, body {
   margin: 0;
   padding: 0;
@@ -15,7 +20,217 @@ html, body {
   overflow: hidden;
 }
 
+/* ============================================
+   CARTOON-STYLE NAVBAR
+   ============================================ */
+
 .navbar-brand {
-  font-weight: bold;
+  font-weight: 900;
   font-size: 1.5rem;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    -1px -1px 0px rgba(0, 0, 0, 0.5);
+  color: #87ceeb !important;
+  letter-spacing: 0.5px;
+}
+
+.navbar.bg-dark {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%) !important;
+  border-bottom: 3px solid #3a3a3a;
+  box-shadow: 0 3px 0px rgba(0, 0, 0, 0.5);
+}
+
+.nav-link {
+  font-weight: bold;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 6px;
+  padding: 0.5rem 1rem !important;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background: rgba(135, 206, 235, 0.2);
+  color: #87ceeb !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   CARTOON-STYLE MODAL
+   ============================================ */
+
+/* Modal backdrop with subtle animation */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal content with cartoon depth */
+.modal-content {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 3px solid #3a3a3a;
+  border-bottom: 5px solid #0a0a0a;
+  border-right: 4px solid #0a0a0a;
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    4px 5px 0px rgba(0, 0, 0, 0.6),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  animation: modalBounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes modalBounceIn {
+  0% {
+    transform: scale(0.7) translateY(-50px);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Modal header */
+.modal-header {
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%) !important;
+  border-bottom: 2px solid #4a4a4a !important;
+  box-shadow: 0 1px 0px rgba(255, 255, 255, 0.05);
+}
+
+.modal-title {
+  font-weight: 900;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    -1px -1px 0px rgba(0, 0, 0, 0.5);
+  color: #87ceeb;
+}
+
+/* Modal body */
+.modal-body {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%) !important;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Modal footer */
+.modal-footer {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%) !important;
+  border-top: 2px solid #3a3a3a !important;
+  box-shadow: 0 -1px 0px rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================
+   CARTOON-STYLE BUTTONS (GLOBAL)
+   ============================================ */
+
+/* Secondary buttons */
+.btn-secondary {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  border: 3px solid #868e96;
+  border-bottom: 4px solid #343a40;
+  border-right: 3px solid #343a40;
+  color: #fff;
+  font-weight: 900;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    -1px -1px 0px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 0 1px #adb5bd,
+    2px 3px 0px rgba(52, 58, 64, 0.6),
+    inset 2px 2px 0px rgba(173, 181, 189, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 6px;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #868e96 0%, #6c757d 100%);
+  border-color: #adb5bd;
+  border-bottom-color: #495057;
+  border-right-color: #495057;
+  box-shadow:
+    0 0 0 2px #ced4da,
+    0 0 15px rgba(173, 181, 189, 0.5),
+    3px 4px 0px rgba(73, 80, 87, 0.7),
+    inset 2px 2px 0px rgba(206, 212, 218, 0.4);
+  transform: translateY(-2px) scale(1.05);
+}
+
+.btn-secondary:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    0 0 0 1px #adb5bd,
+    1px 2px 0px rgba(52, 58, 64, 0.6),
+    inset 2px 2px 0px rgba(173, 181, 189, 0.3);
+}
+
+/* Danger buttons */
+.btn-danger {
+  background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+  border: 3px solid #ef5350;
+  border-bottom: 4px solid #b71c1c;
+  border-right: 3px solid #b71c1c;
+  color: #fff;
+  font-weight: 900;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    -1px -1px 0px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 0 1px #ff5252,
+    2px 3px 0px rgba(183, 28, 28, 0.6),
+    inset 2px 2px 0px rgba(255, 82, 82, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 6px;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+  border-color: #ff5252;
+  border-bottom-color: #c62828;
+  border-right-color: #c62828;
+  box-shadow:
+    0 0 0 2px #ff6b6b,
+    0 0 20px rgba(255, 82, 82, 0.7),
+    3px 4px 0px rgba(198, 40, 40, 0.7),
+    inset 2px 2px 0px rgba(255, 107, 107, 0.4);
+  transform: translateY(-2px) scale(1.05);
+}
+
+.btn-danger:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    0 0 0 1px #ff5252,
+    1px 2px 0px rgba(183, 28, 28, 0.6),
+    inset 2px 2px 0px rgba(255, 82, 82, 0.3);
+}
+
+/* Dropdown styling */
+.dropdown-toggle {
+  font-weight: bold;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-menu {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 2px solid #3a3a3a;
+  box-shadow: 3px 4px 0px rgba(0, 0, 0, 0.5);
+}
+
+.dropdown-item {
+  color: #fff;
+  font-weight: bold;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-item:hover {
+  background: rgba(135, 206, 235, 0.2);
+  color: #87ceeb;
+  transform: translateX(3px);
 }

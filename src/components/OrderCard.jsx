@@ -16,6 +16,19 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
     }
   }
 
+  const getActionTypeAbbreviation = () => {
+    switch (order.actionType) {
+      case ActionTypes.STANDARD:
+        return 'STD'
+      case ActionTypes.MINOR:
+        return 'MIN'
+      case ActionTypes.IMMEDIATE:
+        return 'IMD'
+      default:
+        return order.actionType
+    }
+  }
+
   const getAbilityBadgeColor = (ability) => {
     const colors = {
       STR: 'danger',
@@ -59,14 +72,14 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
         className={`order-card-compact ${isSelected ? 'selected' : ''}`}
         onClick={onClick}
       >
-        <div className="order-card-header">
-          <span className="order-level">Lv{order.level}</span>
+        <div className="order-card-name-row">
           <span className="order-name">{order.name?.replace(/ #\d+$/, '') || order.name}</span>
         </div>
         <div className="order-badges-compact">
+          <span className="order-level">Lv{order.level}</span>
           {renderAbilityBadges()}
           <Badge bg={getActionBadgeColor()} className="badge-small">
-            {order.actionType}
+            {getActionTypeAbbreviation()}
           </Badge>
         </div>
       </div>
@@ -114,7 +127,7 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
             )}
           </div>
           <Badge bg={getActionBadgeColor()}>
-            {order.actionType}
+            {getActionTypeAbbreviation()}
           </Badge>
           {order.requiresCreatureType && (
             <Badge bg="warning" text="dark">
