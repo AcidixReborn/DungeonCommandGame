@@ -61,6 +61,8 @@ export class CreatureInstance {
     this.instanceId = `${creature.id}-${Date.now()}-${Math.random()}`
     this.deployedThisTurn = false // Safe from attacks until next turn
     this.turnDeployed = null // Track which turn it was deployed
+    this.hasMovedThisTurn = false // Track if creature has moved this turn
+    this.hasAttackedThisTurn = false // Track if creature has attacked this turn
   }
 
   // Mark creature as deployed this turn (safe from attacks)
@@ -91,6 +93,8 @@ export class CreatureInstance {
 
   untap() {
     this.isTapped = false
+    this.hasMovedThisTurn = false
+    this.hasAttackedThisTurn = false
   }
 
   isDestroyed() {

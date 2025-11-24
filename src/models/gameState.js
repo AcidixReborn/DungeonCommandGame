@@ -118,8 +118,15 @@ export class PlayerState {
   }
 
   // Check if player is defeated
-  isDefeated() {
-    return this.morale <= 0 || (this.creaturesInPlay.length === 0 && this.creatureHand.length === 0 && this.creatureDeck.length === 0)
+  // Player loses if: (1) Morale reaches 0, OR (2) All creatures in play are killed (after turn 1)
+  isDefeated(currentTurn = 1) {
+    // Morale defeat applies immediately
+    if (this.morale <= 0) return true
+
+    // Creature defeat only applies after turn 1 (give players a chance to deploy)
+    if (currentTurn > 1 && this.creaturesInPlay.length === 0) return true
+
+    return false
   }
 }
 
@@ -367,6 +374,18 @@ export class GameState {
   moveCreature(creatureInstance, targetTile) {
     if (!creatureInstance.position) return false
 
+    // Cannot move if tapped
+    if (creatureInstance.isTapped) {
+      console.log('Cannot move: creature is tapped')
+      return false
+    }
+
+    // Cannot move if already moved this turn
+    if (creatureInstance.hasMovedThisTurn) {
+      console.log('Cannot move: creature has already moved this turn')
+      return false
+    }
+
     const validTiles = this.getValidMovementTiles(creatureInstance)
     const isValid = validTiles.some(t => t.x === targetTile.x && t.y === targetTile.y)
 
@@ -381,6 +400,14 @@ export class GameState {
     // Set new position
     creatureInstance.position = { x: targetTile.x, y: targetTile.y }
     targetTile.occupant = creatureInstance
+
+    // Mark as moved
+    creatureInstance.hasMovedThisTurn = true
+
+    // Tap the creature if it has both moved AND attacked
+    if (creatureInstance.hasAttackedThisTurn) {
+      creatureInstance.tap()
+    }
 
     return true
   }
@@ -429,6 +456,16 @@ export class GameState {
 
   // Execute an attack from one creature to another
   executeAttack(attackerInstance, defenderInstance, attackType = 'melee') {
+    // Cannot attack if tapped
+    if (attackerInstance.isTapped) {
+      return { success: false, message: 'Cannot attack: creature is tapped' }
+    }
+
+    // Cannot attack if already attacked this turn
+    if (attackerInstance.hasAttackedThisTurn) {
+      return { success: false, message: 'Cannot attack: creature has already attacked this turn' }
+    }
+
     let damage = 0
 
     if (attackType === 'melee' && attackerInstance.creature.meleeAttack) {
@@ -439,8 +476,13 @@ export class GameState {
       return { success: false, message: 'Invalid attack type' }
     }
 
-    // Tap the attacker (attacking is a standard action)
-    attackerInstance.tap()
+    // Mark as attacked
+    attackerInstance.hasAttackedThisTurn = true
+
+    // Tap the creature if it has both moved AND attacked
+    if (attackerInstance.hasMovedThisTurn) {
+      attackerInstance.tap()
+    }
 
     // Use the custom combat resolution (includes +1 morale on kill)
     const result = this.resolveAttack(attackerInstance, defenderInstance, damage)
@@ -530,7 +572,7 @@ export class GameState {
 
   checkGameOver() {
     // Get all non-defeated players
-    const alivePlayers = this.activePlayers.filter(playerId => !this.players[playerId].isDefeated())
+    const alivePlayers = this.activePlayers.filter(playerId => !this.players[playerId].isDefeated(this.turnNumber))
 
     if (alivePlayers.length === 0) {
       // All defeated - highest morale wins
@@ -575,7 +617,7 @@ export class GameState {
   executeCleanupPhase() {
     const player = this.getCurrentPlayerState()
 
-    // Untap all creatures again (for immediate actions during opponent's turn)
+    // Untap only current player's creatures (not opponent's)
     player.creaturesInPlay.forEach(creature => creature.untap())
 
     // Draw creature cards back to hand limit from commander stats
