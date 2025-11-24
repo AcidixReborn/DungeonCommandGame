@@ -205,11 +205,11 @@ export const creatures = [
 export const orderCards = [
   {
     id: 'hoc_ord_1',
-    name: 'Heroic Strike',
-    level: 1,
-    abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Deal +20 damage on your next melee attack',
+    name: 'Arcane Ritual',
+    level: 2,
+    abilityRequired: 'INT',
+    actionType: 'MINOR',
+    effectDescription: 'Attach this card to this creature. At the end of its activation, if this creature is in a Magic Circle, discard this Order card.',
     faction: FACTION_NAME,
     imageUrl: null
   },
@@ -355,11 +355,12 @@ export const orderCards = [
   },
   {
     id: 'hoc_ord_16',
-    name: 'Order Card #16',
+    name: 'Heroic Surge',
     level: 1,
-    abilityRequired: 'STR',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #16',
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    requiresCreatureType: 'Adventurer',
+    effectDescription: 'REQUIRES ADVENTURER: Untap this creature.',
     faction: FACTION_NAME,
     imageUrl: null
   },

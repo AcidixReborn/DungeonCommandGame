@@ -38,7 +38,7 @@ function CreatureCard({ creature, onClick, isSelected, compact = false, draggabl
       >
         <div className="creature-card-header">
           <span className="creature-level">Lv{creature.level}</span>
-          <span className="creature-name">{creature.name}</span>
+          <span className="creature-name">{creature.name?.replace(/ #\d+$/, '') || creature.name}</span>
         </div>
         <div className="creature-stats-compact">
           <span>HP: {creature.hitPoints}</span>
@@ -58,7 +58,7 @@ function CreatureCard({ creature, onClick, isSelected, compact = false, draggabl
     >
       <Card.Header>
         <div className="d-flex justify-content-between align-items-center">
-          <span className="fw-bold">{creature.name}</span>
+          <span className="fw-bold">{creature.name?.replace(/ #\d+$/, '') || creature.name}</span>
           <Badge bg="warning" text="dark">
             Level {creature.level}
           </Badge>

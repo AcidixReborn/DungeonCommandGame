@@ -16,7 +16,7 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
     }
   }
 
-  const getAbilityBadgeColor = () => {
+  const getAbilityBadgeColor = (ability) => {
     const colors = {
       STR: 'danger',
       DEX: 'success',
@@ -26,7 +26,31 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
       CHA: 'secondary',
       ANY: 'light'
     }
-    return colors[order.abilityRequired] || 'secondary'
+    return colors[ability] || 'secondary'
+  }
+
+  const renderAbilityBadges = () => {
+    if (Array.isArray(order.abilityRequired)) {
+      return order.abilityRequired.map((ability, idx) => (
+        <Badge
+          key={idx}
+          bg={getAbilityBadgeColor(ability)}
+          text={ability === 'ANY' ? 'dark' : undefined}
+          className="badge-small"
+        >
+          {ability}
+        </Badge>
+      ))
+    }
+    return (
+      <Badge
+        bg={getAbilityBadgeColor(order.abilityRequired)}
+        text={order.abilityRequired === 'ANY' ? 'dark' : undefined}
+        className="badge-small"
+      >
+        {order.abilityRequired}
+      </Badge>
+    )
   }
 
   if (compact) {
@@ -37,12 +61,10 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
       >
         <div className="order-card-header">
           <span className="order-level">Lv{order.level}</span>
-          <span className="order-name">{order.name}</span>
+          <span className="order-name">{order.name?.replace(/ #\d+$/, '') || order.name}</span>
         </div>
         <div className="order-badges-compact">
-          <Badge bg={getAbilityBadgeColor()} className="badge-small">
-            {order.abilityRequired}
-          </Badge>
+          {renderAbilityBadges()}
           <Badge bg={getActionBadgeColor()} className="badge-small">
             {order.actionType}
           </Badge>
@@ -60,7 +82,7 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
     >
       <Card.Header>
         <div className="d-flex justify-content-between align-items-center">
-          <span className="fw-bold">{order.name}</span>
+          <span className="fw-bold">{order.name?.replace(/ #\d+$/, '') || order.name}</span>
           <Badge bg="warning" text="dark">
             Level {order.level}
           </Badge>
@@ -70,13 +92,35 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
         <Card.Img variant="top" src={order.imageUrl} alt={order.name} />
       )}
       <Card.Body>
-        <div className="mb-2 d-flex gap-2">
-          <Badge bg={getAbilityBadgeColor()}>
-            Requires: {order.abilityRequired}
-          </Badge>
+        <div className="mb-2 d-flex gap-2 flex-wrap">
+          <div className="d-flex gap-1">
+            {Array.isArray(order.abilityRequired) ? (
+              order.abilityRequired.map((ability, idx) => (
+                <Badge
+                  key={idx}
+                  bg={getAbilityBadgeColor(ability)}
+                  text={ability === 'ANY' ? 'dark' : undefined}
+                >
+                  {ability}
+                </Badge>
+              ))
+            ) : (
+              <Badge
+                bg={getAbilityBadgeColor(order.abilityRequired)}
+                text={order.abilityRequired === 'ANY' ? 'dark' : undefined}
+              >
+                {order.abilityRequired}
+              </Badge>
+            )}
+          </div>
           <Badge bg={getActionBadgeColor()}>
             {order.actionType}
           </Badge>
+          {order.requiresCreatureType && (
+            <Badge bg="warning" text="dark">
+              Requires: {order.requiresCreatureType}
+            </Badge>
+          )}
         </div>
 
         <div className="order-effect">

@@ -25,7 +25,7 @@ function createWindow() {
   const isDev = !app.isPackaged
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5178')
+    mainWindow.loadURL('http://localhost:5173')
     // Open DevTools in development
     mainWindow.webContents.openDevTools()
   } else {

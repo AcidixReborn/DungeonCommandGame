@@ -1,86 +1,195 @@
+/* ============================================
+   CARTOON STYLE - ORDER CARDS
+   Trading card style with depth and shine
+   ============================================ */
+
+/* Cartoon-style order card with depth */
 .order-card {
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: 2px solid #444;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 3px solid #5a5a5a;
+  border-bottom: 4px solid #2a2a2a;
+  border-right: 3px solid #2a2a2a;
   max-width: 250px;
   margin: 0.5rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2a3a4a 0%, #1a2a3a 100%);
+  box-shadow:
+    3px 4px 0px rgba(0, 0, 0, 0.4),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
 }
 
+/* Shine effect overlay */
+.order-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(135, 206, 235, 0.05) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Card lift on hover */
 .order-card:hover {
   border-color: #87ceeb;
-  box-shadow: 0 4px 8px rgba(135, 206, 235, 0.3);
-  transform: translateY(-2px);
+  border-bottom-color: #4a90c0;
+  border-right-color: #4a90c0;
+  box-shadow:
+    0 0 0 2px #b0e0ff,
+    0 0 20px rgba(135, 206, 235, 0.6),
+    5px 6px 0px rgba(74, 144, 192, 0.5),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.2);
+  transform: translateY(-5px) rotateX(5deg);
 }
 
+/* Selected card glow */
 .order-card.selected {
   border-color: #87ceeb;
-  box-shadow: 0 0 15px rgba(135, 206, 235, 0.6);
-  transform: scale(1.02);
+  border-bottom-color: #4a90c0;
+  border-right-color: #4a90c0;
+  box-shadow:
+    0 0 0 3px #b0e0ff,
+    0 0 25px rgba(135, 206, 235, 0.9),
+    6px 7px 0px rgba(74, 144, 192, 0.6),
+    inset 3px 3px 0px rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
 }
 
+/* Order effect display with cartoon styling */
 .order-effect {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #555;
+  border-top: 2px solid #87ceeb;
+  box-shadow: 0 -1px 0px rgba(135, 206, 235, 0.3);
 }
 
 .effect-text {
   font-size: 0.85rem;
-  color: #ddd;
+  color: #b0e0ff;
   margin-bottom: 0;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
+  padding: 0.2rem;
+  background: rgba(135, 206, 235, 0.1);
+  border-radius: 3px;
 }
 
-/* Compact version for hand display */
+/* Compact version for hand display - trading card style */
 .order-card-compact {
-  background-color: #1a2a3a;
-  border: 2px solid #444;
-  border-radius: 4px;
-  padding: 0.5rem;
+  background: linear-gradient(135deg, #2a3a4a 0%, #1a2a3a 100%);
+  border: 3px solid #5a5a5a;
+  border-bottom: 4px solid #2a2a2a;
+  border-right: 3px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 0.6rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 140px;
   margin: 0.25rem;
+  box-shadow:
+    2px 3px 0px rgba(0, 0, 0, 0.4),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
 }
 
+/* Subtle shine on compact cards */
+.order-card-compact::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 40%,
+    rgba(135, 206, 235, 0.03) 50%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* Compact card hover - lift and glow */
 .order-card-compact:hover {
   border-color: #87ceeb;
-  box-shadow: 0 2px 4px rgba(135, 206, 235, 0.3);
+  border-bottom-color: #4a90c0;
+  border-right-color: #4a90c0;
+  box-shadow:
+    0 0 0 2px #87ceeb,
+    0 0 15px rgba(135, 206, 235, 0.6),
+    3px 4px 0px rgba(74, 144, 192, 0.5),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.2);
+  transform: translateY(-3px) scale(1.03);
 }
 
+/* Selected compact card */
 .order-card-compact.selected {
   border-color: #87ceeb;
-  background-color: #2a3a4a;
-  box-shadow: 0 0 10px rgba(135, 206, 235, 0.5);
+  border-bottom-color: #4a90c0;
+  border-right-color: #4a90c0;
+  background: linear-gradient(135deg, #3a4a5a 0%, #2a3a4a 100%);
+  box-shadow:
+    0 0 0 2px #b0e0ff,
+    0 0 20px rgba(135, 206, 235, 0.8),
+    4px 5px 0px rgba(74, 144, 192, 0.6),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.2);
 }
 
+/* Card header with better spacing */
 .order-card-header {
   display: flex;
   align-items: center;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.3rem;
 }
 
+/* Level badge with cartoon styling */
 .order-level {
-  background-color: #ffa500;
+  background: linear-gradient(135deg, #87ceeb 0%, #4a90c0 100%);
   color: #000;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-weight: bold;
-  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-weight: 900;
+  font-size: 0.75rem;
   margin-right: 0.5rem;
+  border: 2px solid #b0e0ff;
+  box-shadow:
+    0 2px 0px rgba(74, 144, 192, 0.5),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.4);
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.3);
 }
 
+/* Order name with stronger presence */
 .order-name {
-  font-weight: bold;
-  font-size: 0.85rem;
+  font-weight: 900;
+  font-size: 0.9rem;
   color: #fff;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    -1px -1px 0px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.3px;
 }
 
+/* Compact badges with better visibility */
 .order-badges-compact {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.3rem;
+  flex-wrap: wrap;
 }
 
 .badge-small {
   font-size: 0.65rem;
   padding: 2px 6px;
+  font-weight: bold;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.2);
 }

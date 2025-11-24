@@ -19,7 +19,7 @@ function createWindow() {
   });
   const isDev = !electron.app.isPackaged;
   if (isDev) {
-    mainWindow.loadURL("http://localhost:5178");
+    mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname$1, "../dist/index.html"));
