@@ -69,11 +69,10 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, isAttackT
 
       {creature && (
         <div className={`creature-token player-${creature.owner} ${isAttackTarget ? 'targetable' : ''} ${creature.deployedThisTurn ? 'protected' : ''}`}>
-          <div className="creature-name">{creature.creature.name}</div>
+          <div className="creature-name">{creature.creature.name.replace(/ #\d+$/, '')}</div>
           <div className="creature-hp">{creature.currentHP}/{creature.creature.hitPoints}</div>
           {creature.isTapped && <div className="tapped-indicator">⤵️</div>}
           {isAttackTarget && <div className="attack-indicator">🎯</div>}
-          {creature.deployedThisTurn && <div className="protected-indicator">🛡️</div>}
         </div>
       )}
 
