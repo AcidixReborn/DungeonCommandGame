@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Container, Nav, Navbar, Button, Dropdown, Modal } from 'react-bootstrap'
 import GameBoard from './components/GameBoard'
 import DataEntry from './components/DataEntry'
+import GameSimulation from './test/GameSimulation'
 import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 
@@ -56,6 +57,12 @@ function App() {
                 >
                   Data Entry
                 </Nav.Link>
+                <Nav.Link
+                  active={currentView === 'test'}
+                  onClick={() => setCurrentView('test')}
+                >
+                  Game Test
+                </Nav.Link>
               </Nav>
               <Nav>
                 <Dropdown align="end">
@@ -76,6 +83,7 @@ function App() {
         <Container fluid style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
           {currentView === 'game' && <GameBoard />}
           {currentView === 'data' && <DataEntry />}
+          {currentView === 'test' && <GameSimulation />}
         </Container>
 
         {/* Exit Confirmation Modal */}
