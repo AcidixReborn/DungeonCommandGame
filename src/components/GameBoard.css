@@ -1,8 +1,9 @@
 /* ============================================
-   STEP 4: CARTOON STYLE - GAME BOARD UI
-   Enhanced buttons, badges, alerts with depth
+   STEP 5: PROFESSIONAL GAMING AESTHETIC - GAME BOARD
+   Enhanced with subtle patterns and micro-interactions
    ============================================ */
 
+/* STEP 4 - ORIGINAL CODE (COMMENTED OUT FOR BACKUP)
 .game-board-container {
   height: 100%;
   overflow: hidden;
@@ -23,6 +24,45 @@
   display: flex;
   flex: 1;
   min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+*/
+
+/* STEP 5 - ENHANCED VERSION */
+.game-board-container {
+  height: 100%;
+  overflow: hidden;
+}
+
+.board-grid {
+  display: flex;
+  flex-direction: column;
+  background-color: #1a1a1a;
+  padding: 5px;
+  border-radius: 8px;
+  border: 2px solid #444;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  /* Subtle texture overlay */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.005) 2px,
+      rgba(255, 255, 255, 0.005) 4px
+    );
+  box-shadow:
+    inset 0 0 20px rgba(0, 0, 0, 0.3),
+    0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.board-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
   margin: 0; /* No gaps between rows */
   padding: 0; /* No padding */
 }
@@ -30,10 +70,10 @@
 /* Removed border between rows for seamless connection */
 
 /* ============================================
-   CARTOON-STYLE BUTTONS
+   CARTOON-STYLE BUTTONS - STEP 5 ENHANCED
    ============================================ */
 
-/* Primary buttons with vibrant cartoon depth */
+/* STEP 4 - ORIGINAL CODE (COMMENTED OUT FOR BACKUP)
 .game-board-container .btn-primary {
   background: linear-gradient(135deg, #4a90e2 0%, #2e5c8a 100%);
   border: 3px solid #5aa0f0;
@@ -72,6 +112,80 @@
     0 0 0 1px #87ceeb,
     1px 2px 0px rgba(30, 77, 122, 0.6),
     inset 2px 2px 0px rgba(135, 206, 235, 0.3);
+}
+
+.game-board-container .btn-primary:disabled {
+  background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+  border-color: #5a5a5a;
+  border-bottom-color: #1a1a1a;
+  border-right-color: #1a1a1a;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+*/
+
+/* STEP 5 - ENHANCED VERSION */
+/* Primary buttons with enhanced micro-interactions */
+.game-board-container .btn-primary {
+  background: linear-gradient(135deg, #4a90e2 0%, #2e5c8a 100%);
+  border: 3px solid #5aa0f0;
+  border-bottom: 4px solid #1e4d7a;
+  border-right: 3px solid #1e4d7a;
+  color: #fff;
+  font-weight: 900;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    -1px -1px 0px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 0 1px #87ceeb,
+    2px 3px 0px rgba(30, 77, 122, 0.6),
+    inset 2px 2px 0px rgba(135, 206, 235, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle shine effect on buttons - MUST NOT BLOCK CLICKS */
+.game-board-container .btn-primary::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 70%
+  );
+  transform: rotate(45deg);
+  pointer-events: none !important;
+  z-index: -1;
+}
+
+.game-board-container .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5aa0f0 0%, #3e6c9a 100%);
+  border-color: #87ceeb;
+  border-bottom-color: #2e5c8a;
+  border-right-color: #2e5c8a;
+  box-shadow:
+    0 0 0 2px #b0e0ff,
+    0 0 20px rgba(135, 206, 235, 0.7),
+    3px 4px 0px rgba(46, 92, 138, 0.7),
+    inset 2px 2px 0px rgba(176, 224, 255, 0.4);
+  transform: translateY(-2px) scale(1.05);
+}
+
+.game-board-container .btn-primary:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    0 0 0 1px #87ceeb,
+    1px 2px 0px rgba(30, 77, 122, 0.6),
+    inset 2px 2px 0px rgba(135, 206, 235, 0.3);
+  transition: all 0.1s ease;
 }
 
 .game-board-container .btn-primary:disabled {

@@ -1,8 +1,9 @@
 /* ============================================
-   STEP 4: CARTOON STYLE - APP LAYOUT
-   Enhanced modals, navbar, and global buttons
+   STEP 5: PROFESSIONAL GAMING AESTHETIC
+   Subtle background patterns, enhanced cohesion
    ============================================ */
 
+/* STEP 4 - ORIGINAL CODE (COMMENTED OUT FOR BACKUP)
 html, body {
   margin: 0;
   padding: 0;
@@ -19,11 +20,58 @@ html, body {
   background-color: #1a1a1a;
   overflow: hidden;
 }
+*/
+
+/* STEP 5 - ENHANCED VERSION */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+}
+
+.App {
+  height: 100vh;
+  overflow: hidden;
+  /* Professional gaming background with subtle texture */
+  background:
+    /* Subtle diagonal lines pattern */
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(255, 255, 255, 0.01) 10px,
+      rgba(255, 255, 255, 0.01) 20px
+    ),
+    /* Subtle grid pattern */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 40px,
+      rgba(135, 206, 235, 0.015) 40px,
+      rgba(135, 206, 235, 0.015) 41px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(135, 206, 235, 0.015) 40px,
+      rgba(135, 206, 235, 0.015) 41px
+    ),
+    /* Dark gradient base with slight variation */
+    radial-gradient(ellipse at top left, #1f1f1f 0%, #1a1a1a 50%, #151515 100%);
+  background-attachment: fixed;
+}
 
 /* ============================================
-   CARTOON-STYLE NAVBAR
+   CARTOON-STYLE NAVBAR - STEP 5 ENHANCED
    ============================================ */
 
+/* STEP 4 - ORIGINAL CODE (COMMENTED OUT FOR BACKUP)
 .navbar-brand {
   font-weight: 900;
   font-size: 1.5rem;
@@ -54,12 +102,119 @@ html, body {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   transform: translateY(-2px);
 }
+*/
+
+/* STEP 5 - ENHANCED VERSION */
+.navbar-brand {
+  font-weight: 900;
+  font-size: 1.5rem;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    -1px -1px 0px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(135, 206, 235, 0.3);
+  color: #87ceeb !important;
+  letter-spacing: 0.5px;
+  /* Subtle glow animation */
+  animation: subtleGlow 3s ease-in-out infinite;
+}
+
+@keyframes subtleGlow {
+  0%, 100% {
+    text-shadow:
+      2px 2px 0px rgba(0, 0, 0, 0.8),
+      -1px -1px 0px rgba(0, 0, 0, 0.5),
+      0 0 10px rgba(135, 206, 235, 0.3);
+  }
+  50% {
+    text-shadow:
+      2px 2px 0px rgba(0, 0, 0, 0.8),
+      -1px -1px 0px rgba(0, 0, 0, 0.5),
+      0 0 15px rgba(135, 206, 235, 0.5);
+  }
+}
+
+.navbar.bg-dark {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%) !important;
+  border-bottom: 3px solid #3a3a3a;
+  box-shadow:
+    0 3px 0px rgba(0, 0, 0, 0.5),
+    0 5px 15px rgba(0, 0, 0, 0.3);
+  /* Subtle pattern overlay */
+  position: relative;
+  backdrop-filter: blur(10px);
+  z-index: 1000; /* Ensure navbar appears above game board */
+}
+
+.navbar.bg-dark::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.01) 2px,
+    rgba(255, 255, 255, 0.01) 4px
+  );
+  pointer-events: none !important;
+  z-index: 0;
+}
+
+.navbar.bg-dark > * {
+  position: relative;
+  z-index: 1;
+}
+
+.nav-link {
+  font-weight: bold;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 6px;
+  padding: 0.5rem 1rem !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(135, 206, 235, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+  pointer-events: none !important;
+  z-index: -1;
+}
+
+.nav-link:hover::before {
+  left: 100%;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background: rgba(135, 206, 235, 0.2);
+  color: #87ceeb !important;
+  text-shadow:
+    1px 1px 2px rgba(0, 0, 0, 0.8),
+    0 0 8px rgba(135, 206, 235, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(135, 206, 235, 0.2);
+}
 
 /* ============================================
-   CARTOON-STYLE MODAL
+   CARTOON-STYLE MODAL - STEP 5 ENHANCED
    ============================================ */
 
-/* Modal backdrop with subtle animation */
+/* STEP 4 - ORIGINAL CODE (COMMENTED OUT FOR BACKUP)
 .modal-backdrop {
   background-color: rgba(0, 0, 0, 0.7);
   animation: fadeIn 0.3s ease-in-out;
@@ -70,7 +225,6 @@ html, body {
   to { opacity: 1; }
 }
 
-/* Modal content with cartoon depth */
 .modal-content {
   background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
   border: 3px solid #3a3a3a;
@@ -98,7 +252,6 @@ html, body {
   }
 }
 
-/* Modal header */
 .modal-header {
   background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%) !important;
   border-bottom: 2px solid #4a4a4a !important;
@@ -113,18 +266,125 @@ html, body {
   color: #87ceeb;
 }
 
-/* Modal body */
 .modal-body {
   background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%) !important;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-/* Modal footer */
 .modal-footer {
   background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%) !important;
   border-top: 2px solid #3a3a3a !important;
   box-shadow: 0 -1px 0px rgba(255, 255, 255, 0.05);
+}
+*/
+
+/* STEP 5 - ENHANCED VERSION */
+/* Modal backdrop with subtle animation and blur */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* Modal content with enhanced depth and subtle pattern */
+.modal-content {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 3px solid #3a3a3a;
+  border-bottom: 5px solid #0a0a0a;
+  border-right: 4px solid #0a0a0a;
+  box-shadow:
+    0 0 0 2px #4a4a4a,
+    4px 5px 0px rgba(0, 0, 0, 0.6),
+    0 10px 40px rgba(0, 0, 0, 0.5),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  animation: modalBounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle texture overlay for modals */
+.modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.01) 2px,
+    rgba(255, 255, 255, 0.01) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.modal-content > * {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes modalBounceIn {
+  0% {
+    transform: scale(0.7) translateY(-50px);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Modal header with enhanced styling */
+.modal-header {
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%) !important;
+  border-bottom: 2px solid #4a4a4a !important;
+  box-shadow:
+    0 1px 0px rgba(255, 255, 255, 0.05),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+  font-weight: 900;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    -1px -1px 0px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(135, 206, 235, 0.3);
+  color: #87ceeb;
+}
+
+/* Modal body with subtle pattern */
+.modal-body {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%) !important;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Modal footer with enhanced depth */
+.modal-footer {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%) !important;
+  border-top: 2px solid #3a3a3a !important;
+  box-shadow:
+    0 -1px 0px rgba(255, 255, 255, 0.05),
+    0 -2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* ============================================
@@ -211,26 +471,171 @@ html, body {
     inset 2px 2px 0px rgba(255, 82, 82, 0.3);
 }
 
-/* Dropdown styling */
+/* Dropdown styling - STEP 5 ENHANCED */
 .dropdown-toggle {
   font-weight: bold;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Enhanced visibility */
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+  border: 3px solid #868e96 !important;
+  border-bottom: 4px solid #343a40 !important;
+  border-right: 3px solid #343a40 !important;
+  box-shadow:
+    0 0 0 1px #adb5bd,
+    2px 3px 0px rgba(52, 58, 64, 0.6),
+    inset 2px 2px 0px rgba(173, 181, 189, 0.3) !important;
+}
+
+.dropdown-toggle:hover {
+  background: linear-gradient(135deg, #868e96 0%, #6c757d 100%) !important;
+  border-color: #adb5bd !important;
+  box-shadow:
+    0 0 0 2px #ced4da,
+    0 0 15px rgba(173, 181, 189, 0.5),
+    3px 4px 0px rgba(73, 80, 87, 0.7),
+    inset 2px 2px 0px rgba(206, 212, 218, 0.4) !important;
+  transform: translateY(-2px);
 }
 
 .dropdown-menu {
   background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-  border: 2px solid #3a3a3a;
-  box-shadow: 3px 4px 0px rgba(0, 0, 0, 0.5);
+  border: 3px solid #3a3a3a;
+  border-bottom: 4px solid #0a0a0a;
+  box-shadow:
+    3px 4px 0px rgba(0, 0, 0, 0.5),
+    0 5px 15px rgba(0, 0, 0, 0.4);
+  z-index: 1050;
 }
 
 .dropdown-item {
-  color: #fff;
+  color: #adb5bd !important; /* Match the settings button color scheme */
   font-weight: bold;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
 }
 
-.dropdown-item:hover {
-  background: rgba(135, 206, 235, 0.2);
-  color: #87ceeb;
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba(135, 206, 235, 0.3) !important;
+  color: #87ceeb !important;
   transform: translateX(3px);
+  text-shadow: 0 0 8px rgba(135, 206, 235, 0.6);
+}
+
+/* ============================================
+   STEP 5: PROFESSIONAL SCROLLBARS & FINAL POLISH
+   ============================================ */
+
+/* Global smooth scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
+  border-radius: 5px;
+  border: 2px solid rgba(135, 206, 235, 0.2);
+  box-shadow:
+    inset 1px 1px 0px rgba(255, 255, 255, 0.1),
+    0 0 5px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a5a5a 0%, #4a4a4a 100%);
+  border-color: rgba(135, 206, 235, 0.4);
+  box-shadow:
+    inset 1px 1px 0px rgba(255, 255, 255, 0.15),
+    0 0 8px rgba(135, 206, 235, 0.3);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(135deg, #6a6a6a 0%, #5a5a5a 100%);
+  border-color: rgba(135, 206, 235, 0.6);
+}
+
+/* Smooth scroll behavior */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Selection color matching theme */
+::selection {
+  background: rgba(135, 206, 235, 0.3);
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+::-moz-selection {
+  background: rgba(135, 206, 235, 0.3);
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Focus states with consistent theme glow */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(135, 206, 235, 0.5);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(135, 206, 235, 0.2);
+}
+
+/* Smooth transitions for all interactive elements */
+button,
+a,
+input,
+select,
+textarea,
+.card,
+.badge,
+.alert {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Professional focus ring removal (replaced with custom focus-visible) */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Ensure buttons are always clickable */
+button,
+.btn,
+.dropdown-toggle {
+  position: relative;
+  z-index: 10;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Ensure pseudo-elements don't block clicks */
+button::before,
+button::after,
+.btn::before,
+.btn::after {
+  pointer-events: none;
+}
+
+/* Subtle pulse animation for important UI elements */
+@keyframes subtlePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* Loading state styling */
+.loading {
+  animation: subtlePulse 2s ease-in-out infinite;
 }
