@@ -1,6 +1,8 @@
 // Heart of Cormyr Faction Data
 import cormyrCmd1 from '../../assets/commanders/Cormyr_Commander_Card_1.webp'
 import cormyrCmd2 from '../../assets/commanders/Cormyr_Commander_Card_2.webp'
+import dwarfClericImg from '../../assets/creatures/Corymr_DwarfCleric_Card_3.webp'
+import halfOrcThugImg from '../../assets/creatures/Corymr_Half-OrcThug_Card_10.webp'
 
 export const FACTION_NAME = 'Heart of Cormyr'
 
@@ -60,17 +62,17 @@ export const creatures = [
   },
   {
     id: 'hoc_cr_3',
-    name: 'Ranger',
-    level: 4,
-    type: ['Humanoid', 'Human', 'Good'],
-    speed: 7,
-    hitPoints: 70,
-    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 35, range: 1 },
-    rangedAttack: { damage: 40, range: 8 },
-    specialAbilities: ['Archery: +2 range on ranged attacks'],
+    name: 'Dwarf Cleric',
+    level: 3,
+    type: ['Humanoid', 'Dwarf', 'Good', 'Adventurer'],
+    speed: 5,
+    hitPoints: 60,
+    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['HEALING TOUCH: ⚔ - 1 creature or 1 adjacent ally heals 10 DAMAGE or removes 1 attached Order card.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg
   },
   {
     id: 'hoc_cr_4',
@@ -158,17 +160,17 @@ export const creatures = [
   },
   {
     id: 'hoc_cr_10',
-    name: 'Scout #10',
-    level: 2,
-    type: ['Humanoid', 'Human', 'Good'],
-    speed: 8,
-    hitPoints: 40,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: true, CHA: false },
+    name: 'Half-Orc Thug',
+    level: 3,
+    type: ['Humanoid', 'Half-Orc', 'Adventurer'],
+    speed: 6,
+    hitPoints: 50,
+    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 30, range: 6 },
-    specialAbilities: ['Placeholder Ability #10'],
+    rangedAttack: { damage: 20, range: 5 },
+    specialAbilities: ['EXPLOSIVE BOLTS 10: Whenever this creature makes a ranged attack, it deals 10 DAMAGE to each creature adjacent to the target.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: halfOrcThugImg
   },
   {
     id: 'hoc_cr_11',

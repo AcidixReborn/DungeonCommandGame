@@ -1,6 +1,9 @@
 // Sting of Lolth Faction Data
 import lolthCmd1 from '../../assets/commanders/Lolth_Commander_Card_1.webp'
 import lolthCmd2 from '../../assets/commanders/Lolth_Commander_Card_2.webp'
+import drowPriestessImg from '../../assets/creatures/Lolth_Priestess_Card_8.webp'
+import drowWizardImg from '../../assets/creatures/Lolth_DrowWizard_Card_9.webp'
+import umberHulkImg from '../../assets/creatures/Lolth_UmberHulk_Card_12.webp'
 
 export const FACTION_NAME = 'Sting of Lolth'
 
@@ -47,16 +50,16 @@ export const creatures = [
   {
     id: 'sol_cr_2',
     name: 'Drow Priestess',
-    level: 4,
+    level: 3,
     type: ['Humanoid', 'Drow', 'Evil'],
     speed: 6,
-    hitPoints: 80,
-    abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: true, CHA: true },
-    meleeAttack: { damage: 30, range: 1 },
+    hitPoints: 60,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: true, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Dark Blessing: Can heal adjacent allies'],
+    specialAbilities: ['SUMMON SPIDER: When deploying any Spider creature, you can place it in any unoccupied square within 5 squares of this creature.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: drowPriestessImg
   },
   {
     id: 'sol_cr_3',
@@ -144,17 +147,17 @@ export const creatures = [
   },
   {
     id: 'sol_cr_9',
-    name: 'Drow Scout #9',
+    name: 'Drow Wizard',
     level: 2,
-    type: ['Humanoid', 'Drow', 'Evil'],
-    speed: 7,
-    hitPoints: 40,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: true, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 25, range: 5 },
-    specialAbilities: ['Placeholder Ability #9'],
+    type: ['Humanoid', 'Drow', 'Evil', 'Adventurer'],
+    speed: 6,
+    hitPoints: 30,
+    abilities: { STR: false, DEX: true, CON: false, INT: true, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: { damage: 20, range: 10 },
+    specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: drowWizardImg
   },
   {
     id: 'sol_cr_10',
@@ -186,17 +189,17 @@ export const creatures = [
   },
   {
     id: 'sol_cr_12',
-    name: 'Drow Slave #12',
-    level: 1,
-    type: ['Humanoid', 'Drow', 'Evil'],
-    speed: 5,
-    hitPoints: 25,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 10, range: 1 },
+    name: 'Umber Hulk',
+    level: 5,
+    type: ['Aberrant'],
+    speed: 6,
+    hitPoints: 100,
+    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #12'],
+    specialAbilities: ['BURROW', 'CONFUSION GAZE: ⚔ As a standard action, choose 1 enemy creature within 5 squares and slide that creature 3 squares, then make a melee attack that deals ⚔ DAMAGE.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: umberHulkImg
   }
 ]
 

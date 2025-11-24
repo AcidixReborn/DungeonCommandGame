@@ -1,6 +1,7 @@
 // Blood of Gruumsh Faction Data
 import gruumshCmd1 from '../../assets/commanders/Gruumsh_Commander_Card_1.webp'
 import gruumshCmd2 from '../../assets/commanders/Gruumsh_Commander_Card_2.webp'
+import orcChieftainImg from '../../assets/creatures/Gruumsh_Orc_Chieftain_Card_6.webp'
 
 export const FACTION_NAME = 'Blood of Gruumsh'
 
@@ -102,17 +103,17 @@ export const creatures = [
   },
   {
     id: 'bog_cr_6',
-    name: 'Orc Savage #6',
-    level: 3,
-    type: ['Humanoid', 'Orc', 'Evil'],
-    speed: 7,
-    hitPoints: 65,
-    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 35, range: 1 },
+    name: 'Orc Chieftain',
+    level: 5,
+    type: ['Humanoid', 'Orc'],
+    speed: 6,
+    hitPoints: 90,
+    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #6'],
+    specialAbilities: ['When you deploy this creature, you can reveal an Orc Creature card of Level 3 or lower from your hand. If you do, gain LEADERSHIP equal to the revealed creature\'s Level and immediately deploy that creature.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orcChieftainImg
   },
   {
     id: 'bog_cr_7',

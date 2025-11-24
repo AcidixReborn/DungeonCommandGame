@@ -1,6 +1,7 @@
 // Curse of Undeath Faction Data
 import undeathCmd1 from '../../assets/commanders/Undeath_Commander_Card_1.webp'
 import undeathCmd2 from '../../assets/commanders/Undeath_Commander_Card_2.webp'
+import vampireStalkerImg from '../../assets/creatures/Undead_Vampire_Stalker_Card_8.webp'
 
 export const FACTION_NAME = 'Curse of Undeath'
 
@@ -130,17 +131,17 @@ export const creatures = [
   },
   {
     id: 'cou_cr_8',
-    name: 'Zombie Brute #8',
-    level: 3,
-    type: ['Undead', 'Zombie'],
-    speed: 4,
-    hitPoints: 60,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 35, range: 1 },
+    name: 'Vampire Stalker',
+    level: 4,
+    type: ['Undead', 'Evil', 'Humanoid', 'Vampire'],
+    speed: 6,
+    hitPoints: 80,
+    abilities: { STR: false, DEX: true, CON: true, INT: false, WIS: false, CHA: true },
+    meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #8'],
+    specialAbilities: ['LIFE DRAIN: Whenever a target takes damage from this creature\'s melee attack, this creature heals 10 DAMAGE.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: vampireStalkerImg
   },
   {
     id: 'cou_cr_9',
