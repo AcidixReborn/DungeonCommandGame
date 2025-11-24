@@ -1,117 +1,255 @@
+/* ============================================
+   STEP 1: CARTOON STYLE - BOARD TILES
+   Cel-shaded, vibrant, cartoon aesthetic
+   ============================================ */
+
+/* Seamless connected tiles */
 .board-tile {
   width: 60px;
   height: 60px;
-  border: 1px solid #444;
+  border: none; /* No borders - completely seamless */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth anime-style transition */
   font-size: 0.7rem;
+  border-radius: 0; /* No rounding - tiles connect perfectly */
+  box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.05); /* Very subtle inset highlight for slight depth */
+  margin: 0; /* No gaps between tiles */
+  padding: 0;
 }
 
+/* Anime-style pop on hover - tile lifts up */
 .board-tile:hover {
-  border-color: #fff;
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+  transform: translateY(-3px) translateZ(10px);
+  border: 2px solid #3a3a3a;
+  border-bottom: 3px solid #1a1a1a;
+  border-right: 2px solid #1a1a1a;
+  box-shadow:
+    3px 4px 0px rgba(0, 0, 0, 0.4),
+    0 0 15px rgba(255, 255, 255, 0.25),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.15);
+  filter: brightness(1.2);
+  z-index: 10; /* Lift above other tiles */
 }
 
+/* Cartoon selection with outline glow */
 .board-tile.selected {
-  border: 2px solid #ffd700;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  border: 3px solid #ffeb3b;
+  border-bottom: 4px solid #ffa000;
+  border-right: 3px solid #ffa000;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 15px rgba(255, 235, 59, 0.8),
+    3px 3px 0px rgba(255, 160, 0, 0.5),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.3);
+  transform: scale(1.08);
 }
 
+/* Vibrant green cartoon style for valid moves */
 .board-tile.valid-move {
-  border: 2px solid #00ff00;
-  box-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
-  background-color: rgba(0, 255, 0, 0.1) !important;
+  border: 3px solid #76ff03;
+  border-bottom: 4px solid #33691e;
+  border-right: 3px solid #33691e;
+  box-shadow:
+    0 0 0 2px #c6ff00,
+    0 0 12px rgba(118, 255, 3, 0.6),
+    3px 3px 0px rgba(51, 105, 30, 0.4),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.2);
+  background-color: rgba(118, 255, 3, 0.15) !important;
+  animation: glow-green 1.5s ease-in-out infinite;
 }
 
+@keyframes glow-green {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px #c6ff00,
+      0 0 12px rgba(118, 255, 3, 0.6),
+      3px 3px 0px rgba(51, 105, 30, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px #c6ff00,
+      0 0 20px rgba(118, 255, 3, 0.9),
+      3px 3px 0px rgba(51, 105, 30, 0.5);
+  }
+}
+
+/* Dramatic red cartoon attack highlight */
 .board-tile.attack-target {
-  border: 2px solid #ff0000;
-  box-shadow: 0 0 10px rgba(255, 0, 0, 0.6);
-  animation: pulse-red 1s infinite;
+  border: 3px solid #ff1744;
+  border-bottom: 4px solid #b71c1c;
+  border-right: 3px solid #b71c1c;
+  box-shadow:
+    0 0 0 2px #ff5252,
+    0 0 15px rgba(255, 23, 68, 0.8),
+    3px 3px 0px rgba(183, 28, 28, 0.5),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.2);
+  animation: pulse-red-cartoon 1s infinite;
 }
 
+@keyframes pulse-red-cartoon {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px #ff5252,
+      0 0 15px rgba(255, 23, 68, 0.8),
+      3px 3px 0px rgba(183, 28, 28, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px #ff5252,
+      0 0 25px rgba(255, 23, 68, 1),
+      4px 4px 0px rgba(183, 28, 28, 0.6);
+    transform: scale(1.05);
+  }
+}
+
+/* Vibrant gold cartoon drag target */
 .board-tile.drag-target {
-  border: 3px solid #ffd700;
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
-  background-color: rgba(255, 215, 0, 0.2) !important;
-  animation: pulse-gold 1s infinite;
+  border: 3px solid #ffc400;
+  border-bottom: 4px solid #ff6f00;
+  border-right: 3px solid #ff6f00;
+  box-shadow:
+    0 0 0 2px #ffeb3b,
+    0 0 20px rgba(255, 196, 0, 1),
+    4px 4px 0px rgba(255, 111, 0, 0.5),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 235, 59, 0.25) !important;
+  animation: pulse-gold-cartoon 1s infinite;
+  transform: scale(1.08);
 }
 
-@keyframes pulse-gold {
+@keyframes pulse-gold-cartoon {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    box-shadow:
+      0 0 0 2px #ffeb3b,
+      0 0 20px rgba(255, 196, 0, 1),
+      4px 4px 0px rgba(255, 111, 0, 0.5);
   }
   50% {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 1);
+    box-shadow:
+      0 0 0 4px #ffeb3b,
+      0 0 30px rgba(255, 196, 0, 1),
+      5px 5px 0px rgba(255, 111, 0, 0.6);
   }
 }
 
-@keyframes pulse-red {
-  0%, 100% {
-    box-shadow: 0 0 5px rgba(255, 0, 0, 0.6);
-  }
-  50% {
-    box-shadow: 0 0 15px rgba(255, 0, 0, 0.9);
-  }
-}
+/* ============================================
+   TERRAIN TYPES - VIBRANT CARTOON COLORS
+   ============================================ */
 
-/* Terrain types */
+/* Brighter, more saturated colors */
 .terrain-normal {
-  background-color: #2a2a2a;
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+  background-image:
+    linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
 }
 
+/* Vibrant green forest */
 .terrain-forest {
-  background-color: #1a4d1a;
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+  background-image:
+    linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%),
+    radial-gradient(circle at 30% 30%, rgba(139, 195, 74, 0.3) 0%, transparent 60%);
+  box-shadow: inset 2px 2px 0px rgba(255, 255, 255, 0.1); /* Cel-shaded highlight */
 }
 
+/* Cartoon rocky mountain */
 .terrain-mountain {
-  background-color: #4a4a4a;
-  background-image: linear-gradient(135deg, #5a5a5a 25%, transparent 25%),
-                    linear-gradient(225deg, #5a5a5a 25%, transparent 25%);
-  background-size: 10px 10px;
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  background-image:
+    linear-gradient(135deg, #616161 0%, #424242 100%),
+    linear-gradient(135deg, #757575 25%, transparent 25%),
+    linear-gradient(225deg, #757575 25%, transparent 25%),
+    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 40%);
+  background-size: 100%, 8px 8px, 8px 8px, 100%;
+  box-shadow: inset 3px 3px 0px rgba(255, 255, 255, 0.1);
 }
 
+/* Sandy/muddy terrain with cartoon style */
 .terrain-difficult {
-  background-color: #3a2a1a;
+  background: linear-gradient(135deg, #5d4037 0%, #3e2723 100%);
+  background-image:
+    linear-gradient(135deg, #5d4037 0%, #3e2723 100%),
+    radial-gradient(circle at 40% 40%, rgba(121, 85, 72, 0.3) 0%, transparent 50%);
 }
 
+/* Vibrant magical purple with glow */
 .terrain-magic-circle {
-  background: radial-gradient(circle, #4a1a4a 0%, #2a1a3a 60%, #1a1a2a 100%);
-  box-shadow: inset 0 0 10px rgba(138, 43, 226, 0.5);
+  background: radial-gradient(circle, #7b1fa2 0%, #4a148c 60%, #311b92 100%);
+  box-shadow:
+    inset 0 0 15px rgba(186, 104, 200, 0.6),
+    0 0 8px rgba(156, 39, 176, 0.4),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.1);
+  animation: magic-pulse 3s ease-in-out infinite;
 }
 
+@keyframes magic-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 15px rgba(186, 104, 200, 0.6),
+      0 0 8px rgba(156, 39, 176, 0.4);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 20px rgba(186, 104, 200, 0.8),
+      0 0 12px rgba(156, 39, 176, 0.6);
+  }
+}
+
+/* Vibrant starting zones with cartoon borders */
 .terrain-starting-zone {
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 0 20px rgba(255, 255, 255, 0.3),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.2);
 }
 
 .starting-zone-PLAYER1 {
-  background-color: rgba(0, 100, 200, 0.2);
-  box-shadow: inset 0 0 15px rgba(0, 100, 200, 0.4);
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.3) 0%, rgba(13, 71, 161, 0.2) 100%);
+  box-shadow:
+    inset 0 0 20px rgba(33, 150, 243, 0.5),
+    inset 3px 3px 0px rgba(100, 181, 246, 0.3),
+    0 0 8px rgba(33, 150, 243, 0.3);
+  border-color: rgba(100, 181, 246, 0.6);
 }
 
 .starting-zone-PLAYER2 {
-  background-color: rgba(200, 0, 0, 0.2);
-  box-shadow: inset 0 0 15px rgba(200, 0, 0, 0.4);
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.3) 0%, rgba(183, 28, 28, 0.2) 100%);
+  box-shadow:
+    inset 0 0 20px rgba(244, 67, 54, 0.5),
+    inset 3px 3px 0px rgba(239, 154, 154, 0.3),
+    0 0 8px rgba(244, 67, 54, 0.3);
+  border-color: rgba(239, 154, 154, 0.6);
 }
 
 .starting-zone-PLAYER3 {
-  background-color: rgba(0, 200, 0, 0.2);
-  box-shadow: inset 0 0 15px rgba(0, 200, 0, 0.4);
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3) 0%, rgba(27, 94, 32, 0.2) 100%);
+  box-shadow:
+    inset 0 0 20px rgba(76, 175, 80, 0.5),
+    inset 3px 3px 0px rgba(129, 199, 132, 0.3);
+  border-color: rgba(129, 199, 132, 0.6);
 }
 
 .starting-zone-PLAYER4 {
-  background-color: rgba(200, 200, 0, 0.2);
-  box-shadow: inset 0 0 15px rgba(200, 200, 0, 0.4);
+  background: linear-gradient(135deg, rgba(255, 235, 59, 0.3) 0%, rgba(245, 127, 23, 0.2) 100%);
+  box-shadow:
+    inset 0 0 20px rgba(255, 235, 59, 0.5),
+    inset 3px 3px 0px rgba(255, 245, 157, 0.3);
+  border-color: rgba(255, 245, 157, 0.6);
 }
 
 .starting-zone-PLAYER5 {
-  background-color: rgba(200, 0, 200, 0.2);
-  box-shadow: inset 0 0 15px rgba(200, 0, 200, 0.4);
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.3) 0%, rgba(74, 20, 140, 0.2) 100%);
+  box-shadow:
+    inset 0 0 20px rgba(156, 39, 176, 0.5),
+    inset 3px 3px 0px rgba(186, 104, 200, 0.3);
+  border-color: rgba(186, 104, 200, 0.6);
 }
 
 .terrain-symbol {
@@ -121,9 +259,10 @@
   font-size: 14px;
   opacity: 0.7;
   pointer-events: none;
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
 }
 
-/* Creature display */
+/* Creature display - keeping original for now, will update in Step 2 */
 .board-tile.occupied {
   background-color: rgba(100, 100, 100, 0.3);
 }
