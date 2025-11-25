@@ -200,7 +200,7 @@ function GameBoard() {
     }
   }
 
-  /* STEP 1 - ORIGINAL CODE (COMMENTED OUT FOR BACKUP)
+  // Handle attack with Immediate reaction support
   const handleAttack = (attackerInstance, defenderInstance) => {
     if (attackerInstance.isTapped) {
       setActionMessage('Creature is already tapped!')
@@ -222,65 +222,75 @@ function GameBoard() {
       return
     }
 
-    // Execute attack
-    const result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+    // Check if defender is a human player
+    const defenderPlayerId = defenderInstance.owner
+    const isDefenderHuman =
+      (defenderPlayerId === Players.PLAYER1 && gameConfig?.player1.isHuman) ||
+      (defenderPlayerId === Players.PLAYER2 && gameConfig?.player2.isHuman)
 
-    if (result.success) {
-      let message = `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
-                   `with ${targetInfo.attackType} for ${result.damage} damage!`
+    if (isDefenderHuman) {
+      // Defender is human - show reaction modal
+      setPendingAttack({
+        attackerInstance,
+        defenderInstance,
+        targetInfo
+      })
+      setShowReactionModal(true)
+    } else {
+      // Defender is AI - use AI logic to decide on reactions
+      const defenderAI = new SimpleAI(gameState, defenderPlayerId)
+      const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
 
-      if (result.destroyed) {
-        message += ` ${defenderInstance.creature.name} was destroyed! `
-        message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
-                  `Defender ${result.moraleChange.defender}`
-      } else {
-        message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
+      // Process AI reactions
+      if (reactionDecision.reactions.length > 0) {
+        const defenderPlayer = gameState.players[defenderPlayerId]
+
+        // Sort by cardIndex descending to prevent array shift issues
+        reactionDecision.reactions.sort((a, b) => b.cardIndex - a.cardIndex)
+
+        reactionDecision.reactions.forEach(reaction => {
+          // Tap creature
+          reaction.creature.isTapped = true
+          // Discard card
+          defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
+        })
       }
 
-      setActionMessage(message)
+      // Execute attack immediately for AI defender
+      const result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
 
-      // Check for game over
-      gameState.checkGameOver()
-    } else {
-      setActionMessage(result.message || 'Attack failed!')
+      if (result.success) {
+        let message = ''
+
+        // Add reaction info to message
+        if (reactionDecision.reactions.length > 0) {
+          message += `⚡ AI used ${reactionDecision.reactions.length} Immediate card${reactionDecision.reactions.length !== 1 ? 's' : ''}! `
+        }
+
+        message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+                   `with ${targetInfo.attackType} for ${result.damage} damage!`
+
+        if (result.destroyed) {
+          message += ` ${defenderInstance.creature.name} was destroyed! `
+          message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+                    `Defender ${result.moraleChange.defender}`
+        } else {
+          message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
+        }
+
+        setActionMessage(message)
+
+        // Check for game over
+        gameState.checkGameOver()
+      } else {
+        setActionMessage(result.message || 'Attack failed!')
+      }
+
+      setSelectedBoardCreature(null)
+      setValidMoveTiles([])
+      setValidAttackTargets([])
+      setRenderCounter(prev => prev + 1)
     }
-
-    setSelectedBoardCreature(null)
-    setValidMoveTiles([])
-    setValidAttackTargets([])
-    setRenderCounter(prev => prev + 1)
-  }
-  */
-
-  // STEP 1 - NEW VERSION WITH IMMEDIATE REACTION SUPPORT
-  const handleAttack = (attackerInstance, defenderInstance) => {
-    if (attackerInstance.isTapped) {
-      setActionMessage('Creature is already tapped!')
-      return
-    }
-
-    // Check if defender is protected (deployed this turn)
-    if (defenderInstance.deployedThisTurn) {
-      setActionMessage(`${defenderInstance.creature.name} was just deployed and is protected until next turn!`)
-      return
-    }
-
-    // Check if target is in range
-    const targets = gameState.getValidAttackTargets(attackerInstance)
-    const targetInfo = targets.find(t => t.creature.instanceId === defenderInstance.instanceId)
-
-    if (!targetInfo) {
-      setActionMessage('Target is out of range!')
-      return
-    }
-
-    // Store the pending attack and show reaction modal
-    setPendingAttack({
-      attackerInstance,
-      defenderInstance,
-      targetInfo
-    })
-    setShowReactionModal(true)
   }
 
   // Handle when defender uses Immediate reaction cards
@@ -386,66 +396,47 @@ function GameBoard() {
 
   const handleDrop = (tile, e) => {
     try {
-      console.log('=== DROP EVENT START ===')
-      console.log('Dragging creature index:', draggingCreatureIndex)
-      console.log('Current phase:', gameState?.currentPhase)
-      console.log('Tile:', tile)
-
       if (draggingCreatureIndex === null || gameState.currentPhase !== GamePhases.DEPLOY) {
-        console.log('Drop cancelled: not in deploy phase or no creature selected')
         return
       }
 
       const currentPlayer = gameState.getCurrentPlayerState()
-      console.log('Current player:', currentPlayer)
-
       const creatureCard = currentPlayer.creatureHand[draggingCreatureIndex]
-      console.log('Creature card:', creatureCard)
 
       // Check if tile is in player's starting zone
       const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
                                tile.startingZoneOwner === gameState.currentPlayer
-      console.log('Is in starting zone:', isInStartingZone)
 
       if (!isInStartingZone) {
         setActionMessage('You can only deploy creatures in your starting zone!')
         setDraggingCreatureIndex(null)
         setDragOverTile(null)
-        console.log('Drop failed: not in starting zone')
         return
       }
 
       if (currentPlayer.canDeployCreature(creatureCard)) {
         if (!tile.occupant) {
-          console.log('Creating creature instance...')
           const creatureInstance = new CreatureInstance(creatureCard, gameState.currentPlayer)
           creatureInstance.position = { x: tile.x, y: tile.y }
 
           // Mark as deployed this turn (protected from attacks)
           creatureInstance.markAsDeployed(gameState.turnNumber)
-          console.log('Creature instance created:', creatureInstance)
 
-          console.log('Adding to board...')
           currentPlayer.creaturesInPlay.push(creatureInstance)
           currentPlayer.creatureHand.splice(draggingCreatureIndex, 1)
           tile.occupant = creatureInstance
 
-          console.log('Updating state...')
           setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
           setRenderCounter(prev => prev + 1)
-          console.log('State updated successfully')
         } else {
           setActionMessage('Tile is occupied!')
-          console.log('Drop failed: tile occupied')
         }
       } else {
         setActionMessage('Not enough leadership to deploy this creature!')
-        console.log('Drop failed: not enough leadership')
       }
 
       setDraggingCreatureIndex(null)
       setDragOverTile(null)
-      console.log('=== DROP EVENT END ===')
     } catch (error) {
       console.error('!!! ERROR IN handleDrop !!!', error)
       console.error('Error stack:', error.stack)

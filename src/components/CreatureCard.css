@@ -231,3 +231,25 @@
   background: rgba(0, 0, 0, 0.3);
   border-radius: 3px;
 }
+
+/* Ability badges in compact view */
+.creature-abilities-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.creature-abilities-compact .badge {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+  border: 1px solid #adb5bd;
+  box-shadow:
+    0 1px 0px rgba(0, 0, 0, 0.3),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.2);
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
+}

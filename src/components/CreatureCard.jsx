@@ -45,6 +45,9 @@ function CreatureCard({ creature, onClick, isSelected, compact = false, draggabl
           <span>Spd: {creature.speed}</span>
           <span>Dmg: {creature.meleeAttack?.damage || 0}</span>
         </div>
+        <div className="creature-abilities-compact">
+          {renderAbilities()}
+        </div>
       </div>
     )
   }
