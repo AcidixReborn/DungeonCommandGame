@@ -98,7 +98,10 @@ export class SimpleAI {
           type: 'move',
           creature: creature.creature.name,
           from: moveResult.from,
-          to: moveResult.to
+          to: moveResult.to,
+          isFlying: moveResult.isFlying,
+          terrainTypes: moveResult.terrainTypes,
+          cost: moveResult.cost
         })
       }
     }
@@ -218,7 +221,9 @@ export class SimpleAI {
     let bestMove = null
     let bestDistance = Infinity
 
-    for (const moveTile of validMoves) {
+    // STEP 1: Fix - validMoves now contains {tile, path, cost} objects
+    for (const moveInfo of validMoves) {
+      const moveTile = moveInfo.tile
       for (const enemy of enemies) {
         if (!enemy.position) continue
 
@@ -233,7 +238,26 @@ export class SimpleAI {
     if (bestMove && !bestMove.occupant) {
       const from = { ...currentPos }
       this.gameState.moveCreature(creature, bestMove)
-      return { from, to: { x: bestMove.x, y: bestMove.y } }
+
+      // STEP 1 TERRAIN: Get movement details for testing
+      const isFlying = this.gameState.hasFlying(creature)
+      const terrainTypes = [] // Track terrain types in path
+
+      // Collect terrain types (simplified - just check destination)
+      if (bestMove.terrain) {
+        terrainTypes.push(bestMove.terrain)
+      }
+
+      // Try to get actual movement cost (default to 1 if not available)
+      const moveCost = this.gameState.getTerrainMovementCost(bestMove.terrain, isFlying)
+
+      return {
+        from,
+        to: { x: bestMove.x, y: bestMove.y },
+        isFlying,
+        terrainTypes,
+        cost: moveCost
+      }
     }
 
     return null

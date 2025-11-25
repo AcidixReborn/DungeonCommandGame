@@ -69,7 +69,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: true, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 30, range: 5 },
-    specialAbilities: ['Spiritual Weapon: Can attack at range'],
+    specialAbilities: ['Spiritual Weapon: Can attack at range', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // STEP 1: Added for testing
     faction: FACTION_NAME,
     imageUrl: null
   },

@@ -71,7 +71,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 40, range: 6 },
-    specialAbilities: ['Spellcaster: Can cast ranged spells'],
+    specialAbilities: ['Spellcaster: Can cast ranged spells', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // STEP 1: Added for testing
     faction: FACTION_NAME,
     imageUrl: null
   },

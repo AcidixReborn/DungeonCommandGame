@@ -55,7 +55,7 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 30, range: 7 },
-    specialAbilities: ['Undead: Immune to morale effects'],
+    specialAbilities: ['Undead: Immune to morale effects', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // STEP 1: Added for testing
     faction: FACTION_NAME,
     imageUrl: null
   },

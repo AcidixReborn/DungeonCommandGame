@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Container, Row, Col, Card, Button, Badge, Alert } from 'react-bootstrap'
+import { Container, Row, Col, Card, Button, Badge, Alert, Modal } from 'react-bootstrap' // STEP 1: Added Modal
 import { GameState, GamePhases, Players } from '../models/gameState'
 import { Creature, CreatureInstance } from '../models/creatures'
 import { Commander } from '../models/commanders'
@@ -32,6 +32,10 @@ function GameBoard() {
   // Immediate Reaction Modal state
   const [showReactionModal, setShowReactionModal] = useState(false)
   const [pendingAttack, setPendingAttack] = useState(null) // Stores attack info while waiting for reactions
+
+  // STEP 1: Movement Confirmation Modal state
+  const [showMoveConfirm, setShowMoveConfirm] = useState(false)
+  const [pendingMove, setPendingMove] = useState(null) // Stores {creature, destination, path, cost}
 
   // Handler for faction selection - move to commander selection
   const handleFactionSelected = (config) => {
@@ -137,10 +141,17 @@ function GameBoard() {
           return
         }
 
-        // Check if clicking on a valid movement tile
-        const isValidMove = validMoveTiles.some(t => t.x === tile.x && t.y === tile.y)
-        if (isValidMove && !tile.occupant) {
-          handleMove(selectedBoardCreature, tile)
+        // STEP 1: Check if clicking on a valid movement tile (handle new pathfinding format)
+        const validMove = validMoveTiles.find(vm => vm.tile.x === tile.x && vm.tile.y === tile.y)
+        if (validMove && !tile.occupant) {
+          // STEP 1: Show confirmation modal instead of moving immediately
+          setPendingMove({
+            creature: selectedBoardCreature,
+            destination: tile,
+            path: validMove.path,
+            cost: validMove.cost
+          })
+          setShowMoveConfirm(true)
           return
         }
 
@@ -184,12 +195,15 @@ function GameBoard() {
     )
   }
 
-  const handleMove = (creatureInstance, targetTile) => {
+  // STEP 1: Handle movement (with pathfinding info)
+  const handleMove = (creatureInstance, targetTile, validMove) => {
     const success = gameState.moveCreature(creatureInstance, targetTile)
 
     if (success) {
+      // STEP 1: Show movement cost in message
+      const cost = validMove ? validMove.cost : '?'
       setActionMessage(
-        `${creatureInstance.creature.name} moved to (${targetTile.x}, ${targetTile.y})`
+        `${creatureInstance.creature.name} moved to (${targetTile.x}, ${targetTile.y}) - Cost: ${cost}`
       )
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
@@ -198,6 +212,34 @@ function GameBoard() {
     } else {
       setActionMessage('Invalid move!')
     }
+  }
+
+  // STEP 1: Confirm movement from modal
+  const confirmMove = () => {
+    if (!pendingMove) return
+
+    const success = gameState.moveCreature(pendingMove.creature, pendingMove.destination)
+
+    if (success) {
+      setActionMessage(
+        `${pendingMove.creature.creature.name} moved to (${pendingMove.destination.x}, ${pendingMove.destination.y}) - Cost: ${pendingMove.cost}`
+      )
+    } else {
+      setActionMessage('Invalid move!')
+    }
+
+    setPendingMove(null)
+    setShowMoveConfirm(false)
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+    setRenderCounter(prev => prev + 1)
+  }
+
+  // STEP 1: Cancel movement from modal
+  const cancelMove = () => {
+    setPendingMove(null)
+    setShowMoveConfirm(false)
   }
 
   // Handle attack with Immediate reaction support
@@ -692,8 +734,9 @@ function GameBoard() {
                       const tile = gameState.getTile(x, y)
                       const creature = getTileCreature(x, y)
 
-                      // Check if this tile is a valid move
-                      const isValidMove = validMoveTiles.some(t => t.x === x && t.y === y)
+                      // STEP 1: Check if this tile is a valid move (handle new pathfinding format)
+                      const validMove = validMoveTiles.find(vm => vm.tile.x === x && vm.tile.y === y)
+                      const isValidMove = validMove !== undefined
 
                       // Check if this creature is a valid attack target
                       const isAttackTarget = validAttackTargets.some(
@@ -711,6 +754,7 @@ function GameBoard() {
                           creature={creature}
                           isSelected={isSelectedCreature}
                           isValidMove={isValidMove}
+                          movementInfo={validMove} // STEP 1: Pass movement info for cost display
                           isAttackTarget={isAttackTarget}
                           onClick={handleTileClick}
                           onDrop={handleDrop}
@@ -760,6 +804,37 @@ function GameBoard() {
           onSkip={handleReactionsSkipped}
         />
       )}
+
+      {/* STEP 1: Movement Confirmation Modal - positioned dynamically */}
+      <Modal
+        show={showMoveConfirm}
+        onHide={cancelMove}
+        dialogClassName="move-confirm-modal"
+        centered
+      >
+        <Modal.Header closeButton className="py-2">
+          <Modal.Title style={{ fontSize: '1rem', color: '#000' }}>Confirm Movement</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="py-2" style={{ color: '#000', fontSize: '0.9rem' }}>
+          {pendingMove && (
+            <div>
+              <strong>{pendingMove.creature.creature.name}</strong> moves to{' '}
+              <strong>({pendingMove.destination.x}, {pendingMove.destination.y})</strong>
+              <div style={{ marginTop: '0.5rem' }}>
+                Cost: <Badge bg="warning" text="dark">{pendingMove.cost}</Badge> / {pendingMove.creature.creature.speed}
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="py-2">
+          <Button variant="secondary" size="sm" onClick={cancelMove}>
+            Cancel
+          </Button>
+          <Button variant="primary" size="sm" onClick={confirmMove}>
+            Confirm
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   )
 }

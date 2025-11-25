@@ -112,7 +112,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: false },
     meleeAttack: { damage: 15, range: 1 },
     rangedAttack: { damage: 45, range: 7 },
-    specialAbilities: ['Placeholder Ability #6'],
+    specialAbilities: ['Placeholder Ability #6', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // STEP 1: Added for testing
     faction: FACTION_NAME,
     imageUrl: null
   },

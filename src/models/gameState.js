@@ -1,4 +1,6 @@
 // Game state management for Dungeon Command
+import { getValidMovementTiles as pathfindingGetValidMovement } from '../utils/pathfinding.js'
+
 export const GamePhases = {
   REFRESH: 'REFRESH',
   ACTIVATE: 'ACTIVATE',
@@ -147,9 +149,9 @@ export class GameState {
     this.gameOver = false
     this.winner = null
 
-    // Board state - larger to accommodate up to 5 players
-    this.boardWidth = 12
-    this.boardHeight = 12
+    // Board state - STEP 1: Increased to 16×16 for terrain regions
+    this.boardWidth = 16  // Changed from 12 for 8×8 terrain regions
+    this.boardHeight = 16 // Changed from 12 for 8×8 terrain regions
     this.tiles = [] // Array of tile objects with terrain
 
     // Generate random board
@@ -174,6 +176,137 @@ export class GameState {
     })
   }
 
+  // STEP 1: Generate board with 8×8 terrain regions (NEW)
+  generateBoard() {
+    // Initialize empty board
+    this.tiles = []
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
+        this.tiles.push({
+          x,
+          y,
+          terrain: TerrainTypes.NORMAL,
+          occupant: null
+        })
+      }
+    }
+
+    // STEP 1: Generate four 8×8 terrain regions in corners
+    // Top-left region (0,0) to (7,7)
+    this.generateTerrainRegion(0, 0, 8, 8)
+    // Top-right region (8,0) to (15,7)
+    this.generateTerrainRegion(8, 0, 8, 8)
+    // Bottom-left region (0,8) to (7,15)
+    this.generateTerrainRegion(0, 8, 8, 8)
+    // Bottom-right region (8,8) to (15,15)
+    this.generateTerrainRegion(8, 8, 8, 8)
+
+    // Add one magic circle per active player
+    this.addMagicCircles()
+
+    // Add starting zones on the edges for each player
+    this.addStartingZones()
+  }
+
+  // STEP 1: Generate a terrain region with clustered terrain
+  generateTerrainRegion(startX, startY, width, height) {
+    const regionTiles = []
+
+    // Get all tiles in this region
+    for (let y = startY; y < startY + height; y++) {
+      for (let x = startX; x < startX + width; x++) {
+        if (x < this.boardWidth && y < this.boardHeight) {
+          regionTiles.push(this.getTile(x, y))
+        }
+      }
+    }
+
+    // Randomly decide terrain composition for this region
+    // 15-25% forests, 8-15% mountains, 5-10% difficult terrain
+    const totalTiles = regionTiles.length
+    const forestCount = Math.floor(totalTiles * (0.15 + Math.random() * 0.10))
+    const mountainCount = Math.floor(totalTiles * (0.08 + Math.random() * 0.07))
+    const difficultCount = Math.floor(totalTiles * (0.05 + Math.random() * 0.05))
+
+    // Add clustered forests (trees grow in groups)
+    this.addClusteredTerrain(regionTiles, TerrainTypes.FOREST, forestCount, 3)
+
+    // Add clustered mountains (mountain ranges)
+    this.addClusteredTerrain(regionTiles, TerrainTypes.MOUNTAIN, mountainCount, 2)
+
+    // Add scattered difficult terrain (mud, swamps)
+    this.addClusteredTerrain(regionTiles, TerrainTypes.DIFFICULT, difficultCount, 2)
+  }
+
+  // STEP 1: Add terrain in clusters instead of random scatter
+  addClusteredTerrain(regionTiles, terrainType, count, clusterSize) {
+    const availableTiles = regionTiles.filter(t => t && t.terrain === TerrainTypes.NORMAL)
+    let placed = 0
+
+    while (placed < count && availableTiles.length > 0) {
+      // Pick a random seed tile
+      const seedIndex = Math.floor(Math.random() * availableTiles.length)
+      const seedTile = availableTiles[seedIndex]
+
+      if (!seedTile) break
+
+      // Place terrain on seed tile
+      seedTile.terrain = terrainType
+      placed++
+      availableTiles.splice(seedIndex, 1)
+
+      // Try to expand cluster around seed tile
+      const cluster = [seedTile]
+      for (let i = 0; i < clusterSize - 1 && placed < count; i++) {
+        // Pick a random tile from current cluster
+        const baseTile = cluster[Math.floor(Math.random() * cluster.length)]
+
+        // Get adjacent tiles
+        const adjacentTiles = this.getAdjacentTiles(baseTile.x, baseTile.y)
+          .filter(t => regionTiles.includes(t) && t.terrain === TerrainTypes.NORMAL)
+
+        if (adjacentTiles.length > 0) {
+          // Place terrain on random adjacent tile
+          const adjTile = adjacentTiles[Math.floor(Math.random() * adjacentTiles.length)]
+          adjTile.terrain = terrainType
+          placed++
+          cluster.push(adjTile)
+
+          // Remove from available tiles
+          const availIndex = availableTiles.indexOf(adjTile)
+          if (availIndex !== -1) {
+            availableTiles.splice(availIndex, 1)
+          }
+        } else {
+          break // No more adjacent tiles, start new cluster
+        }
+      }
+    }
+  }
+
+  // STEP 1: Helper to get adjacent tiles (4-directional)
+  getAdjacentTiles(x, y) {
+    const adjacent = []
+    const directions = [
+      { dx: 0, dy: -1 },  // North
+      { dx: 1, dy: 0 },   // East
+      { dx: 0, dy: 1 },   // South
+      { dx: -1, dy: 0 }   // West
+    ]
+
+    directions.forEach(dir => {
+      const newX = x + dir.dx
+      const newY = y + dir.dy
+      const tile = this.getTile(newX, newY)
+      if (tile) {
+        adjacent.push(tile)
+      }
+    })
+
+    return adjacent
+  }
+
+  /* STEP 1: OLD TERRAIN GENERATION (COMMENTED OUT FOR REFERENCE)
   // Generate random board with terrain
   generateBoard() {
     // Initialize empty board
@@ -209,6 +342,7 @@ export class GameState {
     // Add starting zones on the edges for each player
     this.addStartingZones()
   }
+  */
 
   // Create starting zones for each player on the board edges
   addStartingZones() {
@@ -313,11 +447,81 @@ export class GameState {
     return this.players[this.currentPlayer]
   }
 
-  // Calculate distance between two positions (Manhattan distance for grid movement)
+  // Calculate distance between two positions (Chebyshev distance for 8-directional grid)
+  // Chebyshev distance = max(|dx|, |dy|) - correct for grids with diagonal movement
   getDistance(pos1, pos2) {
-    return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
+    return Math.max(Math.abs(pos1.x - pos2.x), Math.abs(pos1.y - pos2.y))
   }
 
+  // STEP 1: Check if creature has flying ability
+  hasFlying(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.creature) return false
+    const abilities = creatureInstance.creature.specialAbilities || []
+    return abilities.some(ability =>
+      typeof ability === 'string' && ability.toLowerCase().includes('flying')
+    )
+  }
+
+  // STEP 1: Check if tile is passable (with flying support)
+  isTerrainPassable(tile, flying = false) {
+    if (!tile) return false
+
+    // Flying creatures can fly over mountains but cannot stop on them
+    if (tile.terrain === TerrainTypes.MOUNTAIN) {
+      return false // Cannot stop on mountains even if flying
+    }
+
+    return true
+  }
+
+  // STEP 1: Get movement cost for terrain (with flying support)
+  getTerrainMovementCost(terrain, flying = false) {
+    // Flying creatures ignore difficult terrain
+    if (flying) {
+      switch (terrain) {
+        case TerrainTypes.MOUNTAIN:
+          return 999 // Still impassable (cannot stop on mountains)
+        default:
+          return 1 // All other terrain costs 1 for flying creatures
+      }
+    }
+
+    // Ground creatures
+    switch (terrain) {
+      case TerrainTypes.DIFFICULT:
+        return 2 // Costs 2 movement to enter
+      case TerrainTypes.FOREST:
+        return 2 // Forests are also difficult terrain - costs 2 to enter
+      case TerrainTypes.MOUNTAIN:
+        return 999 // Impassable
+      default:
+        return 1
+    }
+  }
+
+  // STEP 1: Get all valid movement tiles using A* pathfinding
+  getValidMovementTiles(creatureInstance) {
+    if (!creatureInstance.position) return []
+
+    const speed = creatureInstance.creature.speed
+    const startPos = creatureInstance.position
+    const flying = this.hasFlying(creatureInstance)
+
+    // Use pathfinding algorithm
+    const validMovement = pathfindingGetValidMovement(
+      startPos,
+      speed,
+      (terrain, isFlying) => this.getTerrainMovementCost(terrain, isFlying),
+      (tile, isFlying) => this.isTerrainPassable(tile, isFlying),
+      (x, y) => this.getTile(x, y),
+      flying
+    )
+
+    // Return array of objects with tile, path, and cost
+    return validMovement
+  }
+
+  /* STEP 1: OLD MOVEMENT SYSTEM (COMMENTED OUT FOR REFERENCE)
   // Check if a tile is blocked by terrain (mountains block movement)
   isTerrainBlocked(tile) {
     return tile.terrain === TerrainTypes.MOUNTAIN
@@ -369,6 +573,7 @@ export class GameState {
 
     return validTiles
   }
+  */
 
   // Move a creature to a new position
   moveCreature(creatureInstance, targetTile) {
@@ -387,7 +592,8 @@ export class GameState {
     }
 
     const validTiles = this.getValidMovementTiles(creatureInstance)
-    const isValid = validTiles.some(t => t.x === targetTile.x && t.y === targetTile.y)
+    // STEP 1: Fix - validTiles contains {tile, path, cost} objects
+    const isValid = validTiles.some(t => t.tile.x === targetTile.x && t.tile.y === targetTile.y)
 
     if (!isValid) return false
 
@@ -508,7 +714,14 @@ export class GameState {
       // End of turn - switch players
       this.endTurn()
     } else {
-      this.currentPhase = phaseOrder[currentIndex + 1]
+      const nextPhase = phaseOrder[currentIndex + 1]
+      this.currentPhase = nextPhase
+
+      // Increase leadership by 1 when entering Deploy phase (but not on turn 1)
+      if (nextPhase === GamePhases.DEPLOY && this.turnNumber > 1) {
+        const player = this.getCurrentPlayerState()
+        player.increaseLeadership(1)
+      }
     }
   }
 
@@ -631,13 +844,7 @@ export class GameState {
 
   // Execute deploy phase
   executeDeployPhase() {
-    const player = this.getCurrentPlayerState()
-
-    // Increase leadership by 1 (but not on turn 1 - the initial deployment)
-    if (this.turnNumber > 1) {
-      player.increaseLeadership(1)
-    }
-
+    // Note: Leadership increase now happens in advancePhase() when entering Deploy phase
     // Note: Actual deployment of creatures is handled by player actions
     // Auto-advance to cleanup phase
     this.advancePhase()

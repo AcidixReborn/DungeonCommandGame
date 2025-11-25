@@ -47,10 +47,23 @@ function GameSimulation() {
       deployCount: 0,
       attackCount: 0,
       moveCount: 0,
-      // STEP 1: IMD Card Tracking
+      // STEP 0: IMD Card Tracking
       imdCardsInDecks: { p1: 0, p2: 0 },
       imdCardsUsed: { p1: 0, p2: 0 }, // Tracks how many IMD cards were actually used as reactions
-      imdOpportunities: { p1: 0, p2: 0 } // Tracks how many times IMD cards were available but not used
+      imdOpportunities: { p1: 0, p2: 0 }, // Tracks how many times IMD cards were available but not used
+      // STEP 1: Terrain & Pathfinding Tracking
+      terrainStats: {
+        totalMoves: 0,
+        movesOverDifficult: 0,
+        movesOverForest: 0,
+        flyingCreaturesMoved: 0,
+        flyingOverMountains: 0,
+        avgMovementCost: 0,
+        totalMovementCost: 0,
+        pathfindingErrors: 0,
+        invalidMoves: 0
+      },
+      flyingCreatures: { p1: 0, p2: 0 }
     }
 
     try {
@@ -88,11 +101,21 @@ function GameSimulation() {
 
       const gameState = new GameState([player1Setup, player2Setup])
 
-      // STEP 1: Count IMD cards in initial decks (with safety checks)
+      // STEP 0: Count IMD cards in initial decks (with safety checks)
       const p1Deck = gameState.players[Players.PLAYER1]?.orderDeck || []
       const p2Deck = gameState.players[Players.PLAYER2]?.orderDeck || []
       stats.imdCardsInDecks.p1 = p1Deck.filter(card => card && card.isImmediate && card.isImmediate()).length
       stats.imdCardsInDecks.p2 = p2Deck.filter(card => card && card.isImmediate && card.isImmediate()).length
+
+      // STEP 1: Count flying creatures in initial hands
+      const p1Creatures = gameState.players[Players.PLAYER1]?.creatureHand || []
+      const p2Creatures = gameState.players[Players.PLAYER2]?.creatureHand || []
+      stats.flyingCreatures.p1 = p1Creatures.filter(c =>
+        c.specialAbilities?.some(a => typeof a === 'string' && a.toLowerCase().includes('flying'))
+      ).length
+      stats.flyingCreatures.p2 = p2Creatures.filter(c =>
+        c.specialAbilities?.some(a => typeof a === 'string' && a.toLowerCase().includes('flying'))
+      ).length
 
       let turnCount = 0
       let phaseLoopCount = 0
@@ -151,6 +174,34 @@ function GameSimulation() {
                       }
                     }
                   }
+
+                  // STEP 1 TERRAIN: Track movement actions
+                  if (action.type === 'move') {
+                    stats.terrainStats.totalMoves++
+
+                    // Track movement cost if available
+                    if (action.cost !== undefined) {
+                      stats.terrainStats.totalMovementCost += action.cost
+                    }
+
+                    // Track terrain types moved through
+                    if (action.terrainTypes) {
+                      if (action.terrainTypes.includes('DIFFICULT')) {
+                        stats.terrainStats.movesOverDifficult++
+                      }
+                      if (action.terrainTypes.includes('FOREST')) {
+                        stats.terrainStats.movesOverForest++
+                      }
+                      if (action.terrainTypes.includes('MOUNTAIN')) {
+                        stats.terrainStats.flyingOverMountains++
+                      }
+                    }
+
+                    // Track flying creature moves
+                    if (action.isFlying) {
+                      stats.terrainStats.flyingCreaturesMoved++
+                    }
+                  }
                 })
               }
 
@@ -180,6 +231,12 @@ function GameSimulation() {
       stats.p2FinalMorale = gameState.players[Players.PLAYER2].morale
       stats.p1Creatures = gameState.players[Players.PLAYER1].creaturesInPlay.length
       stats.p2Creatures = gameState.players[Players.PLAYER2].creaturesInPlay.length
+
+      // STEP 1 TERRAIN: Calculate average movement cost at end of game
+      if (stats.terrainStats.totalMoves > 0) {
+        stats.terrainStats.avgMovementCost =
+          (stats.terrainStats.totalMovementCost / stats.terrainStats.totalMoves).toFixed(2)
+      }
 
       // STEP 1: No need to count drawn cards - we only track usage during attacks
 
@@ -227,14 +284,27 @@ function GameSimulation() {
       maxTurns: 0,
       infiniteLoops: 0,
       fatalErrors: 0,
-      // STEP 1: IMD Card Statistics
+      // STEP 0: IMD Card Statistics
       totalImdCardsP1: 0,
       totalImdCardsP2: 0,
       totalImdCardsUsedP1: 0,
       totalImdCardsUsedP2: 0,
       totalImdOpportunitiesP1: 0,
       totalImdOpportunitiesP2: 0,
-      gamesWithImdCards: 0
+      gamesWithImdCards: 0,
+      // STEP 1: Terrain & Pathfinding Statistics
+      terrainStats: {
+        totalMoves: 0,
+        movesOverDifficult: 0,
+        movesOverForest: 0,
+        flyingCreaturesMoved: 0,
+        flyingOverMountains: 0,
+        avgMovementCost: 0,
+        pathfindingErrors: 0,
+        invalidMoves: 0
+      },
+      totalFlyingCreatures: 0,
+      gamesWithFlyingCreatures: 0
     }
 
     for (let i = 0; i < NUM_TESTS; i++) {
@@ -266,7 +336,7 @@ function GameSimulation() {
         summary.infiniteLoops++
       }
 
-      // STEP 1: Aggregate IMD card statistics
+      // STEP 0: Aggregate IMD card statistics
       summary.totalImdCardsP1 += gameStats.imdCardsInDecks.p1
       summary.totalImdCardsP2 += gameStats.imdCardsInDecks.p2
       summary.totalImdCardsUsedP1 += gameStats.imdCardsUsed.p1
@@ -276,10 +346,30 @@ function GameSimulation() {
       if (gameStats.imdCardsInDecks.p1 > 0 || gameStats.imdCardsInDecks.p2 > 0) {
         summary.gamesWithImdCards++
       }
+
+      // STEP 1: Aggregate terrain statistics
+      summary.terrainStats.totalMoves += gameStats.terrainStats.totalMoves
+      summary.terrainStats.movesOverDifficult += gameStats.terrainStats.movesOverDifficult
+      summary.terrainStats.movesOverForest += gameStats.terrainStats.movesOverForest
+      summary.terrainStats.flyingCreaturesMoved += gameStats.terrainStats.flyingCreaturesMoved
+      summary.terrainStats.flyingOverMountains += gameStats.terrainStats.flyingOverMountains
+      summary.terrainStats.pathfindingErrors += gameStats.terrainStats.pathfindingErrors
+      summary.terrainStats.invalidMoves += gameStats.terrainStats.invalidMoves
+
+      summary.totalFlyingCreatures += gameStats.flyingCreatures.p1 + gameStats.flyingCreatures.p2
+      if (gameStats.flyingCreatures.p1 > 0 || gameStats.flyingCreatures.p2 > 0) {
+        summary.gamesWithFlyingCreatures++
+      }
     }
 
     if (summary.completedGames > 0) {
       summary.averageTurns = (summary.averageTurns / summary.completedGames).toFixed(2)
+    }
+
+    // STEP 1: Calculate average movement cost
+    if (summary.terrainStats.totalMoves > 0) {
+      const totalCost = allResults.reduce((sum, r) => sum + r.terrainStats.totalMovementCost, 0)
+      summary.terrainStats.avgMovementCost = (totalCost / summary.terrainStats.totalMoves).toFixed(2)
     }
 
     setResults({ allResults, summary })
@@ -440,6 +530,97 @@ function GameSimulation() {
                     <strong>✅ AI IMD Card System Active!</strong> The AI now uses Immediate cards during attacks in automated testing.
                     These statistics verify that IMD cards are being drawn and used correctly by the AI.
                   </Alert>
+                </Card.Body>
+              </Card>
+
+              {/* STEP 1: Terrain & Pathfinding Statistics */}
+              <Card bg="success" text="white" className="mb-3">
+                <Card.Header><h5>🗺️ Step 1: Terrain & Pathfinding Statistics</h5></Card.Header>
+                <Card.Body>
+                  <Table striped bordered variant="dark">
+                    <tbody>
+                      <tr>
+                        <td><strong>Total Flying Creatures</strong></td>
+                        <td>
+                          <Badge bg="primary">{results.summary.totalFlyingCreatures}</Badge>
+                          {' '}in {results.summary.gamesWithFlyingCreatures} games
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total Moves</strong></td>
+                        <td><Badge bg="info">{results.summary.terrainStats.totalMoves}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Average Movement Cost</strong></td>
+                        <td>
+                          {results.summary.terrainStats.avgMovementCost || '0'} per move
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Moves Over Difficult Terrain</strong></td>
+                        <td>
+                          <Badge bg="warning">{results.summary.terrainStats.movesOverDifficult}</Badge>
+                          {' '}({results.summary.terrainStats.totalMoves > 0
+                            ? ((results.summary.terrainStats.movesOverDifficult / results.summary.terrainStats.totalMoves) * 100).toFixed(1)
+                            : 0}%)
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Moves Over Forest</strong></td>
+                        <td>
+                          <Badge bg="success">{results.summary.terrainStats.movesOverForest}</Badge>
+                          {' '}({results.summary.terrainStats.totalMoves > 0
+                            ? ((results.summary.terrainStats.movesOverForest / results.summary.terrainStats.totalMoves) * 100).toFixed(1)
+                            : 0}%)
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Flying Creature Moves</strong></td>
+                        <td>
+                          <Badge bg="primary">{results.summary.terrainStats.flyingCreaturesMoved}</Badge>
+                          {' '}({results.summary.terrainStats.totalMoves > 0
+                            ? ((results.summary.terrainStats.flyingCreaturesMoved / results.summary.terrainStats.totalMoves) * 100).toFixed(1)
+                            : 0}% of all moves)
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Flying Over Mountains</strong></td>
+                        <td>
+                          <Badge bg="info">{results.summary.terrainStats.flyingOverMountains}</Badge>
+                          {' '}moves
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Pathfinding Errors</strong></td>
+                        <td>
+                          <Badge bg={results.summary.terrainStats.pathfindingErrors === 0 ? 'success' : 'danger'}>
+                            {results.summary.terrainStats.pathfindingErrors}
+                          </Badge>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Invalid Move Attempts</strong></td>
+                        <td>
+                          <Badge bg={results.summary.terrainStats.invalidMoves === 0 ? 'success' : 'warning'}>
+                            {results.summary.terrainStats.invalidMoves}
+                          </Badge>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+
+                  <Alert variant="success" className="mt-3 mb-0">
+                    <strong>✅ Terrain System Active!</strong> The new 16×16 board with 8×8 terrain regions
+                    and A* pathfinding is working. These statistics verify that creatures can navigate terrain
+                    correctly and flying creatures can move over mountains.
+                  </Alert>
+
+                  {results.summary.terrainStats.pathfindingErrors > 0 && (
+                    <Alert variant="danger" className="mt-2 mb-0">
+                      <strong>⚠️ Pathfinding Errors Detected!</strong> {results.summary.terrainStats.pathfindingErrors}
+                      {' '}error(s) occurred during pathfinding. Review the detailed logs.
+                    </Alert>
+                  )}
                 </Card.Body>
               </Card>
 

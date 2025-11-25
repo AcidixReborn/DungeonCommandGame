@@ -1,7 +1,7 @@
 import { TerrainTypes } from '../models/gameState'
 import './BoardTile.css'
 
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, isAttackTarget, onDrop, onDragOver, isDragTarget }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, onDrop, onDragOver, isDragTarget }) { // STEP 1: Added movementInfo
   const getTerrainClass = () => {
     switch (tile.terrain) {
       case TerrainTypes.FOREST:
@@ -63,8 +63,11 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, isAttackT
     >
       <div className="terrain-symbol">{getTerrainSymbol()}</div>
 
-      {isValidMove && !creature && (
-        <div className="move-indicator">➜</div>
+      {/* STEP 1: Show movement cost on valid tiles */}
+      {isValidMove && movementInfo && (
+        <div className="movement-cost">
+          {movementInfo.cost}
+        </div>
       )}
 
       {creature && (
