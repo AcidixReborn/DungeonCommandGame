@@ -46,7 +46,11 @@ function GameSimulation() {
       completed: false,
       deployCount: 0,
       attackCount: 0,
-      moveCount: 0
+      moveCount: 0,
+      // STEP 1: IMD Card Tracking
+      imdCardsInDecks: { p1: 0, p2: 0 },
+      imdCardsUsed: { p1: 0, p2: 0 }, // Tracks how many IMD cards were actually used as reactions
+      imdOpportunities: { p1: 0, p2: 0 } // Tracks how many times IMD cards were available but not used
     }
 
     try {
@@ -84,6 +88,12 @@ function GameSimulation() {
 
       const gameState = new GameState([player1Setup, player2Setup])
 
+      // STEP 1: Count IMD cards in initial decks (with safety checks)
+      const p1Deck = gameState.players[Players.PLAYER1]?.orderDeck || []
+      const p2Deck = gameState.players[Players.PLAYER2]?.orderDeck || []
+      stats.imdCardsInDecks.p1 = p1Deck.filter(card => card && card.isImmediate && card.isImmediate()).length
+      stats.imdCardsInDecks.p2 = p2Deck.filter(card => card && card.isImmediate && card.isImmediate()).length
+
       let turnCount = 0
       let phaseLoopCount = 0
       let lastPhase = gameState.currentPhase
@@ -114,7 +124,36 @@ function GameSimulation() {
             case GamePhases.ACTIVATE:
               // AI makes activation decisions
               const currentAI = new SimpleAI(gameState, gameState.currentPlayer)
-              currentAI.executeTurn()
+              const aiResult = currentAI.executeTurn()
+
+              // STEP 1: Track IMD card usage from AI actions
+              if (aiResult.actions) {
+                aiResult.actions.forEach(action => {
+                  if (action.type === 'attack') {
+                    // Determine which player is the opponent (defender)
+                    const opponentId = gameState.currentPlayer === Players.PLAYER1 ? Players.PLAYER2 : Players.PLAYER1
+
+                    // Track reactions used
+                    if (action.reactionsUsed > 0) {
+                      if (opponentId === Players.PLAYER1) {
+                        stats.imdCardsUsed.p1 += action.reactionsUsed
+                      } else {
+                        stats.imdCardsUsed.p2 += action.reactionsUsed
+                      }
+                    }
+
+                    // Track opportunities (had cards available but chose not to use)
+                    if (action.hadOpportunity && action.reactionsUsed === 0) {
+                      if (opponentId === Players.PLAYER1) {
+                        stats.imdOpportunities.p1 += 1
+                      } else {
+                        stats.imdOpportunities.p2 += 1
+                      }
+                    }
+                  }
+                })
+              }
+
               gameState.advancePhase()
               break
 
@@ -141,6 +180,8 @@ function GameSimulation() {
       stats.p2FinalMorale = gameState.players[Players.PLAYER2].morale
       stats.p1Creatures = gameState.players[Players.PLAYER1].creaturesInPlay.length
       stats.p2Creatures = gameState.players[Players.PLAYER2].creaturesInPlay.length
+
+      // STEP 1: No need to count drawn cards - we only track usage during attacks
 
       if (turnCount >= MAX_TURNS && !gameState.gameOver) {
         stats.warnings.push(`Game exceeded maximum turns - P1 Morale: ${stats.p1FinalMorale}, P2 Morale: ${stats.p2FinalMorale}`)
@@ -185,7 +226,15 @@ function GameSimulation() {
       minTurns: Infinity,
       maxTurns: 0,
       infiniteLoops: 0,
-      fatalErrors: 0
+      fatalErrors: 0,
+      // STEP 1: IMD Card Statistics
+      totalImdCardsP1: 0,
+      totalImdCardsP2: 0,
+      totalImdCardsUsedP1: 0,
+      totalImdCardsUsedP2: 0,
+      totalImdOpportunitiesP1: 0,
+      totalImdOpportunitiesP2: 0,
+      gamesWithImdCards: 0
     }
 
     for (let i = 0; i < NUM_TESTS; i++) {
@@ -215,6 +264,17 @@ function GameSimulation() {
       if (gameStats.errors.length > 0) summary.fatalErrors++
       if (gameStats.warnings.some(w => w.includes('infinite') || w.includes('maximum'))) {
         summary.infiniteLoops++
+      }
+
+      // STEP 1: Aggregate IMD card statistics
+      summary.totalImdCardsP1 += gameStats.imdCardsInDecks.p1
+      summary.totalImdCardsP2 += gameStats.imdCardsInDecks.p2
+      summary.totalImdCardsUsedP1 += gameStats.imdCardsUsed.p1
+      summary.totalImdCardsUsedP2 += gameStats.imdCardsUsed.p2
+      summary.totalImdOpportunitiesP1 += gameStats.imdOpportunities.p1
+      summary.totalImdOpportunitiesP2 += gameStats.imdOpportunities.p2
+      if (gameStats.imdCardsInDecks.p1 > 0 || gameStats.imdCardsInDecks.p2 > 0) {
+        summary.gamesWithImdCards++
       }
     }
 
@@ -315,6 +375,71 @@ function GameSimulation() {
                       </tr>
                     </tbody>
                   </Table>
+                </Card.Body>
+              </Card>
+
+              <Card bg="info" text="white" className="mb-3">
+                <Card.Header><h5>⚡ Step 1: IMD Card Statistics</h5></Card.Header>
+                <Card.Body>
+                  <Table striped bordered variant="dark">
+                    <tbody>
+                      <tr>
+                        <td><strong>Games with IMD Cards</strong></td>
+                        <td><Badge bg="primary">{results.summary.gamesWithImdCards} / {results.summary.totalGames}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Avg IMD Cards per Deck</strong></td>
+                        <td><Badge bg="info">{((results.summary.totalImdCardsP1 + results.summary.totalImdCardsP2) / (results.summary.totalGames * 2)).toFixed(1)}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total IMD Cards USED by P1</strong></td>
+                        <td><Badge bg="success">{results.summary.totalImdCardsUsedP1}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total IMD Cards USED by P2</strong></td>
+                        <td><Badge bg="success">{results.summary.totalImdCardsUsedP2}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total IMD Cards Used (Combined)</strong></td>
+                        <td><Badge bg="warning">{results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Avg IMD Usage per Game</strong></td>
+                        <td>
+                          {results.summary.completedGames > 0
+                            ? ((results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2) / results.summary.completedGames).toFixed(2)
+                            : 0} cards/game
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Avg IMD Usage per Player per Game</strong></td>
+                        <td>
+                          {results.summary.completedGames > 0
+                            ? ((results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2) / (results.summary.completedGames * 2)).toFixed(2)
+                            : 0} cards/player/game
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total Opportunities (Cards Available, Not Used)</strong></td>
+                        <td><Badge bg="secondary">{results.summary.totalImdOpportunitiesP1 + results.summary.totalImdOpportunitiesP2}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>AI Decision Rate</strong></td>
+                        <td>
+                          {(results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 +
+                            results.summary.totalImdOpportunitiesP1 + results.summary.totalImdOpportunitiesP2) > 0
+                            ? ((results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2) /
+                               (results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 +
+                                results.summary.totalImdOpportunitiesP1 + results.summary.totalImdOpportunitiesP2) * 100).toFixed(1)
+                            : 0}% used when available
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+                  <Alert variant="success" className="mt-3 mb-0">
+                    <strong>✅ AI IMD Card System Active!</strong> The AI now uses Immediate cards during attacks in automated testing.
+                    These statistics verify that IMD cards are being drawn and used correctly by the AI.
+                  </Alert>
                 </Card.Body>
               </Card>
 

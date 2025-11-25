@@ -231,7 +231,8 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 30 damage',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: null,
+    range: 5 // TEST: Extended range - can be used from 5 tiles away
   },
   {
     id: 'hoc_ord_4',

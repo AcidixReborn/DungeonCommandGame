@@ -26,7 +26,8 @@ export class OrderCard {
     mechanicalEffect = null, // Function that implements the effect
     requiresCreatureType = null, // Optional: specific creature type requirement (e.g., 'Adventurer')
     faction = '',
-    imageUrl = null
+    imageUrl = null,
+    range = 1 // Optional: range for Immediate cards (default 1 = adjacent)
   }) {
     this.id = id
     this.name = name
@@ -39,6 +40,7 @@ export class OrderCard {
     this.requiresCreatureType = requiresCreatureType
     this.faction = faction
     this.imageUrl = imageUrl
+    this.range = range // Range in tiles for Immediate card usage (1 = adjacent)
   }
 
   // Check if this card requires tapping
@@ -46,9 +48,14 @@ export class OrderCard {
     return this.actionType === ActionTypes.STANDARD || this.actionType === ActionTypes.IMMEDIATE
   }
 
-  // Check if this can be played during opponent's turn
-  isReaction() {
+  // Check if this is an Immediate action (can be played during ANY turn - yours or opponent's)
+  isImmediate() {
     return this.actionType === ActionTypes.IMMEDIATE
+  }
+
+  // Backwards compatibility - Immediate cards can be used as reactions
+  isReaction() {
+    return this.isImmediate()
   }
 
   // Check if a creature can use this order card

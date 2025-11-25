@@ -10,6 +10,7 @@ import PlayerPanel from './PlayerPanel'
 import FactionSelector from './FactionSelector'
 import CommanderSelector from './CommanderSelector'
 import SimpleAI from '../ai/simpleAI'
+import ImmediateReactionModal from './ImmediateReactionModal'
 import './GameBoard.css'
 
 function GameBoard() {
@@ -27,6 +28,10 @@ function GameBoard() {
   const [dragOverTile, setDragOverTile] = useState(null)
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [renderCounter, setRenderCounter] = useState(0) // Force re-renders without destroying GameState
+
+  // Immediate Reaction Modal state
+  const [showReactionModal, setShowReactionModal] = useState(false)
+  const [pendingAttack, setPendingAttack] = useState(null) // Stores attack info while waiting for reactions
 
   // Handler for faction selection - move to commander selection
   const handleFactionSelected = (config) => {
@@ -195,6 +200,7 @@ function GameBoard() {
     }
   }
 
+  /* STEP 1 - ORIGINAL CODE (COMMENTED OUT FOR BACKUP)
   const handleAttack = (attackerInstance, defenderInstance) => {
     if (attackerInstance.isTapped) {
       setActionMessage('Creature is already tapped!')
@@ -242,6 +248,113 @@ function GameBoard() {
     setSelectedBoardCreature(null)
     setValidMoveTiles([])
     setValidAttackTargets([])
+    setRenderCounter(prev => prev + 1)
+  }
+  */
+
+  // STEP 1 - NEW VERSION WITH IMMEDIATE REACTION SUPPORT
+  const handleAttack = (attackerInstance, defenderInstance) => {
+    if (attackerInstance.isTapped) {
+      setActionMessage('Creature is already tapped!')
+      return
+    }
+
+    // Check if defender is protected (deployed this turn)
+    if (defenderInstance.deployedThisTurn) {
+      setActionMessage(`${defenderInstance.creature.name} was just deployed and is protected until next turn!`)
+      return
+    }
+
+    // Check if target is in range
+    const targets = gameState.getValidAttackTargets(attackerInstance)
+    const targetInfo = targets.find(t => t.creature.instanceId === defenderInstance.instanceId)
+
+    if (!targetInfo) {
+      setActionMessage('Target is out of range!')
+      return
+    }
+
+    // Store the pending attack and show reaction modal
+    setPendingAttack({
+      attackerInstance,
+      defenderInstance,
+      targetInfo
+    })
+    setShowReactionModal(true)
+  }
+
+  // Handle when defender uses Immediate reaction cards
+  const handleReactionsPlayed = (selectedReactions) => {
+    if (!pendingAttack) return
+
+    const defenderPlayer = gameState.players[pendingAttack.defenderInstance.owner]
+
+    // Sort reactions by cardIndex in descending order to prevent index shifting issues
+    const sortedReactions = [...selectedReactions].sort((a, b) => b.cardIndex - a.cardIndex)
+
+    // Process each reaction
+    sortedReactions.forEach(reaction => {
+      // Tap the creature that used the card
+      reaction.creature.isTapped = true
+
+      // Discard the order card from hand
+      defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
+
+      // TODO: Apply card effects (will be implemented in Step 8)
+      console.log(`Reaction played: ${reaction.card.name} by ${reaction.creature.creature.name}`)
+    })
+
+    // Close modal and execute the attack
+    setShowReactionModal(false)
+    executeAttackAfterReactions(selectedReactions)
+  }
+
+  // Handle when defender skips reactions
+  const handleReactionsSkipped = () => {
+    setShowReactionModal(false)
+    executeAttackAfterReactions([])
+  }
+
+  // Execute the attack after reactions have been handled
+  const executeAttackAfterReactions = (reactions) => {
+    if (!pendingAttack) return
+
+    const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
+
+    // Execute attack
+    const result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+
+    if (result.success) {
+      let message = ''
+
+      // Add reaction info to message
+      if (reactions.length > 0) {
+        message += `⚡ ${reactions.length} Immediate card${reactions.length !== 1 ? 's' : ''} played! `
+      }
+
+      message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+                 `with ${targetInfo.attackType} for ${result.damage} damage!`
+
+      if (result.destroyed) {
+        message += ` ${defenderInstance.creature.name} was destroyed! `
+        message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+                  `Defender ${result.moraleChange.defender}`
+      } else {
+        message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
+      }
+
+      setActionMessage(message)
+
+      // Check for game over
+      gameState.checkGameOver()
+    } else {
+      setActionMessage(result.message || 'Attack failed!')
+    }
+
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+    setPendingAttack(null)
     setRenderCounter(prev => prev + 1)
   }
 
@@ -643,6 +756,19 @@ function GameBoard() {
           />
         </div>
       </div>
+
+      {/* Immediate Reaction Modal */}
+      {pendingAttack && (
+        <ImmediateReactionModal
+          show={showReactionModal}
+          attackerInstance={pendingAttack.attackerInstance}
+          defenderInstance={pendingAttack.defenderInstance}
+          defenderPlayerState={gameState.players[pendingAttack.defenderInstance.owner]}
+          gameState={gameState}
+          onCardsPlayed={handleReactionsPlayed}
+          onSkip={handleReactionsSkipped}
+        />
+      )}
     </div>
   )
 }

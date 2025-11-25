@@ -1,0 +1,15 @@
+/* Immediate Reaction Modal Styling */
+
+.immediate-reaction-modal .modal-content {
+  border: 3px solid #4dd0e1;
+  box-shadow: 0 0 30px rgba(77, 208, 225, 0.5);
+}
+
+.immediate-reaction-modal .reaction-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.immediate-reaction-modal .reaction-card {
+  transition: all 0.2s ease;
+}
