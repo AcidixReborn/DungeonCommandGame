@@ -1,7 +1,24 @@
 import { Card, Badge } from 'react-bootstrap'
 import './CreatureCard.css'
 
+/**
+ * CreatureCard - Displays a creature card with stats and abilities
+ * Supports compact and full view modes, drag and drop
+ *
+ * @param {Creature} creature - Creature data to display
+ * @param {Function} onClick - Click handler
+ * @param {boolean} isSelected - Whether card is selected
+ * @param {boolean} compact - Use compact display mode
+ * @param {boolean} draggable - Enable drag and drop
+ * @param {Function} onDragStart - Drag start handler
+ * @param {Function} onDragEnd - Drag end handler
+ * @param {number} cardIndex - Card index in hand
+ */
 function CreatureCard({ creature, onClick, isSelected, compact = false, draggable = false, onDragStart, onDragEnd, cardIndex }) {
+  /**
+   * Render ability score badges
+   * @returns {Array<JSX.Element>} Array of ability badges
+   */
   const renderAbilities = () => {
     const abilityKeys = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
     return abilityKeys

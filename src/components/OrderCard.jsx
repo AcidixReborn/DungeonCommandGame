@@ -2,7 +2,20 @@ import { Card, Badge } from 'react-bootstrap'
 import { ActionTypes } from '../models/orders'
 import './OrderCard.css'
 
+/**
+ * OrderCard - Displays an order (spell/ability) card
+ * Shows level, ability requirements, action type, and effects
+ *
+ * @param {OrderCard} order - Order card data
+ * @param {Function} onClick - Click handler
+ * @param {boolean} isSelected - Whether card is selected
+ * @param {boolean} compact - Use compact display mode
+ */
 function OrderCard({ order, onClick, isSelected, compact = false }) {
+  /**
+   * Get badge color for action type
+   * @returns {string} Bootstrap variant color
+   */
   const getActionBadgeColor = () => {
     switch (order.actionType) {
       case ActionTypes.STANDARD:
@@ -16,6 +29,10 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
     }
   }
 
+  /**
+   * Get abbreviated action type text
+   * @returns {string} Action type abbreviation (STD, MIN, IMD)
+   */
   const getActionTypeAbbreviation = () => {
     switch (order.actionType) {
       case ActionTypes.STANDARD:
@@ -29,6 +46,11 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
     }
   }
 
+  /**
+   * Get badge color for ability type
+   * @param {string} ability - Ability type (STR, DEX, etc.)
+   * @returns {string} Bootstrap variant color
+   */
   const getAbilityBadgeColor = (ability) => {
     const colors = {
       STR: 'danger',
@@ -42,6 +64,11 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
     return colors[ability] || 'secondary'
   }
 
+  /**
+   * Render ability requirement badges
+   * Handles both single ability and array of abilities
+   * @returns {JSX.Element|Array<JSX.Element>} Badge(s) for required abilities
+   */
   const renderAbilityBadges = () => {
     if (Array.isArray(order.abilityRequired)) {
       return order.abilityRequired.map((ability, idx) => (

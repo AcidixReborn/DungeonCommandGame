@@ -1,9 +1,9 @@
 /* ============================================
-   STEP 1: CARTOON STYLE - BOARD TILES
+   CARTOON STYLE - BOARD TILES
    Cel-shaded, vibrant, cartoon aesthetic
    ============================================ */
 
-/* Seamless connected tiles - STEP 1: Reduced size for 16×16 board */
+/* Seamless connected tiles - Reduced size for 16×16 board */
 .board-tile {
   width: 40px;   /* Reduced from 60px for 16×16 board */
   height: 40px;  /* Reduced from 60px for 16×16 board */
@@ -262,7 +262,7 @@
   filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
 }
 
-/* STEP 1: Movement cost indicator on valid tiles - smaller, top-right corner */
+/* Movement cost indicator on valid tiles - smaller, top-right corner */
 .movement-cost {
   position: absolute;
   top: 1px;
@@ -284,7 +284,7 @@
 }
 
 /* ============================================
-   STEP 2: CARTOON STYLE - CREATURE TOKENS
+   CARTOON STYLE - CREATURE TOKENS
    Character portrait-style with cel-shading
    ============================================ */
 
@@ -380,7 +380,7 @@
     inset -2px -2px 0px rgba(136, 14, 79, 0.3);
 }
 
-/* Cartoon-style creature name with better text shadow - STEP 1: Reduced for smaller tiles */
+/* Cartoon-style creature name with better text shadow - Reduced for smaller tiles */
 .creature-name {
   font-size: 0.5rem;  /* Reduced from 0.6rem */
   text-align: center;
@@ -394,7 +394,7 @@
   letter-spacing: 0.2px;  /* Reduced from 0.3px */
 }
 
-/* Cartoon-style HP display with border - STEP 1: Reduced for smaller tiles */
+/* Cartoon-style HP display with border - Reduced for smaller tiles */
 .creature-hp {
   font-size: 0.45rem;  /* Reduced from 0.55rem */
   color: #fff;
@@ -544,7 +544,7 @@
 /* Protected indicator removed - using only the cyan glow border effect on .creature-token.protected */
 
 /* ============================================
-   STEP 2: TREASURE TOKEN STYLING
+   TREASURE TOKEN STYLING
    ============================================ */
 
 /* Treasure token when no creature is present */

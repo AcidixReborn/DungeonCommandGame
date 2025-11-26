@@ -1,5 +1,20 @@
-// Commander card model based on Dungeon Command specifications
+/**
+ * Commander - Represents a faction commander with starting stats
+ * Defines initial hand sizes, morale, leadership, and special abilities
+ */
 export class Commander {
+  /**
+   * @param {string} id - Unique commander ID
+   * @param {string} name - Commander name
+   * @param {string} faction - Faction affiliation
+   * @param {number} startingCreatureHandSize - Initial creature cards drawn
+   * @param {number} startingOrderHandSize - Initial order cards drawn
+   * @param {number} startingMorale - Starting morale points (defeat condition)
+   * @param {number} startingLeadership - Starting leadership pool
+   * @param {string} specialAbility - Special ability name
+   * @param {string} specialAbilityDescription - Ability description text
+   * @param {string} imageUrl - Commander portrait URL
+   */
   constructor({
     id,
     name,

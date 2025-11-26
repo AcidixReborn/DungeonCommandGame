@@ -1,4 +1,4 @@
-// STEP 1: A* Pathfinding Algorithm for Dungeon Command
+// A* Pathfinding Algorithm for Dungeon Command
 // Finds optimal paths with proper movement cost calculation
 
 /**
@@ -107,6 +107,9 @@ export function findPath(start, goal, getTerrainCost, isPassable, getTile, optio
 
 /**
  * Manhattan distance heuristic for grid-based pathfinding
+ * @param {PathfindingNode} node - Current node
+ * @param {Object} goal - Goal position {x, y}
+ * @returns {number} Estimated distance to goal
  */
 function heuristic(node, goal) {
   return Math.abs(node.x - goal.x) + Math.abs(node.y - goal.y)
@@ -114,6 +117,9 @@ function heuristic(node, goal) {
 
 /**
  * Get all neighboring tiles (8-directional movement - includes diagonals)
+ * @param {PathfindingNode} node - Current node
+ * @param {Function} getTile - Function to get tile at position
+ * @returns {Array<PathfindingNode>} Array of neighbor nodes
  */
 function getNeighbors(node, getTile) {
   const neighbors = []
@@ -142,6 +148,8 @@ function getNeighbors(node, getTile) {
 
 /**
  * Reconstruct the path from goal node by following parent links
+ * @param {PathfindingNode} goalNode - Final node reached
+ * @returns {Object} {path: Array, cost: number}
  */
 function reconstructPath(goalNode) {
   const path = []

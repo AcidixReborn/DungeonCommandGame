@@ -261,7 +261,7 @@ function GameSimulation() {
           (stats.terrainStats.totalMovementCost / stats.terrainStats.totalMoves).toFixed(2)
       }
 
-      // STEP 1: No need to count drawn cards - we only track usage during attacks
+      // No need to count drawn cards - we only track usage during attacks
 
       if (turnCount >= MAX_TURNS && !gameState.gameOver) {
         stats.warnings.push(`Game exceeded maximum turns - P1 Morale: ${stats.p1FinalMorale}, P2 Morale: ${stats.p2FinalMorale}`)
@@ -307,7 +307,7 @@ function GameSimulation() {
       maxTurns: 0,
       infiniteLoops: 0,
       fatalErrors: 0,
-      // STEP 0: IMD Card Statistics
+      // IMD Card Statistics
       totalImdCardsP1: 0,
       totalImdCardsP2: 0,
       totalImdCardsUsedP1: 0,
@@ -315,7 +315,7 @@ function GameSimulation() {
       totalImdOpportunitiesP1: 0,
       totalImdOpportunitiesP2: 0,
       gamesWithImdCards: 0,
-      // STEP 1: Terrain & Pathfinding Statistics
+      // Terrain & Pathfinding Statistics
       terrainStats: {
         totalMoves: 0,
         movesOverDifficult: 0,
@@ -328,7 +328,7 @@ function GameSimulation() {
       },
       totalFlyingCreatures: 0,
       gamesWithFlyingCreatures: 0,
-      // STEP 2: Treasure Statistics
+      // Treasure Statistics
       treasureStats: {
         totalTreasuresPlaced: 0,
         totalTreasuresCollectedP1: 0,
@@ -369,7 +369,7 @@ function GameSimulation() {
         summary.infiniteLoops++
       }
 
-      // STEP 0: Aggregate IMD card statistics
+      // Aggregate IMD card statistics
       summary.totalImdCardsP1 += gameStats.imdCardsInDecks.p1
       summary.totalImdCardsP2 += gameStats.imdCardsInDecks.p2
       summary.totalImdCardsUsedP1 += gameStats.imdCardsUsed.p1
@@ -380,7 +380,7 @@ function GameSimulation() {
         summary.gamesWithImdCards++
       }
 
-      // STEP 1: Aggregate terrain statistics
+      // Aggregate terrain statistics
       summary.terrainStats.totalMoves += gameStats.terrainStats.totalMoves
       summary.terrainStats.movesOverDifficult += gameStats.terrainStats.movesOverDifficult
       summary.terrainStats.movesOverForest += gameStats.terrainStats.movesOverForest
@@ -394,7 +394,7 @@ function GameSimulation() {
         summary.gamesWithFlyingCreatures++
       }
 
-      // STEP 2: Aggregate treasure statistics
+      // Aggregate treasure statistics
       summary.treasureStats.totalTreasuresPlaced += gameStats.treasureStats.initialTreasures
       summary.treasureStats.totalTreasuresCollectedP1 += gameStats.treasureStats.treasuresCollected.p1
       summary.treasureStats.totalTreasuresCollectedP2 += gameStats.treasureStats.treasuresCollected.p2
@@ -410,7 +410,7 @@ function GameSimulation() {
       summary.averageTurns = (summary.averageTurns / summary.completedGames).toFixed(2)
     }
 
-    // STEP 1: Calculate average movement cost
+    // Calculate average movement cost
     if (summary.terrainStats.totalMoves > 0) {
       const totalCost = allResults.reduce((sum, r) => sum + r.terrainStats.totalMovementCost, 0)
       summary.terrainStats.avgMovementCost = (totalCost / summary.terrainStats.totalMoves).toFixed(2)

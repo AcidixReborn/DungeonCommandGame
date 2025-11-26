@@ -1,4 +1,4 @@
-// STEP 2: Treasure/Morale Token System
+// Treasure/Morale Token System
 // Based on Dungeon Command board game mechanics
 
 /**

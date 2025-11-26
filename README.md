@@ -62,56 +62,32 @@ The game is now in a playable state! You can start a game, see the board with te
 - ✅ Magic circle ownership display
 - ✅ Progress bars for morale and leadership
 
-## 🎯 Currently Working
+## 🎯 Current Features
 
-The game board is functional with:
-- Turn-based gameplay
-- Creature deployment system
-- Phase advancement
-- Morale and leadership tracking
-- Visual board with creatures
+### Fully Playable Gameplay
+- ✅ **Complete turn-based system** - All four phases implemented
+- ✅ **Creature movement** - A* pathfinding with terrain costs
+- ✅ **Melee & ranged combat** - Attack adjacent or distant enemies
+- ✅ **Order card system** - Play cards with ability requirements
+- ✅ **Immediate reactions** - Use IMD cards on opponent's turn
+- ✅ **Creature deployment** - Strategic creature placement
+- ✅ **Treasure collection** - Gather morale tokens on the battlefield
+- ✅ **AI opponents** - Play against computer-controlled enemies
+- ✅ **Faction selection** - Choose from 5 unique factions
 
-## 📋 Next Steps (Priority Order)
+### Game Mechanics
+- Flying creatures ignore terrain costs
+- Pathfinding respects movement speed and terrain
+- Tapping/untapping system for action management
+- Morale and leadership resource management
+- Victory conditions (morale depletion or creature elimination)
 
-1. **Creature Movement & Combat**
-   - Click creature to select
-   - Click tile to move (respecting speed and terrain)
-   - Click enemy creature to attack
-   - Ranged attack support
-   - Line of sight calculations
+## 📖 Documentation
 
-2. **Order Card System**
-   - Play order cards from hand
-   - Ability requirement checking
-   - Action type enforcement (Standard/Minor/Immediate)
-   - Card effects implementation
+- **[How to Play](HOW_TO_PLAY.md)** - Complete gameplay guide with rules and strategies
+- **[About](ABOUT.md)** - Learn about Dungeon Command, factions, and the project
 
-3. **Deck/Warband Selection**
-   - Pre-game faction selection screen
-   - Commander choice
-   - Support for 2-5 players
-   - AI vs Human player selection
-
-4. **Basic AI Opponent**
-   - Simple decision-making
-   - Creature deployment
-   - Movement and attacks
-   - Order card usage
-
-5. **Data Entry System**
-   - Forms to add/edit creatures
-   - Forms to add/edit order cards
-   - Image upload for cards
-   - Export/import card data
-
-6. **Advanced Features**
-   - Save/load game state
-   - Game history/replay
-   - Special abilities implementation
-   - Treasure tokens
-   - Advanced AI
-
-## 🎲 Game Rules Summary
+## 🎲 Quick Rules Reference
 
 Dungeon Command is a dice-less, card-driven tactical miniatures game where:
 
@@ -179,15 +155,15 @@ Images can be added via:
 2. Directly in the faction data files
 3. Placed in a `/public/images/` folder and referenced by URL
 
-## 🎮 How to Play (Current Build)
+## 🎮 Quick Start Guide
 
-1. Click "Start New Game"
-2. You'll see Player 1 (Sting of Lolth) vs Player 2 (Heart of Cormyr - AI)
-3. Game starts in REFRESH phase - click "Execute Refresh" to draw cards
-4. In ACTIVATE phase - click "End Activate Phase" (movement/combat coming soon)
-5. In DEPLOY phase - click a creature in your hand, then click an empty tile to deploy it
-6. Click "Execute Deploy" to increase leadership and draw more creatures
-7. Click "End Turn" in CLEANUP phase to pass to next player
+1. **Start New Game** - Click "Start New Game" and select factions
+2. **REFRESH Phase** - Click "Execute Refresh" to draw cards and untap creatures
+3. **ACTIVATE Phase** - Select creatures to move, attack enemies, use order cards, or collect treasures
+4. **DEPLOY Phase** - Deploy creatures from your hand to starting zones
+5. **CLEANUP Phase** - Click "End Turn" to pass to next player
+
+**For detailed rules and strategies, see [HOW_TO_PLAY.md](HOW_TO_PLAY.md)**
 
 ## 📝 Notes
 

@@ -3,6 +3,24 @@ import CreatureCard from './CreatureCard'
 import OrderCard from './OrderCard'
 import './PlayerPanel.css'
 
+/**
+ * PlayerPanel - Displays player information, resources, and cards
+ * Supports horizontal and vertical layouts
+ *
+ * @param {PlayerState} player - Player state data
+ * @param {string} playerId - Player ID
+ * @param {boolean} isCurrentPlayer - Whether this is the active player
+ * @param {boolean} isHuman - Whether player is human (vs AI)
+ * @param {Function} onCreatureSelect - Handler for creature card selection
+ * @param {Function} onOrderSelect - Handler for order card selection
+ * @param {number} selectedCreature - Index of selected creature card
+ * @param {number} selectedOrder - Index of selected order card
+ * @param {Function} onDragStart - Drag start handler
+ * @param {Function} onDragEnd - Drag end handler
+ * @param {string} currentPhase - Current game phase
+ * @param {boolean} horizontal - Use horizontal layout
+ * @param {boolean} vertical - Use vertical layout
+ */
 function PlayerPanel({
   player,
   playerId,

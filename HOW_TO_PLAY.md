@@ -1,97 +1,255 @@
-# How to Play Dungeon Command
+# How to Play - Dungeon Command Digital Edition
 
-## Starting a Game
+## 🎯 Objective
 
-1. **Select Factions**: Choose a faction for Player 1 and Player 2
-2. **Choose Player Types**: Toggle "Human" or "AI" for each player
-3. **Click "Start Battle"**
+Defeat your opponent by reducing their **Morale** to 0, or eliminate all their creatures and have more morale than them!
 
-## Game Phases (You MUST go through these in order!)
+---
 
-The game uses 4 phases per turn. You must click the phase button to advance:
+## 🎮 Game Setup
+
+1. **Start a New Game** - Click "Start New Game" from the main menu
+2. **Select Factions** - Choose your faction and your opponent's faction from the available options:
+   - **Sting of Lolth** (Drow) - Agile and cunning
+   - **Heart of Cormyr** (Humans) - Balanced and versatile
+   - **Tyranny of Goblins** (Goblinoids) - Swarm tactics
+   - **Curse of Undeath** (Undead) - Resilient and dark
+   - **Blood of Gruumsh** (Orcs) - Brutal strength
+3. **Choose Player Type** - Select Human or AI for each player
+4. The game board generates with random terrain, starting zones, and treasure tokens
+
+---
+
+## 📊 Understanding the Interface
+
+### Game Board
+- **16×16 grid** with varied terrain types
+- **Terrain symbols**: 🌲 Forest, ⛰️ Mountain, 🟫 Difficult Terrain, ⭐ Magic Circle, 🏠 Starting Zone
+- **Treasure tokens**: 💎 Morale tokens scattered across the board
+- **Creatures**: Colored tokens representing your creatures on the board
+
+### Player Panel
+- **Morale Bar**: Your life total (starts at 15-25 depending on commander)
+- **Leadership**: Limits the total level of creatures you can deploy
+- **Creature Hand**: Creatures you can deploy
+- **Order Card Hand**: Special action cards you can play
+
+### Turn Phases Display
+Shows the current phase: REFRESH → ACTIVATE → DEPLOY → CLEANUP
+
+---
+
+## 🔄 Turn Structure
+
+Each turn consists of four phases:
 
 ### 1. REFRESH Phase
-- **What happens**: Draw 1 order card, untap all creatures
-- **What you do**: Click "Execute Refresh" button
-- This happens automatically
+**What Happens:**
+- Draw 1 order card from your deck
+- All your creatures untap (ready for action)
+
+**Actions:** Click "Execute Refresh" to complete this phase
+
+---
 
 ### 2. ACTIVATE Phase
-- **What you can do**: Move creatures and attack enemies
-- **How to move**:
-  1. Click a creature on the board (your creatures only)
-  2. Green tiles show where you can move
-  3. Click a green tile to move there
-- **How to attack**:
-  1. Click a creature on the board
-  2. Red highlighted enemies show valid targets
-  3. Click an enemy to attack
-- **When done**: Click "End Activate Phase"
+This is where the main action happens!
 
-### 3. DEPLOY Phase ⭐ **This is where you place creatures!**
-- **What you can do**: Deploy creatures from your hand to the board
-- **Two ways to deploy**:
+#### **Movement**
+1. Click on one of your creatures to select it
+2. Valid movement tiles will be highlighted in green
+3. Click on a green tile to move your creature
+   - Creatures can move up to their **Speed** value
+   - **Terrain affects movement**:
+     - Normal terrain: 1 movement per tile
+     - Forest: 2 movement per tile
+     - Difficult terrain: 2 movement per tile
+     - Mountains: Impassable (except for flying creatures)
+   - Flying creatures ignore terrain costs (except mountains)
 
-  **Method 1: Click**
-  1. Click a creature card in your hand (bottom left/right panel)
-  2. Click a tile in YOUR starting zone (colored squares on board edges)
-  3. Creature deploys!
+#### **Combat**
+1. Select your creature
+2. Click "Attack" next to an enemy creature in range
+   - **Melee attacks**: Adjacent tiles only
+   - **Ranged attacks**: Within the creature's range, line of sight permitting
+3. Damage is dealt based on the attack value vs. the defender's HP
+4. If a creature's HP reaches 0, it's destroyed and you gain +1 morale!
+5. Attacking **taps** your creature (turns it sideways)
 
-  **Method 2: Drag & Drop**
-  1. Drag a creature card from your hand
-  2. Drop it on a tile in YOUR starting zone
-  3. Creature deploys!
+#### **Using Order Cards**
+1. Click on an order card in your hand
+2. Select a target creature (yours or enemy's, depending on the card)
+3. The card effect is applied
+   - **Standard Actions**: Tap the creature after use
+   - **Minor Actions**: Don't tap the creature
+   - **Immediate (IMD) Actions**: Can be used on opponent's turn as a reaction
 
-- **Important**:
-  - You can ONLY deploy in the DEPLOY phase
-  - You can ONLY deploy to YOUR colored starting zone
-  - Deployed creatures are protected until your next turn (🛡️ icon)
-- **When done**: Click "Execute Deploy" to draw more creatures and increase leadership
+#### **Collecting Treasure**
+1. Move your creature onto a treasure token (💎)
+2. The treasure value is revealed
+3. Click "Collect Morale" button
+4. You gain +1 morale per collection action
+5. The creature is **tapped** after collecting
+6. Treasures are removed when all morale is collected
+
+**Actions:** When done with all actions, click "End Activate Phase"
+
+---
+
+### 3. DEPLOY Phase
+**What Happens:**
+- Your leadership increases by +1
+- You can deploy new creatures from your hand
+
+#### **Deploying Creatures**
+1. Click a creature card in your hand
+2. Click an empty tile in your **starting zone** (🏠)
+3. The creature is placed if you have enough leadership
+   - Each creature has a **level** (1-3 typically)
+   - Total levels of deployed creatures can't exceed your leadership
+
+**Actions:**
+- Click "Execute Deploy" to draw creatures back to hand limit
+- Click "End Deploy Phase" when ready
+
+---
 
 ### 4. CLEANUP Phase
-- **What happens**: Turn ends, switches to other player
-- **What you do**: Click "End Turn"
+**What Happens:**
+- All your creatures untap again
+- Draw order cards back to your hand limit
+- Turn passes to the next player
 
-## Starting Zones
+**Actions:** Click "End Turn"
 
-- **Player 1** (blue): Upper left corner
-- **Player 2** (red): Lower right corner
-- Starting zones are 3x3 grids with colored backgrounds
-- You can ONLY deploy creatures in YOUR starting zone
+---
 
-## Tips
+## 🎴 Understanding Cards
 
-1. **Must advance phases**: Creatures stay "in hand" until you reach DEPLOY phase
-2. **Watch the phase badge**: Shows current phase (REFRESH/ACTIVATE/DEPLOY/CLEANUP)
-3. **Read the helper text**: Battlefield header shows what you can do each phase
-4. **Protected deployment**: Newly deployed creatures can't be attacked until your next turn
-5. **Leadership**: You can only deploy creatures if you have enough leadership
-6. **Morale**: When you lose all morale, you lose the game!
+### Creature Cards
+Each creature has:
+- **Name**: The creature's name
+- **Level**: Leadership cost to deploy
+- **HP**: Health points (when reduced to 0, creature dies)
+- **Speed**: How many tiles it can move
+- **Melee Attack**: Damage dealt in close combat
+- **Ranged Attack**: Damage dealt at range (if applicable)
+- **Abilities**: STR, DEX, CON, INT, WIS, CHA (determines which order cards they can use)
+- **Special Abilities**: Unique powers like Flying, Regeneration, etc.
 
-## Combat
+### Order Cards
+Order cards provide special actions and effects:
+- **Action Type**:
+  - STD (Standard): Main action, taps creature
+  - MNR (Minor): Doesn't tap creature
+  - IMD (Immediate): Can be used on opponent's turn
+- **Requirements**: Which abilities (STR, DEX, etc.) are needed to use the card
+- **Effect**: What the card does (damage, movement, buffs, etc.)
 
-- Attacking uses the creature's attack stat
-- Defending creature loses HP equal to damage
-- When a creature dies:
-  - Defender loses morale equal to creature's level
-  - **Attacker gains +1 morale** (custom rule!)
+---
 
-## Custom Rules
+## 🗺️ Terrain Effects
 
-- ✅ **No Cower mechanic** - creatures take direct damage
-- ✅ **+1 Morale on kill** - killing enemies grants bonus morale
-- ✅ **Protected deployment** - can't attack newly deployed creatures
-- ✅ **Random terrain** - each game has different board layout
+### Movement Costs
+- **Normal**: 1 movement point per tile
+- **Forest** 🌲: 2 movement points per tile
+- **Difficult** 🟫: 2 movement points per tile
+- **Mountain** ⛰️: Impassable (flying creatures can't land on them)
+- **Magic Circle** ⭐: 1 movement point
+- **Starting Zone** 🏠: 1 movement point
 
-## Troubleshooting
+### Special Rules
+- **Flying creatures** ignore terrain costs (but still can't land on mountains)
+- **Treasures** 💎 reveal their value when you move onto them
+- Creatures can move through allied creatures but not enemy creatures
 
-**Q: I can't deploy my creatures!**
-A: Make sure you're in the DEPLOY phase. Click through REFRESH and ACTIVATE first.
+---
 
-**Q: Drag and drop isn't working!**
-A: You must be in DEPLOY phase. Try the click method instead.
+## 💎 Treasure System
 
-**Q: It says "not in starting zone"!**
-A: Look for the colored tiles that match your player (Player 1 = blue-ish, Player 2 = red-ish)
+Treasures are morale tokens placed by each faction:
+- Each faction places **3 random tokens** worth 1, 2, or 3 morale
+- Tokens are **hidden** until a creature moves onto them
+- **Collecting morale** uses your creature's action (taps them)
+- Collect 1 morale per action
+- Treasures disappear when fully collected
+- **Strategy tip**: Treasures provide a morale advantage, so don't ignore them!
 
-**Q: My creature won't leave my hand!**
-A: Advance to DEPLOY phase first using the phase button.
+---
+
+## 🎯 Strategy Tips
+
+1. **Balance offense and defense** - Don't over-commit to attacks
+2. **Manage your leadership** - Deploy creatures wisely
+3. **Use terrain to your advantage** - Forests and difficult terrain slow movement
+4. **Collect treasures early** - Extra morale gives you a buffer
+5. **Save Immediate cards** - They can save your creatures during enemy attacks
+6. **Protect low-HP creatures** - They're easier to kill
+7. **Watch your morale** - If it gets too low, play defensively
+8. **Use ranged attacks** - Keep dangerous melee enemies at bay
+9. **Coordinate attacks** - Sometimes you need multiple creatures to take down a strong enemy
+10. **Don't forget to untap** - Creatures that are tapped can't act!
+
+---
+
+## 🏆 Winning the Game
+
+You win when:
+1. Your opponent's morale reaches **0**
+2. Your opponent has **no creatures left** and you have more morale
+
+---
+
+## 🎲 Game Controls
+
+### Mouse Controls
+- **Left-click creature**: Select for movement/attack
+- **Left-click tile**: Move selected creature
+- **Left-click enemy**: Attack with selected creature
+- **Left-click card**: Select card to play
+- **Left-click button**: Execute phase actions
+
+### Keyboard Shortcuts
+- Currently no keyboard shortcuts implemented
+
+---
+
+## ❓ Common Questions
+
+**Q: Why can't I move my creature?**
+A: Check if the creature is tapped (has already acted), or if you're in the wrong phase (movement is in ACTIVATE phase only).
+
+**Q: Why can't I attack?**
+A: The target might be out of range, or your creature might already be tapped from moving/attacking.
+
+**Q: Why can't I deploy a creature?**
+A: You might not have enough leadership, or you might be clicking outside your starting zone.
+
+**Q: What happens if I run out of cards?**
+A: Your deck reshuffles automatically when empty.
+
+**Q: Can I move and attack in the same turn?**
+A: Yes! You can move and attack with the same creature in the ACTIVATE phase.
+
+**Q: Do flying creatures ignore all terrain?**
+A: Flying creatures ignore movement costs for terrain but still can't land on mountains.
+
+**Q: Can I use multiple order cards per turn?**
+A: Yes! You can play as many order cards as you want during your turn (as long as you have valid targets).
+
+---
+
+## 🐛 Known Issues
+
+- Some order card effects are not fully implemented yet
+- AI decision-making is basic and may make suboptimal moves
+- Line-of-sight for ranged attacks is simplified
+- Creature special abilities are partially implemented
+
+---
+
+## 🎮 Ready to Play?
+
+Now that you know the rules, start a new game and test your tactical skills! Remember: victory comes from smart deployment, careful positioning, and knowing when to attack or defend.
+
+Good luck, Commander! ⚔️

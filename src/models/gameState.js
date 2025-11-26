@@ -1,15 +1,17 @@
 // Game state management for Dungeon Command
 import { getValidMovementTiles as pathfindingGetValidMovement } from '../utils/pathfinding.js'
-// STEP 2: Import Treasure system
+// Import Treasure system
 import { Treasure, createTokenPool, drawTokens } from './treasure.js'
 
+// Game phase constants - defines the turn sequence
 export const GamePhases = {
-  REFRESH: 'REFRESH',
-  ACTIVATE: 'ACTIVATE',
-  DEPLOY: 'DEPLOY',
-  CLEANUP: 'CLEANUP'
+  REFRESH: 'REFRESH',     // Draw cards, untap creatures
+  ACTIVATE: 'ACTIVATE',   // Move creatures and attack
+  DEPLOY: 'DEPLOY',       // Deploy creatures from hand
+  CLEANUP: 'CLEANUP'      // End turn, draw cards
 }
 
+// Player ID constants - supports up to 5 players
 export const Players = {
   PLAYER1: 'PLAYER1',
   PLAYER2: 'PLAYER2',
@@ -18,15 +20,20 @@ export const Players = {
   PLAYER5: 'PLAYER5'
 }
 
+// Terrain type constants - affects movement and gameplay
 export const TerrainTypes = {
-  NORMAL: 'NORMAL',
-  FOREST: 'FOREST',
-  MOUNTAIN: 'MOUNTAIN',
-  DIFFICULT: 'DIFFICULT',
-  MAGIC_CIRCLE: 'MAGIC_CIRCLE',
-  STARTING_ZONE: 'STARTING_ZONE'
+  NORMAL: 'NORMAL',               // Standard terrain, 1 movement cost
+  FOREST: 'FOREST',               // Difficult terrain, 2 movement cost
+  MOUNTAIN: 'MOUNTAIN',           // Impassable terrain
+  DIFFICULT: 'DIFFICULT',         // Difficult terrain, 2 movement cost
+  MAGIC_CIRCLE: 'MAGIC_CIRCLE',   // Special objective tile
+  STARTING_ZONE: 'STARTING_ZONE'  // Player deployment area
 }
 
+/**
+ * PlayerState - Tracks all state for a single player
+ * Manages resources, cards, creatures, and gameplay stats
+ */
 export class PlayerState {
   constructor(commander, creatures, orders, faction) {
     this.commander = commander
@@ -58,6 +65,11 @@ export class PlayerState {
     this.startingZoneTiles = []
   }
 
+  /**
+   * Draw creature cards from deck to hand
+   * @param {number} count - Number of cards to draw
+   * @returns {Array} Cards drawn
+   */
   drawCreatureCards(count) {
     const drawn = []
     for (let i = 0; i < count && this.creatureDeck.length > 0; i++) {
@@ -68,6 +80,11 @@ export class PlayerState {
     return drawn
   }
 
+  /**
+   * Draw order cards from deck to hand
+   * @param {number} count - Number of cards to draw
+   * @returns {Array} Cards drawn
+   */
   drawOrderCards(count) {
     const drawn = []
     for (let i = 0; i < count && this.orderDeck.length > 0; i++) {
@@ -78,7 +95,9 @@ export class PlayerState {
     return drawn
   }
 
-  // Shuffle creature deck
+  /**
+   * Shuffle creature deck using Fisher-Yates algorithm
+   */
   shuffleCreatureDeck() {
     for (let i = this.creatureDeck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -86,7 +105,9 @@ export class PlayerState {
     }
   }
 
-  // Shuffle order deck
+  /**
+   * Shuffle order deck using Fisher-Yates algorithm
+   */
   shuffleOrderDeck() {
     for (let i = this.orderDeck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -94,35 +115,56 @@ export class PlayerState {
     }
   }
 
-  // Calculate current leadership usage
+  /**
+   * Calculate current leadership usage from creatures in play
+   * @returns {number} Total leadership used
+   */
   getCurrentLeadershipUsage() {
     return this.creaturesInPlay.reduce((sum, creature) => sum + creature.creature.level, 0)
   }
 
-  // Check if can deploy a creature
+  /**
+   * Check if player has enough leadership to deploy a creature
+   * @param {Creature} creature - Creature to check
+   * @returns {boolean} True if can deploy
+   */
   canDeployCreature(creature) {
     const currentUsage = this.getCurrentLeadershipUsage()
     return (currentUsage + creature.level) <= this.leadership
   }
 
-  // Lose morale
+  /**
+   * Lose morale (e.g., when creatures are destroyed)
+   * @param {number} amount - Amount of morale to lose
+   * @returns {boolean} True if player is defeated (morale <= 0)
+   */
   loseMorale(amount) {
     this.morale = Math.max(0, this.morale - amount)
     return this.morale <= 0 // Returns true if defeated
   }
 
-  // Gain morale (from treasure tokens)
+  /**
+   * Gain morale (e.g., from treasure tokens)
+   * @param {number} amount - Amount of morale to gain
+   */
   gainMorale(amount) {
     this.morale += amount
   }
 
-  // Increase leadership
+  /**
+   * Increase leadership (happens each Deploy phase)
+   * @param {number} amount - Amount to increase (default 1)
+   */
   increaseLeadership(amount = 1) {
     this.leadership += amount
   }
 
-  // Check if player is defeated
-  // Player loses if: (1) Morale reaches 0, OR (2) All creatures in play are killed (after turn 1)
+  /**
+   * Check if player is defeated
+   * Player loses if: (1) Morale reaches 0, OR (2) All creatures killed after turn 1
+   * @param {number} currentTurn - Current turn number
+   * @returns {boolean} True if defeated
+   */
   isDefeated(currentTurn = 1) {
     // Morale defeat applies immediately
     if (this.morale <= 0) return true
@@ -134,6 +176,11 @@ export class PlayerState {
   }
 }
 
+/**
+ * GameState - Main game state manager
+ * Handles board, players, turns, and game logic
+ * @param {Array} playerSetups - Array of { playerId, commander, creatures, orders, faction }
+ */
 export class GameState {
   constructor(playerSetups) {
     // playerSetups is an array of { playerId, commander, creatures, orders, faction }
@@ -151,12 +198,12 @@ export class GameState {
     this.gameOver = false
     this.winner = null
 
-    // Board state - STEP 1: Increased to 16×16 for terrain regions
+    // Board state - Increased to 16×16 for terrain regions
     this.boardWidth = 16  // Changed from 12 for 8×8 terrain regions
     this.boardHeight = 16 // Changed from 12 for 8×8 terrain regions
     this.tiles = [] // 2D array [y][x] for O(1) tile lookup
 
-    // STEP 2: Treasure/Morale token system
+    // Treasure/Morale token system
     this.treasures = [] // Array of Treasure objects on the board
     this.treasurePlacementStats = { relaxedSpacing: 0 } // Track placement failures for testing
 
@@ -167,6 +214,9 @@ export class GameState {
     this.initializeGame()
   }
 
+  /**
+   * Initialize game - shuffle decks and draw starting hands for all players
+   */
   initializeGame() {
     // Shuffle both decks and draw starting hands for all active players
     this.activePlayers.forEach(playerId => {
@@ -182,7 +232,10 @@ export class GameState {
     })
   }
 
-  // STEP 1: Generate board with 8×8 terrain regions (NEW)
+  /**
+   * Generate board with 8×8 terrain regions
+   * Creates a 16×16 board with clustered terrain, magic circles, starting zones, and treasures
+   */
   generateBoard() {
     // Initialize empty board as 2D array [y][x] for O(1) access
     this.tiles = []
@@ -198,7 +251,7 @@ export class GameState {
       }
     }
 
-    // STEP 1: Generate four 8×8 terrain regions in corners
+    // Generate four 8×8 terrain regions in corners
     // Top-left region (0,0) to (7,7)
     this.generateTerrainRegion(0, 0, 8, 8)
     // Top-right region (8,0) to (15,7)
@@ -214,11 +267,18 @@ export class GameState {
     // Add starting zones on the edges for each player
     this.addStartingZones()
 
-    // STEP 2: Place treasure tokens after board and starting zones are ready
+    // Place treasure tokens after board and starting zones are ready
     this.placeTreasures()
   }
 
-  // STEP 1: Generate a terrain region with clustered terrain
+  /**
+   * Generate a terrain region with clustered terrain
+   * Creates realistic-looking terrain groups (forests, mountains, etc.)
+   * @param {number} startX - Starting X coordinate
+   * @param {number} startY - Starting Y coordinate
+   * @param {number} width - Region width
+   * @param {number} height - Region height
+   */
   generateTerrainRegion(startX, startY, width, height) {
     const regionTiles = []
 
@@ -248,7 +308,7 @@ export class GameState {
     this.addClusteredTerrain(regionTiles, TerrainTypes.DIFFICULT, difficultCount, 2)
   }
 
-  // STEP 1: Add terrain in clusters instead of random scatter
+  // Add terrain in clusters instead of random scatter
   addClusteredTerrain(regionTiles, terrainType, count, clusterSize) {
     const availableTiles = regionTiles.filter(t => t && t.terrain === TerrainTypes.NORMAL)
     let placed = 0
@@ -294,7 +354,7 @@ export class GameState {
     }
   }
 
-  // STEP 1: Helper to get adjacent tiles (4-directional)
+  // Helper to get adjacent tiles (4-directional)
   getAdjacentTiles(x, y) {
     const adjacent = []
     const directions = [
@@ -315,44 +375,6 @@ export class GameState {
 
     return adjacent
   }
-
-  /* STEP 1: OLD TERRAIN GENERATION (COMMENTED OUT FOR REFERENCE)
-  // Generate random board with terrain
-  generateBoard() {
-    // Initialize empty board
-    this.tiles = []
-    for (let y = 0; y < this.boardHeight; y++) {
-      for (let x = 0; x < this.boardWidth; x++) {
-        this.tiles.push({
-          x,
-          y,
-          terrain: TerrainTypes.NORMAL,
-          occupant: null
-        })
-      }
-    }
-
-    const totalTiles = this.boardWidth * this.boardHeight
-
-    // Add forests (10-15% of board)
-    const forestCount = Math.floor(totalTiles * (0.10 + Math.random() * 0.05))
-    this.addRandomTerrain(TerrainTypes.FOREST, forestCount)
-
-    // Add mountains (8-12% of board)
-    const mountainCount = Math.floor(totalTiles * (0.08 + Math.random() * 0.04))
-    this.addRandomTerrain(TerrainTypes.MOUNTAIN, mountainCount)
-
-    // Add difficult terrain (5-8% of board)
-    const difficultCount = Math.floor(totalTiles * (0.05 + Math.random() * 0.03))
-    this.addRandomTerrain(TerrainTypes.DIFFICULT, difficultCount)
-
-    // Add one magic circle per active player
-    this.addMagicCircles()
-
-    // Add starting zones on the edges for each player
-    this.addStartingZones()
-  }
-  */
 
   // Create starting zones for each player on the board edges
   addStartingZones() {
@@ -425,7 +447,7 @@ export class GameState {
   }
 
   /**
-   * STEP 2: Place treasure tokens on the board
+   * Place treasure tokens on the board
    * Each faction draws 3 random tokens and places them on valid tiles
    *
    * Placement Rules:
@@ -443,7 +465,7 @@ export class GameState {
     const preferredTreasureSpacing = 3 // Manhattan distance between treasures
     let treasureIdCounter = 0
 
-    // STEP 2: Get all valid tiles for treasure placement - O(W*H) = O(256)
+    // Get all valid tiles for treasure placement - O(W*H) = O(256)
     const validTiles = []
     for (let y = 0; y < this.boardHeight; y++) {
       for (let x = 0; x < this.boardWidth; x++) {
@@ -478,7 +500,7 @@ export class GameState {
       }
     }
 
-    // STEP 2: For each faction, draw tokens and place them - O(N*T) where N=numPlayers, T=3
+    // For each faction, draw tokens and place them - O(N*T) where N=numPlayers, T=3
     this.activePlayers.forEach((playerId) => {
       // Draw 3 random tokens from the pool [1,1,2,2,3,3]
       const pool = createTokenPool()
@@ -495,7 +517,7 @@ export class GameState {
 
           // Pick a random valid tile - O(1)
           if (validTiles.length === 0) {
-            console.warn(`STEP 2: No valid tiles available for treasure placement`)
+            console.warn(`No valid tiles available for treasure placement`)
             break
           }
 
@@ -528,7 +550,7 @@ export class GameState {
             candidateTile.treasure = treasure // Add reference to tile
             placedSuccessfully = true
           } else if (attempts >= maxAttempts - 1) {
-            // STEP 2: Relax spacing constraint if we can't find a spot
+            // Relax spacing constraint if we can't find a spot
             const treasure = new Treasure({
               id: `treasure-${treasureIdCounter++}`,
               owner: playerId,
@@ -540,19 +562,19 @@ export class GameState {
             candidateTile.treasure = treasure
             placedSuccessfully = true
             this.treasurePlacementStats.relaxedSpacing++
-            console.log(`STEP 2: Relaxed treasure spacing constraint (attempt ${attempts})`)
+            console.log(`Relaxed treasure spacing constraint (attempt ${attempts})`)
           }
         }
 
         if (!placedSuccessfully) {
-          console.warn(`STEP 2: Failed to place treasure with value ${moraleValue} for ${playerId}`)
+          console.warn(`Failed to place treasure with value ${moraleValue} for ${playerId}`)
         }
       })
     })
 
-    console.log(`STEP 2: Placed ${this.treasures.length} treasures on board`)
+    console.log(`Placed ${this.treasures.length} treasures on board`)
     if (this.treasurePlacementStats.relaxedSpacing > 0) {
-      console.log(`STEP 2: Relaxed spacing constraint ${this.treasurePlacementStats.relaxedSpacing} times`)
+      console.log(`Relaxed spacing constraint ${this.treasurePlacementStats.relaxedSpacing} times`)
     }
   }
 
@@ -601,17 +623,30 @@ export class GameState {
     return allTiles
   }
 
+  /**
+   * Get current player's state
+   * @returns {PlayerState} Current player state
+   */
   getCurrentPlayerState() {
     return this.players[this.currentPlayer]
   }
 
-  // Calculate distance between two positions (Chebyshev distance for 8-directional grid)
-  // Chebyshev distance = max(|dx|, |dy|) - correct for grids with diagonal movement
+  /**
+   * Calculate distance between two positions using Chebyshev distance
+   * Chebyshev distance = max(|dx|, |dy|) - correct for 8-directional movement
+   * @param {Object} pos1 - First position {x, y}
+   * @param {Object} pos2 - Second position {x, y}
+   * @returns {number} Distance
+   */
   getDistance(pos1, pos2) {
     return Math.max(Math.abs(pos1.x - pos2.x), Math.abs(pos1.y - pos2.y))
   }
 
-  // STEP 1: Check if creature has flying ability
+  /**
+   * Check if creature has flying ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature can fly
+   */
   hasFlying(creatureInstance) {
     if (!creatureInstance || !creatureInstance.creature) return false
     const abilities = creatureInstance.creature.specialAbilities || []
@@ -620,7 +655,12 @@ export class GameState {
     )
   }
 
-  // STEP 1: Check if tile is passable (with flying support)
+  /**
+   * Check if tile is passable for movement
+   * @param {Object} tile - Tile to check
+   * @param {boolean} flying - Whether creature is flying
+   * @returns {boolean} True if passable
+   */
   isTerrainPassable(tile, flying = false) {
     if (!tile) return false
 
@@ -632,7 +672,12 @@ export class GameState {
     return true
   }
 
-  // STEP 1: Get movement cost for terrain (with flying support)
+  /**
+   * Get movement cost for terrain type
+   * @param {string} terrain - Terrain type
+   * @param {boolean} flying - Whether creature is flying
+   * @returns {number} Movement cost (999 = impassable)
+   */
   getTerrainMovementCost(terrain, flying = false) {
     // Flying creatures ignore difficult terrain
     if (flying) {
@@ -657,7 +702,7 @@ export class GameState {
     }
   }
 
-  // STEP 1: Get all valid movement tiles using A* pathfinding
+  // Get all valid movement tiles using A* pathfinding
   getValidMovementTiles(creatureInstance) {
     if (!creatureInstance.position) return []
 
@@ -696,7 +741,7 @@ export class GameState {
     }
 
     const validTiles = this.getValidMovementTiles(creatureInstance)
-    // STEP 1: Fix - validTiles contains {tile, path, cost} objects
+    // Fix - validTiles contains {tile, path, cost} objects
     const isValid = validTiles.some(t => t.tile.x === targetTile.x && t.tile.y === targetTile.y)
 
     if (!isValid) return false
@@ -711,10 +756,10 @@ export class GameState {
     creatureInstance.position = { x: targetTile.x, y: targetTile.y }
     targetTile.occupant = creatureInstance
 
-    // STEP 2: Reveal treasure if creature moves onto it - O(1)
+    // Reveal treasure if creature moves onto it - O(1)
     if (targetTile.treasure && !targetTile.treasure.isRevealed) {
       targetTile.treasure.reveal()
-      console.log(`STEP 2: Treasure revealed at (${targetTile.x}, ${targetTile.y}): ${targetTile.treasure.getDisplayString()}`)
+      console.log(`Treasure revealed at (${targetTile.x}, ${targetTile.y}): ${targetTile.treasure.getDisplayString()}`)
     }
 
     // Mark as moved
@@ -815,7 +860,7 @@ export class GameState {
   }
 
   /**
-   * STEP 2: Collect morale from a treasure token
+   * Collect morale from a treasure token
    * - Creature must be standing on treasure tile
    * - Uses creature's ACTION (not movement)
    * - Collects 1 morale per action
@@ -865,7 +910,7 @@ export class GameState {
       treasureValue: treasure.getDisplayString()
     }
 
-    // STEP 2: Remove treasure immediately if depleted - O(n) where n=treasures (max 6)
+    // Remove treasure immediately if depleted - O(n) where n=treasures (max 6)
     if (isDepleted) {
       // Remove from treasures array
       const treasureIndex = this.treasures.indexOf(treasure)

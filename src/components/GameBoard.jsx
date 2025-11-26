@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Container, Row, Col, Card, Button, Badge, Alert, Modal } from 'react-bootstrap' // STEP 1: Added Modal
+import { Container, Row, Col, Card, Button, Badge, Alert, Modal } from 'react-bootstrap' // Added Modal
 import { GameState, GamePhases, Players } from '../models/gameState'
 import { Creature, CreatureInstance } from '../models/creatures'
 import { Commander } from '../models/commanders'
@@ -13,6 +13,11 @@ import SimpleAI from '../ai/simpleAI'
 import ImmediateReactionModal from './ImmediateReactionModal'
 import './GameBoard.css'
 
+/**
+ * GameBoard - Main game component
+ * Manages the entire game state, player interactions, and UI
+ * Handles human and AI players, game phases, and all game actions
+ */
 function GameBoard() {
   const [gameState, setGameState] = useState(null)
   const [gameConfig, setGameConfig] = useState(null)
@@ -33,7 +38,7 @@ function GameBoard() {
   const [showReactionModal, setShowReactionModal] = useState(false)
   const [pendingAttack, setPendingAttack] = useState(null) // Stores attack info while waiting for reactions
 
-  // STEP 1: Movement Confirmation Modal state
+  // Movement Confirmation Modal state
   const [showMoveConfirm, setShowMoveConfirm] = useState(false)
   const [pendingMove, setPendingMove] = useState(null) // Stores {creature, destination, path, cost}
 
@@ -41,22 +46,29 @@ function GameBoard() {
   const [pendingAIActions, setPendingAIActions] = useState([])
   const [processingAIAction, setProcessingAIAction] = useState(false)
 
-  // STEP 2: Treasure Discovery Modal state
+  // Treasure Discovery Modal state
   const [showTreasureDiscovery, setShowTreasureDiscovery] = useState(false)
   const [discoveredTreasure, setDiscoveredTreasure] = useState(null) // Stores {creature, treasure, tile}
 
-  // STEP 2: Morale Collection Confirmation Modal state
+  // Morale Collection Confirmation Modal state
   const [showCollectConfirm, setShowCollectConfirm] = useState(false)
   const [pendingCollection, setPendingCollection] = useState(null) // Stores {creature, treasure}
 
-  // Handler for faction selection - move to commander selection
+  /**
+   * Handler for faction selection - move to commander selection
+   * @param {Object} config - Faction configuration for both players
+   */
   const handleFactionSelected = (config) => {
     console.log('handleFactionSelected called with config:', config)
     setFactionConfig(config)
     console.log('factionConfig updated')
   }
 
-  // Handler for commander selection - start the game
+  /**
+   * Handler for commander selection - start the game
+   * Creates decks and initializes game state
+   * @param {Object} config - Complete game configuration with commanders
+   */
   const startNewGame = (config) => {
     // Store the final game configuration (with commanders selected)
     setGameConfig(config)
@@ -100,6 +112,10 @@ function GameBoard() {
     setActionMessage('Game started! DEPLOY Phase: Click or drag creatures from your hand to your starting zone (colored tiles).')
   }
 
+  /**
+   * Handle tile click for deployment, movement, and attacks
+   * @param {Object} tile - Clicked tile
+   */
   const handleTileClick = (tile) => {
     if (!gameState) return
     if (gameState.gameOver) return
@@ -155,10 +171,10 @@ function GameBoard() {
           return
         }
 
-        // STEP 1: Check if clicking on a valid movement tile (handle new pathfinding format)
+        // Check if clicking on a valid movement tile (handle new pathfinding format)
         const validMove = validMoveTiles.find(vm => vm.tile.x === tile.x && vm.tile.y === tile.y)
         if (validMove && !tile.occupant) {
-          // STEP 1: Show confirmation modal instead of moving immediately
+          // Show confirmation modal instead of moving immediately
           setPendingMove({
             creature: selectedBoardCreature,
             destination: tile,
@@ -187,6 +203,11 @@ function GameBoard() {
     }
   }
 
+  /**
+   * Handle creature selection on board
+   * Calculates valid moves and attack targets
+   * @param {CreatureInstance} creatureInstance - Selected creature
+   */
   const handleCreatureSelect = (creatureInstance) => {
     if (creatureInstance.isTapped) {
       setActionMessage('Creature is tapped! Cannot move or attack.')
@@ -209,12 +230,12 @@ function GameBoard() {
     )
   }
 
-  // STEP 1: Handle movement (with pathfinding info)
+  // Handle movement (with pathfinding info)
   const handleMove = (creatureInstance, targetTile, validMove) => {
     const success = gameState.moveCreature(creatureInstance, targetTile)
 
     if (success) {
-      // STEP 1: Show movement cost in message
+      // Show movement cost in message
       const cost = validMove ? validMove.cost : '?'
       setActionMessage(
         `${creatureInstance.creature.name} moved to (${targetTile.x}, ${targetTile.y}) - Cost: ${cost}`
@@ -228,7 +249,7 @@ function GameBoard() {
     }
   }
 
-  // STEP 1: Confirm movement from modal
+  // Confirm movement from modal
   const confirmMove = () => {
     if (!pendingMove) return
 
@@ -239,7 +260,7 @@ function GameBoard() {
         `${pendingMove.creature.creature.name} moved to (${pendingMove.destination.x}, ${pendingMove.destination.y}) - Cost: ${pendingMove.cost}`
       )
 
-      // STEP 2: Check if creature landed on treasure and is a human player
+      // Check if creature landed on treasure and is a human player
       const tile = gameState.getTile(pendingMove.destination.x, pendingMove.destination.y)
       if (tile?.treasure) {
         const creatureOwner = pendingMove.creature.owner
@@ -269,13 +290,18 @@ function GameBoard() {
     setRenderCounter(prev => prev + 1)
   }
 
-  // STEP 1: Cancel movement from modal
+  // Cancel movement from modal
   const cancelMove = () => {
     setPendingMove(null)
     setShowMoveConfirm(false)
   }
 
-  // Handle attack with Immediate reaction support
+  /**
+   * Handle attack with Immediate reaction support
+   * Shows modal for human defenders, uses AI logic for AI defenders
+   * @param {CreatureInstance} attackerInstance - Attacking creature
+   * @param {CreatureInstance} defenderInstance - Defending creature
+   */
   const handleAttack = (attackerInstance, defenderInstance) => {
     if (attackerInstance.isTapped) {
       setActionMessage('Creature is already tapped!')
@@ -446,7 +472,7 @@ function GameBoard() {
     setProcessingAIAction(false)
   }
 
-  // STEP 2: Handle collect morale from treasure (show confirmation modal)
+  // Handle collect morale from treasure (show confirmation modal)
   const handleCollectMorale = () => {
     if (!selectedBoardCreature) {
       setActionMessage('No creature selected')
@@ -467,7 +493,7 @@ function GameBoard() {
     setShowCollectConfirm(true)
   }
 
-  // STEP 2: Confirm morale collection
+  // Confirm morale collection
   const confirmCollectMorale = () => {
     if (!pendingCollection) return
 
@@ -487,7 +513,7 @@ function GameBoard() {
     setShowCollectConfirm(false)
   }
 
-  // STEP 2: Cancel morale collection
+  // Cancel morale collection
   const cancelCollectMorale = () => {
     setPendingCollection(null)
     setShowCollectConfirm(false)
@@ -942,7 +968,7 @@ function GameBoard() {
                   <small className="text-info" style={{ fontSize: '0.85rem' }}>
                     {selectedBoardCreature.creature.name} selected - Click to move or attack
                   </small>
-                  {/* STEP 2: Show Collect Morale button if creature is on treasure */}
+                  {/* Show Collect Morale button if creature is on treasure */}
                   {(() => {
                     const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
                     return tile?.treasure && (
@@ -968,7 +994,7 @@ function GameBoard() {
                       const tile = gameState.getTile(x, y)
                       const creature = getTileCreature(x, y)
 
-                      // STEP 1: Check if this tile is a valid move (handle new pathfinding format)
+                      // Check if this tile is a valid move (handle new pathfinding format)
                       const validMove = validMoveTiles.find(vm => vm.tile.x === x && vm.tile.y === y)
                       const isValidMove = validMove !== undefined
 
@@ -988,7 +1014,7 @@ function GameBoard() {
                           creature={creature}
                           isSelected={isSelectedCreature}
                           isValidMove={isValidMove}
-                          movementInfo={validMove} // STEP 1: Pass movement info for cost display
+                          movementInfo={validMove} // Pass movement info for cost display
                           isAttackTarget={isAttackTarget}
                           onClick={handleTileClick}
                           onDrop={handleDrop}
@@ -1039,7 +1065,7 @@ function GameBoard() {
         />
       )}
 
-      {/* STEP 1: Movement Confirmation Modal - positioned dynamically */}
+      {/* Movement Confirmation Modal - positioned dynamically */}
       <Modal
         show={showMoveConfirm}
         onHide={cancelMove}
@@ -1070,7 +1096,7 @@ function GameBoard() {
         </Modal.Footer>
       </Modal>
 
-      {/* STEP 2: Treasure Discovery Modal */}
+      {/* Treasure Discovery Modal */}
       <Modal
         show={showTreasureDiscovery}
         onHide={() => setShowTreasureDiscovery(false)}
@@ -1116,7 +1142,7 @@ function GameBoard() {
         </Modal.Footer>
       </Modal>
 
-      {/* STEP 2: Morale Collection Confirmation Modal */}
+      {/* Morale Collection Confirmation Modal */}
       <Modal
         show={showCollectConfirm}
         onHide={cancelCollectMorale}

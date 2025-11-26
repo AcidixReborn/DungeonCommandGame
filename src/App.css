@@ -1,9 +1,9 @@
 /* ============================================
-   STEP 5: PROFESSIONAL GAMING AESTHETIC
+   PROFESSIONAL GAMING AESTHETIC
    Subtle background patterns, enhanced cohesion
    ============================================ */
 
-/* STEP 5 - ENHANCED VERSION */
+/* ENHANCED VERSION */
 html, body {
   margin: 0;
   padding: 0;
@@ -49,10 +49,10 @@ html, body {
 }
 
 /* ============================================
-   CARTOON-STYLE NAVBAR - STEP 5 ENHANCED
+   CARTOON-STYLE NAVBAR - ENHANCED
    ============================================ */
 
-/* STEP 5 - ENHANCED VERSION */
+/* ENHANCED VERSION */
 .navbar-brand {
   font-weight: 900;
   font-size: 1.5rem;
@@ -159,10 +159,10 @@ html, body {
 }
 
 /* ============================================
-   CARTOON-STYLE MODAL - STEP 5 ENHANCED
+   CARTOON-STYLE MODAL - ENHANCED
    ============================================ */
 
-/* STEP 5 - ENHANCED VERSION */
+/* ENHANCED VERSION */
 /* Modal backdrop with subtle animation and blur */
 .modal-backdrop {
   background-color: rgba(0, 0, 0, 0.7);
@@ -354,7 +354,7 @@ html, body {
     inset 2px 2px 0px rgba(255, 82, 82, 0.3);
 }
 
-/* Dropdown styling - STEP 5 ENHANCED */
+/* Dropdown styling - ENHANCED */
 .dropdown-toggle {
   font-weight: bold;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -407,7 +407,7 @@ html, body {
 }
 
 /* ============================================
-   STEP 5: PROFESSIONAL SCROLLBARS & FINAL POLISH
+   PROFESSIONAL SCROLLBARS & FINAL POLISH
    ============================================ */
 
 /* Global smooth scrollbar styling */

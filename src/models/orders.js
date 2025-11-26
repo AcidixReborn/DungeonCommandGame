@@ -1,10 +1,13 @@
 // Order card model based on Dungeon Command specifications
+
+// Action type constants - determines when card can be played and if it taps creature
 export const ActionTypes = {
-  STANDARD: 'STANDARD',
-  MINOR: 'MINOR',
-  IMMEDIATE: 'IMMEDIATE'
+  STANDARD: 'STANDARD',     // Taps creature, main phase only
+  MINOR: 'MINOR',           // Doesn't tap creature, main phase only
+  IMMEDIATE: 'IMMEDIATE'    // Taps creature, can play on any turn (yours or opponent's)
 }
 
+// Ability type constants - determines which creatures can use the card
 export const AbilityTypes = {
   STR: 'STR',
   DEX: 'DEX',
@@ -12,9 +15,13 @@ export const AbilityTypes = {
   INT: 'INT',
   WIS: 'WIS',
   CHA: 'CHA',
-  ANY: 'ANY'
+  ANY: 'ANY'  // Any creature can use regardless of abilities
 }
 
+/**
+ * OrderCard - Represents an order (spell/ability) card
+ * Can be played by creatures that meet the requirements
+ */
 export class OrderCard {
   constructor({
     id,
@@ -43,22 +50,36 @@ export class OrderCard {
     this.range = range // Range in tiles for Immediate card usage (1 = adjacent)
   }
 
-  // Check if this card requires tapping
+  /**
+   * Check if this card requires tapping the creature
+   * @returns {boolean} True if card taps creature
+   */
   requiresTap() {
     return this.actionType === ActionTypes.STANDARD || this.actionType === ActionTypes.IMMEDIATE
   }
 
-  // Check if this is an Immediate action (can be played during ANY turn - yours or opponent's)
+  /**
+   * Check if this is an Immediate action (can be played during any turn)
+   * @returns {boolean} True if immediate
+   */
   isImmediate() {
     return this.actionType === ActionTypes.IMMEDIATE
   }
 
-  // Backwards compatibility - Immediate cards can be used as reactions
+  /**
+   * Backwards compatibility - Immediate cards can be used as reactions
+   * @returns {boolean} True if immediate (can react)
+   */
   isReaction() {
     return this.isImmediate()
   }
 
-  // Check if a creature can use this order card
+  /**
+   * Check if a creature can use this order card
+   * Checks level, creature type, and ability requirements
+   * @param {Creature} creature - Creature to check
+   * @returns {boolean} True if creature can use this card
+   */
   canBeUsedBy(creature) {
     // Check level requirement: creature level must be >= card level
     if (creature.level < this.level) {

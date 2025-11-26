@@ -52,7 +52,7 @@ export class SimpleAI {
     const hasTreasuresAvailable = this.gameState.treasures?.some(t => !t.isDepleted()) || false
 
     for (const creature of availableCreatures) {
-      // STEP 2: Priority 1 - Collect morale if standing on treasure - O(1)
+      // Priority 1 - Collect morale if standing on treasure - O(1)
       const tile = this.gameState.getTile(creature.position.x, creature.position.y)
       if (tile?.treasure && !tile.treasure.isDepleted()) {
         const result = this.gameState.collectMorale(creature)
@@ -188,7 +188,10 @@ export class SimpleAI {
   }
 
   /**
-   * Select the weakest target (lowest current HP)
+   * Select the weakest target from available attack targets
+   * Prioritizes low HP targets for efficient kills
+   * @param {Array} targets - Array of attack target objects
+   * @returns {Object} Weakest target
    */
   selectWeakestTarget(targets) {
     return targets.reduce((weakest, current) => {
@@ -200,6 +203,9 @@ export class SimpleAI {
 
   /**
    * Try to move creature towards nearest enemy
+   * Used when no treasures available or after collecting treasure
+   * @param {CreatureInstance} creature - Creature to move
+   * @returns {Object|null} Movement info or null if no valid move
    */
   tryMoveTowardsEnemies(creature) {
     const validMoves = this.gameState.getValidMovementTiles(creature)
@@ -226,7 +232,7 @@ export class SimpleAI {
     let bestMove = null
     let bestDistance = Infinity
 
-    // STEP 1: Fix - validMoves now contains {tile, path, cost} objects
+    // Fix - validMoves now contains {tile, path, cost} objects
     for (const moveInfo of validMoves) {
       const moveTile = moveInfo.tile
       for (const enemy of enemies) {
@@ -269,7 +275,7 @@ export class SimpleAI {
   }
 
   /**
-   * STEP 2: Try to move creature towards nearest treasure
+   * Try to move creature towards nearest treasure
    * AI highly prioritizes treasures for strategic morale advantage
    *
    * Big O Complexity: O(M*T) where M=validMoves, T=treasures
@@ -337,7 +343,7 @@ export class SimpleAI {
   }
 
   /**
-   * STEP 1: Decide whether to use Immediate (IMD) cards when being attacked
+   * Decide whether to use Immediate (IMD) cards when being attacked
    * Returns object with reactions and opportunity info
    *
    * @param {CreatureInstance} defenderInstance - The creature being attacked

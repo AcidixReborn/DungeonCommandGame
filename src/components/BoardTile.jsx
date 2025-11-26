@@ -1,7 +1,26 @@
 import { TerrainTypes } from '../models/gameState'
 import './BoardTile.css'
 
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, onDrop, onDragOver, isDragTarget }) { // STEP 1: Added movementInfo
+/**
+ * BoardTile - Renders a single tile on the game board
+ * Displays terrain, creatures, treasures, and movement/attack indicators
+ *
+ * @param {Object} tile - Tile data with terrain and position
+ * @param {Function} onClick - Handler for tile clicks
+ * @param {boolean} isSelected - Whether this tile is selected
+ * @param {CreatureInstance} creature - Creature on this tile (if any)
+ * @param {boolean} isValidMove - Whether this tile is a valid movement destination
+ * @param {Object} movementInfo - Movement cost and path info
+ * @param {boolean} isAttackTarget - Whether creature on this tile can be attacked
+ * @param {Function} onDrop - Drag and drop handler
+ * @param {Function} onDragOver - Drag over handler
+ * @param {boolean} isDragTarget - Whether this tile is a valid drag target
+ */
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, onDrop, onDragOver, isDragTarget }) { // Added movementInfo
+  /**
+   * Get CSS class for terrain type
+   * @returns {string} Terrain CSS class
+   */
   const getTerrainClass = () => {
     switch (tile.terrain) {
       case TerrainTypes.FOREST:
@@ -19,6 +38,10 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
     }
   }
 
+  /**
+   * Get emoji symbol for terrain type
+   * @returns {string|null} Terrain emoji or null
+   */
   const getTerrainSymbol = () => {
     switch (tile.terrain) {
       case TerrainTypes.FOREST:
@@ -63,14 +86,14 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
     >
       <div className="terrain-symbol">{getTerrainSymbol()}</div>
 
-      {/* STEP 1: Show movement cost on valid tiles */}
+      {/* Show movement cost on valid tiles */}
       {isValidMove && movementInfo && (
         <div className="movement-cost">
           {movementInfo.cost}
         </div>
       )}
 
-      {/* STEP 2: Display treasure tokens */}
+      {/* Display treasure tokens */}
       {tile.treasure && !creature && (
         <div className="treasure-token">
           <div className="treasure-icon">
@@ -88,7 +111,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         </div>
       )}
 
-      {/* STEP 2: Show treasure indicator under creature if standing on treasure */}
+      {/* Show treasure indicator under creature if standing on treasure */}
       {tile.treasure && creature && (
         <div className="treasure-indicator">
           {Array(tile.treasure.remainingMorale).fill('💎').join('')}
