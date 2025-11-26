@@ -1,6 +1,6 @@
 import { GamePhases } from '../models/gameState'
 import { CreatureInstance } from '../models/creatures'
-import { ActionTypes } from '../models/orders'
+// ActionTypes import removed - not used
 
 /**
  * Simple AI for Dungeon Command
@@ -56,37 +56,13 @@ export class SimpleAI {
         // Attack the weakest enemy (lowest HP)
         const target = this.selectWeakestTarget(attackTargets)
 
-        // STEP 1: Check if defender wants to use IMD cards (AI vs AI)
-        const defenderPlayerId = target.creature.owner
-        const defenderAI = new SimpleAI(this.gameState, defenderPlayerId)
-        const reactionDecision = defenderAI.decideImmediateReactions(target.creature)
-
-        // Process reactions before attack
-        if (reactionDecision.reactions.length > 0) {
-          const defenderPlayer = this.gameState.players[defenderPlayerId]
-
-          // Sort by cardIndex descending to prevent array shift issues
-          reactionDecision.reactions.sort((a, b) => b.cardIndex - a.cardIndex)
-
-          reactionDecision.reactions.forEach(reaction => {
-            // Tap creature
-            reaction.creature.isTapped = true
-            // Discard card
-            defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
-          })
-        }
-
-        // Execute attack
-        const result = this.gameState.executeAttack(creature, target.creature, target.attackType)
-
+        // Return attack intention instead of executing it
+        // GameBoard will handle execution and show modals for human defenders
         actions.push({
-          type: 'attack',
-          attacker: creature.creature.name,
-          target: target.creature.creature.name,
-          damage: result.damage,
-          destroyed: result.destroyed,
-          reactionsUsed: reactionDecision.reactions.length, // Track IMD usage
-          hadOpportunity: reactionDecision.hadOpportunity // Track if opportunity existed
+          type: 'attack_intention',
+          attackerInstance: creature,
+          defenderInstance: target.creature,
+          targetInfo: target
         })
         continue
       }
@@ -124,18 +100,9 @@ export class SimpleAI {
     const player = this.gameState.players[this.playerId]
     const actions = []
 
-    // Get starting zone tiles
-    const startingZoneTiles = []
-    for (let y = 0; y < this.gameState.boardHeight; y++) {
-      for (let x = 0; x < this.gameState.boardWidth; x++) {
-        const tile = this.gameState.getTile(x, y)
-        if (tile.terrain === 'STARTING_ZONE' &&
-            tile.startingZoneOwner === this.playerId &&
-            !tile.occupant) {
-          startingZoneTiles.push(tile)
-        }
-      }
-    }
+    // PERFORMANCE: Use cached starting zone tiles instead of scanning entire board (256 tiles)
+    // Filter to only unoccupied tiles
+    const startingZoneTiles = player.startingZoneTiles.filter(tile => !tile.occupant)
 
     // Deploy creatures in order of level (highest first) until out of leadership
     const sortedCreatures = [...player.creatureHand].sort((a, b) => b.level - a.level)

@@ -71,12 +71,17 @@ function FactionSelector({ onStartGame }) {
   }
 
   const handleStartGame = () => {
+    console.log('handleStartGame called')
+    console.log('selectedFactions:', selectedFactions)
+    console.log('playerTypes:', playerTypes)
+
     if (!selectedFactions.player1 || !selectedFactions.player2) {
       setError('Both players must select a faction!')
+      console.log('Error: Both factions not selected')
       return
     }
 
-    onStartGame({
+    const config = {
       player1: {
         faction: selectedFactions.player1,
         isHuman: playerTypes.player1 === 'human'
@@ -85,7 +90,9 @@ function FactionSelector({ onStartGame }) {
         faction: selectedFactions.player2,
         isHuman: playerTypes.player2 === 'human'
       }
-    })
+    }
+    console.log('Calling onStartGame with config:', config)
+    onStartGame(config)
   }
 
   return (

@@ -152,7 +152,7 @@ export class GameState {
     // Board state - STEP 1: Increased to 16×16 for terrain regions
     this.boardWidth = 16  // Changed from 12 for 8×8 terrain regions
     this.boardHeight = 16 // Changed from 12 for 8×8 terrain regions
-    this.tiles = [] // Array of tile objects with terrain
+    this.tiles = [] // 2D array [y][x] for O(1) tile lookup
 
     // Generate random board
     this.generateBoard()
@@ -178,16 +178,17 @@ export class GameState {
 
   // STEP 1: Generate board with 8×8 terrain regions (NEW)
   generateBoard() {
-    // Initialize empty board
+    // Initialize empty board as 2D array [y][x] for O(1) access
     this.tiles = []
     for (let y = 0; y < this.boardHeight; y++) {
+      this.tiles[y] = []
       for (let x = 0; x < this.boardWidth; x++) {
-        this.tiles.push({
+        this.tiles[y][x] = {
           x,
           y,
           terrain: TerrainTypes.NORMAL,
           occupant: null
-        })
+        }
       }
     }
 
@@ -415,7 +416,7 @@ export class GameState {
   }
 
   addRandomTerrain(terrainType, count) {
-    const normalTiles = this.tiles.filter(t => t.terrain === TerrainTypes.NORMAL)
+    const normalTiles = this.getAllTiles().filter(t => t.terrain === TerrainTypes.NORMAL)
     for (let i = 0; i < count && normalTiles.length > 0; i++) {
       const randomIndex = Math.floor(Math.random() * normalTiles.length)
       const tile = normalTiles[randomIndex]
@@ -425,7 +426,7 @@ export class GameState {
   }
 
   addMagicCircles() {
-    const normalTiles = this.tiles.filter(t => t.terrain === TerrainTypes.NORMAL)
+    const normalTiles = this.getAllTiles().filter(t => t.terrain === TerrainTypes.NORMAL)
 
     this.activePlayers.forEach(playerId => {
       if (normalTiles.length > 0) {
@@ -439,8 +440,24 @@ export class GameState {
     })
   }
 
+  // PERFORMANCE: O(1) lookup using 2D array instead of O(n) find
   getTile(x, y) {
-    return this.tiles.find(t => t.x === x && t.y === y)
+    // Bounds check
+    if (x < 0 || x >= this.boardWidth || y < 0 || y >= this.boardHeight) {
+      return null
+    }
+    return this.tiles[y][x]
+  }
+
+  // PERFORMANCE: Helper to iterate all tiles (needed for compatibility with 2D array)
+  getAllTiles() {
+    const allTiles = []
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
+        allTiles.push(this.tiles[y][x])
+      }
+    }
+    return allTiles
   }
 
   getCurrentPlayerState() {
@@ -521,60 +538,6 @@ export class GameState {
     return validMovement
   }
 
-  /* STEP 1: OLD MOVEMENT SYSTEM (COMMENTED OUT FOR REFERENCE)
-  // Check if a tile is blocked by terrain (mountains block movement)
-  isTerrainBlocked(tile) {
-    return tile.terrain === TerrainTypes.MOUNTAIN
-  }
-
-  // Get movement cost for a terrain type
-  getTerrainMovementCost(terrain) {
-    switch (terrain) {
-      case TerrainTypes.DIFFICULT:
-        return 2 // Costs 2 movement to enter
-      case TerrainTypes.FOREST:
-        return 1
-      case TerrainTypes.MOUNTAIN:
-        return 999 // Impassable
-      default:
-        return 1
-    }
-  }
-
-  // Get all valid movement tiles for a creature
-  getValidMovementTiles(creatureInstance) {
-    if (!creatureInstance.position) return []
-
-    const validTiles = []
-    const speed = creatureInstance.creature.speed
-    const startPos = creatureInstance.position
-
-    // Simple radius check - in a real implementation you'd want pathfinding
-    for (let x = 0; x < this.boardWidth; x++) {
-      for (let y = 0; y < this.boardHeight; y++) {
-        const tile = this.getTile(x, y)
-        if (!tile) continue
-
-        // Can't move to occupied tiles
-        if (tile.occupant) continue
-
-        // Can't move to mountains
-        if (this.isTerrainBlocked(tile)) continue
-
-        // Check if within movement range (Manhattan distance)
-        const distance = this.getDistance(startPos, { x, y })
-        const movementCost = distance * this.getTerrainMovementCost(tile.terrain)
-
-        if (movementCost <= speed) {
-          validTiles.push(tile)
-        }
-      }
-    }
-
-    return validTiles
-  }
-  */
-
   // Move a creature to a new position
   moveCreature(creatureInstance, targetTile) {
     if (!creatureInstance.position) return false
@@ -635,6 +598,9 @@ export class GameState {
       const player = this.players[playerId]
       for (const enemyCreature of player.creaturesInPlay) {
         if (!enemyCreature.position) continue
+
+        // Skip creatures that were deployed this turn (protected from attacks)
+        if (enemyCreature.deployedThisTurn) continue
 
         const distance = this.getDistance(creatureInstance.position, enemyCreature.position)
 
@@ -736,7 +702,12 @@ export class GameState {
       this.turnNumber++
     }
 
-    this.currentPhase = GamePhases.REFRESH
+    // Turn 1 is deploy-only for both players
+    if (this.turnNumber === 1) {
+      this.currentPhase = GamePhases.DEPLOY
+    } else {
+      this.currentPhase = GamePhases.REFRESH
+    }
 
     // Check for game over conditions
     this.checkGameOver()
@@ -752,6 +723,14 @@ export class GameState {
     const wasDestroyed = defenderInstance.takeDamage(damageAmount)
 
     if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (defenderInstance.position) {
+        const tile = this.getTile(defenderInstance.position.x, defenderInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
       // Remove from battlefield
       const defenderPlayer = this.players[defenderOwner]
       const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === defenderInstance.instanceId)

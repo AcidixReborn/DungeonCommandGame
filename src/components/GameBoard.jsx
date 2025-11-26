@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Container, Row, Col, Card, Button, Badge, Alert, Modal } from 'react-bootstrap' // STEP 1: Added Modal
 import { GameState, GamePhases, Players } from '../models/gameState'
 import { Creature, CreatureInstance } from '../models/creatures'
@@ -37,9 +37,15 @@ function GameBoard() {
   const [showMoveConfirm, setShowMoveConfirm] = useState(false)
   const [pendingMove, setPendingMove] = useState(null) // Stores {creature, destination, path, cost}
 
+  // AI action queue for processing attacks with modal support
+  const [pendingAIActions, setPendingAIActions] = useState([])
+  const [processingAIAction, setProcessingAIAction] = useState(false)
+
   // Handler for faction selection - move to commander selection
   const handleFactionSelected = (config) => {
+    console.log('handleFactionSelected called with config:', config)
     setFactionConfig(config)
+    console.log('factionConfig updated')
   }
 
   // Handler for commander selection - start the game
@@ -408,6 +414,85 @@ function GameBoard() {
     setValidAttackTargets([])
     setPendingAttack(null)
     setRenderCounter(prev => prev + 1)
+
+    // Continue processing remaining AI actions
+    setProcessingAIAction(false)
+  }
+
+  // Process AI attack intention - check if defender is human and show modal if needed
+  const processAIAttackIntention = (action) => {
+    const { attackerInstance, defenderInstance, targetInfo } = action
+
+    // Check if defender is a human player
+    const defenderPlayerId = defenderInstance.owner
+    const isDefenderHuman =
+      (defenderPlayerId === Players.PLAYER1 && gameConfig?.player1.isHuman) ||
+      (defenderPlayerId === Players.PLAYER2 && gameConfig?.player2.isHuman)
+
+    if (isDefenderHuman) {
+      // Defender is human - show reaction modal
+      setPendingAttack({
+        attackerInstance,
+        defenderInstance,
+        targetInfo
+      })
+      setShowReactionModal(true)
+      // Modal handlers will call executeAttackAfterReactions which continues processing
+    } else {
+      // Defender is AI - use AI logic to decide on reactions
+      const defenderAI = new SimpleAI(gameState, defenderPlayerId)
+      const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
+
+      // Process AI reactions
+      if (reactionDecision.reactions.length > 0) {
+        const defenderPlayer = gameState.players[defenderPlayerId]
+
+        // Sort by cardIndex descending to prevent array shift issues
+        reactionDecision.reactions.sort((a, b) => b.cardIndex - a.cardIndex)
+
+        reactionDecision.reactions.forEach(reaction => {
+          // Tap creature
+          reaction.creature.isTapped = true
+          // Discard card
+          defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
+        })
+      }
+
+      // Execute attack immediately for AI defender
+      const result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+
+      if (result.success) {
+        let message = ''
+
+        // Add reaction info to message
+        if (reactionDecision.reactions.length > 0) {
+          message += `⚡ AI used ${reactionDecision.reactions.length} Immediate card${reactionDecision.reactions.length !== 1 ? 's' : ''}! `
+        }
+
+        message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+                   `with ${targetInfo.attackType} for ${result.damage} damage!`
+
+        if (result.destroyed) {
+          message += ` ${defenderInstance.creature.name} was destroyed! `
+          message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+                    `Defender ${result.moraleChange.defender}`
+        } else {
+          message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
+        }
+
+        setActionMessage(message)
+
+        // Check for game over
+        gameState.checkGameOver()
+      } else {
+        setActionMessage(result.message || 'Attack failed!')
+      }
+
+      setRenderCounter(prev => prev + 1)
+
+      // Continue processing remaining AI actions
+      setProcessingAIAction(false)
+    }
   }
 
   // Drag and Drop handlers
@@ -514,6 +599,40 @@ function GameBoard() {
     setRenderCounter(prev => prev + 1)
   }
 
+  // Process pending AI actions queue (for attacks that need defender modals)
+  useEffect(() => {
+    if (processingAIAction) return
+
+    if (pendingAIActions.length === 0) {
+      // Queue is empty - check if we need to advance phase after AI actions
+      if (!isAIThinking && gameState && !gameState.gameOver) {
+        const currentPlayerId = gameState.currentPlayer
+        const isCurrentPlayerAI =
+          (currentPlayerId === Players.PLAYER1 && gameConfig?.player1 && !gameConfig.player1.isHuman) ||
+          (currentPlayerId === Players.PLAYER2 && gameConfig?.player2 && !gameConfig.player2.isHuman)
+
+        // If current player is still AI and we just finished processing actions, advance phase
+        if (isCurrentPlayerAI && gameState.currentPhase === GamePhases.ACTIVATE) {
+          // Small delay before advancing
+          setTimeout(() => {
+            advancePhase()
+          }, 500)
+        }
+      }
+      return
+    }
+
+    // Process next action in queue
+    setProcessingAIAction(true)
+    const nextAction = pendingAIActions[0]
+
+    // Remove the action from queue
+    setPendingAIActions(prev => prev.slice(1))
+
+    // Process the attack intention
+    processAIAttackIntention(nextAction)
+  }, [pendingAIActions, processingAIAction])
+
   // AI Turn Logic - Execute AI moves automatically
   useEffect(() => {
     if (!gameState || !gameConfig || gameState.gameOver || isAIThinking) return
@@ -536,16 +655,30 @@ function GameBoard() {
       const ai = new SimpleAI(gameState, currentPlayerId)
       const result = ai.executeTurn()
 
-      setActionMessage(`AI: ${result.message}`)
-      setRenderCounter(prev => prev + 1)
+      // Check if there are attack intentions in the result
+      const actions = result.actions || []
+      const attackIntentions = actions.filter(action => action.type === 'attack_intention')
 
-      // Small delay before advancing phase
-      await new Promise(resolve => setTimeout(resolve, 500))
+      if (attackIntentions.length > 0) {
+        // Queue the attack intentions for processing
+        setPendingAIActions(attackIntentions)
+        setActionMessage(`AI: ${result.message}`)
+        setRenderCounter(prev => prev + 1)
+        setIsAIThinking(false)
+        // Don't advance phase yet - will advance after all actions are processed
+      } else {
+        // No attack intentions, proceed normally
+        setActionMessage(`AI: ${result.message}`)
+        setRenderCounter(prev => prev + 1)
 
-      // Auto-advance phase for AI
-      advancePhase()
+        // Small delay before advancing phase
+        await new Promise(resolve => setTimeout(resolve, 500))
 
-      setIsAIThinking(false)
+        // Auto-advance phase for AI
+        advancePhase()
+
+        setIsAIThinking(false)
+      }
     }
 
     executeAITurn()
@@ -602,17 +735,27 @@ function GameBoard() {
     }
   }
 
-  const getTileCreature = (x, y) => {
-    if (!gameState) return null
+  // PERFORMANCE: Cache position→creature map to avoid O(players × creatures) on every tile render
+  // This converts 5,120 operations per render to just 1 Map creation + O(1) lookups
+  const creaturePositionMap = useMemo(() => {
+    if (!gameState) return new Map()
 
+    const map = new Map()
     for (const playerId of gameState.activePlayers) {
       const player = gameState.players[playerId]
-      const creature = player.creaturesInPlay.find(
-        c => c.position && c.position.x === x && c.position.y === y
-      )
-      if (creature) return creature
+      player.creaturesInPlay.forEach(creature => {
+        if (creature.position) {
+          const key = `${creature.position.x},${creature.position.y}`
+          map.set(key, creature)
+        }
+      })
     }
-    return null
+    return map
+  }, [gameState, renderCounter]) // Rebuild when game state changes or render is forced
+
+  const getTileCreature = (x, y) => {
+    const key = `${x},${y}`
+    return creaturePositionMap.get(key) || null
   }
 
   // Show faction selector first
