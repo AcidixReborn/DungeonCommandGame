@@ -48,8 +48,27 @@ export class SimpleAI {
     // Get all untapped creatures
     const availableCreatures = player.creaturesInPlay.filter(c => !c.isTapped)
 
+    // Check if there are any treasures with morale remaining on the board
+    const hasTreasuresAvailable = this.gameState.treasures?.some(t => !t.isDepleted()) || false
+
     for (const creature of availableCreatures) {
-      // Try to attack first
+      // STEP 2: Priority 1 - Collect morale if standing on treasure - O(1)
+      const tile = this.gameState.getTile(creature.position.x, creature.position.y)
+      if (tile?.treasure && !tile.treasure.isDepleted()) {
+        const result = this.gameState.collectMorale(creature)
+        if (result.success) {
+          actions.push({
+            type: 'collect_morale',
+            creature: creature.creature.name,
+            position: { x: creature.position.x, y: creature.position.y },
+            moraleCollected: result.moraleCollected,
+            treasureDepleted: result.treasureDepleted
+          })
+          continue
+        }
+      }
+
+      // Priority 2 - Try to attack
       const attackTargets = this.gameState.getValidAttackTargets(creature)
 
       if (attackTargets.length > 0) {
@@ -67,7 +86,26 @@ export class SimpleAI {
         continue
       }
 
-      // If can't attack, try to move closer to enemies
+      // Priority 3 - Movement strategy depends on treasure availability
+      // If treasures available: move towards treasures for morale advantage
+      // If no treasures: move towards enemies for combat
+      if (hasTreasuresAvailable) {
+        const treasureMoveResult = this.tryMoveTowardsTreasures(creature)
+        if (treasureMoveResult) {
+          actions.push({
+            type: 'move',
+            creature: creature.creature.name,
+            from: treasureMoveResult.from,
+            to: treasureMoveResult.to,
+            isFlying: treasureMoveResult.isFlying,
+            terrainTypes: treasureMoveResult.terrainTypes,
+            cost: treasureMoveResult.cost
+          })
+          continue
+        }
+      }
+
+      // Priority 4 - Move towards enemies (always try if can't do anything else, or if no treasures)
       const moveResult = this.tryMoveTowardsEnemies(creature)
       if (moveResult) {
         actions.push({
@@ -216,6 +254,74 @@ export class SimpleAI {
       }
 
       // Try to get actual movement cost (default to 1 if not available)
+      const moveCost = this.gameState.getTerrainMovementCost(bestMove.terrain, isFlying)
+
+      return {
+        from,
+        to: { x: bestMove.x, y: bestMove.y },
+        isFlying,
+        terrainTypes,
+        cost: moveCost
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * STEP 2: Try to move creature towards nearest treasure
+   * AI highly prioritizes treasures for strategic morale advantage
+   *
+   * Big O Complexity: O(M*T) where M=validMoves, T=treasures
+   * - For typical game: M≈15 moves, T≤6 treasures = O(90) effectively constant
+   *
+   * @param {CreatureInstance} creature - The creature to move
+   * @returns {Object|null} Movement info or null if no valid move toward treasure
+   */
+  tryMoveTowardsTreasures(creature) {
+    const validMoves = this.gameState.getValidMovementTiles(creature)
+
+    if (validMoves.length === 0) {
+      return null
+    }
+
+    // Get all treasures on the board - O(1) since treasures array is pre-filtered
+    const treasures = this.gameState.treasures
+
+    if (treasures.length === 0) {
+      return null // No treasures on board
+    }
+
+    // Calculate which move gets us closest to nearest treasure - O(M*T)
+    const currentPos = creature.position
+    let bestMove = null
+    let bestDistance = Infinity
+
+    for (const moveInfo of validMoves) {
+      const moveTile = moveInfo.tile
+      for (const treasure of treasures) {
+        const distance = this.gameState.getDistance(moveTile, treasure.position)
+        if (distance < bestDistance) {
+          bestDistance = distance
+          bestMove = moveTile
+        }
+      }
+    }
+
+    if (bestMove && !bestMove.occupant) {
+      const from = { ...currentPos }
+      this.gameState.moveCreature(creature, bestMove)
+
+      // Get movement details for testing
+      const isFlying = this.gameState.hasFlying(creature)
+      const terrainTypes = []
+
+      // Collect terrain types (simplified - just check destination)
+      if (bestMove.terrain) {
+        terrainTypes.push(bestMove.terrain)
+      }
+
+      // Get actual movement cost
       const moveCost = this.gameState.getTerrainMovementCost(bestMove.terrain, isFlying)
 
       return {

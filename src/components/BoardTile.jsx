@@ -70,12 +70,28 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         </div>
       )}
 
+      {/* STEP 2: Display treasure tokens */}
+      {tile.treasure && !creature && (
+        <div className="treasure-token">
+          <div className="treasure-icon">
+            {tile.treasure.isRevealed ? Array(tile.treasure.remainingMorale).fill('💎').join('') : '💎'}
+          </div>
+        </div>
+      )}
+
       {creature && (
         <div className={`creature-token player-${creature.owner} ${isAttackTarget ? 'targetable' : ''} ${creature.deployedThisTurn ? 'protected' : ''}`}>
           <div className="creature-name">{creature.creature.name.replace(/ #\d+$/, '')}</div>
           <div className="creature-hp">{creature.currentHP}/{creature.creature.hitPoints}</div>
           {creature.isTapped && <div className="tapped-indicator">⤵️</div>}
           {isAttackTarget && <div className="attack-indicator">🎯</div>}
+        </div>
+      )}
+
+      {/* STEP 2: Show treasure indicator under creature if standing on treasure */}
+      {tile.treasure && creature && (
+        <div className="treasure-indicator">
+          {Array(tile.treasure.remainingMorale).fill('💎').join('')}
         </div>
       )}
 

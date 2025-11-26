@@ -1,5 +1,7 @@
 // Game state management for Dungeon Command
 import { getValidMovementTiles as pathfindingGetValidMovement } from '../utils/pathfinding.js'
+// STEP 2: Import Treasure system
+import { Treasure, createTokenPool, drawTokens } from './treasure.js'
 
 export const GamePhases = {
   REFRESH: 'REFRESH',
@@ -154,6 +156,10 @@ export class GameState {
     this.boardHeight = 16 // Changed from 12 for 8×8 terrain regions
     this.tiles = [] // 2D array [y][x] for O(1) tile lookup
 
+    // STEP 2: Treasure/Morale token system
+    this.treasures = [] // Array of Treasure objects on the board
+    this.treasurePlacementStats = { relaxedSpacing: 0 } // Track placement failures for testing
+
     // Generate random board
     this.generateBoard()
 
@@ -207,6 +213,9 @@ export class GameState {
 
     // Add starting zones on the edges for each player
     this.addStartingZones()
+
+    // STEP 2: Place treasure tokens after board and starting zones are ready
+    this.placeTreasures()
   }
 
   // STEP 1: Generate a terrain region with clustered terrain
@@ -415,6 +424,138 @@ export class GameState {
     return positions
   }
 
+  /**
+   * STEP 2: Place treasure tokens on the board
+   * Each faction draws 3 random tokens and places them on valid tiles
+   *
+   * Placement Rules:
+   * - Cannot be on difficult terrain or starting zones
+   * - At least 2 tiles away from starting zones (Manhattan distance)
+   * - At least 3 tiles apart from each other (prefer, relax if needed)
+   *
+   * Big O Complexity:
+   * - O(W*H + N*T) where W=boardWidth, H=boardHeight, N=numPlayers, T=tokensPerPlayer
+   * - For 16×16 board and 2 players: O(256 + 2*3) = O(256) effectively constant
+   */
+  placeTreasures() {
+    const tokensPerFaction = 3
+    const minDistanceFromStart = 2 // Manhattan distance
+    const preferredTreasureSpacing = 3 // Manhattan distance between treasures
+    let treasureIdCounter = 0
+
+    // STEP 2: Get all valid tiles for treasure placement - O(W*H) = O(256)
+    const validTiles = []
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
+        const tile = this.tiles[y][x]
+
+        // Skip difficult terrain, mountains, and starting zones
+        if (tile.terrain === TerrainTypes.DIFFICULT ||
+            tile.terrain === TerrainTypes.MOUNTAIN ||
+            tile.terrain === TerrainTypes.STARTING_ZONE) {
+          continue
+        }
+
+        // Check distance from all starting zones - O(N) where N=numPlayers
+        let tooCloseToStart = false
+        for (const playerId of this.activePlayers) {
+          const startingZone = this.players[playerId].startingZoneTiles
+          if (!startingZone) continue
+
+          for (const zoneTile of startingZone) {
+            const distance = Math.abs(x - zoneTile.x) + Math.abs(y - zoneTile.y)
+            if (distance < minDistanceFromStart) {
+              tooCloseToStart = true
+              break
+            }
+          }
+          if (tooCloseToStart) break
+        }
+
+        if (!tooCloseToStart) {
+          validTiles.push(tile)
+        }
+      }
+    }
+
+    // STEP 2: For each faction, draw tokens and place them - O(N*T) where N=numPlayers, T=3
+    this.activePlayers.forEach((playerId) => {
+      // Draw 3 random tokens from the pool [1,1,2,2,3,3]
+      const pool = createTokenPool()
+      const drawnTokens = drawTokens(pool)
+
+      // Place each token - O(T) where T=3
+      drawnTokens.forEach((moraleValue) => {
+        let placedSuccessfully = false
+        let attempts = 0
+        const maxAttempts = 100 // Prevent infinite loops
+
+        while (!placedSuccessfully && attempts < maxAttempts) {
+          attempts++
+
+          // Pick a random valid tile - O(1)
+          if (validTiles.length === 0) {
+            console.warn(`STEP 2: No valid tiles available for treasure placement`)
+            break
+          }
+
+          const randomIndex = Math.floor(Math.random() * validTiles.length)
+          const candidateTile = validTiles[randomIndex]
+
+          // Check spacing from existing treasures - O(T*N) where T=treasuresPlaced, N=numPlayers
+          // At most 6 treasures total, so effectively O(1)
+          let tooCloseToOtherTreasure = false
+          for (const existingTreasure of this.treasures) {
+            const distance = Math.abs(candidateTile.x - existingTreasure.position.x) +
+                           Math.abs(candidateTile.y - existingTreasure.position.y)
+
+            if (distance < preferredTreasureSpacing) {
+              tooCloseToOtherTreasure = true
+              break
+            }
+          }
+
+          if (!tooCloseToOtherTreasure) {
+            // Place treasure here - O(1)
+            const treasure = new Treasure({
+              id: `treasure-${treasureIdCounter++}`,
+              owner: playerId,
+              moraleValue,
+              position: { x: candidateTile.x, y: candidateTile.y }
+            })
+
+            this.treasures.push(treasure)
+            candidateTile.treasure = treasure // Add reference to tile
+            placedSuccessfully = true
+          } else if (attempts >= maxAttempts - 1) {
+            // STEP 2: Relax spacing constraint if we can't find a spot
+            const treasure = new Treasure({
+              id: `treasure-${treasureIdCounter++}`,
+              owner: playerId,
+              moraleValue,
+              position: { x: candidateTile.x, y: candidateTile.y }
+            })
+
+            this.treasures.push(treasure)
+            candidateTile.treasure = treasure
+            placedSuccessfully = true
+            this.treasurePlacementStats.relaxedSpacing++
+            console.log(`STEP 2: Relaxed treasure spacing constraint (attempt ${attempts})`)
+          }
+        }
+
+        if (!placedSuccessfully) {
+          console.warn(`STEP 2: Failed to place treasure with value ${moraleValue} for ${playerId}`)
+        }
+      })
+    })
+
+    console.log(`STEP 2: Placed ${this.treasures.length} treasures on board`)
+    if (this.treasurePlacementStats.relaxedSpacing > 0) {
+      console.log(`STEP 2: Relaxed spacing constraint ${this.treasurePlacementStats.relaxedSpacing} times`)
+    }
+  }
+
   addRandomTerrain(terrainType, count) {
     const normalTiles = this.getAllTiles().filter(t => t.terrain === TerrainTypes.NORMAL)
     for (let i = 0; i < count && normalTiles.length > 0; i++) {
@@ -570,6 +711,12 @@ export class GameState {
     creatureInstance.position = { x: targetTile.x, y: targetTile.y }
     targetTile.occupant = creatureInstance
 
+    // STEP 2: Reveal treasure if creature moves onto it - O(1)
+    if (targetTile.treasure && !targetTile.treasure.isRevealed) {
+      targetTile.treasure.reveal()
+      console.log(`STEP 2: Treasure revealed at (${targetTile.x}, ${targetTile.y}): ${targetTile.treasure.getDisplayString()}`)
+    }
+
     // Mark as moved
     creatureInstance.hasMovedThisTurn = true
 
@@ -665,6 +812,74 @@ export class GameState {
       attackType,
       damage
     }
+  }
+
+  /**
+   * STEP 2: Collect morale from a treasure token
+   * - Creature must be standing on treasure tile
+   * - Uses creature's ACTION (not movement)
+   * - Collects 1 morale per action
+   * - Creature is tapped after collecting
+   * - Treasure removed immediately when depleted
+   * - Reveals treasure value if not already revealed
+   *
+   * Big O Complexity: O(1) - Constant time operation
+   *
+   * @param {CreatureInstance} creatureInstance - The creature collecting morale
+   * @returns {Object} { success, message, moraleCollected, treasureDepleted, treasureValue }
+   */
+  collectMorale(creatureInstance) {
+    // Validate creature is not tapped
+    if (creatureInstance.isTapped) {
+      return { success: false, message: 'Cannot collect morale: creature is tapped' }
+    }
+
+    // Get tile creature is standing on
+    const tile = this.getTile(creatureInstance.position.x, creatureInstance.position.y)
+    if (!tile || !tile.treasure) {
+      return { success: false, message: 'No treasure at this location' }
+    }
+
+    const treasure = tile.treasure
+
+    // Reveal treasure if not already revealed - O(1)
+    if (!treasure.isRevealed) {
+      treasure.reveal()
+    }
+
+    // Collect 1 morale - O(1)
+    const isDepleted = treasure.collectMorale()
+    const player = this.players[creatureInstance.owner]
+
+    // Add morale to player - O(1)
+    player.morale += 1
+
+    // Tap the creature after collecting - O(1)
+    creatureInstance.tap()
+
+    const result = {
+      success: true,
+      message: `Collected 1 morale from treasure`,
+      moraleCollected: 1,
+      treasureDepleted: isDepleted,
+      treasureValue: treasure.getDisplayString()
+    }
+
+    // STEP 2: Remove treasure immediately if depleted - O(n) where n=treasures (max 6)
+    if (isDepleted) {
+      // Remove from treasures array
+      const treasureIndex = this.treasures.indexOf(treasure)
+      if (treasureIndex !== -1) {
+        this.treasures.splice(treasureIndex, 1)
+      }
+
+      // Remove from tile
+      tile.treasure = null
+
+      result.message = `Collected final morale from treasure (depleted)`
+    }
+
+    return result
   }
 
   getOpponentPlayerState() {
@@ -781,6 +996,19 @@ export class GameState {
       // Only one player left
       this.gameOver = true
       this.winner = alivePlayers[0]
+    } else if (this.turnNumber >= 100) {
+      // Turn limit reached - highest morale wins
+      this.gameOver = true
+      let highestMorale = -1
+      let winner = null
+      this.activePlayers.forEach(playerId => {
+        const morale = this.players[playerId].morale
+        if (morale > highestMorale) {
+          highestMorale = morale
+          winner = playerId
+        }
+      })
+      this.winner = winner
     }
   }
 

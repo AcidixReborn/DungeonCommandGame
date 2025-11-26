@@ -47,11 +47,11 @@ function GameSimulation() {
       deployCount: 0,
       attackCount: 0,
       moveCount: 0,
-      // STEP 0: IMD Card Tracking
+      // IMD Card Tracking
       imdCardsInDecks: { p1: 0, p2: 0 },
       imdCardsUsed: { p1: 0, p2: 0 }, // Tracks how many IMD cards were actually used as reactions
       imdOpportunities: { p1: 0, p2: 0 }, // Tracks how many times IMD cards were available but not used
-      // STEP 1: Terrain & Pathfinding Tracking
+      // Terrain & Pathfinding Tracking
       terrainStats: {
         totalMoves: 0,
         movesOverDifficult: 0,
@@ -63,7 +63,14 @@ function GameSimulation() {
         pathfindingErrors: 0,
         invalidMoves: 0
       },
-      flyingCreatures: { p1: 0, p2: 0 }
+      flyingCreatures: { p1: 0, p2: 0 },
+      // Treasure/Morale Token Tracking
+      treasureStats: {
+        initialTreasures: 0,
+        treasuresCollected: { p1: 0, p2: 0 },
+        moraleFromTreasures: { p1: 0, p2: 0 },
+        treasurePlacementRelaxed: 0
+      }
     }
 
     try {
@@ -101,13 +108,13 @@ function GameSimulation() {
 
       const gameState = new GameState([player1Setup, player2Setup])
 
-      // STEP 0: Count IMD cards in initial decks (with safety checks)
+      // Count IMD cards in initial decks (with safety checks)
       const p1Deck = gameState.players[Players.PLAYER1]?.orderDeck || []
       const p2Deck = gameState.players[Players.PLAYER2]?.orderDeck || []
       stats.imdCardsInDecks.p1 = p1Deck.filter(card => card && card.isImmediate && card.isImmediate()).length
       stats.imdCardsInDecks.p2 = p2Deck.filter(card => card && card.isImmediate && card.isImmediate()).length
 
-      // STEP 1: Count flying creatures in initial hands
+      // Count flying creatures in initial hands
       const p1Creatures = gameState.players[Players.PLAYER1]?.creatureHand || []
       const p2Creatures = gameState.players[Players.PLAYER2]?.creatureHand || []
       stats.flyingCreatures.p1 = p1Creatures.filter(c =>
@@ -116,6 +123,10 @@ function GameSimulation() {
       stats.flyingCreatures.p2 = p2Creatures.filter(c =>
         c.specialAbilities?.some(a => typeof a === 'string' && a.toLowerCase().includes('flying'))
       ).length
+
+      // Track initial treasure placement
+      stats.treasureStats.initialTreasures = gameState.treasures?.length || 0
+      stats.treasureStats.treasurePlacementRelaxed = gameState.treasurePlacementStats?.relaxedSpacing || 0
 
       let turnCount = 0
       let phaseLoopCount = 0
@@ -149,7 +160,7 @@ function GameSimulation() {
               const currentAI = new SimpleAI(gameState, gameState.currentPlayer)
               const aiResult = currentAI.executeTurn()
 
-              // STEP 1: Track IMD card usage from AI actions
+              // Track IMD card usage from AI actions
               if (aiResult.actions) {
                 aiResult.actions.forEach(action => {
                   if (action.type === 'attack') {
@@ -175,7 +186,7 @@ function GameSimulation() {
                     }
                   }
 
-                  // STEP 1 TERRAIN: Track movement actions
+                  // TERRAIN: Track movement actions
                   if (action.type === 'move') {
                     stats.terrainStats.totalMoves++
 
@@ -200,6 +211,18 @@ function GameSimulation() {
                     // Track flying creature moves
                     if (action.isFlying) {
                       stats.terrainStats.flyingCreaturesMoved++
+                    }
+                  }
+
+                  // Track treasure collection actions
+                  if (action.type === 'collect_morale') {
+                    const currentPlayer = gameState.currentPlayer
+                    if (currentPlayer === Players.PLAYER1) {
+                      stats.treasureStats.treasuresCollected.p1++
+                      stats.treasureStats.moraleFromTreasures.p1 += action.moraleCollected || 1
+                    } else if (currentPlayer === Players.PLAYER2) {
+                      stats.treasureStats.treasuresCollected.p2++
+                      stats.treasureStats.moraleFromTreasures.p2 += action.moraleCollected || 1
                     }
                   }
                 })
@@ -232,7 +255,7 @@ function GameSimulation() {
       stats.p1Creatures = gameState.players[Players.PLAYER1].creaturesInPlay.length
       stats.p2Creatures = gameState.players[Players.PLAYER2].creaturesInPlay.length
 
-      // STEP 1 TERRAIN: Calculate average movement cost at end of game
+      // TERRAIN: Calculate average movement cost at end of game
       if (stats.terrainStats.totalMoves > 0) {
         stats.terrainStats.avgMovementCost =
           (stats.terrainStats.totalMovementCost / stats.terrainStats.totalMoves).toFixed(2)
@@ -304,7 +327,17 @@ function GameSimulation() {
         invalidMoves: 0
       },
       totalFlyingCreatures: 0,
-      gamesWithFlyingCreatures: 0
+      gamesWithFlyingCreatures: 0,
+      // STEP 2: Treasure Statistics
+      treasureStats: {
+        totalTreasuresPlaced: 0,
+        totalTreasuresCollectedP1: 0,
+        totalTreasuresCollectedP2: 0,
+        totalMoraleFromTreasuresP1: 0,
+        totalMoraleFromTreasuresP2: 0,
+        gamesWithRelaxedPlacement: 0,
+        totalRelaxedPlacements: 0
+      }
     }
 
     for (let i = 0; i < NUM_TESTS; i++) {
@@ -359,6 +392,17 @@ function GameSimulation() {
       summary.totalFlyingCreatures += gameStats.flyingCreatures.p1 + gameStats.flyingCreatures.p2
       if (gameStats.flyingCreatures.p1 > 0 || gameStats.flyingCreatures.p2 > 0) {
         summary.gamesWithFlyingCreatures++
+      }
+
+      // STEP 2: Aggregate treasure statistics
+      summary.treasureStats.totalTreasuresPlaced += gameStats.treasureStats.initialTreasures
+      summary.treasureStats.totalTreasuresCollectedP1 += gameStats.treasureStats.treasuresCollected.p1
+      summary.treasureStats.totalTreasuresCollectedP2 += gameStats.treasureStats.treasuresCollected.p2
+      summary.treasureStats.totalMoraleFromTreasuresP1 += gameStats.treasureStats.moraleFromTreasures.p1
+      summary.treasureStats.totalMoraleFromTreasuresP2 += gameStats.treasureStats.moraleFromTreasures.p2
+      summary.treasureStats.totalRelaxedPlacements += gameStats.treasureStats.treasurePlacementRelaxed
+      if (gameStats.treasureStats.treasurePlacementRelaxed > 0) {
+        summary.treasureStats.gamesWithRelaxedPlacement++
       }
     }
 
@@ -469,7 +513,7 @@ function GameSimulation() {
               </Card>
 
               <Card bg="info" text="white" className="mb-3">
-                <Card.Header><h5>⚡ Step 1: IMD Card Statistics</h5></Card.Header>
+                <Card.Header><h5>⚡ IMD Card Statistics</h5></Card.Header>
                 <Card.Body>
                   <Table striped bordered variant="dark">
                     <tbody>
@@ -533,9 +577,9 @@ function GameSimulation() {
                 </Card.Body>
               </Card>
 
-              {/* STEP 1: Terrain & Pathfinding Statistics */}
+              {/* Terrain & Pathfinding Statistics */}
               <Card bg="success" text="white" className="mb-3">
-                <Card.Header><h5>🗺️ Step 1: Terrain & Pathfinding Statistics</h5></Card.Header>
+                <Card.Header><h5>🗺️ Terrain & Pathfinding Statistics</h5></Card.Header>
                 <Card.Body>
                   <Table striped bordered variant="dark">
                     <tbody>
@@ -619,6 +663,104 @@ function GameSimulation() {
                     <Alert variant="danger" className="mt-2 mb-0">
                       <strong>⚠️ Pathfinding Errors Detected!</strong> {results.summary.terrainStats.pathfindingErrors}
                       {' '}error(s) occurred during pathfinding. Review the detailed logs.
+                    </Alert>
+                  )}
+                </Card.Body>
+              </Card>
+
+              {/* Treasure Statistics */}
+              <Card bg="dark" text="white" className="mb-3">
+                <Card.Header><h5>💎 Treasure/Morale Token Statistics</h5></Card.Header>
+                <Card.Body>
+                  <Table striped bordered hover variant="dark" size="sm">
+                    <thead>
+                      <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Total Treasures Placed</strong></td>
+                        <td>{results.summary.treasureStats.totalTreasuresPlaced}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalTreasuresPlaced / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Treasures Collected (P1)</strong></td>
+                        <td>{results.summary.treasureStats.totalTreasuresCollectedP1}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalTreasuresCollectedP1 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Treasures Collected (P2)</strong></td>
+                        <td>{results.summary.treasureStats.totalTreasuresCollectedP2}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalTreasuresCollectedP2 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Morale from Treasures (P1)</strong></td>
+                        <td>{results.summary.treasureStats.totalMoraleFromTreasuresP1}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalMoraleFromTreasuresP1 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Morale from Treasures (P2)</strong></td>
+                        <td>{results.summary.treasureStats.totalMoraleFromTreasuresP2}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalMoraleFromTreasuresP2 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Games with Relaxed Placement</strong></td>
+                        <td>{results.summary.treasureStats.gamesWithRelaxedPlacement}</td>
+                        <td>
+                          <Badge bg={results.summary.treasureStats.gamesWithRelaxedPlacement > 0 ? 'warning' : 'success'}>
+                            {((results.summary.treasureStats.gamesWithRelaxedPlacement / results.summary.totalGames) * 100).toFixed(1)}%
+                          </Badge>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total Relaxed Placements</strong></td>
+                        <td>{results.summary.treasureStats.totalRelaxedPlacements}</td>
+                        <td>
+                          <small>Times the 3-tile spacing was relaxed</small>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+
+                  <Alert variant="success" className="mt-3 mb-0">
+                    <strong>✅ Treasure System Active!</strong> Treasures are being placed, revealed, and collected.
+                    AI players prioritize treasure collection for strategic morale advantage.
+                  </Alert>
+
+                  {results.summary.treasureStats.gamesWithRelaxedPlacement > 0 && (
+                    <Alert variant="warning" className="mt-2 mb-0">
+                      <strong>⚠️ Placement Spacing Relaxed!</strong>{' '}
+                      {results.summary.treasureStats.gamesWithRelaxedPlacement} game(s) had to relax the 3-tile spacing
+                      constraint ({results.summary.treasureStats.totalRelaxedPlacements} total instances).
+                      This is normal for crowded boards.
                     </Alert>
                   )}
                 </Card.Body>

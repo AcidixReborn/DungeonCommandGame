@@ -94,7 +94,7 @@ function PlayerPanel({
                   now={moralePercentage}
                   variant={moralePercentage > 50 ? 'success' : moralePercentage > 25 ? 'warning' : 'danger'}
                   style={{ height: '20px', fontSize: '0.75rem' }}
-                  label={`${player.morale}/${player.commander.startingMorale}`}
+                  label={`${player.morale}`}
                 />
               </div>
 
@@ -153,7 +153,7 @@ function PlayerPanel({
                   now={moralePercentage}
                   variant={moralePercentage > 50 ? 'success' : moralePercentage > 25 ? 'warning' : 'danger'}
                   style={{ height: '25px' }}
-                  label={`${player.morale}/${player.commander.startingMorale}`}
+                  label={`${player.morale}`}
                 />
               </div>
 

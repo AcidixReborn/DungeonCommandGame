@@ -41,6 +41,14 @@ function GameBoard() {
   const [pendingAIActions, setPendingAIActions] = useState([])
   const [processingAIAction, setProcessingAIAction] = useState(false)
 
+  // STEP 2: Treasure Discovery Modal state
+  const [showTreasureDiscovery, setShowTreasureDiscovery] = useState(false)
+  const [discoveredTreasure, setDiscoveredTreasure] = useState(null) // Stores {creature, treasure, tile}
+
+  // STEP 2: Morale Collection Confirmation Modal state
+  const [showCollectConfirm, setShowCollectConfirm] = useState(false)
+  const [pendingCollection, setPendingCollection] = useState(null) // Stores {creature, treasure}
+
   // Handler for faction selection - move to commander selection
   const handleFactionSelected = (config) => {
     console.log('handleFactionSelected called with config:', config)
@@ -230,6 +238,25 @@ function GameBoard() {
       setActionMessage(
         `${pendingMove.creature.creature.name} moved to (${pendingMove.destination.x}, ${pendingMove.destination.y}) - Cost: ${pendingMove.cost}`
       )
+
+      // STEP 2: Check if creature landed on treasure and is a human player
+      const tile = gameState.getTile(pendingMove.destination.x, pendingMove.destination.y)
+      if (tile?.treasure) {
+        const creatureOwner = pendingMove.creature.owner
+        const isHumanPlayer =
+          (creatureOwner === Players.PLAYER1 && gameConfig?.player1.isHuman) ||
+          (creatureOwner === Players.PLAYER2 && gameConfig?.player2.isHuman)
+
+        if (isHumanPlayer) {
+          // Show treasure discovery modal for human players
+          setDiscoveredTreasure({
+            creature: pendingMove.creature,
+            treasure: tile.treasure,
+            tile: tile
+          })
+          setShowTreasureDiscovery(true)
+        }
+      }
     } else {
       setActionMessage('Invalid move!')
     }
@@ -417,6 +444,53 @@ function GameBoard() {
 
     // Continue processing remaining AI actions
     setProcessingAIAction(false)
+  }
+
+  // STEP 2: Handle collect morale from treasure (show confirmation modal)
+  const handleCollectMorale = () => {
+    if (!selectedBoardCreature) {
+      setActionMessage('No creature selected')
+      return
+    }
+
+    const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
+    if (!tile?.treasure) {
+      setActionMessage('No treasure at this location')
+      return
+    }
+
+    // Show confirmation modal for human players
+    setPendingCollection({
+      creature: selectedBoardCreature,
+      treasure: tile.treasure
+    })
+    setShowCollectConfirm(true)
+  }
+
+  // STEP 2: Confirm morale collection
+  const confirmCollectMorale = () => {
+    if (!pendingCollection) return
+
+    const result = gameState.collectMorale(pendingCollection.creature)
+
+    if (result.success) {
+      setActionMessage(result.message)
+      setSelectedBoardCreature(null)
+      setValidMoveTiles([])
+      setValidAttackTargets([])
+      setRenderCounter(prev => prev + 1)
+    } else {
+      setActionMessage(result.message)
+    }
+
+    setPendingCollection(null)
+    setShowCollectConfirm(false)
+  }
+
+  // STEP 2: Cancel morale collection
+  const cancelCollectMorale = () => {
+    setPendingCollection(null)
+    setShowCollectConfirm(false)
   }
 
   // Process AI attack intention - check if defender is human and show modal if needed
@@ -864,9 +938,26 @@ function GameBoard() {
                 </small>
               )}
               {selectedBoardCreature && (
-                <small className="text-info d-block" style={{ fontSize: '0.85rem' }}>
-                  {selectedBoardCreature.creature.name} selected - Click to move or attack
-                </small>
+                <div className="d-flex align-items-center gap-2">
+                  <small className="text-info" style={{ fontSize: '0.85rem' }}>
+                    {selectedBoardCreature.creature.name} selected - Click to move or attack
+                  </small>
+                  {/* STEP 2: Show Collect Morale button if creature is on treasure */}
+                  {(() => {
+                    const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
+                    return tile?.treasure && (
+                      <Button
+                        variant="warning"
+                        size="sm"
+                        onClick={handleCollectMorale}
+                        disabled={selectedBoardCreature.isTapped}
+                        style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                      >
+                        💎 Collect Morale ({tile.treasure.getDisplayString()})
+                      </Button>
+                    )
+                  })()}
+                </div>
               )}
             </Card.Header>
             <Card.Body style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
@@ -975,6 +1066,99 @@ function GameBoard() {
           </Button>
           <Button variant="primary" size="sm" onClick={confirmMove}>
             Confirm
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* STEP 2: Treasure Discovery Modal */}
+      <Modal
+        show={showTreasureDiscovery}
+        onHide={() => setShowTreasureDiscovery(false)}
+        centered
+      >
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)', color: '#000' }}>
+          <Modal.Title style={{ fontSize: '1.2rem' }}>💎 Treasure Discovered!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ color: '#000', fontSize: '0.95rem' }}>
+          {discoveredTreasure && (
+            <div>
+              <p>
+                <strong>{discoveredTreasure.creature.creature.name}</strong> has discovered a treasure!
+              </p>
+              <div style={{
+                background: 'linear-gradient(135deg, #fff9e6 0%, #ffe6b3 100%)',
+                padding: '1rem',
+                borderRadius: '8px',
+                border: '2px solid #ffd700',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💎</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
+                  Morale Available: {discoveredTreasure.treasure.getDisplayString()}
+                </div>
+              </div>
+              <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#666' }}>
+                <strong>Note:</strong> You can collect 1 morale per action.
+                {discoveredTreasure.creature.isTapped
+                  ? ' This creature is tapped and cannot collect morale until next turn.'
+                  : ' Use the "Collect Morale" button to gather morale on your next action.'}
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="primary"
+            onClick={() => setShowTreasureDiscovery(false)}
+          >
+            OK
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* STEP 2: Morale Collection Confirmation Modal */}
+      <Modal
+        show={showCollectConfirm}
+        onHide={cancelCollectMorale}
+        centered
+      >
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)', color: '#000' }}>
+          <Modal.Title style={{ fontSize: '1.2rem' }}>💎 Collect Morale?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ color: '#000', fontSize: '0.95rem' }}>
+          {pendingCollection && (
+            <div>
+              <p>
+                <strong>{pendingCollection.creature.creature.name}</strong> will collect 1 morale from this treasure.
+              </p>
+              <div style={{
+                background: 'linear-gradient(135deg, #fff9e6 0%, #ffe6b3 100%)',
+                padding: '1rem',
+                borderRadius: '8px',
+                border: '2px solid #ffd700',
+                textAlign: 'center',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>💎</div>
+                <div style={{ fontSize: '1rem' }}>
+                  Current: {pendingCollection.treasure.getDisplayString()}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
+                  After collection: {pendingCollection.treasure.remainingMorale - 1}/{pendingCollection.treasure.moraleValue}
+                </div>
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#d9534f', fontWeight: 'bold' }}>
+                ⚠️ This creature will be TAPPED after collecting.
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={cancelCollectMorale}>
+            No
+          </Button>
+          <Button variant="warning" onClick={confirmCollectMorale}>
+            Yes, Collect Morale
           </Button>
         </Modal.Footer>
       </Modal>
