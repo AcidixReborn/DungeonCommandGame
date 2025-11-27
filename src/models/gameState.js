@@ -1097,15 +1097,15 @@ export class GameState {
 
         // If creature died, handle death
         if (creature.currentHP <= 0) {
-          const owner = this.getCreatureOwner(creature)
+          const owner = creature.owner
           tile.occupant = null
 
-          // Remove from player's deployed creatures
+          // Remove from player's creaturesInPlay array
           if (owner) {
             const ownerState = this.players[owner]
-            const index = ownerState.deployedCreatures.indexOf(creature)
+            const index = ownerState.creaturesInPlay.indexOf(creature)
             if (index !== -1) {
-              ownerState.deployedCreatures.splice(index, 1)
+              ownerState.creaturesInPlay.splice(index, 1)
             }
           }
         }

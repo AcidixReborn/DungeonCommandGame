@@ -749,6 +749,10 @@ function GameSimulation() {
                         <td>
                           <Badge bg="danger">{results.summary.terrainStats.totalWaterDamageInstances}</Badge>
                           {' '}times
+                          {' '}
+                          <small>
+                            Avg per game: {(results.summary.terrainStats.totalWaterDamageInstances / results.summary.completedGames).toFixed(1)}
+                          </small>
                         </td>
                       </tr>
                       <tr>
