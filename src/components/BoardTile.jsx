@@ -12,12 +12,13 @@ import './BoardTile.css'
  * @param {boolean} isValidMove - Whether this tile is a valid movement destination
  * @param {Object} movementInfo - Movement cost and path info
  * @param {boolean} isAttackTarget - Whether creature on this tile can be attacked
+ * @param {string} attackType - Type of attack ('melee' or 'ranged')
  * @param {boolean} isLineOfSight - Whether this tile is part of a ranged attack line-of-sight path
  * @param {Function} onDrop - Drag and drop handler
  * @param {Function} onDragOver - Drag over handler
  * @param {boolean} isDragTarget - Whether this tile is a valid drag target
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, isLineOfSight, onDrop, onDragOver, isDragTarget }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget }) {
   /**
    * Get CSS class for terrain type
    * @returns {string} Terrain CSS class
@@ -120,7 +121,11 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
           <div className="creature-name">{creature.creature.name.replace(/ #\d+$/, '')}</div>
           <div className="creature-hp">{creature.currentHP}/{creature.creature.hitPoints}</div>
           {creature.isTapped && <div className="tapped-indicator">⤵️</div>}
-          {isAttackTarget && <div className="attack-indicator">🎯</div>}
+          {isAttackTarget && (
+            <div className="attack-indicator">
+              {attackType === 'ranged' ? '🏹' : '⚔️'}
+            </div>
+          )}
         </div>
       )}
 

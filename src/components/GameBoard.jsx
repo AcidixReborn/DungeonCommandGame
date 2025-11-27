@@ -1025,10 +1025,12 @@ function GameBoard() {
                       const validMove = validMoveTiles.find(vm => vm.tile.x === x && vm.tile.y === y)
                       const isValidMove = validMove !== undefined
 
-                      // Check if this creature is a valid attack target
-                      const isAttackTarget = validAttackTargets.some(
+                      // Check if this creature is a valid attack target and get attack type
+                      const attackTargetInfo = validAttackTargets.find(
                         t => t.creature.position?.x === x && t.creature.position?.y === y
                       )
+                      const isAttackTarget = attackTargetInfo !== undefined
+                      const attackType = attackTargetInfo?.attackType
 
                       // Check if this is the selected creature
                       const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
@@ -1046,6 +1048,7 @@ function GameBoard() {
                           isValidMove={isValidMove}
                           movementInfo={validMove} // Pass movement info for cost display
                           isAttackTarget={isAttackTarget}
+                          attackType={attackType}
                           isLineOfSight={isLineOfSight}
                           onClick={handleTileClick}
                           onDrop={handleDrop}
