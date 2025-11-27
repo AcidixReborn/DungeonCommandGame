@@ -29,6 +29,8 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         return 'terrain-mountain'
       case TerrainTypes.DIFFICULT:
         return 'terrain-difficult'
+      case TerrainTypes.WATER:
+        return 'terrain-water'
       case TerrainTypes.MAGIC_CIRCLE:
         return 'terrain-magic-circle'
       case TerrainTypes.STARTING_ZONE:
@@ -50,6 +52,8 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         return '⛰️'
       case TerrainTypes.DIFFICULT:
         return '〰️'
+      case TerrainTypes.WATER:
+        return '🌊'
       case TerrainTypes.MAGIC_CIRCLE:
         return '✨'
       default:

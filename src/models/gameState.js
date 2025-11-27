@@ -26,6 +26,7 @@ export const TerrainTypes = {
   FOREST: 'FOREST',               // Difficult terrain, 2 movement cost
   MOUNTAIN: 'MOUNTAIN',           // Impassable terrain
   DIFFICULT: 'DIFFICULT',         // Difficult terrain, 2 movement cost
+  WATER: 'WATER',                 // Passable but dangerous, 2 movement cost, 10 damage at end of ACTIVATE phase
   MAGIC_CIRCLE: 'MAGIC_CIRCLE',   // Special objective tile
   STARTING_ZONE: 'STARTING_ZONE'  // Player deployment area
 }
@@ -292,11 +293,12 @@ export class GameState {
     }
 
     // Randomly decide terrain composition for this region
-    // 15-25% forests, 8-15% mountains, 5-10% difficult terrain
+    // 15-25% forests, 8-15% mountains, 5-10% difficult terrain, 3% water
     const totalTiles = regionTiles.length
     const forestCount = Math.floor(totalTiles * (0.15 + Math.random() * 0.10))
     const mountainCount = Math.floor(totalTiles * (0.08 + Math.random() * 0.07))
     const difficultCount = Math.floor(totalTiles * (0.05 + Math.random() * 0.05))
+    const waterCount = Math.floor(totalTiles * 0.03) // 3% water coverage
 
     // Add clustered forests (trees grow in groups)
     this.addClusteredTerrain(regionTiles, TerrainTypes.FOREST, forestCount, 3)
@@ -306,6 +308,9 @@ export class GameState {
 
     // Add scattered difficult terrain (mud, swamps)
     this.addClusteredTerrain(regionTiles, TerrainTypes.DIFFICULT, difficultCount, 2)
+
+    // Add water clusters (ponds, small lakes) - 2-3 tile clusters
+    this.addClusteredTerrain(regionTiles, TerrainTypes.WATER, waterCount, 2)
   }
 
   // Add terrain in clusters instead of random scatter
@@ -588,18 +593,78 @@ export class GameState {
     }
   }
 
+  /**
+   * Add magic circles as 3-4 tile clusters
+   * Only 40% of players receive a magic circle cluster
+   * Magic circles cannot spawn in starting zones
+   */
   addMagicCircles() {
-    const normalTiles = this.getAllTiles().filter(t => t.terrain === TerrainTypes.NORMAL)
+    // Get all normal tiles that are NOT in starting zones
+    const availableTiles = this.getAllTiles().filter(t =>
+      t.terrain === TerrainTypes.NORMAL && !t.startingZoneOwner
+    )
 
-    this.activePlayers.forEach(playerId => {
-      if (normalTiles.length > 0) {
-        const randomIndex = Math.floor(Math.random() * normalTiles.length)
-        const tile = normalTiles[randomIndex]
-        tile.terrain = TerrainTypes.MAGIC_CIRCLE
-        tile.owner = playerId
-        this.players[playerId].magicCirclePosition = { x: tile.x, y: tile.y }
-        normalTiles.splice(randomIndex, 1)
+    // Randomly select 40% of players to receive magic circles
+    const numCircles = Math.max(1, Math.round(this.activePlayers.length * 0.4))
+    const shuffledPlayers = [...this.activePlayers].sort(() => Math.random() - 0.5)
+    const selectedPlayers = shuffledPlayers.slice(0, numCircles)
+
+    console.log(`Placing magic circles for ${numCircles} out of ${this.activePlayers.length} players: ${selectedPlayers.join(', ')}`)
+
+    selectedPlayers.forEach(playerId => {
+      if (availableTiles.length === 0) return
+
+      // Random cluster size: 3-4 tiles
+      const clusterSize = 3 + Math.floor(Math.random() * 2) // 3 or 4
+      let placed = 0
+
+      // Pick a random seed tile for this player's magic circle cluster
+      const seedIndex = Math.floor(Math.random() * availableTiles.length)
+      const seedTile = availableTiles[seedIndex]
+
+      if (!seedTile) return
+
+      // Place first magic circle on seed tile
+      seedTile.terrain = TerrainTypes.MAGIC_CIRCLE
+      seedTile.owner = playerId
+      this.players[playerId].magicCirclePosition = { x: seedTile.x, y: seedTile.y }
+      placed++
+      availableTiles.splice(seedIndex, 1)
+
+      // Try to expand cluster around seed tile
+      const cluster = [seedTile]
+      for (let i = 0; i < clusterSize - 1 && placed < clusterSize; i++) {
+        // Pick a random tile from current cluster
+        const baseTile = cluster[Math.floor(Math.random() * cluster.length)]
+
+        // Get adjacent normal tiles that are NOT in starting zones
+        const adjacentTiles = this.getAdjacentTiles(baseTile.x, baseTile.y)
+          .filter(t =>
+            availableTiles.includes(t) &&
+            t.terrain === TerrainTypes.NORMAL &&
+            !t.startingZoneOwner
+          )
+
+        if (adjacentTiles.length > 0) {
+          // Place magic circle on random adjacent tile
+          const adjTile = adjacentTiles[Math.floor(Math.random() * adjacentTiles.length)]
+          adjTile.terrain = TerrainTypes.MAGIC_CIRCLE
+          adjTile.owner = playerId
+          placed++
+          cluster.push(adjTile)
+
+          // Remove from available tiles
+          const availIndex = availableTiles.indexOf(adjTile)
+          if (availIndex !== -1) {
+            availableTiles.splice(availIndex, 1)
+          }
+        } else {
+          // No adjacent tiles available, stop expanding this cluster
+          break
+        }
       }
+
+      console.log(`Placed ${placed}-tile magic circle cluster for ${playerId}`)
     })
   }
 
@@ -684,6 +749,8 @@ export class GameState {
       switch (terrain) {
         case TerrainTypes.MOUNTAIN:
           return 999 // Still impassable (cannot stop on mountains)
+        case TerrainTypes.WATER:
+          return 1 // Flying creatures fly over water easily
         default:
           return 1 // All other terrain costs 1 for flying creatures
       }
@@ -695,6 +762,8 @@ export class GameState {
         return 2 // Costs 2 movement to enter
       case TerrainTypes.FOREST:
         return 2 // Forests are also difficult terrain - costs 2 to enter
+      case TerrainTypes.WATER:
+        return 2 // Water is passable but slows movement - costs 2 to enter
       case TerrainTypes.MOUNTAIN:
         return 999 // Impassable
       default:
@@ -864,7 +933,7 @@ export class GameState {
    * - Creature must be standing on treasure tile
    * - Uses creature's ACTION (not movement)
    * - Collects 1 morale per action
-   * - Creature is tapped after collecting
+   * - Creature is tapped only if it has both moved AND collected (same as attacking)
    * - Treasure removed immediately when depleted
    * - Reveals treasure value if not already revealed
    *
@@ -877,6 +946,11 @@ export class GameState {
     // Validate creature is not tapped
     if (creatureInstance.isTapped) {
       return { success: false, message: 'Cannot collect morale: creature is tapped' }
+    }
+
+    // Cannot collect if already attacked/acted this turn
+    if (creatureInstance.hasAttackedThisTurn) {
+      return { success: false, message: 'Cannot collect morale: creature has already acted this turn' }
     }
 
     // Get tile creature is standing on
@@ -899,8 +973,13 @@ export class GameState {
     // Add morale to player - O(1)
     player.morale += 1
 
-    // Tap the creature after collecting - O(1)
-    creatureInstance.tap()
+    // Mark as acted (uses action, just like attacking) - O(1)
+    creatureInstance.hasAttackedThisTurn = true
+
+    // Tap the creature only if it has both moved AND collected - O(1)
+    if (creatureInstance.hasMovedThisTurn) {
+      creatureInstance.tap()
+    }
 
     const result = {
       success: true,
@@ -931,10 +1010,76 @@ export class GameState {
     return this.players[this.currentPlayer === Players.PLAYER1 ? Players.PLAYER2 : Players.PLAYER1]
   }
 
+  /**
+   * Apply water damage to creatures standing on water at end of ACTIVATE phase
+   * Creatures on WATER terrain take 10 damage unless they are flying
+   */
+  applyWaterDamage() {
+    const damageResults = []
+
+    // Count creatures on water for debugging
+    let creaturesOnWater = 0
+    let flyingOnWater = 0
+
+    // Check all tiles for creatures standing on water
+    this.getAllTiles().forEach(tile => {
+      if (tile.terrain === TerrainTypes.WATER && tile.occupant) {
+        creaturesOnWater++
+        const creature = tile.occupant
+
+        // Flying creatures are immune to water damage
+        if (this.hasFlying(creature)) {
+          flyingOnWater++
+          return
+        }
+
+        // Apply 10 damage to non-flying creatures
+        const damageTaken = creature.takeDamage(10)
+
+        damageResults.push({
+          creature: creature.creature.name,
+          position: { x: tile.x, y: tile.y },
+          damage: damageTaken,
+          destroyed: creature.currentHP <= 0
+        })
+
+        // If creature died, handle death
+        if (creature.currentHP <= 0) {
+          const owner = this.getCreatureOwner(creature)
+          tile.occupant = null
+
+          // Remove from player's deployed creatures
+          if (owner) {
+            const ownerState = this.players[owner]
+            const index = ownerState.deployedCreatures.indexOf(creature)
+            if (index !== -1) {
+              ownerState.deployedCreatures.splice(index, 1)
+            }
+          }
+        }
+      }
+    })
+
+    // Log results if any creatures were on water
+    if (creaturesOnWater > 0) {
+      console.log(`Water check at end of ACTIVATE: ${creaturesOnWater} creatures on water (${flyingOnWater} flying, ${damageResults.length} took damage)`)
+      if (damageResults.length > 0) {
+        console.log('Water damage applied:', damageResults)
+      }
+    }
+
+    return damageResults
+  }
+
   // Phase transitions
   advancePhase() {
     const phaseOrder = [GamePhases.REFRESH, GamePhases.ACTIVATE, GamePhases.DEPLOY, GamePhases.CLEANUP]
     const currentIndex = phaseOrder.indexOf(this.currentPhase)
+
+    // Check for water damage when leaving ACTIVATE phase
+    if (this.currentPhase === GamePhases.ACTIVATE) {
+      this.applyWaterDamage()
+    }
 
     if (currentIndex === phaseOrder.length - 1) {
       // End of turn - switch players

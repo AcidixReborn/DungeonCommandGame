@@ -56,12 +56,18 @@ function GameSimulation() {
         totalMoves: 0,
         movesOverDifficult: 0,
         movesOverForest: 0,
+        movesOverWater: 0,
         flyingCreaturesMoved: 0,
         flyingOverMountains: 0,
         avgMovementCost: 0,
         totalMovementCost: 0,
         pathfindingErrors: 0,
-        invalidMoves: 0
+        invalidMoves: 0,
+        waterTilesOnBoard: 0,
+        creaturesEndedOnWater: 0,
+        waterDamageInstances: 0,
+        totalWaterDamage: 0,
+        creaturesKilledByWater: 0
       },
       flyingCreatures: { p1: 0, p2: 0 },
       // Treasure/Morale Token Tracking
@@ -127,6 +133,11 @@ function GameSimulation() {
       // Track initial treasure placement
       stats.treasureStats.initialTreasures = gameState.treasures?.length || 0
       stats.treasureStats.treasurePlacementRelaxed = gameState.treasurePlacementStats?.relaxedSpacing || 0
+
+      // Count water tiles on the board
+      stats.terrainStats.waterTilesOnBoard = gameState.getAllTiles().filter(
+        tile => tile.terrain === 'WATER'
+      ).length
 
       let turnCount = 0
       let phaseLoopCount = 0
@@ -203,6 +214,9 @@ function GameSimulation() {
                       if (action.terrainTypes.includes('FOREST')) {
                         stats.terrainStats.movesOverForest++
                       }
+                      if (action.terrainTypes.includes('WATER')) {
+                        stats.terrainStats.movesOverWater++
+                      }
                       if (action.terrainTypes.includes('MOUNTAIN')) {
                         stats.terrainStats.flyingOverMountains++
                       }
@@ -211,6 +225,14 @@ function GameSimulation() {
                     // Track flying creature moves
                     if (action.isFlying) {
                       stats.terrainStats.flyingCreaturesMoved++
+                    }
+
+                    // Check if non-flying creature ended movement on water (not phase end, just this move)
+                    if (action.to && !action.isFlying) {
+                      const destTile = gameState.getTile(action.to.x, action.to.y)
+                      if (destTile?.terrain === 'WATER') {
+                        stats.terrainStats.creaturesEndedOnWater++
+                      }
                     }
                   }
 
@@ -223,6 +245,21 @@ function GameSimulation() {
                     } else if (currentPlayer === Players.PLAYER2) {
                       stats.treasureStats.treasuresCollected.p2++
                       stats.treasureStats.moraleFromTreasures.p2 += action.moraleCollected || 1
+                    }
+                  }
+                })
+              }
+
+              // Count creatures on water before advancing phase (water damage happens in advancePhase)
+              if (gameState.currentPhase === GamePhases.ACTIVATE) {
+                gameState.getAllTiles().forEach(tile => {
+                  if (tile.terrain === 'WATER' && tile.occupant && !gameState.hasFlying(tile.occupant)) {
+                    stats.terrainStats.waterDamageInstances++
+                    stats.terrainStats.totalWaterDamage += 10 // Water deals 10 damage
+
+                    // Check if creature will die from water damage
+                    if (tile.occupant.currentHP <= 10) {
+                      stats.terrainStats.creaturesKilledByWater++
                     }
                   }
                 })
@@ -320,11 +357,17 @@ function GameSimulation() {
         totalMoves: 0,
         movesOverDifficult: 0,
         movesOverForest: 0,
+        movesOverWater: 0,
         flyingCreaturesMoved: 0,
         flyingOverMountains: 0,
         avgMovementCost: 0,
         pathfindingErrors: 0,
-        invalidMoves: 0
+        invalidMoves: 0,
+        totalWaterTiles: 0,
+        totalCreaturesEndedOnWater: 0,
+        totalWaterDamageInstances: 0,
+        totalWaterDamage: 0,
+        totalCreaturesKilledByWater: 0
       },
       totalFlyingCreatures: 0,
       gamesWithFlyingCreatures: 0,
@@ -384,10 +427,16 @@ function GameSimulation() {
       summary.terrainStats.totalMoves += gameStats.terrainStats.totalMoves
       summary.terrainStats.movesOverDifficult += gameStats.terrainStats.movesOverDifficult
       summary.terrainStats.movesOverForest += gameStats.terrainStats.movesOverForest
+      summary.terrainStats.movesOverWater += gameStats.terrainStats.movesOverWater
       summary.terrainStats.flyingCreaturesMoved += gameStats.terrainStats.flyingCreaturesMoved
       summary.terrainStats.flyingOverMountains += gameStats.terrainStats.flyingOverMountains
       summary.terrainStats.pathfindingErrors += gameStats.terrainStats.pathfindingErrors
       summary.terrainStats.invalidMoves += gameStats.terrainStats.invalidMoves
+      summary.terrainStats.totalWaterTiles += gameStats.terrainStats.waterTilesOnBoard
+      summary.terrainStats.totalCreaturesEndedOnWater += gameStats.terrainStats.creaturesEndedOnWater
+      summary.terrainStats.totalWaterDamageInstances += gameStats.terrainStats.waterDamageInstances
+      summary.terrainStats.totalWaterDamage += gameStats.terrainStats.totalWaterDamage
+      summary.terrainStats.totalCreaturesKilledByWater += gameStats.terrainStats.creaturesKilledByWater
 
       summary.totalFlyingCreatures += gameStats.flyingCreatures.p1 + gameStats.flyingCreatures.p2
       if (gameStats.flyingCreatures.p1 > 0 || gameStats.flyingCreatures.p2 > 0) {
@@ -619,6 +668,15 @@ function GameSimulation() {
                         </td>
                       </tr>
                       <tr>
+                        <td><strong>Moves Over Water</strong></td>
+                        <td>
+                          <Badge bg="info">{results.summary.terrainStats.movesOverWater}</Badge>
+                          {' '}({results.summary.terrainStats.totalMoves > 0
+                            ? ((results.summary.terrainStats.movesOverWater / results.summary.terrainStats.totalMoves) * 100).toFixed(1)
+                            : 0}%)
+                        </td>
+                      </tr>
+                      <tr>
                         <td><strong>Flying Creature Moves</strong></td>
                         <td>
                           <Badge bg="primary">{results.summary.terrainStats.flyingCreaturesMoved}</Badge>
@@ -652,6 +710,81 @@ function GameSimulation() {
                       </tr>
                     </tbody>
                   </Table>
+
+                  {/* Water Terrain Statistics */}
+                  <h6 className="mt-3">🌊 Water Terrain Statistics</h6>
+                  <Table striped bordered hover variant="dark" size="sm">
+                    <thead>
+                      <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Total Water Tiles Generated</strong></td>
+                        <td>
+                          <Badge bg="info">{results.summary.terrainStats.totalWaterTiles}</Badge>
+                          {' '}
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.terrainStats.totalWaterTiles / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Ground Creature Moves Ending on Water</strong></td>
+                        <td>
+                          <Badge bg="warning">{results.summary.terrainStats.totalCreaturesEndedOnWater}</Badge>
+                          {' '}
+                          <small>
+                            (Individual moves, not phase end - {results.summary.terrainStats.totalMoves > 0
+                              ? ((results.summary.terrainStats.totalCreaturesEndedOnWater / results.summary.terrainStats.totalMoves) * 100).toFixed(2)
+                              : 0}% of moves)
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Water Damage Instances</strong></td>
+                        <td>
+                          <Badge bg="danger">{results.summary.terrainStats.totalWaterDamageInstances}</Badge>
+                          {' '}times
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total Water Damage Dealt</strong></td>
+                        <td>
+                          <Badge bg="danger">{results.summary.terrainStats.totalWaterDamage}</Badge>
+                          {' '}HP
+                          {' '}
+                          <small>
+                            (Avg per instance:{' '}
+                            {results.summary.terrainStats.totalWaterDamageInstances > 0
+                              ? (results.summary.terrainStats.totalWaterDamage / results.summary.terrainStats.totalWaterDamageInstances).toFixed(1)
+                              : 0} HP)
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Creatures Killed by Water</strong></td>
+                        <td>
+                          <Badge bg="dark">{results.summary.terrainStats.totalCreaturesKilledByWater}</Badge>
+                          {' '}
+                          <small>
+                            ({results.summary.terrainStats.totalWaterDamageInstances > 0
+                              ? ((results.summary.terrainStats.totalCreaturesKilledByWater / results.summary.terrainStats.totalWaterDamageInstances) * 100).toFixed(1)
+                              : 0}% of water damage instances)
+                          </small>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+
+                  <Alert variant="info" className="mt-2 mb-3" style={{ fontSize: '0.85rem' }}>
+                    <strong>💡 Water Damage Explanation:</strong> "Ground Creature Moves Ending on Water" counts individual moves with water as the destination.
+                    However, the AI may move creatures OFF water before the ACTIVATE phase ends, resulting in 0 actual damage instances.
+                    Zero damage means the AI's water avoidance strategy is working correctly!
+                  </Alert>
 
                   <Alert variant="success" className="mt-3 mb-0">
                     <strong>✅ Terrain System Active!</strong> The new 16×16 board with 8×8 terrain regions

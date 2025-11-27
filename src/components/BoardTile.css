@@ -179,6 +179,27 @@
     radial-gradient(circle at 40% 40%, rgba(121, 85, 72, 0.3) 0%, transparent 50%);
 }
 
+/* Water terrain - dangerous blue water with shimmer effect */
+.terrain-water {
+  background: linear-gradient(135deg, #0277bd 0%, #01579b 100%);
+  background-image:
+    linear-gradient(135deg, #0277bd 0%, #01579b 100%),
+    radial-gradient(circle at 50% 50%, rgba(41, 182, 246, 0.4) 0%, transparent 60%);
+  box-shadow: inset 2px 2px 0px rgba(255, 255, 255, 0.15); /* Cel-shaded water highlight */
+  animation: water-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes water-shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+    filter: brightness(1);
+  }
+  50% {
+    background-position: 100% 50%;
+    filter: brightness(1.15);
+  }
+}
+
 /* Vibrant magical purple with glow */
 .terrain-magic-circle {
   background: radial-gradient(circle, #7b1fa2 0%, #4a148c 60%, #311b92 100%);

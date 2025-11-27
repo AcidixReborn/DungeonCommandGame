@@ -1083,6 +1083,43 @@ function GameBoard() {
               <div style={{ marginTop: '0.5rem' }}>
                 Cost: <Badge bg="warning" text="dark">{pendingMove.cost}</Badge> / {pendingMove.creature.creature.speed}
               </div>
+
+              {/* Water terrain warning */}
+              {pendingMove.destination.terrain === 'WATER' && !gameState.hasFlying(pendingMove.creature) && (
+                <div
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.5rem',
+                    backgroundColor: '#fff3cd',
+                    border: '2px solid #ff6b6b',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <div style={{ color: '#dc3545', fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                    ⚠️ Water Hazard Warning!
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#856404' }}>
+                    This creature will take <strong>10 damage</strong> at the end of the ACTIVATE phase if it remains on water.
+                  </div>
+                </div>
+              )}
+
+              {/* Flying creature on water - no damage */}
+              {pendingMove.destination.terrain === 'WATER' && gameState.hasFlying(pendingMove.creature) && (
+                <div
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.5rem',
+                    backgroundColor: '#d1ecf1',
+                    border: '1px solid #bee5eb',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <div style={{ color: '#0c5460', fontSize: '0.85rem' }}>
+                    ✈️ Flying creature - immune to water damage
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Modal.Body>
@@ -1173,8 +1210,16 @@ function GameBoard() {
                   After collection: {pendingCollection.treasure.remainingMorale - 1}/{pendingCollection.treasure.moraleValue}
                 </div>
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#d9534f', fontWeight: 'bold' }}>
-                ⚠️ This creature will be TAPPED after collecting.
+              <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>
+                {pendingCollection.creature.hasMovedThisTurn ? (
+                  <span style={{ color: '#d9534f' }}>
+                    ⚠️ This creature will be TAPPED after collecting (moved + action).
+                  </span>
+                ) : (
+                  <span style={{ color: '#5bc0de' }}>
+                    ℹ️ This creature's ACTION will be used. Movement still available.
+                  </span>
+                )}
               </div>
             </div>
           )}

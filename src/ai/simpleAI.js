@@ -214,6 +214,19 @@ export class SimpleAI {
       return null
     }
 
+    // Filter out water tiles unless creature is flying
+    const isFlying = this.gameState.hasFlying(creature)
+    const safeMoves = validMoves.filter(moveInfo => {
+      // Flying creatures can land on water without taking damage
+      if (isFlying) return true
+      // Ground creatures should avoid water
+      return moveInfo.tile.terrain !== 'WATER'
+    })
+
+    if (safeMoves.length === 0) {
+      return null // No safe moves available
+    }
+
     // Find nearest enemy
     const enemies = []
     for (const enemyPlayerId of this.gameState.activePlayers) {
@@ -232,8 +245,8 @@ export class SimpleAI {
     let bestMove = null
     let bestDistance = Infinity
 
-    // Fix - validMoves now contains {tile, path, cost} objects
-    for (const moveInfo of validMoves) {
+    // Use safeMoves instead of validMoves to avoid water
+    for (const moveInfo of safeMoves) {
       const moveTile = moveInfo.tile
       for (const enemy of enemies) {
         if (!enemy.position) continue
@@ -291,6 +304,19 @@ export class SimpleAI {
       return null
     }
 
+    // Filter out water tiles unless creature is flying
+    const isFlying = this.gameState.hasFlying(creature)
+    const safeMoves = validMoves.filter(moveInfo => {
+      // Flying creatures can land on water without taking damage
+      if (isFlying) return true
+      // Ground creatures should avoid water
+      return moveInfo.tile.terrain !== 'WATER'
+    })
+
+    if (safeMoves.length === 0) {
+      return null // No safe moves available
+    }
+
     // Get all treasures on the board - O(1) since treasures array is pre-filtered
     const treasures = this.gameState.treasures
 
@@ -303,7 +329,8 @@ export class SimpleAI {
     let bestMove = null
     let bestDistance = Infinity
 
-    for (const moveInfo of validMoves) {
+    // Use safeMoves instead of validMoves to avoid water
+    for (const moveInfo of safeMoves) {
       const moveTile = moveInfo.tile
       for (const treasure of treasures) {
         const distance = this.gameState.getDistance(moveTile, treasure.position)

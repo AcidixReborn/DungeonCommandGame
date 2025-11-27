@@ -68,12 +68,29 @@ function PlayerPanel({
               {/* Leadership */}
               <div className="mb-2" style={{ flexShrink: 0 }}>
                 <strong className="d-block mb-1" style={{ fontSize: '0.85rem' }}>Leadership</strong>
-                <ProgressBar
-                  now={leadershipPercentage}
-                  variant={leadershipPercentage > 80 ? 'danger' : 'info'}
-                  style={{ height: '20px', fontSize: '0.75rem' }}
-                  label={`${leadershipUsage}/${player.leadership}`}
-                />
+                <div style={{ position: 'relative' }}>
+                  <ProgressBar
+                    now={leadershipPercentage}
+                    variant={leadershipPercentage > 80 ? 'danger' : 'info'}
+                    style={{ height: '20px', fontSize: '0.75rem' }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    color: '#000',
+                    pointerEvents: 'none'
+                  }}>
+                    {leadershipUsage}/{player.leadership}
+                  </div>
+                </div>
               </div>
 
               {/* Creature Hand */}
@@ -178,12 +195,29 @@ function PlayerPanel({
               {/* Leadership */}
               <div className="stat-display mb-3">
                 <strong className="d-block mb-1">Leadership</strong>
-                <ProgressBar
-                  now={leadershipPercentage}
-                  variant={leadershipPercentage > 80 ? 'danger' : 'info'}
-                  style={{ height: '25px' }}
-                  label={`${leadershipUsage}/${player.leadership}`}
-                />
+                <div style={{ position: 'relative' }}>
+                  <ProgressBar
+                    now={leadershipPercentage}
+                    variant={leadershipPercentage > 80 ? 'danger' : 'info'}
+                    style={{ height: '25px' }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.875rem',
+                    fontWeight: 'bold',
+                    color: '#000',
+                    pointerEvents: 'none'
+                  }}>
+                    {leadershipUsage}/{player.leadership}
+                  </div>
+                </div>
               </div>
 
               {/* Card Counts */}
