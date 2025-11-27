@@ -69,12 +69,21 @@ This is where the main action happens!
 
 #### **Combat**
 1. Select your creature
-2. Click "Attack" next to an enemy creature in range
-   - **Melee attacks**: Adjacent tiles only
-   - **Ranged attacks**: Within the creature's range, line of sight permitting
-3. Damage is dealt based on the attack value vs. the defender's HP
-4. If a creature's HP reaches 0, it's destroyed and you gain +1 morale!
-5. Attacking **taps** your creature (turns it sideways)
+2. Valid attack targets are highlighted on the board
+   - **Melee attacks** (⚔️): Adjacent tiles only
+   - **Ranged attacks** (🏹): Within the creature's range, line of sight permitting
+3. Click on an enemy creature to attack them
+4. Damage is dealt based on the attack value vs. the defender's HP
+5. If a creature's HP reaches 0, it's destroyed and you gain +1 morale!
+6. Attacking **taps** your creature (turns it sideways)
+
+**Ranged Attack Restrictions:**
+- Cannot shoot **from** a forest tile
+- Cannot shoot **at** a creature on a forest tile
+- Cannot shoot **through** forests or mountains (line of sight blocked)
+- Cannot shoot at adjacent enemies (use melee instead)
+- Enemy creatures block line of sight (but allied creatures don't)
+- When you select a creature with ranged attacks, orange arrows (➤) show the line-of-sight path
 
 #### **Using Order Cards**
 1. Click on an order card in your hand
@@ -132,10 +141,16 @@ Each creature has:
 - **Level**: Leadership cost to deploy
 - **HP**: Health points (when reduced to 0, creature dies)
 - **Speed**: How many tiles it can move
-- **Melee Attack**: Damage dealt in close combat
-- **Ranged Attack**: Damage dealt at range (if applicable)
+- **Melee Attack**: Damage dealt in close combat (shown as "Melee: X" on card)
+- **Ranged Attack**: Damage dealt at range if applicable (shown as "Ranged: X" on card)
 - **Abilities**: STR, DEX, CON, INT, WIS, CHA (determines which order cards they can use)
 - **Special Abilities**: Unique powers like Flying, Regeneration, etc.
+
+**Visual Indicators:**
+- Creature cards in your hand display both Melee and Ranged attack values
+- On the board, attack targets show different icons:
+  - ⚔️ **Sword icon** = Melee attack available
+  - 🏹 **Bow icon** = Ranged attack available
 
 ### Order Cards
 Order cards provide special actions and effects:
@@ -160,8 +175,9 @@ Order cards provide special actions and effects:
 
 ### Special Rules
 - **Flying creatures** ignore terrain costs (but still can't land on mountains)
-- **Treasures** 💎 reveal their value when you move onto them
+- **Treasures** 💎 reveal their value when you move onto them (treasures never spawn on water tiles)
 - Creatures can move through allied creatures but not enemy creatures
+- **Line of Sight**: Forests and mountains block ranged attacks when in the path between attacker and target
 
 ---
 
@@ -243,7 +259,6 @@ A: Yes! You can play as many order cards as you want during your turn (as long a
 
 - Some order card effects are not fully implemented yet
 - AI decision-making is basic and may make suboptimal moves
-- Line-of-sight for ranged attacks is simplified
 - Creature special abilities are partially implemented
 
 ---

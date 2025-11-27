@@ -162,10 +162,12 @@ This digital edition aims to:
 
 ### Enhance the Experience
 - **Procedural terrain** - Every game has a unique battlefield
-- **AI opponents** - Practice against computer players
+- **AI opponents** - Practice against computer players with tactical decision-making
 - **Instant setup** - No shuffling, sorting, or table space needed
-- **Automatic rule enforcement** - The game handles complex interactions
-- **Visual clarity** - See all information at a glance
+- **Automatic rule enforcement** - The game handles complex interactions like line-of-sight
+- **Visual clarity** - See all information at a glance with intuitive icons and indicators
+- **Line-of-sight visualization** - Orange arrows show ranged attack paths in real-time
+- **Attack type indicators** - Sword (⚔️) for melee, bow (🏹) for ranged attacks
 
 ### Remain Accessible
 - **Free to play** - No microtransactions or paywalls
@@ -228,12 +230,16 @@ This project is provided as-is for personal use:
 The game currently includes:
 - ✅ Full turn-based gameplay
 - ✅ Movement with pathfinding and terrain costs
-- ✅ Melee and ranged combat
+- ✅ Melee and ranged combat with line-of-sight system
+  - Visual indicators: ⚔️ for melee attacks, 🏹 for ranged attacks
+  - Ranged attack restrictions (forests, mountains, adjacent targets)
+  - Line-of-sight visualization with orange arrows (➤)
 - ✅ Order card system with Immediate reactions
 - ✅ Creature deployment and management
-- ✅ Treasure token collection
-- ✅ AI opponents
+- ✅ Treasure token collection (treasures avoid water tiles)
+- ✅ AI opponents with tactical decision-making
 - ✅ All 5 factions with sample creatures
+- ✅ Enhanced UI with clear attack type indicators and creature stats
 
 ### Future Enhancements
 Potential future additions:
