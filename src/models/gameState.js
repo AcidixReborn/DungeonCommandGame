@@ -420,32 +420,84 @@ export class GameState {
     })
   }
 
-  // Get starting positions on board edges for each player
+  /**
+   * Get random starting positions on board edges for each player
+   * Positions must be at least 8 tiles apart (Manhattan distance)
+   * Can be placed anywhere along the board edges, not just corners
+   */
   getEdgePositionsForPlayers(numPlayers) {
     const positions = []
+    const zoneSize = 3 // 3x3 starting zones
+    const minDistance = 8 // Minimum distance between starting zones
 
-    if (numPlayers === 2) {
-      // Two players: opposite corners
-      positions.push({ startX: 0, startY: 0 }) // Top-left
-      positions.push({ startX: this.boardWidth - 3, startY: this.boardHeight - 3 }) // Bottom-right
-    } else if (numPlayers === 3) {
-      // Three players: top-left, top-right, bottom-center
-      positions.push({ startX: 0, startY: 0 }) // Top-left
-      positions.push({ startX: this.boardWidth - 3, startY: 0 }) // Top-right
-      positions.push({ startX: Math.floor(this.boardWidth / 2) - 1, startY: this.boardHeight - 3 }) // Bottom-center
-    } else if (numPlayers === 4) {
-      // Four players: four corners
-      positions.push({ startX: 0, startY: 0 }) // Top-left
-      positions.push({ startX: this.boardWidth - 3, startY: 0 }) // Top-right
-      positions.push({ startX: 0, startY: this.boardHeight - 3 }) // Bottom-left
-      positions.push({ startX: this.boardWidth - 3, startY: this.boardHeight - 3 }) // Bottom-right
-    } else if (numPlayers === 5) {
-      // Five players: four corners + center of one edge
-      positions.push({ startX: 0, startY: 0 }) // Top-left
-      positions.push({ startX: this.boardWidth - 3, startY: 0 }) // Top-right
-      positions.push({ startX: 0, startY: this.boardHeight - 3 }) // Bottom-left
-      positions.push({ startX: this.boardWidth - 3, startY: this.boardHeight - 3 }) // Bottom-right
-      positions.push({ startX: Math.floor(this.boardWidth / 2) - 1, startY: 0 }) // Top-center
+    // Generate all possible edge positions (keeping zones within bounds)
+    const possiblePositions = []
+
+    // Top edge
+    for (let x = 0; x <= this.boardWidth - zoneSize; x++) {
+      possiblePositions.push({ startX: x, startY: 0, edge: 'top' })
+    }
+
+    // Bottom edge
+    for (let x = 0; x <= this.boardWidth - zoneSize; x++) {
+      possiblePositions.push({ startX: x, startY: this.boardHeight - zoneSize, edge: 'bottom' })
+    }
+
+    // Left edge (excluding corners already counted)
+    for (let y = 1; y < this.boardHeight - zoneSize; y++) {
+      possiblePositions.push({ startX: 0, startY: y, edge: 'left' })
+    }
+
+    // Right edge (excluding corners already counted)
+    for (let y = 1; y < this.boardHeight - zoneSize; y++) {
+      possiblePositions.push({ startX: this.boardWidth - zoneSize, startY: y, edge: 'right' })
+    }
+
+    // Randomly select positions with proper spacing
+    let attempts = 0
+    const maxAttempts = 1000
+
+    while (positions.length < numPlayers && attempts < maxAttempts) {
+      attempts++
+
+      // Pick a random position from available positions
+      const randomIndex = Math.floor(Math.random() * possiblePositions.length)
+      const candidate = possiblePositions[randomIndex]
+
+      // Check if this position is far enough from all existing positions
+      let isValidPosition = true
+      for (const existingPos of positions) {
+        const distance = Math.abs(candidate.startX - existingPos.startX) +
+                        Math.abs(candidate.startY - existingPos.startY)
+
+        if (distance < minDistance) {
+          isValidPosition = false
+          break
+        }
+      }
+
+      if (isValidPosition) {
+        positions.push(candidate)
+        console.log(`Player ${positions.length} starting zone: ${candidate.edge} edge at (${candidate.startX}, ${candidate.startY})`)
+      }
+    }
+
+    // Fallback: if we couldn't find enough positions with proper spacing, use corners
+    if (positions.length < numPlayers) {
+      console.warn(`Could not find ${numPlayers} positions with ${minDistance} tile spacing. Using fallback positions.`)
+      positions.length = 0 // Clear and use corners as fallback
+
+      const fallbackPositions = [
+        { startX: 0, startY: 0, edge: 'top-left' },
+        { startX: this.boardWidth - zoneSize, startY: this.boardHeight - zoneSize, edge: 'bottom-right' },
+        { startX: this.boardWidth - zoneSize, startY: 0, edge: 'top-right' },
+        { startX: 0, startY: this.boardHeight - zoneSize, edge: 'bottom-left' },
+        { startX: Math.floor(this.boardWidth / 2) - 1, startY: 0, edge: 'top-center' }
+      ]
+
+      for (let i = 0; i < numPlayers; i++) {
+        positions.push(fallbackPositions[i])
+      }
     }
 
     return positions

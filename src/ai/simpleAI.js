@@ -214,13 +214,18 @@ export class SimpleAI {
       return null
     }
 
-    // Filter out water tiles unless creature is flying
+    // Filter out water tiles unless creature is flying or 10% random chance
     const isFlying = this.gameState.hasFlying(creature)
+    const allowWaterThisTurn = Math.random() < 0.10 // 10% chance to allow water
+
     const safeMoves = validMoves.filter(moveInfo => {
       // Flying creatures can land on water without taking damage
       if (isFlying) return true
-      // Ground creatures should avoid water
-      return moveInfo.tile.terrain !== 'WATER'
+      // Ground creatures: 10% chance to allow water, 90% avoid it
+      if (moveInfo.tile.terrain === 'WATER') {
+        return allowWaterThisTurn
+      }
+      return true
     })
 
     if (safeMoves.length === 0) {
@@ -304,13 +309,18 @@ export class SimpleAI {
       return null
     }
 
-    // Filter out water tiles unless creature is flying
+    // Filter out water tiles unless creature is flying or 10% random chance
     const isFlying = this.gameState.hasFlying(creature)
+    const allowWaterThisTurn = Math.random() < 0.10 // 10% chance to allow water
+
     const safeMoves = validMoves.filter(moveInfo => {
       // Flying creatures can land on water without taking damage
       if (isFlying) return true
-      // Ground creatures should avoid water
-      return moveInfo.tile.terrain !== 'WATER'
+      // Ground creatures: 10% chance to allow water, 90% avoid it
+      if (moveInfo.tile.terrain === 'WATER') {
+        return allowWaterThisTurn
+      }
+      return true
     })
 
     if (safeMoves.length === 0) {
