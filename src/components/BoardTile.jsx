@@ -12,11 +12,12 @@ import './BoardTile.css'
  * @param {boolean} isValidMove - Whether this tile is a valid movement destination
  * @param {Object} movementInfo - Movement cost and path info
  * @param {boolean} isAttackTarget - Whether creature on this tile can be attacked
+ * @param {boolean} isLineOfSight - Whether this tile is part of a ranged attack line-of-sight path
  * @param {Function} onDrop - Drag and drop handler
  * @param {Function} onDragOver - Drag over handler
  * @param {boolean} isDragTarget - Whether this tile is a valid drag target
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, onDrop, onDragOver, isDragTarget }) { // Added movementInfo
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, isLineOfSight, onDrop, onDragOver, isDragTarget }) {
   /**
    * Get CSS class for terrain type
    * @returns {string} Terrain CSS class
@@ -82,6 +83,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         ${creature ? 'occupied' : ''}
         ${isValidMove ? 'valid-move' : ''}
         ${isAttackTarget ? 'attack-target' : ''}
+        ${isLineOfSight ? 'line-of-sight' : ''}
         ${isDragTarget ? 'drag-target' : ''}`}
       onClick={() => onClick && onClick(tile)}
       onDragOver={handleDragOver}
@@ -94,6 +96,13 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
       {isValidMove && movementInfo && (
         <div className="movement-cost">
           {movementInfo.cost}
+        </div>
+      )}
+
+      {/* Show line-of-sight indicator */}
+      {isLineOfSight && (
+        <div className="line-of-sight-indicator">
+          ➤
         </div>
       )}
 

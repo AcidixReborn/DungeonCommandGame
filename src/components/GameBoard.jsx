@@ -29,6 +29,7 @@ function GameBoard() {
   const [actionMessage, setActionMessage] = useState('')
   const [validMoveTiles, setValidMoveTiles] = useState([])
   const [validAttackTargets, setValidAttackTargets] = useState([])
+  const [lineOfSightPath, setLineOfSightPath] = useState([]) // Visual path for ranged attacks
   const [draggingCreatureIndex, setDraggingCreatureIndex] = useState(null)
   const [dragOverTile, setDragOverTile] = useState(null)
   const [isAIThinking, setIsAIThinking] = useState(false)
@@ -189,6 +190,7 @@ function GameBoard() {
         setSelectedBoardCreature(null)
         setValidMoveTiles([])
         setValidAttackTargets([])
+        setLineOfSightPath([])
         setActionMessage('Creature deselected')
       }
       // If clicking on a creature on the board
@@ -223,6 +225,31 @@ function GameBoard() {
     // Calculate valid attack targets
     const targets = gameState.getValidAttackTargets(creatureInstance)
     setValidAttackTargets(targets)
+
+    // Calculate line-of-sight paths for ranged attacks
+    const losPath = []
+    targets.forEach(targetInfo => {
+      if (targetInfo.attackType === 'ranged') {
+        // Get line tiles for this ranged attack
+        const lineTiles = gameState.getLineTiles(
+          creatureInstance.position,
+          targetInfo.creature.position
+        )
+        // Add all tiles in the line to the path (for visualization)
+        lineTiles.forEach(pos => {
+          // Skip attacker and target positions
+          if ((pos.x === creatureInstance.position.x && pos.y === creatureInstance.position.y) ||
+              (pos.x === targetInfo.creature.position.x && pos.y === targetInfo.creature.position.y)) {
+            return
+          }
+          // Add to path if not already there
+          if (!losPath.some(p => p.x === pos.x && p.y === pos.y)) {
+            losPath.push(pos)
+          }
+        })
+      }
+    })
+    setLineOfSightPath(losPath)
 
     setActionMessage(
       `Selected ${creatureInstance.creature.name}. ` +
@@ -1007,6 +1034,9 @@ function GameBoard() {
                       const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
                                                   selectedBoardCreature?.position?.y === y
 
+                      // Check if this tile is in the line-of-sight path
+                      const isLineOfSight = lineOfSightPath.some(pos => pos.x === x && pos.y === y)
+
                       return (
                         <BoardTile
                           key={`${x}-${y}`}
@@ -1016,6 +1046,7 @@ function GameBoard() {
                           isValidMove={isValidMove}
                           movementInfo={validMove} // Pass movement info for cost display
                           isAttackTarget={isAttackTarget}
+                          isLineOfSight={isLineOfSight}
                           onClick={handleTileClick}
                           onDrop={handleDrop}
                           onDragOver={handleDragOver}

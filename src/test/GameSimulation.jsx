@@ -70,6 +70,16 @@ function GameSimulation() {
         creaturesKilledByWater: 0
       },
       flyingCreatures: { p1: 0, p2: 0 },
+      // Ranged Attack Restriction Tracking
+      rangedAttackStats: {
+        totalMeleeAttacks: 0,
+        totalRangedAttacks: 0,
+        rangedBlockedByForestAttacker: 0,  // Restriction #1: Attacker on forest
+        rangedBlockedByForestTarget: 0,    // Restriction #2: Target on forest
+        rangedBlockedByAdjacent: 0,        // Restriction #3: Target adjacent
+        rangedBlockedByLineOfSight: 0,     // Restriction #4: Enemy blocking
+        rangedOnlyCreaturesBlocked: 0      // Ranged-only creatures unable to attack adjacent
+      },
       // Treasure/Morale Token Tracking
       treasureStats: {
         initialTreasures: 0,
@@ -167,34 +177,56 @@ function GameSimulation() {
               break
 
             case GamePhases.ACTIVATE:
-              // AI makes activation decisions
-              const currentAI = new SimpleAI(gameState, gameState.currentPlayer)
+              // AI makes activation decisions (with stats tracking)
+              const currentAI = new SimpleAI(gameState, gameState.currentPlayer, stats.rangedAttackStats)
               const aiResult = currentAI.executeTurn()
 
               // Track IMD card usage from AI actions
               if (aiResult.actions) {
                 aiResult.actions.forEach(action => {
-                  if (action.type === 'attack') {
+                  // Handle attack intentions - execute the attack
+                  if (action.type === 'attack_intention') {
+                    const attacker = action.attackerInstance
+                    const defender = action.defenderInstance
+                    const attackType = action.targetInfo.attackType
+
+                    // Track attack type
+                    if (attackType === 'melee') {
+                      stats.rangedAttackStats.totalMeleeAttacks++
+                    } else if (attackType === 'ranged') {
+                      stats.rangedAttackStats.totalRangedAttacks++
+                    }
+
                     // Determine which player is the opponent (defender)
                     const opponentId = gameState.currentPlayer === Players.PLAYER1 ? Players.PLAYER2 : Players.PLAYER1
 
-                    // Track reactions used
-                    if (action.reactionsUsed > 0) {
-                      if (opponentId === Players.PLAYER1) {
-                        stats.imdCardsUsed.p1 += action.reactionsUsed
+                    // AI defender decides whether to use IMD reactions
+                    const defenderAI = new SimpleAI(gameState, opponentId)
+                    const reactionDecision = defenderAI.decideImmediateReactions(defender)
+
+                    // Track IMD opportunities and usage
+                    if (reactionDecision.hadOpportunity) {
+                      if (reactionDecision.reactions.length > 0) {
+                        // AI decided to use reactions
+                        if (opponentId === Players.PLAYER1) {
+                          stats.imdCardsUsed.p1 += reactionDecision.reactions.length
+                        } else {
+                          stats.imdCardsUsed.p2 += reactionDecision.reactions.length
+                        }
                       } else {
-                        stats.imdCardsUsed.p2 += action.reactionsUsed
+                        // AI had opportunity but chose not to use
+                        if (opponentId === Players.PLAYER1) {
+                          stats.imdOpportunities.p1 += 1
+                        } else {
+                          stats.imdOpportunities.p2 += 1
+                        }
                       }
                     }
 
-                    // Track opportunities (had cards available but chose not to use)
-                    if (action.hadOpportunity && action.reactionsUsed === 0) {
-                      if (opponentId === Players.PLAYER1) {
-                        stats.imdOpportunities.p1 += 1
-                      } else {
-                        stats.imdOpportunities.p2 += 1
-                      }
-                    }
+                    // Execute the attack
+                    const attackResult = gameState.executeAttack(attacker, defender)
+
+                    // Attack execution doesn't need additional tracking beyond attack type counts
                   }
 
                   // TERRAIN: Track movement actions
@@ -371,6 +403,16 @@ function GameSimulation() {
       },
       totalFlyingCreatures: 0,
       gamesWithFlyingCreatures: 0,
+      // Ranged Attack Statistics
+      rangedAttackStats: {
+        totalMeleeAttacks: 0,
+        totalRangedAttacks: 0,
+        rangedBlockedByForestAttacker: 0,
+        rangedBlockedByForestTarget: 0,
+        rangedBlockedByAdjacent: 0,
+        rangedBlockedByLineOfSight: 0,
+        rangedOnlyCreaturesBlocked: 0
+      },
       // Treasure Statistics
       treasureStats: {
         totalTreasuresPlaced: 0,
@@ -437,6 +479,15 @@ function GameSimulation() {
       summary.terrainStats.totalWaterDamageInstances += gameStats.terrainStats.waterDamageInstances
       summary.terrainStats.totalWaterDamage += gameStats.terrainStats.totalWaterDamage
       summary.terrainStats.totalCreaturesKilledByWater += gameStats.terrainStats.creaturesKilledByWater
+
+      // Aggregate ranged attack statistics
+      summary.rangedAttackStats.totalMeleeAttacks += gameStats.rangedAttackStats.totalMeleeAttacks
+      summary.rangedAttackStats.totalRangedAttacks += gameStats.rangedAttackStats.totalRangedAttacks
+      summary.rangedAttackStats.rangedBlockedByForestAttacker += gameStats.rangedAttackStats.rangedBlockedByForestAttacker
+      summary.rangedAttackStats.rangedBlockedByForestTarget += gameStats.rangedAttackStats.rangedBlockedByForestTarget
+      summary.rangedAttackStats.rangedBlockedByAdjacent += gameStats.rangedAttackStats.rangedBlockedByAdjacent
+      summary.rangedAttackStats.rangedBlockedByLineOfSight += gameStats.rangedAttackStats.rangedBlockedByLineOfSight
+      summary.rangedAttackStats.rangedOnlyCreaturesBlocked += gameStats.rangedAttackStats.rangedOnlyCreaturesBlocked
 
       summary.totalFlyingCreatures += gameStats.flyingCreatures.p1 + gameStats.flyingCreatures.p2
       if (gameStats.flyingCreatures.p1 > 0 || gameStats.flyingCreatures.p2 > 0) {
@@ -802,6 +853,157 @@ function GameSimulation() {
                       {' '}error(s) occurred during pathfinding. Review the detailed logs.
                     </Alert>
                   )}
+                </Card.Body>
+              </Card>
+
+              {/* Ranged Attack Restrictions Statistics */}
+              <Card bg="warning" text="dark" className="mb-3">
+                <Card.Header><h5>🎯 Ranged Attack Restrictions Statistics</h5></Card.Header>
+                <Card.Body>
+                  <Table striped bordered variant="light">
+                    <tbody>
+                      <tr>
+                        <td><strong>Total Melee Attacks</strong></td>
+                        <td>
+                          <Badge bg="danger">{results.summary.rangedAttackStats.totalMeleeAttacks}</Badge>
+                          {' '}
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.rangedAttackStats.totalMeleeAttacks / results.summary.completedGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total Ranged Attacks</strong></td>
+                        <td>
+                          <Badge bg="primary">{results.summary.rangedAttackStats.totalRangedAttacks}</Badge>
+                          {' '}
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.rangedAttackStats.totalRangedAttacks / results.summary.completedGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total Attacks</strong></td>
+                        <td>
+                          <Badge bg="secondary">
+                            {results.summary.rangedAttackStats.totalMeleeAttacks + results.summary.rangedAttackStats.totalRangedAttacks}
+                          </Badge>
+                          {' '}
+                          <small>
+                            ({results.summary.rangedAttackStats.totalMeleeAttacks + results.summary.rangedAttackStats.totalRangedAttacks > 0
+                              ? ((results.summary.rangedAttackStats.totalRangedAttacks /
+                                 (results.summary.rangedAttackStats.totalMeleeAttacks + results.summary.rangedAttackStats.totalRangedAttacks)) * 100).toFixed(1)
+                              : 0}% ranged)
+                          </small>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+
+                  <h6 className="mt-3">🚫 Ranged Attack Blocking Statistics</h6>
+                  <Table striped bordered hover variant="light" size="sm">
+                    <thead>
+                      <tr>
+                        <th>Restriction Type</th>
+                        <th>Blocks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Blocked: Attacker on Forest</strong></td>
+                        <td>
+                          <Badge bg="success">{results.summary.rangedAttackStats.rangedBlockedByForestAttacker}</Badge>
+                          {' '}
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.rangedAttackStats.rangedBlockedByForestAttacker / results.summary.completedGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Blocked: Target on Forest</strong></td>
+                        <td>
+                          <Badge bg="success">{results.summary.rangedAttackStats.rangedBlockedByForestTarget}</Badge>
+                          {' '}
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.rangedAttackStats.rangedBlockedByForestTarget / results.summary.completedGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Blocked: Adjacent Target</strong></td>
+                        <td>
+                          <Badge bg="info">{results.summary.rangedAttackStats.rangedBlockedByAdjacent}</Badge>
+                          {' '}
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.rangedAttackStats.rangedBlockedByAdjacent / results.summary.completedGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Blocked: Line of Sight (Forest/Enemy Creature)</strong></td>
+                        <td>
+                          <Badge bg="warning">{results.summary.rangedAttackStats.rangedBlockedByLineOfSight}</Badge>
+                          {' '}
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.rangedAttackStats.rangedBlockedByLineOfSight / results.summary.completedGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Ranged-Only Creatures Blocked (Adjacent)</strong></td>
+                        <td>
+                          <Badge bg="danger">{results.summary.rangedAttackStats.rangedOnlyCreaturesBlocked}</Badge>
+                          {' '}
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.rangedAttackStats.rangedOnlyCreaturesBlocked / results.summary.completedGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total Ranged Blocks</strong></td>
+                        <td>
+                          <Badge bg="dark">
+                            {results.summary.rangedAttackStats.rangedBlockedByForestAttacker +
+                             results.summary.rangedAttackStats.rangedBlockedByForestTarget +
+                             results.summary.rangedAttackStats.rangedBlockedByAdjacent +
+                             results.summary.rangedAttackStats.rangedBlockedByLineOfSight}
+                          </Badge>
+                          {' '}
+                          <small>
+                            (
+                            {results.summary.rangedAttackStats.rangedBlockedByForestAttacker +
+                             results.summary.rangedAttackStats.rangedBlockedByForestTarget +
+                             results.summary.rangedAttackStats.rangedBlockedByAdjacent +
+                             results.summary.rangedAttackStats.rangedBlockedByLineOfSight > 0 &&
+                             results.summary.rangedAttackStats.totalRangedAttacks > 0
+                              ? ((results.summary.rangedAttackStats.rangedBlockedByForestAttacker +
+                                  results.summary.rangedAttackStats.rangedBlockedByForestTarget +
+                                  results.summary.rangedAttackStats.rangedBlockedByAdjacent +
+                                  results.summary.rangedAttackStats.rangedBlockedByLineOfSight) /
+                                 (results.summary.rangedAttackStats.totalRangedAttacks +
+                                  results.summary.rangedAttackStats.rangedBlockedByForestAttacker +
+                                  results.summary.rangedAttackStats.rangedBlockedByForestTarget +
+                                  results.summary.rangedAttackStats.rangedBlockedByAdjacent +
+                                  results.summary.rangedAttackStats.rangedBlockedByLineOfSight) * 100).toFixed(1)
+                              : 0}% of attempted ranged attacks blocked)
+                          </small>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+
+                  <Alert variant="success" className="mt-2 mb-0" style={{ fontSize: '0.85rem' }}>
+                    <strong>✅ Ranged Attack Restrictions Active!</strong> The system enforces 4 core restrictions:
+                    (1) Cannot shoot FROM forest, (2) Cannot shoot AT forest, (3) Cannot shoot adjacent targets,
+                    (4) Line of sight blocked by forest terrain and enemy creatures (allies don't block).
+                  </Alert>
                 </Card.Body>
               </Card>
 

@@ -528,9 +528,10 @@ export class GameState {
       for (let x = 0; x < this.boardWidth; x++) {
         const tile = this.tiles[y][x]
 
-        // Skip difficult terrain, mountains, and starting zones
+        // Skip difficult terrain, mountains, water, and starting zones
         if (tile.terrain === TerrainTypes.DIFFICULT ||
             tile.terrain === TerrainTypes.MOUNTAIN ||
+            tile.terrain === TerrainTypes.WATER ||
             tile.terrain === TerrainTypes.STARTING_ZONE) {
           continue
         }
@@ -894,15 +895,29 @@ export class GameState {
     return true
   }
 
-  // Get all valid attack targets for a creature
-  getValidAttackTargets(creatureInstance) {
+  /**
+   * Get all valid attack targets for a creature
+   * Also tracks ranged attack restriction statistics for testing
+   *
+   * Ranged Attack Restrictions:
+   * 1. Cannot shoot FROM forest - creature on forest can only melee
+   * 2. Cannot shoot AT forest - creature on forest cannot be ranged attacked
+   * 3. Cannot shoot adjacent targets - must use melee for adjacent enemies
+   * 4. Line of sight - cannot shoot through enemy creatures (allies don't block)
+   */
+  getValidAttackTargets(creatureInstance, trackStats = null) {
     if (!creatureInstance.position) return []
 
     const targets = []
     const attackerOwner = creatureInstance.owner
+    const hasMelee = creatureInstance.creature.meleeAttack !== null
     const hasRanged = creatureInstance.creature.rangedAttack !== null
     const rangedRange = hasRanged ? creatureInstance.creature.rangedAttack.range : 0
-    const meleeRange = creatureInstance.creature.meleeAttack?.range || 1
+    const meleeRange = hasMelee ? (creatureInstance.creature.meleeAttack.range || 1) : 0
+
+    // Ranged restriction #1: Check if attacker is on forest
+    const attackerTile = this.getTile(creatureInstance.position.x, creatureInstance.position.y)
+    const attackerOnForest = attackerTile?.terrain === TerrainTypes.FOREST
 
     // Find all enemy creatures
     for (const playerId of this.activePlayers) {
@@ -916,27 +931,146 @@ export class GameState {
         if (enemyCreature.deployedThisTurn) continue
 
         const distance = this.getDistance(creatureInstance.position, enemyCreature.position)
+        const isAdjacent = distance === 1
 
-        // Can attack in melee range
-        if (distance <= meleeRange) {
+        // Ranged restriction #2: Check if target is on forest
+        const targetTile = this.getTile(enemyCreature.position.x, enemyCreature.position.y)
+        const targetOnForest = targetTile?.terrain === TerrainTypes.FOREST
+
+        // Melee attack: adjacent range only
+        if (hasMelee && distance <= meleeRange) {
           targets.push({
             creature: enemyCreature,
             attackType: 'melee',
             distance
           })
         }
-        // Can attack with ranged if has ranged attack
-        else if (hasRanged && distance <= rangedRange) {
-          targets.push({
-            creature: enemyCreature,
-            attackType: 'ranged',
-            distance
-          })
+
+        // Ranged attack: check all restrictions
+        if (hasRanged && distance > 0 && distance <= rangedRange) {
+          // Restriction #1: Cannot shoot FROM forest (tracked above)
+          if (attackerOnForest) {
+            if (trackStats) trackStats.rangedBlockedByForestAttacker++
+            continue
+          }
+
+          // Restriction #3: Cannot shoot adjacent targets with ranged
+          if (isAdjacent) {
+            if (trackStats) {
+              trackStats.rangedBlockedByAdjacent++
+              // Special case: ranged-only creatures can't attack adjacent at all
+              if (!hasMelee) {
+                trackStats.rangedOnlyCreaturesBlocked++
+              }
+            }
+            continue // Skip - must use melee for adjacent
+          }
+
+          // Restriction #2: Cannot shoot at creatures on forest
+          if (targetOnForest) {
+            if (trackStats) trackStats.rangedBlockedByForestTarget++
+            continue // Skip - forest blocks ranged attacks
+          }
+
+          // Restriction #4: Check line of sight (enemy creatures block)
+          if (this.hasLineOfSight(creatureInstance, enemyCreature, attackerOwner)) {
+            targets.push({
+              creature: enemyCreature,
+              attackType: 'ranged',
+              distance
+            })
+          } else {
+            if (trackStats) trackStats.rangedBlockedByLineOfSight++
+          }
         }
       }
     }
 
     return targets
+  }
+
+  /**
+   * Check if there's a clear line of sight between attacker and target
+   * Forest terrain and enemy creatures block line of sight, but allied creatures do not
+   *
+   * @param {CreatureInstance} attacker - The attacking creature
+   * @param {CreatureInstance} target - The target creature
+   * @param {string} attackerOwner - Owner ID of the attacker
+   * @returns {boolean} True if line of sight is clear
+   */
+  hasLineOfSight(attacker, target, attackerOwner) {
+    const from = attacker.position
+    const to = target.position
+
+    // Get all tiles along the line between attacker and target
+    const lineTiles = this.getLineTiles(from, to)
+
+    // Check each tile for blocking forest terrain or enemy creatures
+    for (const pos of lineTiles) {
+      const tile = this.getTile(pos.x, pos.y)
+
+      // Skip start and end positions
+      if ((pos.x === from.x && pos.y === from.y) || (pos.x === to.x && pos.y === to.y)) {
+        continue
+      }
+
+      // Forest terrain blocks line of sight
+      if (tile?.terrain === TerrainTypes.FOREST) {
+        return false // Forest blocks line of sight
+      }
+
+      // Mountain terrain blocks line of sight
+      if (tile?.terrain === TerrainTypes.MOUNTAIN) {
+        return false // Mountain blocks line of sight
+      }
+
+      // If there's an enemy creature on this tile, line of sight is blocked
+      if (tile?.occupant && tile.occupant.owner !== attackerOwner) {
+        return false // Enemy creature blocks line of sight
+      }
+      // Allied creatures do NOT block (no check needed, just skip them)
+    }
+
+    return true // Line of sight is clear
+  }
+
+  /**
+   * Get all tiles along a line between two points (Bresenham's line algorithm)
+   *
+   * @param {Object} from - Starting position {x, y}
+   * @param {Object} to - Ending position {x, y}
+   * @returns {Array} Array of positions along the line
+   */
+  getLineTiles(from, to) {
+    const tiles = []
+    let x0 = from.x
+    let y0 = from.y
+    const x1 = to.x
+    const y1 = to.y
+
+    const dx = Math.abs(x1 - x0)
+    const dy = Math.abs(y1 - y0)
+    const sx = x0 < x1 ? 1 : -1
+    const sy = y0 < y1 ? 1 : -1
+    let err = dx - dy
+
+    while (true) {
+      tiles.push({ x: x0, y: y0 })
+
+      if (x0 === x1 && y0 === y1) break
+
+      const e2 = 2 * err
+      if (e2 > -dy) {
+        err -= dy
+        x0 += sx
+      }
+      if (e2 < dx) {
+        err += dx
+        y0 += sy
+      }
+    }
+
+    return tiles
   }
 
   // Execute an attack from one creature to another

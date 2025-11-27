@@ -7,9 +7,10 @@ import { CreatureInstance } from '../models/creatures'
  * Makes basic tactical decisions for computer-controlled players
  */
 export class SimpleAI {
-  constructor(gameState, playerId) {
+  constructor(gameState, playerId, trackStats = null) {
     this.gameState = gameState
     this.playerId = playerId
+    this.trackStats = trackStats // Optional stats tracking object
   }
 
   /**
@@ -69,7 +70,7 @@ export class SimpleAI {
       }
 
       // Priority 2 - Try to attack
-      const attackTargets = this.gameState.getValidAttackTargets(creature)
+      const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
 
       if (attackTargets.length > 0) {
         // Attack the weakest enemy (lowest HP)
