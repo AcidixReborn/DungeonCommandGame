@@ -199,9 +199,12 @@ export class GameState {
     this.gameOver = false
     this.winner = null
 
-    // Board state - Increased to 16×16 for terrain regions
-    this.boardWidth = 16  // Changed from 12 for 8×8 terrain regions
-    this.boardHeight = 16 // Changed from 12 for 8×8 terrain regions
+    // Board state - Dynamic sizing based on number of players
+    // 2 players: 16×16, 3 players: 20×20, 4 players: 24×24, 5 players: 28×28
+    const numPlayers = this.activePlayers.length
+    const baseSize = 12 + (numPlayers * 4)
+    this.boardWidth = baseSize
+    this.boardHeight = baseSize
     this.tiles = [] // 2D array [y][x] for O(1) tile lookup
 
     // Treasure/Morale token system
@@ -252,15 +255,21 @@ export class GameState {
       }
     }
 
-    // Generate four 8×8 terrain regions in corners
-    // Top-left region (0,0) to (7,7)
-    this.generateTerrainRegion(0, 0, 8, 8)
-    // Top-right region (8,0) to (15,7)
-    this.generateTerrainRegion(8, 0, 8, 8)
-    // Bottom-left region (0,8) to (7,15)
-    this.generateTerrainRegion(0, 8, 8, 8)
-    // Bottom-right region (8,8) to (15,15)
-    this.generateTerrainRegion(8, 8, 8, 8)
+    // Generate terrain regions based on board size
+    // Divide board into 8×8 regions (or as close as possible)
+    const regionSize = 8
+    const regionsX = Math.ceil(this.boardWidth / regionSize)
+    const regionsY = Math.ceil(this.boardHeight / regionSize)
+
+    for (let ry = 0; ry < regionsY; ry++) {
+      for (let rx = 0; rx < regionsX; rx++) {
+        const startX = rx * regionSize
+        const startY = ry * regionSize
+        const width = Math.min(regionSize, this.boardWidth - startX)
+        const height = Math.min(regionSize, this.boardHeight - startY)
+        this.generateTerrainRegion(startX, startY, width, height)
+      }
+    }
 
     // Add one magic circle per active player
     this.addMagicCircles()

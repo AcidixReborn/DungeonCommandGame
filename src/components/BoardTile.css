@@ -3,10 +3,12 @@
    Cel-shaded, vibrant, cartoon aesthetic
    ============================================ */
 
-/* Seamless connected tiles - Reduced size for 16×16 board */
+/* Seamless connected tiles - Flexible sizing for any board size */
 .board-tile {
-  width: 40px;   /* Reduced from 60px for 16×16 board */
-  height: 40px;  /* Reduced from 60px for 16×16 board */
+  flex: 1; /* Tiles expand to fill available space */
+  min-width: 0; /* Allow flex shrinking */
+  min-height: 0; /* Allow flex shrinking */
+  aspect-ratio: 1 / 1; /* Keep tiles square */
   border: none; /* No borders - completely seamless */
   display: flex;
   flex-direction: column;
@@ -15,7 +17,7 @@
   position: relative;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth anime-style transition */
-  font-size: 0.6rem;  /* Reduced from 0.7rem */
+  font-size: 0.6rem;  /* Will scale with tile size */
   border-radius: 0; /* No rounding - tiles connect perfectly */
   box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.05); /* Very subtle inset highlight for slight depth */
   margin: 0; /* No gaps between tiles */

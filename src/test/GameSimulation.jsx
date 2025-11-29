@@ -39,18 +39,16 @@ function GameSimulation() {
       winner: null,
       errors: [],
       warnings: [],
-      p1Faction: null,
-      p2Faction: null,
-      p1Commander: null,
-      p2Commander: null,
+      factions: {}, // Will store p1-p5 factions
+      commanders: {}, // Will store p1-p5 commanders
       completed: false,
       deployCount: 0,
       attackCount: 0,
       moveCount: 0,
       // IMD Card Tracking
-      imdCardsInDecks: { p1: 0, p2: 0 },
-      imdCardsUsed: { p1: 0, p2: 0 }, // Tracks how many IMD cards were actually used as reactions
-      imdOpportunities: { p1: 0, p2: 0 }, // Tracks how many times IMD cards were available but not used
+      imdCardsInDecks: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0 },
+      imdCardsUsed: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0 }, // Tracks how many IMD cards were actually used as reactions
+      imdOpportunities: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0 }, // Tracks how many times IMD cards were available but not used
       // Terrain & Pathfinding Tracking
       terrainStats: {
         totalMoves: 0,
@@ -69,7 +67,7 @@ function GameSimulation() {
         totalWaterDamage: 0,
         creaturesKilledByWater: 0
       },
-      flyingCreatures: { p1: 0, p2: 0 },
+      flyingCreatures: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0 },
       // Ranged Attack Restriction Tracking
       rangedAttackStats: {
         totalMeleeAttacks: 0,
@@ -83,62 +81,51 @@ function GameSimulation() {
       // Treasure/Morale Token Tracking
       treasureStats: {
         initialTreasures: 0,
-        treasuresCollected: { p1: 0, p2: 0 },
-        moraleFromTreasures: { p1: 0, p2: 0 },
+        treasuresCollected: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0 },
+        moraleFromTreasures: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0 },
         treasurePlacementRelaxed: 0
       }
     }
 
     try {
-      // Random faction selection
+      // Random faction selection for all 5 players
       const factionList = Object.values(Factions)
-      const p1Faction = factionList[Math.floor(Math.random() * factionList.length)]
-      const p2Faction = factionList[Math.floor(Math.random() * factionList.length)]
+      const playerIds = [Players.PLAYER1, Players.PLAYER2, Players.PLAYER3, Players.PLAYER4, Players.PLAYER5]
+      const playerSetups = []
 
-      stats.p1Faction = p1Faction
-      stats.p2Faction = p2Faction
+      // Randomly select 5 unique factions (shuffle and take all 5)
+      const shuffledFactions = [...factionList].sort(() => Math.random() - 0.5)
 
-      // Random commander selection
-      const p1Commander = commanders[p1Faction][Math.floor(Math.random() * commanders[p1Faction].length)]
-      const p2Commander = commanders[p2Faction][Math.floor(Math.random() * commanders[p2Faction].length)]
+      for (let i = 0; i < 5; i++) {
+        const faction = shuffledFactions[i]
+        const commander = commanders[faction][Math.floor(Math.random() * commanders[faction].length)]
 
-      stats.p1Commander = p1Commander.name
-      stats.p2Commander = p2Commander.name
+        stats.factions[`p${i + 1}`] = faction
+        stats.commanders[`p${i + 1}`] = commander.name
 
-      // Setup game
-      const player1Setup = {
-        playerId: Players.PLAYER1,
-        commander: new Commander(p1Commander),
-        creatures: createCreatureDeck(p1Faction),
-        orders: createOrderDeck(p1Faction),
-        faction: p1Faction
+        playerSetups.push({
+          playerId: playerIds[i],
+          commander: new Commander(commander),
+          creatures: createCreatureDeck(faction),
+          orders: createOrderDeck(faction),
+          faction: faction
+        })
       }
 
-      const player2Setup = {
-        playerId: Players.PLAYER2,
-        commander: new Commander(p2Commander),
-        creatures: createCreatureDeck(p2Faction),
-        orders: createOrderDeck(p2Faction),
-        faction: p2Faction
+      const gameState = new GameState(playerSetups)
+
+      // Count IMD cards in initial decks for all players
+      for (let i = 0; i < 5; i++) {
+        const playerId = playerIds[i]
+        const deck = gameState.players[playerId]?.orderDeck || []
+        stats.imdCardsInDecks[`p${i + 1}`] = deck.filter(card => card && card.isImmediate && card.isImmediate()).length
+
+        // Count flying creatures in initial hands
+        const creatures = gameState.players[playerId]?.creatureHand || []
+        stats.flyingCreatures[`p${i + 1}`] = creatures.filter(c =>
+          c.specialAbilities?.some(a => typeof a === 'string' && a.toLowerCase().includes('flying'))
+        ).length
       }
-
-      const gameState = new GameState([player1Setup, player2Setup])
-
-      // Count IMD cards in initial decks (with safety checks)
-      const p1Deck = gameState.players[Players.PLAYER1]?.orderDeck || []
-      const p2Deck = gameState.players[Players.PLAYER2]?.orderDeck || []
-      stats.imdCardsInDecks.p1 = p1Deck.filter(card => card && card.isImmediate && card.isImmediate()).length
-      stats.imdCardsInDecks.p2 = p2Deck.filter(card => card && card.isImmediate && card.isImmediate()).length
-
-      // Count flying creatures in initial hands
-      const p1Creatures = gameState.players[Players.PLAYER1]?.creatureHand || []
-      const p2Creatures = gameState.players[Players.PLAYER2]?.creatureHand || []
-      stats.flyingCreatures.p1 = p1Creatures.filter(c =>
-        c.specialAbilities?.some(a => typeof a === 'string' && a.toLowerCase().includes('flying'))
-      ).length
-      stats.flyingCreatures.p2 = p2Creatures.filter(c =>
-        c.specialAbilities?.some(a => typeof a === 'string' && a.toLowerCase().includes('flying'))
-      ).length
 
       // Track initial treasure placement
       stats.treasureStats.initialTreasures = gameState.treasures?.length || 0
@@ -198,7 +185,7 @@ function GameSimulation() {
                     }
 
                     // Determine which player is the opponent (defender)
-                    const opponentId = gameState.currentPlayer === Players.PLAYER1 ? Players.PLAYER2 : Players.PLAYER1
+                    const opponentId = defender.owner
 
                     // AI defender decides whether to use IMD reactions
                     const defenderAI = new SimpleAI(gameState, opponentId)
@@ -206,20 +193,15 @@ function GameSimulation() {
 
                     // Track IMD opportunities and usage
                     if (reactionDecision.hadOpportunity) {
+                      const opponentPlayerNum = parseInt(opponentId.replace('PLAYER', ''))
+                      const opponentKey = `p${opponentPlayerNum}`
+
                       if (reactionDecision.reactions.length > 0) {
                         // AI decided to use reactions
-                        if (opponentId === Players.PLAYER1) {
-                          stats.imdCardsUsed.p1 += reactionDecision.reactions.length
-                        } else {
-                          stats.imdCardsUsed.p2 += reactionDecision.reactions.length
-                        }
+                        stats.imdCardsUsed[opponentKey] += reactionDecision.reactions.length
                       } else {
                         // AI had opportunity but chose not to use
-                        if (opponentId === Players.PLAYER1) {
-                          stats.imdOpportunities.p1 += 1
-                        } else {
-                          stats.imdOpportunities.p2 += 1
-                        }
+                        stats.imdOpportunities[opponentKey] += 1
                       }
                     }
 
@@ -268,16 +250,14 @@ function GameSimulation() {
                     }
                   }
 
-                  // Track treasure collection actions
+                  // Track treasure collection actions for all 5 players
                   if (action.type === 'collect_morale') {
                     const currentPlayer = gameState.currentPlayer
-                    if (currentPlayer === Players.PLAYER1) {
-                      stats.treasureStats.treasuresCollected.p1++
-                      stats.treasureStats.moraleFromTreasures.p1 += action.moraleCollected || 1
-                    } else if (currentPlayer === Players.PLAYER2) {
-                      stats.treasureStats.treasuresCollected.p2++
-                      stats.treasureStats.moraleFromTreasures.p2 += action.moraleCollected || 1
-                    }
+                    const playerNum = parseInt(currentPlayer.replace('PLAYER', ''))
+                    const playerKey = `p${playerNum}`
+
+                    stats.treasureStats.treasuresCollected[playerKey]++
+                    stats.treasureStats.moraleFromTreasures[playerKey] += action.moraleCollected || 1
                   }
                 })
               }
@@ -319,10 +299,19 @@ function GameSimulation() {
       }
 
       stats.turns = turnCount
-      stats.p1FinalMorale = gameState.players[Players.PLAYER1].morale
-      stats.p2FinalMorale = gameState.players[Players.PLAYER2].morale
-      stats.p1Creatures = gameState.players[Players.PLAYER1].creaturesInPlay.length
-      stats.p2Creatures = gameState.players[Players.PLAYER2].creaturesInPlay.length
+
+      // Track final morale and creatures for all 5 players
+      stats.p1FinalMorale = gameState.players[Players.PLAYER1]?.morale || 0
+      stats.p2FinalMorale = gameState.players[Players.PLAYER2]?.morale || 0
+      stats.p3FinalMorale = gameState.players[Players.PLAYER3]?.morale || 0
+      stats.p4FinalMorale = gameState.players[Players.PLAYER4]?.morale || 0
+      stats.p5FinalMorale = gameState.players[Players.PLAYER5]?.morale || 0
+
+      stats.p1Creatures = gameState.players[Players.PLAYER1]?.creaturesInPlay.length || 0
+      stats.p2Creatures = gameState.players[Players.PLAYER2]?.creaturesInPlay.length || 0
+      stats.p3Creatures = gameState.players[Players.PLAYER3]?.creaturesInPlay.length || 0
+      stats.p4Creatures = gameState.players[Players.PLAYER4]?.creaturesInPlay.length || 0
+      stats.p5Creatures = gameState.players[Players.PLAYER5]?.creaturesInPlay.length || 0
 
       // TERRAIN: Calculate average movement cost at end of game
       if (stats.terrainStats.totalMoves > 0) {
@@ -337,13 +326,21 @@ function GameSimulation() {
       }
 
       if (gameState.gameOver) {
-        const p1Morale = gameState.players[Players.PLAYER1].morale
-        const p2Morale = gameState.players[Players.PLAYER2].morale
+        // Determine winner from all 5 players based on morale
+        const playerMorales = [
+          { player: 'Player 1', morale: gameState.players[Players.PLAYER1]?.morale || 0 },
+          { player: 'Player 2', morale: gameState.players[Players.PLAYER2]?.morale || 0 },
+          { player: 'Player 3', morale: gameState.players[Players.PLAYER3]?.morale || 0 },
+          { player: 'Player 4', morale: gameState.players[Players.PLAYER4]?.morale || 0 },
+          { player: 'Player 5', morale: gameState.players[Players.PLAYER5]?.morale || 0 }
+        ]
 
-        if (p1Morale > p2Morale) {
-          stats.winner = 'Player 1'
-        } else if (p2Morale > p1Morale) {
-          stats.winner = 'Player 2'
+        // Find the highest morale
+        const maxMorale = Math.max(...playerMorales.map(p => p.morale))
+        const winners = playerMorales.filter(p => p.morale === maxMorale)
+
+        if (winners.length === 1) {
+          stats.winner = winners[0].player
         } else {
           stats.winner = 'Tie'
         }
@@ -368,6 +365,9 @@ function GameSimulation() {
       completedGames: 0,
       player1Wins: 0,
       player2Wins: 0,
+      player3Wins: 0,
+      player4Wins: 0,
+      player5Wins: 0,
       ties: 0,
       totalErrors: 0,
       totalWarnings: 0,
@@ -376,13 +376,22 @@ function GameSimulation() {
       maxTurns: 0,
       infiniteLoops: 0,
       fatalErrors: 0,
-      // IMD Card Statistics
+      // IMD Card Statistics (all 5 players)
       totalImdCardsP1: 0,
       totalImdCardsP2: 0,
+      totalImdCardsP3: 0,
+      totalImdCardsP4: 0,
+      totalImdCardsP5: 0,
       totalImdCardsUsedP1: 0,
       totalImdCardsUsedP2: 0,
+      totalImdCardsUsedP3: 0,
+      totalImdCardsUsedP4: 0,
+      totalImdCardsUsedP5: 0,
       totalImdOpportunitiesP1: 0,
       totalImdOpportunitiesP2: 0,
+      totalImdOpportunitiesP3: 0,
+      totalImdOpportunitiesP4: 0,
+      totalImdOpportunitiesP5: 0,
       gamesWithImdCards: 0,
       // Terrain & Pathfinding Statistics
       terrainStats: {
@@ -413,13 +422,19 @@ function GameSimulation() {
         rangedBlockedByLineOfSight: 0,
         rangedOnlyCreaturesBlocked: 0
       },
-      // Treasure Statistics
+      // Treasure Statistics (all 5 players)
       treasureStats: {
         totalTreasuresPlaced: 0,
         totalTreasuresCollectedP1: 0,
         totalTreasuresCollectedP2: 0,
+        totalTreasuresCollectedP3: 0,
+        totalTreasuresCollectedP4: 0,
+        totalTreasuresCollectedP5: 0,
         totalMoraleFromTreasuresP1: 0,
         totalMoraleFromTreasuresP2: 0,
+        totalMoraleFromTreasuresP3: 0,
+        totalMoraleFromTreasuresP4: 0,
+        totalMoraleFromTreasuresP5: 0,
         gamesWithRelaxedPlacement: 0,
         totalRelaxedPlacements: 0
       }
@@ -443,6 +458,9 @@ function GameSimulation() {
 
         if (gameStats.winner === 'Player 1') summary.player1Wins++
         else if (gameStats.winner === 'Player 2') summary.player2Wins++
+        else if (gameStats.winner === 'Player 3') summary.player3Wins++
+        else if (gameStats.winner === 'Player 4') summary.player4Wins++
+        else if (gameStats.winner === 'Player 5') summary.player5Wins++
         else summary.ties++
       }
 
@@ -454,14 +472,25 @@ function GameSimulation() {
         summary.infiniteLoops++
       }
 
-      // Aggregate IMD card statistics
+      // Aggregate IMD card statistics for all 5 players
       summary.totalImdCardsP1 += gameStats.imdCardsInDecks.p1
       summary.totalImdCardsP2 += gameStats.imdCardsInDecks.p2
+      summary.totalImdCardsP3 += gameStats.imdCardsInDecks.p3
+      summary.totalImdCardsP4 += gameStats.imdCardsInDecks.p4
+      summary.totalImdCardsP5 += gameStats.imdCardsInDecks.p5
       summary.totalImdCardsUsedP1 += gameStats.imdCardsUsed.p1
       summary.totalImdCardsUsedP2 += gameStats.imdCardsUsed.p2
+      summary.totalImdCardsUsedP3 += gameStats.imdCardsUsed.p3
+      summary.totalImdCardsUsedP4 += gameStats.imdCardsUsed.p4
+      summary.totalImdCardsUsedP5 += gameStats.imdCardsUsed.p5
       summary.totalImdOpportunitiesP1 += gameStats.imdOpportunities.p1
       summary.totalImdOpportunitiesP2 += gameStats.imdOpportunities.p2
-      if (gameStats.imdCardsInDecks.p1 > 0 || gameStats.imdCardsInDecks.p2 > 0) {
+      summary.totalImdOpportunitiesP3 += gameStats.imdOpportunities.p3
+      summary.totalImdOpportunitiesP4 += gameStats.imdOpportunities.p4
+      summary.totalImdOpportunitiesP5 += gameStats.imdOpportunities.p5
+      if (gameStats.imdCardsInDecks.p1 > 0 || gameStats.imdCardsInDecks.p2 > 0 ||
+          gameStats.imdCardsInDecks.p3 > 0 || gameStats.imdCardsInDecks.p4 > 0 ||
+          gameStats.imdCardsInDecks.p5 > 0) {
         summary.gamesWithImdCards++
       }
 
@@ -489,17 +518,27 @@ function GameSimulation() {
       summary.rangedAttackStats.rangedBlockedByLineOfSight += gameStats.rangedAttackStats.rangedBlockedByLineOfSight
       summary.rangedAttackStats.rangedOnlyCreaturesBlocked += gameStats.rangedAttackStats.rangedOnlyCreaturesBlocked
 
-      summary.totalFlyingCreatures += gameStats.flyingCreatures.p1 + gameStats.flyingCreatures.p2
-      if (gameStats.flyingCreatures.p1 > 0 || gameStats.flyingCreatures.p2 > 0) {
+      summary.totalFlyingCreatures += gameStats.flyingCreatures.p1 + gameStats.flyingCreatures.p2 +
+                                       gameStats.flyingCreatures.p3 + gameStats.flyingCreatures.p4 +
+                                       gameStats.flyingCreatures.p5
+      if (gameStats.flyingCreatures.p1 > 0 || gameStats.flyingCreatures.p2 > 0 ||
+          gameStats.flyingCreatures.p3 > 0 || gameStats.flyingCreatures.p4 > 0 ||
+          gameStats.flyingCreatures.p5 > 0) {
         summary.gamesWithFlyingCreatures++
       }
 
-      // Aggregate treasure statistics
+      // Aggregate treasure statistics for all 5 players
       summary.treasureStats.totalTreasuresPlaced += gameStats.treasureStats.initialTreasures
       summary.treasureStats.totalTreasuresCollectedP1 += gameStats.treasureStats.treasuresCollected.p1
       summary.treasureStats.totalTreasuresCollectedP2 += gameStats.treasureStats.treasuresCollected.p2
+      summary.treasureStats.totalTreasuresCollectedP3 += gameStats.treasureStats.treasuresCollected.p3
+      summary.treasureStats.totalTreasuresCollectedP4 += gameStats.treasureStats.treasuresCollected.p4
+      summary.treasureStats.totalTreasuresCollectedP5 += gameStats.treasureStats.treasuresCollected.p5
       summary.treasureStats.totalMoraleFromTreasuresP1 += gameStats.treasureStats.moraleFromTreasures.p1
       summary.treasureStats.totalMoraleFromTreasuresP2 += gameStats.treasureStats.moraleFromTreasures.p2
+      summary.treasureStats.totalMoraleFromTreasuresP3 += gameStats.treasureStats.moraleFromTreasures.p3
+      summary.treasureStats.totalMoraleFromTreasuresP4 += gameStats.treasureStats.moraleFromTreasures.p4
+      summary.treasureStats.totalMoraleFromTreasuresP5 += gameStats.treasureStats.moraleFromTreasures.p5
       summary.treasureStats.totalRelaxedPlacements += gameStats.treasureStats.treasurePlacementRelaxed
       if (gameStats.treasureStats.treasurePlacementRelaxed > 0) {
         summary.treasureStats.gamesWithRelaxedPlacement++
@@ -584,6 +623,18 @@ function GameSimulation() {
                         <td><Badge bg="primary">{results.summary.player2Wins}</Badge></td>
                       </tr>
                       <tr>
+                        <td><strong>Player 3 Wins</strong></td>
+                        <td><Badge bg="info">{results.summary.player3Wins}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Player 4 Wins</strong></td>
+                        <td><Badge bg="secondary">{results.summary.player4Wins}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Player 5 Wins</strong></td>
+                        <td><Badge bg="danger">{results.summary.player5Wins}</Badge></td>
+                      </tr>
+                      <tr>
                         <td><strong>Ties</strong></td>
                         <td><Badge bg="warning">{results.summary.ties}</Badge></td>
                       </tr>
@@ -613,7 +664,7 @@ function GameSimulation() {
               </Card>
 
               <Card bg="info" text="white" className="mb-3">
-                <Card.Header><h5>⚡ IMD Card Statistics</h5></Card.Header>
+                <Card.Header><h5>⚡ IMD Card Statistics (All 5 Players)</h5></Card.Header>
                 <Card.Body>
                   <Table striped bordered variant="dark">
                     <tbody>
@@ -623,7 +674,7 @@ function GameSimulation() {
                       </tr>
                       <tr>
                         <td><strong>Avg IMD Cards per Deck</strong></td>
-                        <td><Badge bg="info">{((results.summary.totalImdCardsP1 + results.summary.totalImdCardsP2) / (results.summary.totalGames * 2)).toFixed(1)}</Badge></td>
+                        <td><Badge bg="info">{((results.summary.totalImdCardsP1 + results.summary.totalImdCardsP2 + results.summary.totalImdCardsP3 + results.summary.totalImdCardsP4 + results.summary.totalImdCardsP5) / (results.summary.totalGames * 5)).toFixed(1)}</Badge></td>
                       </tr>
                       <tr>
                         <td><strong>Total IMD Cards USED by P1</strong></td>
@@ -634,14 +685,26 @@ function GameSimulation() {
                         <td><Badge bg="success">{results.summary.totalImdCardsUsedP2}</Badge></td>
                       </tr>
                       <tr>
-                        <td><strong>Total IMD Cards Used (Combined)</strong></td>
-                        <td><Badge bg="warning">{results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2}</Badge></td>
+                        <td><strong>Total IMD Cards USED by P3</strong></td>
+                        <td><Badge bg="success">{results.summary.totalImdCardsUsedP3}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total IMD Cards USED by P4</strong></td>
+                        <td><Badge bg="success">{results.summary.totalImdCardsUsedP4}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total IMD Cards USED by P5</strong></td>
+                        <td><Badge bg="success">{results.summary.totalImdCardsUsedP5}</Badge></td>
+                      </tr>
+                      <tr>
+                        <td><strong>Total IMD Cards Used (All Players)</strong></td>
+                        <td><Badge bg="warning">{results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 + results.summary.totalImdCardsUsedP3 + results.summary.totalImdCardsUsedP4 + results.summary.totalImdCardsUsedP5}</Badge></td>
                       </tr>
                       <tr>
                         <td><strong>Avg IMD Usage per Game</strong></td>
                         <td>
                           {results.summary.completedGames > 0
-                            ? ((results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2) / results.summary.completedGames).toFixed(2)
+                            ? ((results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 + results.summary.totalImdCardsUsedP3 + results.summary.totalImdCardsUsedP4 + results.summary.totalImdCardsUsedP5) / results.summary.completedGames).toFixed(2)
                             : 0} cards/game
                         </td>
                       </tr>
@@ -649,29 +712,29 @@ function GameSimulation() {
                         <td><strong>Avg IMD Usage per Player per Game</strong></td>
                         <td>
                           {results.summary.completedGames > 0
-                            ? ((results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2) / (results.summary.completedGames * 2)).toFixed(2)
+                            ? ((results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 + results.summary.totalImdCardsUsedP3 + results.summary.totalImdCardsUsedP4 + results.summary.totalImdCardsUsedP5) / (results.summary.completedGames * 5)).toFixed(2)
                             : 0} cards/player/game
                         </td>
                       </tr>
                       <tr>
                         <td><strong>Total Opportunities (Cards Available, Not Used)</strong></td>
-                        <td><Badge bg="secondary">{results.summary.totalImdOpportunitiesP1 + results.summary.totalImdOpportunitiesP2}</Badge></td>
+                        <td><Badge bg="secondary">{results.summary.totalImdOpportunitiesP1 + results.summary.totalImdOpportunitiesP2 + results.summary.totalImdOpportunitiesP3 + results.summary.totalImdOpportunitiesP4 + results.summary.totalImdOpportunitiesP5}</Badge></td>
                       </tr>
                       <tr>
                         <td><strong>AI Decision Rate</strong></td>
                         <td>
-                          {(results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 +
-                            results.summary.totalImdOpportunitiesP1 + results.summary.totalImdOpportunitiesP2) > 0
-                            ? ((results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2) /
-                               (results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 +
-                                results.summary.totalImdOpportunitiesP1 + results.summary.totalImdOpportunitiesP2) * 100).toFixed(1)
+                          {(results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 + results.summary.totalImdCardsUsedP3 + results.summary.totalImdCardsUsedP4 + results.summary.totalImdCardsUsedP5 +
+                            results.summary.totalImdOpportunitiesP1 + results.summary.totalImdOpportunitiesP2 + results.summary.totalImdOpportunitiesP3 + results.summary.totalImdOpportunitiesP4 + results.summary.totalImdOpportunitiesP5) > 0
+                            ? ((results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 + results.summary.totalImdCardsUsedP3 + results.summary.totalImdCardsUsedP4 + results.summary.totalImdCardsUsedP5) /
+                               (results.summary.totalImdCardsUsedP1 + results.summary.totalImdCardsUsedP2 + results.summary.totalImdCardsUsedP3 + results.summary.totalImdCardsUsedP4 + results.summary.totalImdCardsUsedP5 +
+                                results.summary.totalImdOpportunitiesP1 + results.summary.totalImdOpportunitiesP2 + results.summary.totalImdOpportunitiesP3 + results.summary.totalImdOpportunitiesP4 + results.summary.totalImdOpportunitiesP5) * 100).toFixed(1)
                             : 0}% used when available
                         </td>
                       </tr>
                     </tbody>
                   </Table>
                   <Alert variant="success" className="mt-3 mb-0">
-                    <strong>✅ AI IMD Card System Active!</strong> The AI now uses Immediate cards during attacks in automated testing.
+                    <strong>✅ AI IMD Card System Active!</strong> The AI now uses Immediate cards during attacks in automated testing for all 5 players.
                     These statistics verify that IMD cards are being drawn and used correctly by the AI.
                   </Alert>
                 </Card.Body>
@@ -1009,7 +1072,7 @@ function GameSimulation() {
 
               {/* Treasure Statistics */}
               <Card bg="dark" text="white" className="mb-3">
-                <Card.Header><h5>💎 Treasure/Morale Token Statistics</h5></Card.Header>
+                <Card.Header><h5>💎 Treasure/Morale Token Statistics (All 5 Players)</h5></Card.Header>
                 <Card.Body>
                   <Table striped bordered hover variant="dark" size="sm">
                     <thead>
@@ -1051,6 +1114,36 @@ function GameSimulation() {
                         </td>
                       </tr>
                       <tr>
+                        <td><strong>Treasures Collected (P3)</strong></td>
+                        <td>{results.summary.treasureStats.totalTreasuresCollectedP3}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalTreasuresCollectedP3 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Treasures Collected (P4)</strong></td>
+                        <td>{results.summary.treasureStats.totalTreasuresCollectedP4}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalTreasuresCollectedP4 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Treasures Collected (P5)</strong></td>
+                        <td>{results.summary.treasureStats.totalTreasuresCollectedP5}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalTreasuresCollectedP5 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
                         <td><strong>Morale from Treasures (P1)</strong></td>
                         <td>{results.summary.treasureStats.totalMoraleFromTreasuresP1}</td>
                         <td>
@@ -1067,6 +1160,36 @@ function GameSimulation() {
                           <small>
                             Avg per game:{' '}
                             {(results.summary.treasureStats.totalMoraleFromTreasuresP2 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Morale from Treasures (P3)</strong></td>
+                        <td>{results.summary.treasureStats.totalMoraleFromTreasuresP3}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalMoraleFromTreasuresP3 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Morale from Treasures (P4)</strong></td>
+                        <td>{results.summary.treasureStats.totalMoraleFromTreasuresP4}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalMoraleFromTreasuresP4 / results.summary.totalGames).toFixed(1)}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Morale from Treasures (P5)</strong></td>
+                        <td>{results.summary.treasureStats.totalMoraleFromTreasuresP5}</td>
+                        <td>
+                          <small>
+                            Avg per game:{' '}
+                            {(results.summary.treasureStats.totalMoraleFromTreasuresP5 / results.summary.totalGames).toFixed(1)}
                           </small>
                         </td>
                       </tr>

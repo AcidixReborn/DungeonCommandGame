@@ -56,6 +56,24 @@ function GameBoard() {
   const [pendingCollection, setPendingCollection] = useState(null) // Stores {creature, treasure}
 
   /**
+   * Helper function to check if a player is human
+   * @param {string} playerId - Player ID (PLAYER1, PLAYER2, etc.)
+   * @returns {boolean} True if player is human
+   */
+  const isPlayerHuman = (playerId) => {
+    if (!gameConfig) {
+      console.log('[isPlayerHuman] No gameConfig available')
+      return false
+    }
+    const playerNum = playerId.replace('PLAYER', '')
+    const playerKey = `player${playerNum}`
+    const isHuman = gameConfig[playerKey]?.isHuman || false
+    console.log(`[isPlayerHuman] playerId: ${playerId}, playerNum: ${playerNum}, playerKey: ${playerKey}, isHuman: ${isHuman}`)
+    console.log(`[isPlayerHuman] gameConfig[${playerKey}]:`, gameConfig[playerKey])
+    return isHuman
+  }
+
+  /**
    * Handler for faction selection - move to commander selection
    * @param {Object} config - Faction configuration for both players
    */
@@ -72,6 +90,7 @@ function GameBoard() {
    */
   const startNewGame = (config) => {
     // Store the final game configuration (with commanders selected)
+    console.log('[startNewGame] Received config:', config)
     setGameConfig(config)
 
     // Create 12 creature cards (3 copies of each unique creature)
@@ -92,23 +111,23 @@ function GameBoard() {
       return deck
     }
 
-    const player1Setup = {
-      playerId: Players.PLAYER1,
-      commander: new Commander(config.player1.commander),
-      creatures: createCreatureDeck(config.player1.faction),
-      orders: createOrderDeck(config.player1.faction),
-      faction: config.player1.faction
+    // Build player setups dynamically based on number of players
+    const playerSetups = []
+    const playerIds = [Players.PLAYER1, Players.PLAYER2, Players.PLAYER3, Players.PLAYER4, Players.PLAYER5]
+
+    const numPlayers = config.numPlayers || 2
+    for (let i = 1; i <= numPlayers; i++) {
+      const playerKey = `player${i}`
+      playerSetups.push({
+        playerId: playerIds[i - 1],
+        commander: new Commander(config[playerKey].commander),
+        creatures: createCreatureDeck(config[playerKey].faction),
+        orders: createOrderDeck(config[playerKey].faction),
+        faction: config[playerKey].faction
+      })
     }
 
-    const player2Setup = {
-      playerId: Players.PLAYER2,
-      commander: new Commander(config.player2.commander),
-      creatures: createCreatureDeck(config.player2.faction),
-      orders: createOrderDeck(config.player2.faction),
-      faction: config.player2.faction
-    }
-
-    const newGame = new GameState([player1Setup, player2Setup])
+    const newGame = new GameState(playerSetups)
     setGameState(newGame)
     setActionMessage('Game started! DEPLOY Phase: Click or drag creatures from your hand to your starting zone (colored tiles).')
   }
@@ -291,9 +310,7 @@ function GameBoard() {
       const tile = gameState.getTile(pendingMove.destination.x, pendingMove.destination.y)
       if (tile?.treasure) {
         const creatureOwner = pendingMove.creature.owner
-        const isHumanPlayer =
-          (creatureOwner === Players.PLAYER1 && gameConfig?.player1.isHuman) ||
-          (creatureOwner === Players.PLAYER2 && gameConfig?.player2.isHuman)
+        const isHumanPlayer = isPlayerHuman(creatureOwner)
 
         if (isHumanPlayer) {
           // Show treasure discovery modal for human players
@@ -352,9 +369,7 @@ function GameBoard() {
 
     // Check if defender is a human player
     const defenderPlayerId = defenderInstance.owner
-    const isDefenderHuman =
-      (defenderPlayerId === Players.PLAYER1 && gameConfig?.player1.isHuman) ||
-      (defenderPlayerId === Players.PLAYER2 && gameConfig?.player2.isHuman)
+    const isDefenderHuman = isPlayerHuman(defenderPlayerId)
 
     if (isDefenderHuman) {
       // Defender is human - show reaction modal
@@ -552,9 +567,7 @@ function GameBoard() {
 
     // Check if defender is a human player
     const defenderPlayerId = defenderInstance.owner
-    const isDefenderHuman =
-      (defenderPlayerId === Players.PLAYER1 && gameConfig?.player1.isHuman) ||
-      (defenderPlayerId === Players.PLAYER2 && gameConfig?.player2.isHuman)
+    const isDefenderHuman = isPlayerHuman(defenderPlayerId)
 
     if (isDefenderHuman) {
       // Defender is human - show reaction modal
@@ -734,9 +747,7 @@ function GameBoard() {
       // Queue is empty - check if we need to advance phase after AI actions
       if (!isAIThinking && gameState && !gameState.gameOver) {
         const currentPlayerId = gameState.currentPlayer
-        const isCurrentPlayerAI =
-          (currentPlayerId === Players.PLAYER1 && gameConfig?.player1 && !gameConfig.player1.isHuman) ||
-          (currentPlayerId === Players.PLAYER2 && gameConfig?.player2 && !gameConfig.player2.isHuman)
+        const isCurrentPlayerAI = !isPlayerHuman(currentPlayerId)
 
         // If current player is still AI and we just finished processing actions, advance phase
         if (isCurrentPlayerAI && gameState.currentPhase === GamePhases.ACTIVATE) {
@@ -766,12 +777,16 @@ function GameBoard() {
 
     // Check if current player is AI
     const currentPlayerId = gameState.currentPlayer
-    const isCurrentPlayerAI =
-      (currentPlayerId === Players.PLAYER1 && !gameConfig.player1.isHuman) ||
-      (currentPlayerId === Players.PLAYER2 && !gameConfig.player2.isHuman)
+    console.log(`[AI Turn Logic] Current Player: ${currentPlayerId}, Phase: ${gameState.currentPhase}`)
+    const isCurrentPlayerAI = !isPlayerHuman(currentPlayerId)
+    console.log(`[AI Turn Logic] Is current player AI? ${isCurrentPlayerAI}`)
 
-    if (!isCurrentPlayerAI) return
+    if (!isCurrentPlayerAI) {
+      console.log(`[AI Turn Logic] Player ${currentPlayerId} is human, skipping AI execution`)
+      return
+    }
 
+    console.log(`[AI Turn Logic] Executing AI turn for ${currentPlayerId}`)
     // AI should take its turn
     const executeAITurn = async () => {
       setIsAIThinking(true)
@@ -816,12 +831,14 @@ function GameBoard() {
     if (!gameState || !gameConfig || gameState.gameOver || isAIThinking) return
 
     const currentPlayerId = gameState.currentPlayer
-    const isCurrentPlayerAI =
-      (currentPlayerId === Players.PLAYER1 && !gameConfig.player1.isHuman) ||
-      (currentPlayerId === Players.PLAYER2 && !gameConfig.player2.isHuman)
+    const isCurrentPlayerAI = !isPlayerHuman(currentPlayerId)
+    console.log(`[Auto-execute phases] Player: ${currentPlayerId}, Is AI: ${isCurrentPlayerAI}, Phase: ${gameState.currentPhase}`)
 
     // Don't auto-execute if it's AI's turn (AI logic handles its own phases)
-    if (isCurrentPlayerAI) return
+    if (isCurrentPlayerAI) {
+      console.log(`[Auto-execute phases] Skipping auto-execution for AI player ${currentPlayerId}`)
+      return
+    }
 
     // Auto-execute REFRESH and CLEANUP phases for human players
     if (gameState.currentPhase === GamePhases.REFRESH ||
@@ -899,9 +916,7 @@ function GameBoard() {
   const currentPlayerId = gameState.currentPlayer
 
   // Check if current player is AI
-  const isCurrentPlayerAI =
-    (currentPlayerId === Players.PLAYER1 && !gameConfig?.player1.isHuman) ||
-    (currentPlayerId === Players.PLAYER2 && !gameConfig?.player2.isHuman)
+  const isCurrentPlayerAI = !isPlayerHuman(currentPlayerId)
 
   return (
     <div className="game-board-container" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -1070,10 +1085,7 @@ function GameBoard() {
             player={currentPlayer}
             playerId={currentPlayerId}
             isCurrentPlayer={true}
-            isHuman={
-              (currentPlayerId === Players.PLAYER1 && gameConfig?.player1.isHuman) ||
-              (currentPlayerId === Players.PLAYER2 && gameConfig?.player2.isHuman)
-            }
+            isHuman={isPlayerHuman(currentPlayerId)}
             selectedCreature={selectedCreatureIndex}
             selectedOrder={selectedOrderIndex}
             onCreatureSelect={(idx) => setSelectedCreatureIndex(idx)}
