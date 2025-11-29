@@ -537,10 +537,11 @@ export class GameState {
       for (let x = 0; x < this.boardWidth; x++) {
         const tile = this.tiles[y][x]
 
-        // Skip difficult terrain, mountains, water, and starting zones
+        // Skip difficult terrain, mountains, water, magic circles, and starting zones
         if (tile.terrain === TerrainTypes.DIFFICULT ||
             tile.terrain === TerrainTypes.MOUNTAIN ||
             tile.terrain === TerrainTypes.WATER ||
+            tile.terrain === TerrainTypes.MAGIC_CIRCLE ||
             tile.terrain === TerrainTypes.STARTING_ZONE) {
           continue
         }

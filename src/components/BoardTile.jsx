@@ -136,9 +136,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         </div>
       )}
 
-      {tile.terrain === TerrainTypes.MAGIC_CIRCLE && tile.owner && (
-        <div className="magic-circle-owner">P{tile.owner.slice(-1)}</div>
-      )}
+      {/* Magic circles are neutral terrain - no player ownership displayed */}
     </div>
   )
 }

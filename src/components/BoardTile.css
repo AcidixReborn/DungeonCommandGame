@@ -5,16 +5,11 @@
 
 /* Seamless connected tiles - Flexible sizing for any board size */
 .board-tile {
-  /* NEW: Flexible sizing - tiles auto-scale based on board size */
+  /* Flexible sizing - tiles auto-scale based on board size */
   flex: 1; /* Tiles expand to fill available space */
   min-width: 0; /* Allow flex shrinking */
   min-height: 0; /* Allow flex shrinking */
   aspect-ratio: 1 / 1; /* Keep tiles square */
-
-  /* OLD: Fixed sizing - uncomment to revert to 40px tiles
-  width: 40px;
-  height: 40px;
-  */
 
   border: none; /* No borders - completely seamless */
   display: flex;
@@ -24,7 +19,7 @@
   position: relative;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth anime-style transition */
-  font-size: 0.6rem;  /* Will scale with tile size */
+  font-size: clamp(0.4rem, 0.8vw, 0.7rem);  /* Base font size scales with viewport */
   border-radius: 0; /* No rounding - tiles connect perfectly */
   box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.05); /* Very subtle inset highlight for slight depth */
   margin: 0; /* No gaps between tiles */
@@ -234,10 +229,9 @@
 
 /* Vibrant starting zones with cartoon borders - INSET only to avoid breaking grid alignment */
 .terrain-starting-zone {
-  /* OLD: border: 2px solid rgba(255, 255, 255, 0.5); - This breaks grid alignment! */
   box-shadow:
     inset 0 0 20px rgba(255, 255, 255, 0.3),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.5), /* Inset border replacement */
+    inset 0 0 0 2px rgba(255, 255, 255, 0.5),
     inset 2px 2px 0px rgba(255, 255, 255, 0.2);
 }
 
@@ -581,10 +575,9 @@
 /* Treasure token when no creature is present */
 .treasure-token {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Perfect centering */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -594,7 +587,7 @@
 }
 
 .treasure-icon {
-  font-size: 20px;
+  font-size: 1.2em; /* Relative to tile's base font-size - scales with board size */
   filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
   animation: treasure-sparkle 2s ease-in-out infinite;
 }
@@ -611,14 +604,14 @@
 }
 
 .treasure-value {
-  font-size: 0.5rem;
+  font-size: 0.6em; /* Relative to tile's base font-size - scales with board size */
   font-weight: bold;
   color: #fff;
   background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
-  padding: 1px 4px;
+  padding: 0.1em 0.3em;
   border-radius: 3px;
   border: 1px solid #fff;
-  margin-top: 2px;
+  margin-top: 0.15em;
   text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
   box-shadow:
     0 0 0 1px #ffa000,
@@ -631,7 +624,7 @@
   position: absolute;
   top: 2px;
   right: 2px;
-  font-size: 10px;
+  font-size: 0.8em; /* Relative to tile's base font-size - scales with board size */
   filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.8));
   animation: treasure-pulse 1.5s ease-in-out infinite;
   z-index: 3;
