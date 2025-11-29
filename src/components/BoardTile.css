@@ -5,10 +5,17 @@
 
 /* Seamless connected tiles - Flexible sizing for any board size */
 .board-tile {
+  /* NEW: Flexible sizing - tiles auto-scale based on board size */
   flex: 1; /* Tiles expand to fill available space */
   min-width: 0; /* Allow flex shrinking */
   min-height: 0; /* Allow flex shrinking */
   aspect-ratio: 1 / 1; /* Keep tiles square */
+
+  /* OLD: Fixed sizing - uncomment to revert to 40px tiles
+  width: 40px;
+  height: 40px;
+  */
+
   border: none; /* No borders - completely seamless */
   display: flex;
   flex-direction: column;
@@ -225,11 +232,12 @@
   }
 }
 
-/* Vibrant starting zones with cartoon borders */
+/* Vibrant starting zones with cartoon borders - INSET only to avoid breaking grid alignment */
 .terrain-starting-zone {
-  border: 2px solid rgba(255, 255, 255, 0.5);
+  /* OLD: border: 2px solid rgba(255, 255, 255, 0.5); - This breaks grid alignment! */
   box-shadow:
     inset 0 0 20px rgba(255, 255, 255, 0.3),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.5), /* Inset border replacement */
     inset 2px 2px 0px rgba(255, 255, 255, 0.2);
 }
 
