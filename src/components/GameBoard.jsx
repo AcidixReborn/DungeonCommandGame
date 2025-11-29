@@ -56,6 +56,36 @@ function GameBoard() {
   const [pendingCollection, setPendingCollection] = useState(null) // Stores {creature, treasure}
 
   /**
+   * Faction color mapping from faction IDs to hex colors
+   */
+  const factionColors = {
+    [Factions.STING_OF_LOLTH]: '#8b008b',      // Purple
+    [Factions.HEART_OF_CORMYR]: '#0066cc',     // Blue
+    [Factions.TYRANNY_OF_GOBLINS]: '#cc0000',  // Red
+    [Factions.CURSE_OF_UNDEATH]: '#00bcd4',    // Cyan
+    [Factions.BLOOD_OF_GRUUMSH]: '#8b4513'     // Brown
+  }
+
+  /**
+   * Create mapping of player IDs to their faction colors
+   * Used to dynamically color starting zones
+   */
+  const playerFactionColors = useMemo(() => {
+    if (!gameConfig || !gameState) return {}
+
+    const colorMap = {}
+    gameState.activePlayers.forEach(playerId => {
+      const playerNum = playerId.replace('PLAYER', '')
+      const playerKey = `player${playerNum}`
+      const faction = gameConfig[playerKey]?.faction
+      if (faction && factionColors[faction]) {
+        colorMap[playerId] = factionColors[faction]
+      }
+    })
+    return colorMap
+  }, [gameConfig, gameState])
+
+  /**
    * Helper function to check if a player is human
    * @param {string} playerId - Player ID (PLAYER1, PLAYER2, etc.)
    * @returns {boolean} True if player is human
@@ -1069,6 +1099,7 @@ function GameBoard() {
                           onDrop={handleDrop}
                           onDragOver={handleDragOver}
                           isDragTarget={dragOverTile?.x === x && dragOverTile?.y === y}
+                          playerFactionColors={playerFactionColors}
                         />
                       )
                     })}

@@ -17,8 +17,9 @@ import './BoardTile.css'
  * @param {Function} onDrop - Drag and drop handler
  * @param {Function} onDragOver - Drag over handler
  * @param {boolean} isDragTarget - Whether this tile is a valid drag target
+ * @param {Object} playerFactionColors - Mapping of player IDs to faction colors
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors }) {
   /**
    * Get CSS class for terrain type
    * @returns {string} Terrain CSS class
@@ -77,6 +78,41 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
     }
   }
 
+  /**
+   * Get dynamic inline styles for starting zones based on faction color
+   * @returns {Object} Style object for starting zone
+   */
+  const getStartingZoneStyle = () => {
+    if (tile.terrain !== TerrainTypes.STARTING_ZONE || !tile.startingZoneOwner || !playerFactionColors) {
+      return {}
+    }
+
+    const factionColor = playerFactionColors[tile.startingZoneOwner]
+    if (!factionColor) return {}
+
+    // Convert hex to RGB for transparency effects
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null
+    }
+
+    const rgb = hexToRgb(factionColor)
+    if (!rgb) return {}
+
+    return {
+      background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2) 100%)`,
+      boxShadow: `
+        inset 0 0 20px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5),
+        inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)
+      `,
+      borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`
+    }
+  }
+
   return (
     <div
       className={`board-tile ${getTerrainClass()}
@@ -86,6 +122,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         ${isAttackTarget ? 'attack-target' : ''}
         ${isLineOfSight ? 'line-of-sight' : ''}
         ${isDragTarget ? 'drag-target' : ''}`}
+      style={getStartingZoneStyle()}
       onClick={() => onClick && onClick(tile)}
       onDragOver={handleDragOver}
       onDrop={handleDrop}

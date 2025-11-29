@@ -255,7 +255,12 @@ export class GameState {
       }
     }
 
-    // Generate terrain regions based on board size
+    // STEP 1: Add starting zones FIRST (before any terrain generation)
+    // This prevents any terrain from being placed inside starting zones
+    this.addStartingZones()
+
+    // STEP 2: Generate terrain regions based on board size
+    // Terrain generation will skip starting zone tiles
     // Divide board into 8×8 regions (or as close as possible)
     const regionSize = 8
     const regionsX = Math.ceil(this.boardWidth / regionSize)
@@ -271,13 +276,10 @@ export class GameState {
       }
     }
 
-    // Add one magic circle per active player
+    // STEP 3: Add magic circles (after starting zones and terrain)
     this.addMagicCircles()
 
-    // Add starting zones on the edges for each player
-    this.addStartingZones()
-
-    // Place treasure tokens after board and starting zones are ready
+    // STEP 4: Place treasure tokens (last, after all terrain is set)
     this.placeTreasures()
   }
 
@@ -324,6 +326,7 @@ export class GameState {
 
   // Add terrain in clusters instead of random scatter
   addClusteredTerrain(regionTiles, terrainType, count, clusterSize) {
+    // Filter out starting zones - only place terrain on NORMAL tiles
     const availableTiles = regionTiles.filter(t => t && t.terrain === TerrainTypes.NORMAL)
     let placed = 0
 
@@ -393,7 +396,6 @@ export class GameState {
   // Create starting zones for each player on the board edges
   addStartingZones() {
     const numPlayers = this.activePlayers.length
-    const zoneSize = 3 // 3x3 starting zone for each player
 
     // Define edge positions based on number of players
     // For 2 players: opposite corners
@@ -404,9 +406,25 @@ export class GameState {
       const edge = edgePositions[index]
       const zoneTiles = []
 
-      // Create a 3x3 zone at the edge position
-      for (let dy = 0; dy < zoneSize; dy++) {
-        for (let dx = 0; dx < zoneSize; dx++) {
+      // Determine zone dimensions based on edge orientation
+      // Top/Bottom edges: 3 wide × 2 deep (horizontal)
+      // Left/Right edges: 2 wide × 3 deep (vertical)
+      // Corners: Use 3 wide × 2 deep (horizontal orientation)
+      let zoneWidth, zoneHeight
+
+      if (edge.edge === 'top' || edge.edge === 'bottom' || edge.edge.includes('top') || edge.edge.includes('bottom')) {
+        // Horizontal orientation for top/bottom edges and corners
+        zoneWidth = 3
+        zoneHeight = 2
+      } else {
+        // Vertical orientation for left/right edges
+        zoneWidth = 2
+        zoneHeight = 3
+      }
+
+      // Create a zone at the edge position with determined dimensions
+      for (let dy = 0; dy < zoneHeight; dy++) {
+        for (let dx = 0; dx < zoneWidth; dx++) {
           const x = edge.startX + dx
           const y = edge.startY + dy
 
@@ -433,33 +451,35 @@ export class GameState {
    * Get random starting positions on board edges for each player
    * Positions must be at least 8 tiles apart (Manhattan distance)
    * Can be placed anywhere along the board edges, not just corners
+   * Starting zones are 3×2 (horizontal) or 2×3 (vertical) based on edge
    */
   getEdgePositionsForPlayers(numPlayers) {
     const positions = []
-    const zoneSize = 3 // 3x3 starting zones
     const minDistance = 8 // Minimum distance between starting zones
 
     // Generate all possible edge positions (keeping zones within bounds)
     const possiblePositions = []
 
-    // Top edge
-    for (let x = 0; x <= this.boardWidth - zoneSize; x++) {
+    // Top edge - 3 wide × 2 deep (horizontal orientation)
+    for (let x = 0; x <= this.boardWidth - 3; x++) {
       possiblePositions.push({ startX: x, startY: 0, edge: 'top' })
     }
 
-    // Bottom edge
-    for (let x = 0; x <= this.boardWidth - zoneSize; x++) {
-      possiblePositions.push({ startX: x, startY: this.boardHeight - zoneSize, edge: 'bottom' })
+    // Bottom edge - 3 wide × 2 deep (horizontal orientation)
+    for (let x = 0; x <= this.boardWidth - 3; x++) {
+      possiblePositions.push({ startX: x, startY: this.boardHeight - 2, edge: 'bottom' })
     }
 
-    // Left edge (excluding corners already counted)
-    for (let y = 1; y < this.boardHeight - zoneSize; y++) {
+    // Left edge - 2 wide × 3 deep (vertical orientation)
+    // Excluding corners already counted in top/bottom
+    for (let y = 2; y < this.boardHeight - 3; y++) {
       possiblePositions.push({ startX: 0, startY: y, edge: 'left' })
     }
 
-    // Right edge (excluding corners already counted)
-    for (let y = 1; y < this.boardHeight - zoneSize; y++) {
-      possiblePositions.push({ startX: this.boardWidth - zoneSize, startY: y, edge: 'right' })
+    // Right edge - 2 wide × 3 deep (vertical orientation)
+    // Excluding corners already counted in top/bottom
+    for (let y = 2; y < this.boardHeight - 3; y++) {
+      possiblePositions.push({ startX: this.boardWidth - 2, startY: y, edge: 'right' })
     }
 
     // Randomly select positions with proper spacing
@@ -497,11 +517,11 @@ export class GameState {
       positions.length = 0 // Clear and use corners as fallback
 
       const fallbackPositions = [
-        { startX: 0, startY: 0, edge: 'top-left' },
-        { startX: this.boardWidth - zoneSize, startY: this.boardHeight - zoneSize, edge: 'bottom-right' },
-        { startX: this.boardWidth - zoneSize, startY: 0, edge: 'top-right' },
-        { startX: 0, startY: this.boardHeight - zoneSize, edge: 'bottom-left' },
-        { startX: Math.floor(this.boardWidth / 2) - 1, startY: 0, edge: 'top-center' }
+        { startX: 0, startY: 0, edge: 'top-left' }, // 3×2 horizontal
+        { startX: this.boardWidth - 3, startY: this.boardHeight - 2, edge: 'bottom-right' }, // 3×2 horizontal
+        { startX: this.boardWidth - 3, startY: 0, edge: 'top-right' }, // 3×2 horizontal
+        { startX: 0, startY: this.boardHeight - 2, edge: 'bottom-left' }, // 3×2 horizontal
+        { startX: Math.floor(this.boardWidth / 2) - 1, startY: 0, edge: 'top-center' } // 3×2 horizontal
       ]
 
       for (let i = 0; i < numPlayers; i++) {
@@ -664,7 +684,7 @@ export class GameState {
   addMagicCircles() {
     // Get all normal tiles that are NOT in starting zones
     const availableTiles = this.getAllTiles().filter(t =>
-      t.terrain === TerrainTypes.NORMAL && !t.startingZoneOwner
+      t.terrain === TerrainTypes.NORMAL
     )
 
     // Randomly select 40% of players to receive magic circles
@@ -704,8 +724,7 @@ export class GameState {
         const adjacentTiles = this.getAdjacentTiles(baseTile.x, baseTile.y)
           .filter(t =>
             availableTiles.includes(t) &&
-            t.terrain === TerrainTypes.NORMAL &&
-            !t.startingZoneOwner
+            t.terrain === TerrainTypes.NORMAL
           )
 
         if (adjacentTiles.length > 0) {

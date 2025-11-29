@@ -25,7 +25,7 @@ const factionInfo = {
   [Factions.CURSE_OF_UNDEATH]: {
     name: 'Curse of Undeath',
     description: 'Undead horrors and necromancy. Resilient and terrifying.',
-    color: '#2d5016',
+    color: '#00bcd4',
     strengths: ['Resilience', 'Fear', 'Regeneration']
   },
   [Factions.BLOOD_OF_GRUUMSH]: {
