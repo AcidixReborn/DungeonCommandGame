@@ -22,6 +22,7 @@ import './PlayerPanel.css'
  * @param {boolean} vertical - Use vertical layout
  * @param {boolean} canUseScrollbook - Whether SCROLLBOOK ability is available
  * @param {Function} onScrollbookUse - Handler for SCROLLBOOK ability (passes card index)
+ * @param {boolean} canDeployCreatures - Whether creatures can be deployed (DEPLOY phase or HORDE during REFRESH)
  */
 function PlayerPanel({
   player,
@@ -38,7 +39,8 @@ function PlayerPanel({
   horizontal = false,
   vertical = false,
   canUseScrollbook = false,
-  onScrollbookUse
+  onScrollbookUse,
+  canDeployCreatures = false
 }) {
   const moralePercentage = (player.morale / player.commander.startingMorale) * 100
   const leadershipUsage = player.getCurrentLeadershipUsage()
@@ -112,7 +114,7 @@ function PlayerPanel({
                           compact={true}
                           isSelected={selectedCreature === idx}
                           onClick={() => onCreatureSelect && onCreatureSelect(idx)}
-                          draggable={currentPhase === 'DEPLOY' && isCurrentPlayer}
+                          draggable={canDeployCreatures && isCurrentPlayer}
                           onDragStart={onDragStart}
                           onDragEnd={onDragEnd}
                           cardIndex={idx}
@@ -264,7 +266,7 @@ function PlayerPanel({
                         compact={true}
                         isSelected={selectedCreature === idx}
                         onClick={() => onCreatureSelect && onCreatureSelect(idx)}
-                        draggable={currentPhase === 'DEPLOY' && isCurrentPlayer}
+                        draggable={canDeployCreatures && isCurrentPlayer}
                         onDragStart={onDragStart}
                         onDragEnd={onDragEnd}
                         cardIndex={idx}

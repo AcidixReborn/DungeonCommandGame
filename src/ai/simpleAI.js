@@ -548,77 +548,243 @@ export class SimpleAI {
   }
 
   /**
-   * Decide whether to use COWER ability (UNSTOPPABLE HORDES) when being attacked
-   * Returns object with cower decision and info
+   * Decide whether to use defensive abilities when being attacked
+   * Handles both COWER (universal) and UNSTOPPABLE HORDES (Morgana's Undead)
+   *
+   * COWER is a LAST RESORT - only used when:
+   * - This creature would die AND it's one of our last few creatures
+   * - OR this is a very high-value creature (level 5+) that would die
+   * - AND we have enough morale to spare
+   *
+   * UNSTOPPABLE HORDES is more freely used since it's more efficient
+   *
+   * Big O Complexity: O(a + 8) where a = commander abilities (1-2), 8 = adjacent tiles
+   * Effectively O(1) since all factors are small constants
    *
    * @param {CreatureInstance} defenderInstance - The creature being attacked
-   * @param {string} attackerOwner - Owner of the attacking creature (for BLACK HAND OF BANE check)
-   * @returns {Object} { useCower: boolean, cowerInfo: Object, hadOpportunity: boolean }
+   * @param {number} incomingDamage - The amount of damage being dealt
+   * @param {string} attackerOwner - Owner of the attacking creature
+   * @returns {Object} { type: 'cower' | 'unstoppable_hordes' | 'none', creatures: [...], hadOpportunity: boolean }
    */
-  decideCower(defenderInstance, attackerOwner) {
-    // Check if COWER is available for this creature
-    if (!this.gameState.canUseCower) {
-      return { useCower: false, cowerInfo: null, hadOpportunity: false }
+  decideDefense(defenderInstance, incomingDamage, attackerOwner) {
+    // Check if getDefenseOptions exists
+    if (!this.gameState.getDefenseOptions) {
+      return { type: 'none', creatures: [], hadOpportunity: false }
     }
 
-    const cowerInfo = this.gameState.canUseCower(defenderInstance, attackerOwner)
-
-    if (!cowerInfo.canCower) {
-      return { useCower: false, cowerInfo: null, hadOpportunity: false }
-    }
-
-    // We have the opportunity to cower!
-    const hadOpportunity = true
+    const defenseOptions = this.gameState.getDefenseOptions(defenderInstance, incomingDamage, attackerOwner)
     const player = this.gameState.players[this.playerId]
 
-    // Decision factors:
-    // 1. Current morale level
-    // 2. Creature's importance (level)
-    // 3. How much damage would be prevented vs morale cost
-    // 4. Current HP of defender
+    const hasCowerOption = defenseOptions.cower?.canCower
+    const hasUnstoppableOption = defenseOptions.unstoppableHordes?.canUse || defenseOptions.adjacentUndead?.length > 0
 
+    if (!hasCowerOption && !hasUnstoppableOption) {
+      return { type: 'none', creatures: [], hadOpportunity: false }
+    }
+
+    // We have the opportunity to defend!
+    const hadOpportunity = true
+
+    // Decision factors
     const defenderHP = defenderInstance.currentHP || defenderInstance.creature.hp
-    const defenderMaxHP = defenderInstance.creature.hp
     const creatureLevel = defenderInstance.creature.level || 1
     const currentMorale = player.morale
+    const creaturesInPlay = player.creaturesInPlay?.length || 0
 
-    // Base chance to use COWER
-    let useChance = 50 // 50% base
+    // Will this attack kill the creature?
+    const wouldDie = incomingDamage >= defenderHP
 
-    // Increase chance if creature is valuable (high level)
-    if (creatureLevel >= 5) {
-      useChance += 30
-    } else if (creatureLevel >= 3) {
-      useChance += 15
+    // ========================================
+    // UNSTOPPABLE HORDES DECISION
+    // Prioritize high-level creatures - losing a high-level creature
+    // means losing more morale AND losing a powerful unit
+    // Low-level creatures (1-2) are expendable - don't waste morale protecting them
+    // ========================================
+    if (hasUnstoppableOption) {
+      let useUnstoppableChance = 0
+
+      if (wouldDie) {
+        // Creature would die - decision based on creature value
+        if (creatureLevel >= 5) {
+          // High-value creature - almost always protect
+          useUnstoppableChance = 90
+        } else if (creatureLevel >= 4) {
+          // Good creature - usually protect
+          useUnstoppableChance = 75
+        } else if (creatureLevel === 3) {
+          // Medium creature - sometimes protect
+          useUnstoppableChance = 50
+        } else if (creatureLevel === 2) {
+          // Low creature - rarely protect unless desperate
+          useUnstoppableChance = creaturesInPlay <= 3 ? 40 : 20
+        } else {
+          // Level 1 creature - almost never protect (expendable)
+          useUnstoppableChance = creaturesInPlay <= 2 ? 25 : 10
+        }
+      } else {
+        // Creature won't die - only protect high-value creatures to keep them healthy
+        if (creatureLevel >= 5) {
+          useUnstoppableChance = 40 // Keep high-level creatures at full health
+        } else if (creatureLevel >= 4) {
+          useUnstoppableChance = 25
+        } else {
+          // Don't waste morale preventing non-lethal damage on low-level creatures
+          useUnstoppableChance = 0
+        }
+      }
+
+      // Boost chance if we're running low on creatures (desperate)
+      if (creaturesInPlay <= 2 && wouldDie) {
+        useUnstoppableChance += 20
+      }
+
+      // Lower chance if morale is critically low
+      if (currentMorale <= 3) {
+        useUnstoppableChance -= 50
+      } else if (currentMorale <= 5) {
+        useUnstoppableChance -= 25
+      }
+
+      // Ensure chance stays in valid range
+      useUnstoppableChance = Math.max(0, Math.min(100, useUnstoppableChance))
+
+      // Make decision
+      if (Math.random() * 100 < useUnstoppableChance) {
+        return this.selectUnstoppableHordesCreatures(defenseOptions, incomingDamage)
+      }
     }
 
-    // Increase chance if creature is low HP
-    const hpPercentage = (defenderHP / defenderMaxHP) * 100
-    if (hpPercentage < 30) {
-      useChance += 25
-    } else if (hpPercentage < 60) {
-      useChance += 10
+    // ========================================
+    // COWER DECISION (LAST RESORT ONLY)
+    // ========================================
+    if (hasCowerOption) {
+      // COWER is expensive and should only be used in desperate situations
+      const cowerMoraleCost = defenseOptions.cower.moraleCost
+      const hasBlackHandPenalty = defenseOptions.cower.extraCost > 0
+
+      // Never cower if BLACK HAND OF BANE makes it even more expensive and morale is low
+      if (hasBlackHandPenalty && currentMorale <= 8) {
+        return { type: 'none', creatures: [], hadOpportunity }
+      }
+
+      // Never cower if morale is too low (would put us close to losing)
+      if (currentMorale - cowerMoraleCost <= 2) {
+        return { type: 'none', creatures: [], hadOpportunity }
+      }
+
+      // COWER criteria - must meet ALL of these:
+      // 1. Creature would die from this attack
+      // 2. One of the following desperate situations:
+      //    a) This is one of our last 1-2 creatures
+      //    b) This is a high-value creature (level 5+) and we have morale to spare
+      //    c) This creature is essential (level 6+)
+
+      if (!wouldDie) {
+        // Don't cower if creature won't die
+        return { type: 'none', creatures: [], hadOpportunity }
+      }
+
+      let shouldCower = false
+
+      // Situation A: One of our last creatures (desperate)
+      if (creaturesInPlay <= 2) {
+        // Only cower if we have decent morale remaining after
+        if (currentMorale - cowerMoraleCost >= 4) {
+          shouldCower = true
+        }
+      }
+
+      // Situation B: High-value creature (level 5+) with morale to spare
+      if (creatureLevel >= 5 && currentMorale >= 10) {
+        // More likely to cower for valuable creatures when we have morale
+        shouldCower = Math.random() < 0.6 // 60% chance
+      }
+
+      // Situation C: Essential creature (level 6+) - almost always try to save
+      if (creatureLevel >= 6 && currentMorale - cowerMoraleCost >= 3) {
+        shouldCower = Math.random() < 0.8 // 80% chance
+      }
+
+      // Last creature on the field - definitely cower if possible
+      if (creaturesInPlay === 1 && currentMorale - cowerMoraleCost >= 2) {
+        shouldCower = true
+      }
+
+      if (shouldCower) {
+        return { type: 'cower', creatures: [defenderInstance], hadOpportunity }
+      }
     }
 
-    // Decrease chance if morale is critically low
-    if (currentMorale <= 3) {
-      useChance -= 40 // Don't waste morale when nearly defeated
-    } else if (currentMorale <= 5) {
-      useChance -= 20
+    return { type: 'none', creatures: [], hadOpportunity }
+  }
+
+  /**
+   * Select which Undead creatures to use for UNSTOPPABLE HORDES
+   * Prioritizes using minimal creatures to prevent damage efficiently
+   *
+   * Big O Complexity: O(u) where u = available Undead creatures (max 9)
+   *
+   * @param {Object} defenseOptions - Defense options from gameState
+   * @param {number} incomingDamage - Amount of damage to prevent
+   * @returns {Object} { type: 'unstoppable_hordes', creatures: [...], hadOpportunity: true }
+   */
+  selectUnstoppableHordesCreatures(defenseOptions, incomingDamage) {
+    const creatures = []
+
+    // Start with defender if available
+    if (defenseOptions.unstoppableHordes?.canUse) {
+      // Defender is included automatically in UI, but we track it here
+      // The actual defender will be added by the modal's confirm handler
     }
 
-    // Decrease chance if extra cost from BLACK HAND OF BANE
-    if (cowerInfo.extraCost > 0) {
-      useChance -= 15
-    }
+    // Add adjacent Undead as needed
+    const adjacentUndead = defenseOptions.adjacentUndead || []
+    let totalPrevention = defenseOptions.unstoppableHordes?.canUse ? 20 : 0
 
-    // Make decision
-    const shouldUseCower = Math.random() * 100 < useChance
+    for (const creature of adjacentUndead) {
+      if (totalPrevention >= incomingDamage) break // Already have enough
+      creatures.push(creature)
+      totalPrevention += 20
+    }
 
     return {
-      useCower: shouldUseCower,
-      cowerInfo: cowerInfo,
-      hadOpportunity: hadOpportunity
+      type: 'unstoppable_hordes',
+      creatures,
+      defenderCanUse: defenseOptions.unstoppableHordes?.canUse || false,
+      totalDamageReduction: totalPrevention,
+      hadOpportunity: true
+    }
+  }
+
+  /**
+   * Legacy method - kept for backwards compatibility
+   * @deprecated Use decideDefense instead
+   */
+  decideCower(defenderInstance, attackerOwner) {
+    // Get incoming damage (estimate - this is a simplified fallback)
+    const incomingDamage = 50 // Default estimate
+
+    const decision = this.decideDefense(defenderInstance, incomingDamage, attackerOwner)
+
+    // Convert to legacy format
+    if (decision.type === 'cower') {
+      return {
+        useCower: true,
+        cowerInfo: { canCower: true, damageReduction: incomingDamage },
+        hadOpportunity: decision.hadOpportunity
+      }
+    } else if (decision.type === 'unstoppable_hordes') {
+      return {
+        useCower: true,
+        cowerInfo: { canCower: true, damageReduction: decision.totalDamageReduction || 20 },
+        hadOpportunity: decision.hadOpportunity
+      }
+    }
+
+    return {
+      useCower: false,
+      cowerInfo: null,
+      hadOpportunity: decision.hadOpportunity
     }
   }
 }

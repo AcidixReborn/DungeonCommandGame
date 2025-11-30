@@ -112,7 +112,7 @@ export const creatures = [
     level: 4,
     type: ['Humanoid', 'Goblinoid', 'Evil'],
     speed: 6,
-    hitPoints: 75,
+    hitPoints: 80,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 40, range: 1 },
     rangedAttack: null,
@@ -129,7 +129,7 @@ export const creatures = [
     hitPoints: 50,
     abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: true, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 35, range: 5 },
+    rangedAttack: { damage: 40, range: 5 },
     specialAbilities: ['Placeholder Ability #6'],
     faction: FACTION_NAME,
     imageUrl: null
@@ -140,10 +140,10 @@ export const creatures = [
     level: 2,
     type: ['Humanoid', 'Goblinoid', 'Evil'],
     speed: 7,
-    hitPoints: 35,
+    hitPoints: 40,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 15, range: 1 },
-    rangedAttack: { damage: 25, range: 6 },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: { damage: 30, range: 6 },
     specialAbilities: ['Placeholder Ability #7', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // Added for testing
     faction: FACTION_NAME,
     imageUrl: null
@@ -168,9 +168,9 @@ export const creatures = [
     level: 2,
     type: ['Humanoid', 'Goblinoid', 'Evil'],
     speed: 6,
-    hitPoints: 45,
+    hitPoints: 50,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 25, range: 1 },
+    meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #9'],
     faction: FACTION_NAME,
@@ -182,10 +182,10 @@ export const creatures = [
     level: 1,
     type: ['Humanoid', 'Goblinoid', 'Evil'],
     speed: 8,
-    hitPoints: 25,
+    hitPoints: 30, // Normalized from 25
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
-    rangedAttack: { damage: 15, range: 4 },
+    rangedAttack: { damage: 20, range: 4 }, // Normalized from 15
     specialAbilities: ['Placeholder Ability #10'],
     faction: FACTION_NAME,
     imageUrl: null
@@ -196,9 +196,9 @@ export const creatures = [
     level: 1,
     type: ['Humanoid', 'Goblinoid', 'Evil'],
     speed: 7,
-    hitPoints: 22,
+    hitPoints: 30, // Normalized from 22
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 12, range: 1 },
+    meleeAttack: { damage: 20, range: 1 }, // Normalized from 12
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #11'],
     faction: FACTION_NAME,
@@ -210,9 +210,9 @@ export const creatures = [
     level: 1,
     type: ['Humanoid', 'Goblinoid', 'Evil'],
     speed: 7,
-    hitPoints: 18,
+    hitPoints: 20, // Normalized from 18
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 8, range: 1 },
+    meleeAttack: { damage: 10, range: 1 }, // Normalized from 8
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #12'],
     faction: FACTION_NAME,

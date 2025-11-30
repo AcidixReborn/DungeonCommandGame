@@ -110,10 +110,22 @@ const stats = {
     unstoppable_hordes: {
       name: 'UNSTOPPABLE HORDES',
       type: 'PASSIVE',
-      cowerGranted: 0,             // Undead that gained Cower
-      cowerUsed: 0,                // Times Cower was used
-      moraleLost: 0,               // Total morale lost from Cower
-      damagePrevented: 0,          // Total damage prevented
+      timesUsed: 0,                // Times ability was used
+      creaturesUsed: 0,            // Total Undead creatures that used this ability
+      moraleLost: 0,               // Total morale lost (1 per creature)
+      damagePrevented: 0,          // Total damage prevented (20 per creature)
+      adjacentUndeadHelped: 0,     // Times adjacent Undead helped defend
+      errors: []
+    },
+
+    // Universal Game Mechanic (not commander-specific)
+    cower: {
+      name: 'COWER',
+      type: 'UNIVERSAL',
+      timesUsed: 0,                // Times any creature cowered
+      moraleLost: 0,               // Total morale lost from cowering
+      damageAvoided: 0,            // Total damage avoided (all damage from attack)
+      blackHandOfBaneExtra: 0,     // Extra morale paid due to BLACK HAND OF BANE
       errors: []
     },
 
@@ -255,12 +267,19 @@ function trackAbility(abilityId, detail = {}) {
         abilityStats.extraMoraleDrained += (detail.extraMorale || 1)
         break
       case 'unstoppable_hordes':
-        if (detail.cowerUsed) {
-          abilityStats.cowerUsed++
-          abilityStats.moraleLost += (detail.moraleLost || 1)
-          abilityStats.damagePrevented += (detail.damagePrevented || 20)
+        if (detail.used) {
+          abilityStats.timesUsed++
+          abilityStats.creaturesUsed += (detail.creaturesUsed || 1)
+          abilityStats.moraleLost += (detail.moraleLost || detail.creaturesUsed || 1)
+          abilityStats.damagePrevented += (detail.damagePrevented || (detail.creaturesUsed || 1) * 20)
+          if (detail.adjacentHelped) abilityStats.adjacentUndeadHelped += detail.adjacentHelped
         }
-        if (detail.cowerGranted) abilityStats.cowerGranted++
+        break
+      case 'cower':
+        abilityStats.timesUsed++
+        abilityStats.moraleLost += (detail.moraleLost || 0)
+        abilityStats.damageAvoided += (detail.damageAvoided || 0)
+        if (detail.blackHandExtra) abilityStats.blackHandOfBaneExtra += detail.blackHandExtra
         break
       case 'scrollbook':
         if (detail.used) {
@@ -292,6 +311,9 @@ function trackAbility(abilityId, detail = {}) {
 
 /**
  * Process attack queue with ability tracking
+ * Includes tracking for defensive abilities: COWER (universal) and UNSTOPPABLE HORDES
+ *
+ * Big O Complexity: O(a) where a = number of attack intentions
  */
 function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
   const results = {
@@ -321,12 +343,102 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
       continue
     }
 
-    // Execute the attack
-    const attackResult = gameState.executeAttack(
-      attackerInstance,
-      defenderInstance,
-      targetInfo.attackType
-    )
+    // Calculate incoming damage for defensive options
+    const incomingDamage = targetInfo.attackType === 'melee'
+      ? attackerInstance.creature.meleeAttack?.damage || 0
+      : attackerInstance.creature.rangedAttack?.damage || 0
+
+    // Check if defender can use defensive abilities (AI decision)
+    const defenderOwner = defenderInstance.owner
+    const defenderAI = new SimpleAI(gameState, defenderOwner)
+    const defenseDecision = defenderAI.decideDefense
+      ? defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
+      : { type: 'none', hadOpportunity: false }
+
+    let damageReduction = 0
+    let defenseType = null
+
+    // Apply defense if AI decided to use one
+    if (defenseDecision.type === 'cower') {
+      // COWER: Avoid ALL damage
+      const cowerResult = gameState.applyCower
+        ? gameState.applyCower(defenderInstance, incomingDamage, attackerInstance.owner)
+        : { success: false }
+
+      if (cowerResult.success) {
+        damageReduction = cowerResult.damageAvoided
+        defenseType = 'cower'
+
+        // Track COWER usage
+        trackAbility('cower', {
+          moraleLost: cowerResult.moraleCost,
+          damageAvoided: cowerResult.damageAvoided,
+          blackHandExtra: cowerResult.extraCost || 0
+        })
+
+        // Track BLACK HAND OF BANE if extra cost was applied
+        if (cowerResult.extraCost > 0) {
+          trackAbility('black_hand_of_bane', { extraMorale: cowerResult.extraCost })
+        }
+
+        if (CONFIG.VERBOSE_LOGGING) {
+          console.log(`  [COWER] ${defenderInstance.creature.name} avoids ${damageReduction} damage!`)
+        }
+      }
+    } else if (defenseDecision.type === 'unstoppable_hordes') {
+      // UNSTOPPABLE HORDES: Prevent 20 damage per creature
+      let totalDamageReduction = 0
+      let creaturesUsed = 0
+      let adjacentHelped = 0
+
+      // Apply for defender if can use
+      if (defenseDecision.defenderCanUse) {
+        const result = gameState.applyUnstoppableHordes
+          ? gameState.applyUnstoppableHordes(defenderInstance)
+          : { success: false }
+
+        if (result.success) {
+          totalDamageReduction += result.damagePrevented
+          creaturesUsed++
+        }
+      }
+
+      // Apply for adjacent Undead creatures
+      for (const creature of defenseDecision.creatures || []) {
+        const result = gameState.applyUnstoppableHordes
+          ? gameState.applyUnstoppableHordes(creature)
+          : { success: false }
+
+        if (result.success) {
+          totalDamageReduction += result.damagePrevented
+          creaturesUsed++
+          adjacentHelped++
+        }
+      }
+
+      if (creaturesUsed > 0) {
+        damageReduction = totalDamageReduction
+        defenseType = 'unstoppable_hordes'
+
+        // Track UNSTOPPABLE HORDES usage
+        trackAbility('unstoppable_hordes', {
+          used: true,
+          creaturesUsed,
+          moraleLost: creaturesUsed,
+          damagePrevented: totalDamageReduction,
+          adjacentHelped
+        })
+
+        if (CONFIG.VERBOSE_LOGGING) {
+          console.log(`  [UNSTOPPABLE HORDES] ${creaturesUsed} Undead prevent ${totalDamageReduction} damage!`)
+        }
+      }
+    }
+
+    // Execute the attack with damage reduction
+    const attackResult = gameState.executeAttackWithDefense
+      ? gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, damageReduction, defenseType)
+      : gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
 
     if (attackResult.success) {
       results.attacksSuccessful++
@@ -746,11 +858,20 @@ function printResults() {
   console.log(`    Times Triggered: ${stats.abilityStats.bloodthirsty.timesTriggered}`)
   console.log(`    Leadership Gained: ${stats.abilityStats.bloodthirsty.leadershipGained}`)
 
-  console.log(`  UNSTOPPABLE HORDES (PASSIVE - Undead gain Cower):`)
-  console.log(`    Cower Granted: ${stats.abilityStats.unstoppable_hordes.cowerGranted}`)
-  console.log(`    Cower Used: ${stats.abilityStats.unstoppable_hordes.cowerUsed}`)
+  console.log(`  UNSTOPPABLE HORDES (PASSIVE - Undead prevent 20 damage each):`)
+  console.log(`    Times Used: ${stats.abilityStats.unstoppable_hordes.timesUsed}`)
+  console.log(`    Creatures Used: ${stats.abilityStats.unstoppable_hordes.creaturesUsed}`)
   console.log(`    Morale Lost: ${stats.abilityStats.unstoppable_hordes.moraleLost}`)
   console.log(`    Damage Prevented: ${stats.abilityStats.unstoppable_hordes.damagePrevented}`)
+  console.log(`    Adjacent Undead Helped: ${stats.abilityStats.unstoppable_hordes.adjacentUndeadHelped}`)
+
+  // Universal Mechanics
+  console.log('\n[UNIVERSAL MECHANICS]')
+  console.log(`  COWER (UNIVERSAL - Avoid ALL damage, costs damage/10 morale):`)
+  console.log(`    Times Used: ${stats.abilityStats.cower.timesUsed}`)
+  console.log(`    Morale Lost: ${stats.abilityStats.cower.moraleLost}`)
+  console.log(`    Damage Avoided: ${stats.abilityStats.cower.damageAvoided}`)
+  console.log(`    BLACK HAND OF BANE Extra Cost: ${stats.abilityStats.cower.blackHandOfBaneExtra}`)
 
   // Tyranny of Goblins
   console.log('\n[TYRANNY OF GOBLINS]')

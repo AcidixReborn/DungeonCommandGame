@@ -1,20 +1,33 @@
-import { useState } from 'react'
-import { Modal, Button, Card, Badge, Row, Col, Alert } from 'react-bootstrap'
+import { useState, useEffect } from 'react'
+import { Modal, Button, Card, Badge, Row, Col, Alert, Form } from 'react-bootstrap'
 import { ActionTypes } from '../models/orders'
 import './ImmediateReactionModal.css'
 
 /**
  * Modal that appears when an attack is declared, allowing the defender to use
- * Immediate (IMD) order cards as reactions.
+ * defensive options before damage is resolved.
  *
- * Rules:
- * - Appears after attack is declared but before damage is resolved
- * - Only shows Immediate cards that can be used by untapped creatures
- * - Default range is adjacent (1 tile), unless card specifies longer range
- * - Multiple creatures can use cards if eligible
- * - Each creature that uses a card gets tapped
- * - Each used card gets discarded
- * - Defender can choose not to react
+ * Defensive Options:
+ * 1. COWER (Universal) - Any untapped creature can avoid ALL damage
+ *    - Cost: damage/10 morale (rounded up)
+ *    - Effect: Avoid ALL damage from the attack
+ *    - Taps the creature
+ *    - BLACK HAND OF BANE: +1 extra morale if attacker has this ability
+ *
+ * 2. UNSTOPPABLE HORDES (Morgana's Commander Ability)
+ *    - Only for untapped Undead creatures controlled by Morgana
+ *    - Cost: 1 morale per creature
+ *    - Effect: Prevent 20 damage per creature
+ *    - Can stack with multiple Undead (defender + adjacent allies)
+ *    - Each creature that uses it becomes tapped
+ *    - NOT affected by BLACK HAND OF BANE
+ *
+ * Note: COWER and UNSTOPPABLE HORDES are MUTUALLY EXCLUSIVE
+ * Immediate reaction cards are NOT shown here since using any defense taps the creature
+ *
+ * Big O Complexity:
+ * - getDefenseOptions: O(1) - calls gameState methods which are O(1)
+ * - Rendering: O(n) where n = adjacent Undead creatures (max 8)
  */
 function ImmediateReactionModal({
   show,
@@ -22,115 +35,152 @@ function ImmediateReactionModal({
   defenderInstance,
   defenderPlayerState,
   gameState,
+  onDefenseSelected, // New unified callback: { type: 'cower' | 'unstoppable_hordes' | 'skip', creatures: [...] }
   onCardsPlayed,
   onSkip,
-  onCower // New callback for Cower ability
+  onCower // Legacy callback - kept for backwards compatibility
 }) {
-  const [selectedReactions, setSelectedReactions] = useState([])
-  const [useCower, setUseCower] = useState(false)
+  const [selectedDefense, setSelectedDefense] = useState(null) // 'cower' or 'unstoppable_hordes'
+  const [selectedUndeadCreatures, setSelectedUndeadCreatures] = useState([]) // For UNSTOPPABLE HORDES stacking
 
-  if (!show || !defenderPlayerState || !defenderInstance) return null
+  // Reset state when modal opens
+  useEffect(() => {
+    if (show) {
+      setSelectedDefense(null)
+      setSelectedUndeadCreatures([])
+    }
+  }, [show])
 
-  // Helper: Calculate Manhattan distance between two positions
-  const getManhattanDistance = (pos1, pos2) => {
-    return Math.abs(pos1.x - pos2.x) + Math.abs(pos1.y - pos2.y)
-  }
+  if (!show || !defenderPlayerState || !defenderInstance || !attackerInstance) return null
 
-  // Helper: Check if a creature is within range to use a card to help the defender
-  const isInRange = (creatureInstance, orderCard) => {
-    if (!creatureInstance.position || !defenderInstance.position) return false
+  // Calculate incoming damage
+  const attackType = attackerInstance.attackType || 'melee'
+  const incomingDamage = attackType === 'melee'
+    ? attackerInstance.creature.meleeAttack?.damage || 0
+    : attackerInstance.creature.rangedAttack?.damage || 0
 
-    const distance = getManhattanDistance(creatureInstance.position, defenderInstance.position)
+  // Get defense options from gameState
+  const defenseOptions = gameState?.getDefenseOptions
+    ? gameState.getDefenseOptions(defenderInstance, incomingDamage, attackerInstance.owner)
+    : { cower: null, unstoppableHordes: null, adjacentUndead: [] }
 
-    // Check if card has a custom range, otherwise default is adjacent (1 tile)
-    const range = orderCard.range || 1
+  const { cower: cowerInfo, unstoppableHordes: unstoppableInfo, adjacentUndead } = defenseOptions
 
-    return distance <= range
-  }
+  // Check if defender itself can use UNSTOPPABLE HORDES
+  const defenderCanUseUnstoppable = unstoppableInfo?.canUse
 
-  // Get all eligible creature + card combinations
-  const getEligibleReactions = () => {
-    const reactions = []
-
-    // Get all Immediate order cards in hand
-    const immediateCards = defenderPlayerState.orderHand.filter(
-      card => card.actionType === ActionTypes.IMMEDIATE
-    )
-
-    // For each Immediate card, find which creatures can use it
-    immediateCards.forEach((card, cardIndex) => {
-      defenderPlayerState.creaturesInPlay.forEach((creature) => {
-        // Check if creature can use this card
-        if (
-          !creature.isTapped && // Creature must not be tapped
-          card.canBeUsedBy(creature.creature) && // Creature meets card requirements
-          isInRange(creature, card) // Creature is in range of defender
-        ) {
-          reactions.push({
-            creature,
-            card,
-            cardIndex,
-            distance: getManhattanDistance(creature.position, defenderInstance.position)
-          })
-        }
-      })
-    })
-
-    return reactions
-  }
-
-  const eligibleReactions = getEligibleReactions()
-
-  // Check if defender can use Cower ability (UNSTOPPABLE HORDES)
-  // Pass attackerInstance.owner to check for BLACK HAND OF BANE extra cost
-  const cowerInfo = gameState?.canUseCower
-    ? gameState.canUseCower(defenderInstance, attackerInstance?.owner)
-    : { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
-
-  // Handle selecting/deselecting a reaction
-  const toggleReaction = (reaction) => {
-    const reactionKey = `${reaction.creature.instanceId}-${reaction.cardIndex}`
-
-    setSelectedReactions(prev => {
-      const isSelected = prev.some(r =>
-        `${r.creature.instanceId}-${r.cardIndex}` === reactionKey
-      )
-
+  // Toggle selection of an Undead creature for UNSTOPPABLE HORDES
+  const toggleUndeadCreature = (creature) => {
+    setSelectedUndeadCreatures(prev => {
+      const isSelected = prev.some(c => c.instanceId === creature.instanceId)
       if (isSelected) {
-        return prev.filter(r =>
-          `${r.creature.instanceId}-${r.cardIndex}` !== reactionKey
-        )
+        return prev.filter(c => c.instanceId !== creature.instanceId)
       } else {
-        return [...prev, reaction]
+        return [...prev, creature]
       }
     })
   }
 
-  const isReactionSelected = (reaction) => {
-    const reactionKey = `${reaction.creature.instanceId}-${reaction.cardIndex}`
-    return selectedReactions.some(r =>
-      `${r.creature.instanceId}-${r.cardIndex}` === reactionKey
-    )
+  // Calculate total damage prevented by selected Undead creatures
+  const calculateUnstoppableDamageReduction = () => {
+    let count = selectedUndeadCreatures.length
+    // Add defender if using UNSTOPPABLE HORDES and defender itself can use it
+    if (selectedDefense === 'unstoppable_hordes' && defenderCanUseUnstoppable) {
+      count++
+    }
+    return count * 20
   }
 
-  const handleConfirm = () => {
-    if (useCower && onCower) {
-      // Using Cower ability (with or without cards)
-      onCower(selectedReactions.length > 0 ? selectedReactions : null)
-    } else if (selectedReactions.length > 0) {
-      onCardsPlayed(selectedReactions)
+  // Calculate total morale cost for UNSTOPPABLE HORDES
+  const calculateUnstoppableMoraleCost = () => {
+    let count = selectedUndeadCreatures.length
+    if (selectedDefense === 'unstoppable_hordes' && defenderCanUseUnstoppable) {
+      count++
+    }
+    return count
+  }
+
+  // Handle defense selection
+  const handleSelectDefense = (defenseType) => {
+    if (selectedDefense === defenseType) {
+      setSelectedDefense(null)
+      setSelectedUndeadCreatures([])
     } else {
+      setSelectedDefense(defenseType)
+      if (defenseType !== 'unstoppable_hordes') {
+        setSelectedUndeadCreatures([])
+      }
+    }
+  }
+
+  // Handle confirm
+  const handleConfirm = () => {
+    if (selectedDefense === 'cower') {
+      // Using COWER
+      if (onDefenseSelected) {
+        onDefenseSelected({
+          type: 'cower',
+          damageReduction: incomingDamage, // COWER avoids ALL damage
+          moraleCost: cowerInfo.moraleCost,
+          extraCost: cowerInfo.extraCost,
+          creatures: [defenderInstance]
+        })
+      } else if (onCower) {
+        // Legacy callback
+        onCower(null)
+      }
+    } else if (selectedDefense === 'unstoppable_hordes') {
+      // Using UNSTOPPABLE HORDES
+      const creatures = [...selectedUndeadCreatures]
+      if (defenderCanUseUnstoppable) {
+        creatures.unshift(defenderInstance) // Add defender first
+      }
+
+      if (onDefenseSelected) {
+        onDefenseSelected({
+          type: 'unstoppable_hordes',
+          damageReduction: calculateUnstoppableDamageReduction(),
+          moraleCost: calculateUnstoppableMoraleCost(),
+          creatures: creatures
+        })
+      } else if (onCower) {
+        // Legacy callback - pass damage reduction
+        onCower(null, calculateUnstoppableDamageReduction())
+      }
+    } else {
+      // No defense selected - skip
+      if (onDefenseSelected) {
+        onDefenseSelected({ type: 'skip' })
+      } else if (onSkip) {
+        onSkip()
+      }
+    }
+
+    // Reset state
+    setSelectedDefense(null)
+    setSelectedUndeadCreatures([])
+  }
+
+  // Handle skip
+  const handleSkip = () => {
+    if (onDefenseSelected) {
+      onDefenseSelected({ type: 'skip' })
+    } else if (onSkip) {
       onSkip()
     }
-    setSelectedReactions([])
-    setUseCower(false)
+    setSelectedDefense(null)
+    setSelectedUndeadCreatures([])
   }
 
-  const handleSkip = () => {
-    onSkip()
-    setSelectedReactions([])
-    setUseCower(false)
-  }
+  // Check if any defense is available
+  const hasAnyDefense = cowerInfo?.canCower || unstoppableInfo?.canUse || adjacentUndead.length > 0
+
+  // Calculate final damage for display
+  const finalDamage = selectedDefense === 'cower'
+    ? 0 // COWER avoids ALL damage
+    : selectedDefense === 'unstoppable_hordes'
+      ? Math.max(0, incomingDamage - calculateUnstoppableDamageReduction())
+      : incomingDamage
 
   return (
     <Modal
@@ -143,59 +193,78 @@ function ImmediateReactionModal({
     >
       <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #444' }}>
         <Modal.Title>
-          ⚡ Immediate Reaction Available!
+          ⚔️ Defensive Options
         </Modal.Title>
       </Modal.Header>
 
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', maxHeight: '70vh', overflowY: 'auto' }}>
-        <Alert variant="info" className="mb-3">
+        {/* Attack Info */}
+        <Alert variant="danger" className="mb-3">
           <strong>{attackerInstance.creature.name}</strong> is attacking{' '}
-          <strong>{defenderInstance.creature.name}</strong>!
-          <br />
-          You may use Immediate (IMD) order cards to respond before damage is dealt.
+          <strong>{defenderInstance.creature.name}</strong> for{' '}
+          <strong className="text-warning">{incomingDamage} damage</strong>!
         </Alert>
 
-        {/* COWER Ability (UNSTOPPABLE HORDES) */}
-        {cowerInfo.canCower && (
+        {!hasAnyDefense && (
+          <Alert variant="warning">
+            <strong>No defensive options available!</strong>
+            <br />
+            {defenderInstance.isTapped
+              ? 'Your creature is tapped and cannot use defensive abilities.'
+              : 'You do not have enough morale or eligible creatures to defend.'}
+          </Alert>
+        )}
+
+        {/* COWER Section - Universal */}
+        {cowerInfo?.canCower && (
           <Card
-            bg={useCower ? 'info' : 'dark'}
+            bg={selectedDefense === 'cower' ? 'success' : 'dark'}
             text="white"
             className="mb-3"
             style={{
               cursor: 'pointer',
-              border: useCower ? '3px solid #00bcd4' : '2px solid #00bcd4',
+              border: selectedDefense === 'cower' ? '3px solid #28a745' : '2px solid #ffc107',
               transition: 'all 0.2s'
             }}
-            onClick={() => setUseCower(!useCower)}
+            onClick={() => handleSelectDefense('cower')}
           >
             <Card.Body>
               <div className="d-flex justify-content-between align-items-start">
                 <div style={{ flex: 1 }}>
-                  <h6 className="mb-1">
-                    🛡️ COWER (UNSTOPPABLE HORDES)
-                    <Badge bg="cyan" style={{ backgroundColor: '#00bcd4' }} className="ms-2">Commander</Badge>
+                  <h5 className="mb-2">
+                    🛡️ COWER
+                    <Badge bg="warning" text="dark" className="ms-2">Universal</Badge>
                     {cowerInfo.extraCost > 0 && (
-                      <Badge bg="danger" className="ms-2">BLACK HAND OF BANE +{cowerInfo.extraCost}</Badge>
+                      <Badge bg="danger" className="ms-2">
+                        ⚠️ BLACK HAND OF BANE +{cowerInfo.extraCost}
+                      </Badge>
                     )}
-                  </h6>
-                  <small className="d-block mb-2">
-                    Pay {cowerInfo.moraleCost} Morale to prevent {cowerInfo.damageReduction} damage to {defenderInstance.creature.name}
-                    {cowerInfo.extraCost > 0 && (
-                      <span style={{ color: '#dc3545' }}> (includes {cowerInfo.extraCost} extra from enemy's Black Hand of Bane!)</span>
-                    )}
-                  </small>
-                  <div>
-                    <Badge bg="secondary" className="me-2">
+                  </h5>
+                  <p className="mb-2" style={{ fontSize: '0.95rem' }}>
+                    <strong>{defenderInstance.creature.name}</strong> cowers, avoiding{' '}
+                    <strong className="text-success">ALL {incomingDamage} damage</strong>.
+                    <br />
+                    Creature becomes <Badge bg="secondary">TAPPED</Badge>.
+                  </p>
+                  <div className="d-flex gap-2 flex-wrap">
+                    <Badge bg="danger" style={{ fontSize: '0.9rem' }}>
                       Cost: {cowerInfo.moraleCost} Morale
+                      {cowerInfo.extraCost > 0 && ` (${cowerInfo.baseMoraleCost} + ${cowerInfo.extraCost} extra)`}
                     </Badge>
-                    <Badge bg="secondary">
-                      Prevents: {cowerInfo.damageReduction} Damage
+                    <Badge bg="success" style={{ fontSize: '0.9rem' }}>
+                      Avoids: ALL Damage
                     </Badge>
                   </div>
+                  {cowerInfo.extraCost > 0 && (
+                    <Alert variant="danger" className="mt-2 mb-0 py-1 px-2" style={{ fontSize: '0.85rem' }}>
+                      <strong>Warning:</strong> Enemy commander has BLACK HAND OF BANE!
+                      Cowering costs {cowerInfo.extraCost} extra morale.
+                    </Alert>
+                  )}
                 </div>
-                {useCower && (
+                {selectedDefense === 'cower' && (
                   <div className="ms-3">
-                    <Badge bg="success" style={{ fontSize: '1.2rem', padding: '0.5rem' }}>
+                    <Badge bg="light" text="dark" style={{ fontSize: '1.5rem', padding: '0.5rem' }}>
                       ✓
                     </Badge>
                   </div>
@@ -205,107 +274,164 @@ function ImmediateReactionModal({
           </Card>
         )}
 
-        {eligibleReactions.length === 0 ? (
-          <Alert variant="warning">
-            No eligible Immediate cards available. Your creatures must be untapped,
-            adjacent to the defender, and meet the card requirements.
-          </Alert>
-        ) : (
-          <>
-            <h6 className="mb-3">Select cards to play ({selectedReactions.length} selected):</h6>
-            <Row>
-              {eligibleReactions.map((reaction, idx) => {
-                const isSelected = isReactionSelected(reaction)
-                const rangeText = reaction.card.range > 1
-                  ? `Range: ${reaction.card.range} tiles`
-                  : 'Adjacent'
+        {/* UNSTOPPABLE HORDES Section - Morgana's Undead */}
+        {(unstoppableInfo?.canUse || adjacentUndead.length > 0) && (
+          <Card
+            bg={selectedDefense === 'unstoppable_hordes' ? 'info' : 'dark'}
+            text="white"
+            className="mb-3"
+            style={{
+              cursor: 'pointer',
+              border: selectedDefense === 'unstoppable_hordes' ? '3px solid #17a2b8' : '2px solid #17a2b8',
+              transition: 'all 0.2s'
+            }}
+            onClick={() => handleSelectDefense('unstoppable_hordes')}
+          >
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-start">
+                <div style={{ flex: 1 }}>
+                  <h5 className="mb-2">
+                    💀 UNSTOPPABLE HORDES
+                    <Badge bg="info" className="ms-2">Commander Ability</Badge>
+                  </h5>
+                  <p className="mb-2" style={{ fontSize: '0.95rem' }}>
+                    Tap untapped Undead creatures to prevent <strong>20 damage each</strong>.
+                    <br />
+                    Multiple creatures can stack their damage prevention!
+                  </p>
 
-                return (
-                  <Col key={idx} xs={12} className="mb-3">
-                    <Card
-                      bg={isSelected ? 'primary' : 'dark'}
-                      text="white"
-                      className="reaction-card"
-                      style={{
-                        cursor: 'pointer',
-                        border: isSelected ? '3px solid #4dd0e1' : '2px solid #444',
-                        transition: 'all 0.2s'
-                      }}
-                      onClick={() => toggleReaction(reaction)}
-                    >
-                      <Card.Body>
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div style={{ flex: 1 }}>
-                            <h6 className="mb-1">
-                              {reaction.card.name}
-                              <Badge bg="warning" className="ms-2">IMD</Badge>
-                              <Badge bg="info" className="ms-2">Lvl {reaction.card.level}</Badge>
-                            </h6>
-                            <small className="text-muted d-block mb-2">
-                              {reaction.card.effectDescription}
-                            </small>
-                            <div>
-                              <Badge bg="secondary" className="me-2">
-                                Using: {reaction.creature.creature.name}
-                              </Badge>
-                              <Badge bg="secondary" className="me-2">
-                                {rangeText}
-                              </Badge>
-                              <Badge bg="secondary">
-                                Distance: {reaction.distance} tile{reaction.distance !== 1 ? 's' : ''}
-                              </Badge>
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <div className="ms-3">
-                              <Badge bg="success" style={{ fontSize: '1.2rem', padding: '0.5rem' }}>
-                                ✓
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                )
-              })}
-            </Row>
-          </>
+                  {selectedDefense === 'unstoppable_hordes' && (
+                    <div className="mt-3 p-2" style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
+                      <h6 className="mb-2">Select Undead to use:</h6>
+
+                      {/* Defender itself */}
+                      {defenderCanUseUnstoppable && (
+                        <Form.Check
+                          type="checkbox"
+                          id="defender-unstoppable"
+                          label={
+                            <span>
+                              <strong>{defenderInstance.creature.name}</strong> (Defender)
+                              <Badge bg="secondary" className="ms-2">-1 Morale, -20 Damage</Badge>
+                            </span>
+                          }
+                          checked={true}
+                          disabled={true}
+                          className="mb-2"
+                          style={{ color: '#fff' }}
+                        />
+                      )}
+
+                      {/* Adjacent Undead */}
+                      {adjacentUndead.map((creature) => (
+                        <Form.Check
+                          key={creature.instanceId}
+                          type="checkbox"
+                          id={`undead-${creature.instanceId}`}
+                          label={
+                            <span>
+                              <strong>{creature.creature.name}</strong> (Adjacent)
+                              <Badge bg="secondary" className="ms-2">-1 Morale, -20 Damage</Badge>
+                            </span>
+                          }
+                          checked={selectedUndeadCreatures.some(c => c.instanceId === creature.instanceId)}
+                          onChange={() => toggleUndeadCreature(creature)}
+                          className="mb-2"
+                          style={{ color: '#fff' }}
+                        />
+                      ))}
+
+                      {adjacentUndead.length === 0 && !defenderCanUseUnstoppable && (
+                        <Alert variant="warning" className="mb-0 py-1">
+                          No untapped Undead available to use this ability.
+                        </Alert>
+                      )}
+
+                      {(selectedUndeadCreatures.length > 0 || defenderCanUseUnstoppable) && (
+                        <Alert variant="info" className="mt-2 mb-0 py-2">
+                          <strong>Total Prevention:</strong> {calculateUnstoppableDamageReduction()} damage
+                          <br />
+                          <strong>Total Cost:</strong> {calculateUnstoppableMoraleCost()} morale
+                          <br />
+                          <strong>Damage After:</strong>{' '}
+                          <span className={finalDamage === 0 ? 'text-success' : 'text-warning'}>
+                            {Math.max(0, incomingDamage - calculateUnstoppableDamageReduction())} damage
+                          </span>
+                        </Alert>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="d-flex gap-2 flex-wrap mt-2">
+                    <Badge bg="secondary" style={{ fontSize: '0.85rem' }}>
+                      Per Creature: 1 Morale, 20 Damage Prevented
+                    </Badge>
+                    <Badge bg="success" style={{ fontSize: '0.85rem' }}>
+                      Can Stack!
+                    </Badge>
+                  </div>
+                </div>
+                {selectedDefense === 'unstoppable_hordes' && (
+                  <div className="ms-3">
+                    <Badge bg="light" text="dark" style={{ fontSize: '1.5rem', padding: '0.5rem' }}>
+                      ✓
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </Card.Body>
+          </Card>
         )}
 
-        {(selectedReactions.length > 0 || useCower) && (
-          <Alert variant="warning" className="mt-3">
-            <strong>⚠️ Warning:</strong> This reaction will:
-            <ul className="mb-0 mt-2">
-              {selectedReactions.length > 0 && (
-                <>
-                  <li>Tap {selectedReactions.length} creature{selectedReactions.length !== 1 ? 's' : ''} until your next Refresh phase</li>
-                  <li>Discard {selectedReactions.length} order card{selectedReactions.length !== 1 ? 's' : ''} from your hand</li>
-                </>
-              )}
-              {useCower && (
-                <li>Cost {cowerInfo.moraleCost} Morale to prevent {cowerInfo.damageReduction} damage</li>
-              )}
-            </ul>
+        {/* Summary */}
+        {selectedDefense && (
+          <Alert
+            variant={finalDamage === 0 ? 'success' : finalDamage < incomingDamage ? 'info' : 'warning'}
+            className="mt-3"
+          >
+            <h6 className="mb-2">📊 Summary</h6>
+            <div style={{ fontSize: '0.95rem' }}>
+              <strong>Incoming Damage:</strong> {incomingDamage}
+              <br />
+              <strong>Damage Reduced:</strong>{' '}
+              {selectedDefense === 'cower'
+                ? `${incomingDamage} (ALL)`
+                : calculateUnstoppableDamageReduction()}
+              <br />
+              <strong>Final Damage:</strong>{' '}
+              <span className={finalDamage === 0 ? 'text-success fw-bold' : 'text-warning fw-bold'}>
+                {finalDamage}
+              </span>
+              <br />
+              <strong>Morale Cost:</strong>{' '}
+              {selectedDefense === 'cower' ? cowerInfo.moraleCost : calculateUnstoppableMoraleCost()}
+              <br />
+              <strong>Creatures Tapped:</strong>{' '}
+              {selectedDefense === 'cower'
+                ? defenderInstance.creature.name
+                : [
+                    ...(defenderCanUseUnstoppable ? [defenderInstance.creature.name] : []),
+                    ...selectedUndeadCreatures.map(c => c.creature.name)
+                  ].join(', ') || 'None'}
+            </div>
           </Alert>
         )}
       </Modal.Body>
 
       <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '2px solid #444' }}>
-        <Button variant="secondary" onClick={handleSkip}>
-          Skip / No Reaction
+        <Button variant="outline-secondary" onClick={handleSkip}>
+          Take Full Damage ({incomingDamage})
         </Button>
         <Button
-          variant="primary"
+          variant={selectedDefense === 'cower' ? 'success' : selectedDefense === 'unstoppable_hordes' ? 'info' : 'primary'}
           onClick={handleConfirm}
-          disabled={selectedReactions.length === 0 && !useCower}
+          disabled={!selectedDefense || (selectedDefense === 'unstoppable_hordes' && calculateUnstoppableMoraleCost() === 0)}
         >
-          {useCower && selectedReactions.length === 0
-            ? '🛡️ Use Cower'
-            : useCower
-              ? `🛡️ Cower + ${selectedReactions.length} Card${selectedReactions.length !== 1 ? 's' : ''}`
-              : `Use ${selectedReactions.length > 0 ? selectedReactions.length : ''} Card${selectedReactions.length !== 1 ? 's' : ''}`
-          }
+          {selectedDefense === 'cower'
+            ? `🛡️ COWER (Avoid All Damage)`
+            : selectedDefense === 'unstoppable_hordes'
+              ? `💀 Use UNSTOPPABLE HORDES (Prevent ${calculateUnstoppableDamageReduction()})`
+              : 'Select a Defense Option'}
         </Button>
       </Modal.Footer>
     </Modal>

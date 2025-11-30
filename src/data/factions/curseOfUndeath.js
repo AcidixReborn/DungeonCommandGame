@@ -42,12 +42,12 @@ export const commanders = [
       name: 'UNSTOPPABLE HORDES',
       type: 'PASSIVE',
       category: 'COMBAT',
-      description: 'All Undead creatures you control gain the Cower power. Lose 1 MORALE. Prevent 20 DAMAGE to this creature from 1 source.',
+      description: 'All Undead creatures you control can prevent damage. Tap an untapped Undead creature: Lose 1 MORALE, prevent 20 DAMAGE. Multiple creatures can stack.',
       effect: {
-        grantCower: true,
+        grantUnstoppableHordes: true,
         creatureTypesAffected: ['Undead'],
-        cowerMoraleCost: 1,
-        cowerDamagePrevented: 20
+        unstoppableHordesMoraleCost: 1,
+        unstoppableHordesDamagePrevented: 20
       }
     }]
   }
@@ -118,7 +118,7 @@ export const creatures = [
     speed: 7,
     hitPoints: 110,
     abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
-    meleeAttack: { damage: 55, range: 1 },
+    meleeAttack: { damage: 60, range: 1 }, // Normalized from 55
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #5'],
     faction: FACTION_NAME,
@@ -130,7 +130,7 @@ export const creatures = [
     level: 3,
     type: ['Undead', 'Skeleton'],
     speed: 6,
-    hitPoints: 55,
+    hitPoints: 60, // Normalized from 55
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
@@ -186,9 +186,9 @@ export const creatures = [
     level: 2,
     type: ['Undead', 'Evil'],
     speed: 8,
-    hitPoints: 35,
+    hitPoints: 40, // Normalized from 35
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
-    meleeAttack: { damage: 25, range: 1 },
+    meleeAttack: { damage: 30, range: 1 }, // Normalized from 25
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #10'],
     faction: FACTION_NAME,
@@ -202,7 +202,7 @@ export const creatures = [
     speed: 3,
     hitPoints: 30,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 15, range: 1 },
+    meleeAttack: { damage: 20, range: 1 }, // Normalized from 15
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #11'],
     faction: FACTION_NAME,
@@ -214,9 +214,9 @@ export const creatures = [
     level: 1,
     type: ['Undead', 'Skeleton'],
     speed: 6,
-    hitPoints: 25,
+    hitPoints: 30, // Normalized from 25
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 12, range: 1 },
+    meleeAttack: { damage: 20, range: 1 }, // Normalized from 12
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #12'],
     faction: FACTION_NAME,

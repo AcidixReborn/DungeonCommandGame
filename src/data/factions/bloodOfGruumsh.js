@@ -75,7 +75,7 @@ export const creatures = [
     speed: 7,
     hitPoints: 80,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 45, range: 1 },
+    meleeAttack: { damage: 50, range: 1 }, // Normalized from 45
     rangedAttack: null,
     specialAbilities: ['Rage: +20 damage when below half HP'],
     faction: FACTION_NAME,
@@ -115,9 +115,9 @@ export const creatures = [
     level: 5,
     type: ['Humanoid', 'Orc', 'Evil'],
     speed: 6,
-    hitPoints: 95,
+    hitPoints: 100, // Normalized from 95
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: true },
-    meleeAttack: { damage: 48, range: 1 },
+    meleeAttack: { damage: 50, range: 1 }, // Normalized from 48
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #5'],
     faction: FACTION_NAME,
@@ -143,10 +143,10 @@ export const creatures = [
     level: 3,
     type: ['Humanoid', 'Orc', 'Evil'],
     speed: 6,
-    hitPoints: 55,
+    hitPoints: 60, // Normalized from 55
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 35, range: 6 },
+    rangedAttack: { damage: 40, range: 6 }, // Normalized from 35
     specialAbilities: ['Placeholder Ability #7'],
     faction: FACTION_NAME,
     imageUrl: null
@@ -157,9 +157,9 @@ export const creatures = [
     level: 2,
     type: ['Humanoid', 'Orc', 'Evil'],
     speed: 7,
-    hitPoints: 45,
+    hitPoints: 50, // Normalized from 45
     abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 25, range: 1 },
+    meleeAttack: { damage: 30, range: 1 }, // Normalized from 25
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #8'],
     faction: FACTION_NAME,
@@ -185,10 +185,10 @@ export const creatures = [
     level: 2,
     type: ['Humanoid', 'Orc', 'Evil'],
     speed: 8,
-    hitPoints: 38,
+    hitPoints: 40, // Normalized from 38
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: true, CHA: false },
-    meleeAttack: { damage: 18, range: 1 },
-    rangedAttack: { damage: 22, range: 5 },
+    meleeAttack: { damage: 20, range: 1 }, // Normalized from 18
+    rangedAttack: { damage: 30, range: 5 }, // Normalized from 22
     specialAbilities: ['Placeholder Ability #10'],
     faction: FACTION_NAME,
     imageUrl: null
@@ -199,9 +199,9 @@ export const creatures = [
     level: 1,
     type: ['Humanoid', 'Orc', 'Evil'],
     speed: 6,
-    hitPoints: 35,
+    hitPoints: 40, // Normalized from 35
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 18, range: 1 },
+    meleeAttack: { damage: 20, range: 1 }, // Normalized from 18
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #11'],
     faction: FACTION_NAME,
@@ -213,9 +213,9 @@ export const creatures = [
     level: 1,
     type: ['Humanoid', 'Orc', 'Evil'],
     speed: 7,
-    hitPoints: 28,
+    hitPoints: 30, // Normalized from 28
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 15, range: 1 },
+    meleeAttack: { damage: 20, range: 1 }, // Normalized from 15
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #12'],
     faction: FACTION_NAME,

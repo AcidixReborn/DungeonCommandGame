@@ -59,9 +59,17 @@ function GameBoard() {
   const [showSellswordModal, setShowSellswordModal] = useState(false)
   const [sellswordPending, setSellswordPending] = useState(null) // Stores {creature, treasure}
 
-  // VERSATILE ability modal state (Adventurer extra move)
+  // VERSATILE ability modal state (Adventurer extra move after attack)
   const [showVersatileModal, setShowVersatileModal] = useState(false)
   const [versatilePending, setVersatilePending] = useState(null) // Stores {creature}
+
+  // VERSATILE "Move as Action" confirmation modal state
+  const [showVersatileActionModal, setShowVersatileActionModal] = useState(false)
+  const [versatileActionPending, setVersatileActionPending] = useState(null) // Stores creature instance
+
+  // HORDE ability modal state (deploy during REFRESH phase)
+  const [showHordeModal, setShowHordeModal] = useState(false)
+  const [hordeRefreshExecuted, setHordeRefreshExecuted] = useState(false) // Track if refresh actions done
 
   /**
    * Faction color mapping from faction IDs to hex colors
@@ -575,48 +583,140 @@ function GameBoard() {
     executeAttackAfterReactions([])
   }
 
-  // Handle when defender uses COWER ability (UNSTOPPABLE HORDES)
-  const handleCowerUsed = (selectedReactions) => {
-    if (!pendingAttack) return
-
-    // Apply Cower to reduce damage (pass attacker owner for BLACK HAND OF BANE check)
-    const cowerResult = gameState.applyCower(pendingAttack.defenderInstance, pendingAttack.attackerInstance.owner)
-
-    // If reactions were also selected, process them
-    if (selectedReactions && selectedReactions.length > 0) {
-      const defenderPlayer = gameState.players[pendingAttack.defenderInstance.owner]
-      const sortedReactions = [...selectedReactions].sort((a, b) => b.cardIndex - a.cardIndex)
-
-      sortedReactions.forEach(reaction => {
-        reaction.creature.isTapped = true
-        defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
-      })
-    }
-
-    setShowReactionModal(false)
-    executeAttackAfterReactionsWithCower(selectedReactions || [], cowerResult)
-  }
-
-  // Execute attack after reactions with Cower damage reduction
-  const executeAttackAfterReactionsWithCower = (reactions, cowerResult) => {
+  /**
+   * Handle defense selection from ImmediateReactionModal
+   * Supports both COWER (universal) and UNSTOPPABLE HORDES (Morgana's Undead)
+   *
+   * Big O Complexity: O(c) where c = creatures selected for UNSTOPPABLE HORDES (max 9)
+   *
+   * @param {Object} defense - { type: 'cower' | 'unstoppable_hordes' | 'skip', damageReduction, moraleCost, creatures }
+   */
+  const handleDefenseSelected = (defense) => {
     if (!pendingAttack) return
 
     const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
 
-    // Execute attack with Cower damage reduction
-    const result = gameState.executeAttackWithCower(attackerInstance, defenderInstance, targetInfo.attackType, cowerResult.damageReduction)
+    if (defense.type === 'skip') {
+      // No defense - execute attack normally
+      setShowReactionModal(false)
+      executeAttackAfterReactions([])
+      return
+    }
+
+    if (defense.type === 'cower') {
+      // COWER: Avoid ALL damage, pay morale, tap creature
+      const cowerResult = gameState.applyCower(
+        defenderInstance,
+        targetInfo.attackType === 'melee'
+          ? attackerInstance.creature.meleeAttack?.damage || 0
+          : attackerInstance.creature.rangedAttack?.damage || 0,
+        attackerInstance.owner
+      )
+
+      setShowReactionModal(false)
+      executeAttackAfterDefense({
+        type: 'cower',
+        damageReduction: cowerResult.damageAvoided,
+        moraleCost: cowerResult.moraleCost,
+        extraCost: cowerResult.extraCost,
+        success: cowerResult.success
+      })
+    } else if (defense.type === 'unstoppable_hordes') {
+      // UNSTOPPABLE HORDES: Apply for each selected Undead creature
+      let totalDamageReduction = 0
+      let totalMoraleCost = 0
+      const tappedCreatures = []
+
+      // Apply for each selected creature - O(c) where c = creatures selected (max 9)
+      defense.creatures.forEach(creature => {
+        const result = gameState.applyUnstoppableHordes(creature)
+        if (result.success) {
+          totalDamageReduction += result.damagePrevented
+          totalMoraleCost += result.moraleCost
+          tappedCreatures.push(creature.creature.name)
+        }
+      })
+
+      setShowReactionModal(false)
+      executeAttackAfterDefense({
+        type: 'unstoppable_hordes',
+        damageReduction: totalDamageReduction,
+        moraleCost: totalMoraleCost,
+        tappedCreatures,
+        success: totalDamageReduction > 0
+      })
+    }
+  }
+
+  // Legacy callback - kept for backwards compatibility
+  const handleCowerUsed = (_selectedReactions, damageReduction = 0) => {
+    if (!pendingAttack) return
+
+    // If using legacy modal with damageReduction param, use UNSTOPPABLE HORDES
+    if (damageReduction > 0) {
+      handleDefenseSelected({
+        type: 'unstoppable_hordes',
+        damageReduction,
+        creatures: [pendingAttack.defenderInstance]
+      })
+    } else {
+      // Legacy COWER behavior
+      const cowerResult = gameState.applyCower(
+        pendingAttack.defenderInstance,
+        pendingAttack.targetInfo?.attackType === 'melee'
+          ? pendingAttack.attackerInstance.creature.meleeAttack?.damage || 0
+          : pendingAttack.attackerInstance.creature.rangedAttack?.damage || 0,
+        pendingAttack.attackerInstance.owner
+      )
+
+      setShowReactionModal(false)
+      executeAttackAfterDefense({
+        type: 'cower',
+        damageReduction: cowerResult.damageAvoided,
+        moraleCost: cowerResult.moraleCost,
+        success: cowerResult.success
+      })
+    }
+  }
+
+  /**
+   * Execute attack after defense has been applied
+   * Both COWER and UNSTOPPABLE HORDES use this unified handler
+   *
+   * Big O Complexity: O(c) where c = creatures in play for defender (for removal on kill)
+   *
+   * @param {Object} defenseResult - { type, damageReduction, moraleCost, success, ... }
+   */
+  const executeAttackAfterDefense = (defenseResult) => {
+    if (!pendingAttack) return
+
+    const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
+
+    // Execute attack with defense damage reduction
+    const result = gameState.executeAttackWithDefense(
+      attackerInstance,
+      defenderInstance,
+      targetInfo.attackType,
+      defenseResult.damageReduction,
+      defenseResult.type
+    )
 
     if (result.success) {
       let message = ''
 
-      // Add Cower info to message
-      if (cowerResult.success) {
-        message += `🛡️ COWER: ${cowerResult.damageReduction} damage prevented! `
-      }
-
-      // Add reaction info to message
-      if (reactions.length > 0) {
-        message += `⚡ ${reactions.length} Immediate card${reactions.length !== 1 ? 's' : ''} played! `
+      // Add defense info to message
+      if (defenseResult.success && defenseResult.damageReduction > 0) {
+        if (defenseResult.type === 'cower') {
+          message += `🛡️ COWER: ${defenderInstance.creature.name} avoids ALL damage! `
+          if (defenseResult.extraCost > 0) {
+            message += `(BLACK HAND OF BANE: +${defenseResult.extraCost} extra morale cost) `
+          }
+        } else if (defenseResult.type === 'unstoppable_hordes') {
+          message += `💀 UNSTOPPABLE HORDES: ${defenseResult.damageReduction} damage prevented! `
+          if (defenseResult.tappedCreatures?.length > 0) {
+            message += `(${defenseResult.tappedCreatures.join(', ')} tapped) `
+          }
+        }
       }
 
       message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
@@ -1036,8 +1136,22 @@ function GameBoard() {
 
     switch (gameState.currentPhase) {
       case GamePhases.REFRESH:
-        gameState.executeRefreshPhase()
-        setActionMessage('Refresh phase complete. Draw 1 order card, untapped all creatures.')
+        // If HORDE refresh was already executed, just advance (don't redo refresh actions)
+        if (hordeRefreshExecuted) {
+          // Clear deployment protection for creatures deployed during this refresh
+          const player = gameState.getCurrentPlayerState()
+          player.creaturesInPlay.forEach(creature => {
+            if (creature.deployedThisTurn && creature.turnDeployed === gameState.turnNumber) {
+              creature.clearDeploymentProtection()
+            }
+          })
+          setHordeRefreshExecuted(false)
+          gameState.advancePhase()
+          setActionMessage('HORDE deployment complete! Moving to Activate Phase.')
+        } else {
+          gameState.executeRefreshPhase()
+          setActionMessage('Refresh phase complete. Draw 1 order card, untapped all creatures.')
+        }
         break
       case GamePhases.ACTIVATE:
         gameState.advancePhase()
@@ -1158,26 +1272,52 @@ function GameBoard() {
     }
 
     // Auto-execute REFRESH and CLEANUP phases for human players
-    if (gameState.currentPhase === GamePhases.REFRESH ||
-        gameState.currentPhase === GamePhases.CLEANUP) {
-      const executePhase = async () => {
-        // Show "Executing..." message
-        if (gameState.currentPhase === GamePhases.REFRESH) {
-          setActionMessage('Executing Refresh Phase...')
-        } else {
-          setActionMessage('Executing Cleanup Phase...')
+    // Exception: HORDE ability allows deployment during REFRESH, so show modal instead
+    if (gameState.currentPhase === GamePhases.REFRESH) {
+      if (gameState.canDeployDuringRefresh(gameState.currentPlayer)) {
+        // HORDE ability - execute refresh actions then show deployment modal
+        const executeHordeRefresh = async () => {
+          setActionMessage('HORDE: Executing Refresh Phase...')
+          await new Promise(resolve => setTimeout(resolve, 500))
+
+          // Execute refresh actions (untap, draw card, clear old protection)
+          const player = gameState.getCurrentPlayerState()
+          player.resetAbilitiesForNewTurn()
+          player.drawOrderCards(1)
+          player.creaturesInPlay.forEach(creature => creature.untap())
+          player.creaturesInPlay.forEach(creature => {
+            if (creature.deployedThisTurn && creature.turnDeployed !== gameState.turnNumber) {
+              creature.clearDeploymentProtection()
+            }
+          })
+
+          // Mark refresh as executed and show HORDE deployment modal
+          setHordeRefreshExecuted(true)
+          setShowHordeModal(true)
+          setRenderCounter(prev => prev + 1)
         }
 
-        // Small delay to show the message
+        if (!hordeRefreshExecuted && !showHordeModal) {
+          executeHordeRefresh()
+        }
+      } else {
+        // Normal refresh - auto-execute
+        const executePhase = async () => {
+          setActionMessage('Executing Refresh Phase...')
+          await new Promise(resolve => setTimeout(resolve, 800))
+          advancePhase()
+        }
+        executePhase()
+      }
+    } else if (gameState.currentPhase === GamePhases.CLEANUP) {
+      const executePhase = async () => {
+        setActionMessage('Executing Cleanup Phase...')
         await new Promise(resolve => setTimeout(resolve, 800))
-
-        // Execute the phase
         advancePhase()
       }
-
       executePhase()
     }
-  }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber, isAIThinking])
+  }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber, isAIThinking, hordeRefreshExecuted, showHordeModal])
 
   const getPhaseButtonText = () => {
     if (!gameState) return 'Start Phase'
@@ -1358,13 +1498,9 @@ function GameBoard() {
                       variant="info"
                       size="sm"
                       onClick={() => {
-                        // Allow another movement using the action
-                        const moves = gameState.getValidMoves(selectedBoardCreature)
-                        setValidMoveTiles(moves)
-                        setValidAttackTargets([]) // Clear attack targets since using action to move
-                        setActionMessage(`VERSATILE: ${selectedBoardCreature.creature.name} can move again using their action!`)
-                        // Mark that we're using versatile so completing move taps the creature
-                        selectedBoardCreature.usingVersatileMove = true
+                        // Show confirmation modal before activating VERSATILE
+                        setVersatileActionPending(selectedBoardCreature)
+                        setShowVersatileActionModal(true)
                       }}
                       style={{ fontSize: '0.75rem', padding: '2px 8px' }}
                     >
@@ -1443,11 +1579,12 @@ function GameBoard() {
             vertical={true}
             canUseScrollbook={gameState.canUseScrollbook(currentPlayerId)}
             onScrollbookUse={handleScrollbookUse}
+            canDeployCreatures={canDeployInCurrentPhase()}
           />
         </div>
       </div>
 
-      {/* Immediate Reaction Modal */}
+      {/* Immediate Reaction Modal - Defense Options (COWER / UNSTOPPABLE HORDES) */}
       {pendingAttack && (
         <ImmediateReactionModal
           show={showReactionModal}
@@ -1455,6 +1592,7 @@ function GameBoard() {
           defenderInstance={pendingAttack.defenderInstance}
           defenderPlayerState={gameState.players[pendingAttack.defenderInstance.owner]}
           gameState={gameState}
+          onDefenseSelected={handleDefenseSelected}
           onCardsPlayed={handleReactionsPlayed}
           onSkip={handleReactionsSkipped}
           onCower={handleCowerUsed}
@@ -1687,6 +1825,57 @@ function GameBoard() {
         </Modal.Footer>
       </Modal>
 
+      {/* VERSATILE Move as Action Confirmation Modal */}
+      <Modal
+        show={showVersatileActionModal}
+        onHide={() => {
+          setShowVersatileActionModal(false)
+          setVersatileActionPending(null)
+        }}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header style={{ backgroundColor: '#0066cc', color: 'white' }}>
+          <Modal.Title>🏃 VERSATILE - Move as Action</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {versatileActionPending && (
+            <div>
+              <p><strong>{versatileActionPending.creature.name}</strong> has already moved this turn.</p>
+              <p style={{ color: '#5bc0de' }}>
+                Use your <strong>standard action</strong> to move again up to {versatileActionPending.creature.speed} tiles?
+              </p>
+              <p style={{ fontSize: '0.9rem', color: '#ffc107' }}>
+                Warning: This will consume your action - you will NOT be able to attack after this move!
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
+          <Button variant="secondary" onClick={() => {
+            setShowVersatileActionModal(false)
+            setVersatileActionPending(null)
+          }}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={() => {
+            // Enable movement mode for the creature
+            if (versatileActionPending) {
+              const moves = gameState.getValidMovementTiles(versatileActionPending)
+              setValidMoveTiles(moves)
+              setValidAttackTargets([]) // Clear attack targets since using action to move
+              setActionMessage(`VERSATILE: ${versatileActionPending.creature.name} can move again using their action!`)
+              // Mark that we're using versatile so completing move taps the creature
+              versatileActionPending.usingVersatileMove = true
+            }
+            setShowVersatileActionModal(false)
+            setVersatileActionPending(null)
+          }}>
+            🏃 Move as Action
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       {/* VERSATILE Ability Modal - Extra Move After Attack */}
       <Modal
         show={showVersatileModal}
@@ -1724,8 +1913,8 @@ function GameBoard() {
             // Enable movement mode for the creature
             if (versatilePending) {
               setSelectedBoardCreature(versatilePending.creature)
-              // Calculate valid moves (2 tiles)
-              const moves = gameState.getValidMoves(versatilePending.creature, 2)
+              // Calculate valid moves (limited to 2 tiles for post-attack movement)
+              const moves = gameState.getValidMovementTiles(versatilePending.creature, 2)
               setValidMoveTiles(moves)
               setActionMessage(`VERSATILE: Select a tile to move ${versatilePending.creature.creature.name} (up to 2 tiles)`)
             }
@@ -1733,6 +1922,146 @@ function GameBoard() {
             setVersatilePending(null)
           }}>
             🏃 Move (up to 2 tiles)
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* HORDE Ability Modal - Deploy During Refresh Phase */}
+      <Modal
+        show={showHordeModal}
+        onHide={() => {
+          // Don't allow closing without making a choice
+        }}
+        centered
+        backdrop="static"
+        size="lg"
+      >
+        <Modal.Header style={{ backgroundColor: '#cc0000', color: 'white' }}>
+          <Modal.Title>⚔️ HORDE - Deploy During Refresh!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {gameState && (() => {
+            const player = gameState.getCurrentPlayerState()
+            const availableCreatures = player?.creatureHand || []
+            const currentLeadership = player?.leadership || 0
+            const usedLeadership = player?.creaturesInPlay?.reduce((sum, c) => sum + (c.creature?.level || 0), 0) || 0
+            const availableLeadership = currentLeadership - usedLeadership
+
+            return (
+              <div>
+                <p style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
+                  Snig the Axe's HORDE ability lets you deploy creatures NOW!
+                </p>
+                <div style={{
+                  backgroundColor: '#1a1d21',
+                  padding: '10px',
+                  borderRadius: '5px',
+                  marginBottom: '15px'
+                }}>
+                  <p style={{ margin: 0 }}>
+                    <strong>Leadership Available:</strong>{' '}
+                    <span style={{ color: '#5bc0de', fontSize: '1.2rem' }}>{availableLeadership}</span>
+                    <span style={{ color: '#888', marginLeft: '10px' }}>
+                      ({usedLeadership} / {currentLeadership} used)
+                    </span>
+                  </p>
+                </div>
+
+                {availableCreatures.length > 0 ? (
+                  <div>
+                    <p><strong>Creatures in Hand:</strong></p>
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '10px',
+                      maxHeight: '200px',
+                      overflowY: 'auto'
+                    }}>
+                      {availableCreatures.map((creature, idx) => {
+                        const canAfford = creature.level <= availableLeadership
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              backgroundColor: canAfford ? '#2d4a3e' : '#4a2d2d',
+                              border: `2px solid ${canAfford ? '#5cb85c' : '#d9534f'}`,
+                              borderRadius: '5px',
+                              padding: '8px',
+                              minWidth: '120px',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                              {creature.name}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                              Level: {creature.level}
+                            </div>
+                            <div style={{
+                              fontSize: '0.75rem',
+                              color: canAfford ? '#5cb85c' : '#d9534f'
+                            }}>
+                              {canAfford ? '✓ Can Deploy' : '✗ Too Expensive'}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <p style={{ marginTop: '15px', color: '#ffc107', fontSize: '0.9rem' }}>
+                      Close this window to deploy creatures by clicking/dragging them to your starting zone.
+                    </p>
+                  </div>
+                ) : (
+                  <p style={{ color: '#888' }}>No creatures in hand to deploy.</p>
+                )}
+
+                <div style={{
+                  marginTop: '15px',
+                  padding: '10px',
+                  backgroundColor: '#3d2b1f',
+                  borderRadius: '5px',
+                  borderLeft: '4px solid #ffc107'
+                }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#ffc107' }}>
+                    <strong>Note:</strong> Creatures deployed during REFRESH phase will NOT be protected
+                    from attacks once your ACTIVATE phase begins!
+                  </p>
+                </div>
+              </div>
+            )
+          })()}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
+          <Button
+            variant="warning"
+            onClick={() => {
+              setShowHordeModal(false)
+              setActionMessage('HORDE: Deploy creatures to your starting zone, then click "Execute Refresh" to continue!')
+            }}
+          >
+            📦 Deploy Creatures
+          </Button>
+          <Button
+            variant="success"
+            onClick={() => {
+              // Clear any deployment protection for creatures deployed this refresh
+              // (they should NOT be protected since it's their own turn)
+              const player = gameState.getCurrentPlayerState()
+              player.creaturesInPlay.forEach(creature => {
+                if (creature.deployedThisTurn && creature.turnDeployed === gameState.turnNumber) {
+                  creature.clearDeploymentProtection()
+                }
+              })
+
+              // Advance to ACTIVATE phase
+              setShowHordeModal(false)
+              setHordeRefreshExecuted(false)
+              gameState.advancePhase()
+              setActionMessage('HORDE deployment complete! Moving to Activate Phase.')
+              setRenderCounter(prev => prev + 1)
+            }}
+          >
+            ✓ Done Deploying
           </Button>
         </Modal.Footer>
       </Modal>

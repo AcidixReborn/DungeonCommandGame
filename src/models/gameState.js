@@ -490,9 +490,9 @@ export class GameState {
   }
 
   /**
-   * Get random starting positions on board edges for each player
+   * Get starting positions on board edges for each player
    * Positions must be at least 8 tiles apart (Manhattan distance)
-   * Can be placed anywhere along the board edges, not just corners
+   * Prefers positions on opposite sides of the board to maximize player distance
    * Starting zones are 3×2 (horizontal) or 2×3 (vertical) based on edge
    */
   getEdgePositionsForPlayers(numPlayers) {
@@ -524,33 +524,68 @@ export class GameState {
       possiblePositions.push({ startX: this.boardWidth - 2, startY: y, edge: 'right' })
     }
 
-    // Randomly select positions with proper spacing
-    let attempts = 0
-    const maxAttempts = 1000
+    // Helper function to calculate Manhattan distance
+    const getManhattanDistance = (pos1, pos2) => {
+      return Math.abs(pos1.startX - pos2.startX) + Math.abs(pos1.startY - pos2.startY)
+    }
 
-    while (positions.length < numPlayers && attempts < maxAttempts) {
-      attempts++
-
-      // Pick a random position from available positions
-      const randomIndex = Math.floor(Math.random() * possiblePositions.length)
-      const candidate = possiblePositions[randomIndex]
-
-      // Check if this position is far enough from all existing positions
-      let isValidPosition = true
-      for (const existingPos of positions) {
-        const distance = Math.abs(candidate.startX - existingPos.startX) +
-                        Math.abs(candidate.startY - existingPos.startY)
-
-        if (distance < minDistance) {
-          isValidPosition = false
-          break
+    // Helper function to check if a position meets minimum distance from all existing positions
+    const meetsMinDistance = (candidate, existingPositions) => {
+      for (const existingPos of existingPositions) {
+        if (getManhattanDistance(candidate, existingPos) < minDistance) {
+          return false
         }
       }
+      return true
+    }
 
-      if (isValidPosition) {
-        positions.push(candidate)
-        console.log(`Player ${positions.length} starting zone: ${candidate.edge} edge at (${candidate.startX}, ${candidate.startY})`)
+    // Helper function to calculate total distance from a candidate to all existing positions
+    const getTotalDistance = (candidate, existingPositions) => {
+      let total = 0
+      for (const existingPos of existingPositions) {
+        total += getManhattanDistance(candidate, existingPos)
       }
+      return total
+    }
+
+    // Place first player randomly
+    if (possiblePositions.length > 0) {
+      const firstIndex = Math.floor(Math.random() * possiblePositions.length)
+      positions.push(possiblePositions[firstIndex])
+      console.log(`Player 1 starting zone: ${positions[0].edge} edge at (${positions[0].startX}, ${positions[0].startY})`)
+    }
+
+    // For subsequent players, prefer positions that maximize distance from existing positions
+    while (positions.length < numPlayers) {
+      // Get all valid candidates (meet minimum distance requirement)
+      const validCandidates = possiblePositions.filter(candidate =>
+        meetsMinDistance(candidate, positions)
+      )
+
+      if (validCandidates.length === 0) {
+        console.warn(`Could not find valid position for player ${positions.length + 1} with ${minDistance} tile spacing.`)
+        break
+      }
+
+      // Score each candidate by total distance from existing positions
+      const scoredCandidates = validCandidates.map(candidate => ({
+        position: candidate,
+        totalDistance: getTotalDistance(candidate, positions)
+      }))
+
+      // Sort by total distance (highest first - we want maximum separation)
+      scoredCandidates.sort((a, b) => b.totalDistance - a.totalDistance)
+
+      // Take top 20% of candidates (or at least 3) and randomly pick from them
+      // This adds some variety while still preferring opposite positions
+      const topCount = Math.max(3, Math.ceil(scoredCandidates.length * 0.2))
+      const topCandidates = scoredCandidates.slice(0, topCount)
+
+      const selectedIndex = Math.floor(Math.random() * topCandidates.length)
+      const selected = topCandidates[selectedIndex].position
+
+      positions.push(selected)
+      console.log(`Player ${positions.length} starting zone: ${selected.edge} edge at (${selected.startX}, ${selected.startY}) - distance score: ${topCandidates[selectedIndex].totalDistance}`)
     }
 
     // Fallback: if we couldn't find enough positions with proper spacing, use corners
@@ -988,65 +1023,236 @@ export class GameState {
   }
 
   /**
-   * Check if creature can use COWER ability (UNSTOPPABLE HORDES)
+   * Check if creature can use COWER ability (Universal mechanic - ALL creatures)
+   * COWER: Avoid ALL damage from an attack, pay morale = damage/10, creature becomes tapped
+   * BLACK HAND OF BANE: If attacker has this ability, defender loses 1 EXTRA morale when cowering
    *
-   * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
-   * Includes call to getBlackHandOfBaneExtraCost which is O(a). Effectively O(1)
+   * Big O Complexity: O(a) where a = commander abilities (1-2), effectively O(1)
    *
-   * @param {CreatureInstance} creatureInstance - The creature taking damage
-   * @param {string} attackerOwner - Optional attacker owner to check for BLACK HAND OF BANE
-   * @returns {Object} { canCower: boolean, moraleCost: number, damageReduction: number, extraCost: number }
+   * @param {CreatureInstance} creatureInstance - The creature being attacked
+   * @param {number} incomingDamage - The amount of damage to potentially avoid
+   * @param {string} attackerOwner - Attacker owner to check for BLACK HAND OF BANE
+   * @returns {Object} { canCower: boolean, moraleCost: number, extraCost: number, damageAvoided: number }
    */
-  canUseCower(creatureInstance, attackerOwner = null) {
+  canCower(creatureInstance, incomingDamage, attackerOwner = null) {
     if (!creatureInstance || !creatureInstance.owner) {
-      return { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
+      return { canCower: false, moraleCost: 0, extraCost: 0, damageAvoided: 0 }
     }
 
-    // Must have the UNSTOPPABLE HORDES ability
-    if (!this.hasCommanderAbility(creatureInstance.owner, 'unstoppable_hordes')) {
-      return { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
+    // Tapped creatures CANNOT cower
+    if (creatureInstance.isTapped) {
+      return { canCower: false, moraleCost: 0, extraCost: 0, damageAvoided: 0, reason: 'tapped' }
     }
 
-    // Must be Undead type
-    const creatureTypes = creatureInstance.creature.type || []
-    if (!creatureTypes.includes('Undead')) {
-      return { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
-    }
+    // Calculate morale cost: damage/10, rounded up
+    const baseMoraleCost = Math.ceil(incomingDamage / 10)
 
-    // Check for BLACK HAND OF BANE extra cost
+    // Check for BLACK HAND OF BANE extra cost (only applies to COWER, not UNSTOPPABLE HORDES)
     const extraCost = attackerOwner ? this.getBlackHandOfBaneExtraCost(attackerOwner) : 0
-    const totalCost = 1 + extraCost
+    const totalCost = baseMoraleCost + extraCost
 
     // Player must have enough morale to pay
     const player = this.players[creatureInstance.owner]
     if (player.morale < totalCost) {
-      return { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
+      return { canCower: false, moraleCost: 0, extraCost: 0, damageAvoided: 0, reason: 'insufficient_morale' }
     }
 
-    return { canCower: true, moraleCost: totalCost, damageReduction: 20, extraCost }
+    return {
+      canCower: true,
+      moraleCost: totalCost,
+      baseMoraleCost,
+      extraCost,
+      damageAvoided: incomingDamage
+    }
   }
 
   /**
-   * Apply COWER ability - reduce damage by 20, pay morale cost
+   * Apply COWER ability - avoid ALL damage, pay morale cost, tap creature
    *
-   * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
-   * Calls canUseCower which is O(a + t). Effectively O(1)
+   * Big O Complexity: O(a) where a = commander abilities (1-2), effectively O(1)
    *
    * @param {CreatureInstance} creatureInstance - The creature using Cower
-   * @param {string} attackerOwner - Optional attacker owner for BLACK HAND OF BANE
-   * @returns {Object} { success: boolean, damageReduction: number, moraleCost: number }
+   * @param {number} incomingDamage - The amount of damage being avoided
+   * @param {string} attackerOwner - Attacker owner for BLACK HAND OF BANE check
+   * @returns {Object} { success: boolean, damageAvoided: number, moraleCost: number }
    */
-  applyCower(creatureInstance, attackerOwner = null) {
-    const cowerInfo = this.canUseCower(creatureInstance, attackerOwner)
+  applyCower(creatureInstance, incomingDamage, attackerOwner = null) {
+    const cowerInfo = this.canCower(creatureInstance, incomingDamage, attackerOwner)
     if (!cowerInfo.canCower) {
-      return { success: false, damageReduction: 0, moraleCost: 0 }
+      return { success: false, damageAvoided: 0, moraleCost: 0 }
     }
 
     // Pay the morale cost (includes BLACK HAND OF BANE extra)
     const player = this.players[creatureInstance.owner]
     player.loseMorale(cowerInfo.moraleCost)
 
-    return { success: true, damageReduction: cowerInfo.damageReduction, moraleCost: cowerInfo.moraleCost }
+    // Tap the creature that cowered
+    creatureInstance.tap()
+
+    return {
+      success: true,
+      damageAvoided: cowerInfo.damageAvoided,
+      moraleCost: cowerInfo.moraleCost,
+      extraCost: cowerInfo.extraCost
+    }
+  }
+
+  /**
+   * Check if creature can use UNSTOPPABLE HORDES ability (Morgana's Commander Ability)
+   * UNSTOPPABLE HORDES: Untapped Undead creatures can prevent 20 damage each
+   * Multiple Undead can stack their damage prevention
+   * NOT affected by BLACK HAND OF BANE (this is not cowering)
+   *
+   * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
+   * Effectively O(1)
+   *
+   * @param {CreatureInstance} creatureInstance - The creature taking damage
+   * @returns {Object} { canUse: boolean, moraleCost: number, damagePrevented: number }
+   */
+  canUseUnstoppableHordes(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.owner) {
+      return { canUse: false, moraleCost: 0, damagePrevented: 0 }
+    }
+
+    // Must have the UNSTOPPABLE HORDES ability
+    if (!this.hasCommanderAbility(creatureInstance.owner, 'unstoppable_hordes')) {
+      return { canUse: false, moraleCost: 0, damagePrevented: 0 }
+    }
+
+    // Must be Undead type
+    const creatureTypes = creatureInstance.creature.type || []
+    if (!creatureTypes.includes('Undead')) {
+      return { canUse: false, moraleCost: 0, damagePrevented: 0 }
+    }
+
+    // Must NOT be tapped
+    if (creatureInstance.isTapped) {
+      return { canUse: false, moraleCost: 0, damagePrevented: 0, reason: 'tapped' }
+    }
+
+    // Player must have enough morale to pay (1 morale per creature)
+    const player = this.players[creatureInstance.owner]
+    if (player.morale < 1) {
+      return { canUse: false, moraleCost: 0, damagePrevented: 0, reason: 'insufficient_morale' }
+    }
+
+    return { canUse: true, moraleCost: 1, damagePrevented: 20 }
+  }
+
+  /**
+   * Apply UNSTOPPABLE HORDES ability - prevent 20 damage, pay 1 morale, tap creature
+   * NOTE: BLACK HAND OF BANE does NOT apply to this ability (it's not cowering)
+   *
+   * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
+   * Effectively O(1)
+   *
+   * @param {CreatureInstance} creatureInstance - The Undead creature using the ability
+   * @returns {Object} { success: boolean, damagePrevented: number, moraleCost: number }
+   */
+  applyUnstoppableHordes(creatureInstance) {
+    const abilityInfo = this.canUseUnstoppableHordes(creatureInstance)
+    if (!abilityInfo.canUse) {
+      return { success: false, damagePrevented: 0, moraleCost: 0 }
+    }
+
+    // Pay 1 morale
+    const player = this.players[creatureInstance.owner]
+    player.loseMorale(1)
+
+    // Tap the creature that used the ability
+    creatureInstance.tap()
+
+    return { success: true, damagePrevented: 20, moraleCost: 1 }
+  }
+
+  /**
+   * Get all adjacent untapped Undead creatures that can use UNSTOPPABLE HORDES
+   * These creatures can help defend an attacked creature
+   *
+   * Big O Complexity: O(8 * (a + t)) where 8 = adjacent tiles, a = abilities, t = types
+   * Adjacent tiles are at most 8. Effectively O(1)
+   *
+   * @param {CreatureInstance} defendingCreature - The creature being attacked
+   * @returns {Array} Array of CreatureInstances that can use UNSTOPPABLE HORDES
+   */
+  getAdjacentUndeadForUnstoppableHordes(defendingCreature) {
+    if (!defendingCreature || !defendingCreature.position || !defendingCreature.owner) {
+      return []
+    }
+
+    // Must have UNSTOPPABLE HORDES ability
+    if (!this.hasCommanderAbility(defendingCreature.owner, 'unstoppable_hordes')) {
+      return []
+    }
+
+    const adjacentUndead = []
+    const pos = defendingCreature.position
+
+    // Check all 8 directions (including diagonals for adjacency)
+    const directions = [
+      { dx: 0, dy: -1 },   // North
+      { dx: 1, dy: -1 },   // NE
+      { dx: 1, dy: 0 },    // East
+      { dx: 1, dy: 1 },    // SE
+      { dx: 0, dy: 1 },    // South
+      { dx: -1, dy: 1 },   // SW
+      { dx: -1, dy: 0 },   // West
+      { dx: -1, dy: -1 }   // NW
+    ]
+
+    for (const dir of directions) {
+      const tile = this.getTile(pos.x + dir.dx, pos.y + dir.dy)
+      if (!tile || !tile.occupant) continue
+
+      const adjacentCreature = tile.occupant
+
+      // Must be same owner
+      if (adjacentCreature.owner !== defendingCreature.owner) continue
+
+      // Check if this creature can use UNSTOPPABLE HORDES
+      const canUse = this.canUseUnstoppableHordes(adjacentCreature)
+      if (canUse.canUse) {
+        adjacentUndead.push(adjacentCreature)
+      }
+    }
+
+    return adjacentUndead
+  }
+
+  /**
+   * Get all available defense options for a creature being attacked
+   * This includes COWER (universal) and UNSTOPPABLE HORDES (Morgana's Undead)
+   *
+   * Big O Complexity: O(a + t + 8) where a = abilities, t = types, 8 = adjacent tiles
+   * All are small constants, effectively O(1)
+   *
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @param {number} incomingDamage - The damage amount
+   * @param {string} attackerOwner - The attacker's owner ID
+   * @returns {Object} { cower: {...}, unstoppableHordes: {...}, adjacentUndead: [...] }
+   */
+  getDefenseOptions(defenderInstance, incomingDamage, attackerOwner) {
+    const options = {
+      cower: null,
+      unstoppableHordes: null,
+      adjacentUndead: []
+    }
+
+    // Check COWER availability (universal)
+    const cowerInfo = this.canCower(defenderInstance, incomingDamage, attackerOwner)
+    if (cowerInfo.canCower) {
+      options.cower = cowerInfo
+    }
+
+    // Check UNSTOPPABLE HORDES availability (Morgana's Undead only)
+    const unstoppableInfo = this.canUseUnstoppableHordes(defenderInstance)
+    if (unstoppableInfo.canUse) {
+      options.unstoppableHordes = unstoppableInfo
+      // Also get adjacent Undead that can help
+      options.adjacentUndead = this.getAdjacentUndeadForUnstoppableHordes(defenderInstance)
+    }
+
+    return options
   }
 
   /**
@@ -1281,13 +1487,14 @@ export class GameState {
   }
 
   // Get all valid movement tiles using A* pathfinding
-  getValidMovementTiles(creatureInstance) {
+  // overrideSpeed: optional parameter to limit movement (used by VERSATILE ability)
+  getValidMovementTiles(creatureInstance, overrideSpeed = null) {
     if (!creatureInstance.position) return []
 
     // Base speed + commander speed bonuses (e.g., WALLS OF WEB)
     const baseSpeed = creatureInstance.creature.speed
     const speedBonus = this.getCommanderSpeedBonus(creatureInstance)
-    const speed = baseSpeed + speedBonus
+    const speed = overrideSpeed !== null ? overrideSpeed : (baseSpeed + speedBonus)
 
     const startPos = creatureInstance.position
     const flying = this.hasFlying(creatureInstance)
@@ -1316,8 +1523,8 @@ export class GameState {
       return false
     }
 
-    // Cannot move if already moved this turn
-    if (creatureInstance.hasMovedThisTurn) {
+    // Cannot move if already moved this turn (unless using VERSATILE ability)
+    if (creatureInstance.hasMovedThisTurn && !creatureInstance.usingVersatileMove) {
       console.log('Cannot move: creature has already moved this turn')
       return false
     }
@@ -1575,8 +1782,10 @@ export class GameState {
   }
 
   /**
-   * Execute attack with Cower damage reduction (UNSTOPPABLE HORDES ability)
-   * Same as executeAttack but applies damage reduction before resolving
+   * Execute attack with defense options (COWER or UNSTOPPABLE HORDES)
+   * Supports both:
+   * - COWER: Avoid ALL damage (damageReduction equals original damage)
+   * - UNSTOPPABLE HORDES: Reduce damage by specific amount (can stack)
    *
    * Big O Complexity: O(c) where c = creatures in play for defender (for removal)
    * Most operations are O(1). Creature removal uses findIndex which is O(c)
@@ -1584,10 +1793,11 @@ export class GameState {
    * @param {CreatureInstance} attackerInstance - The attacking creature
    * @param {CreatureInstance} defenderInstance - The defending creature
    * @param {string} attackType - 'melee' or 'ranged'
-   * @param {number} damageReduction - Amount to reduce damage by
+   * @param {number} damageReduction - Amount to reduce damage by (full damage for COWER)
+   * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
    * @returns {Object} Attack result
    */
-  executeAttackWithCower(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0) {
+  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null) {
     // Cannot attack if tapped
     if (attackerInstance.isTapped) {
       return { success: false, message: 'Cannot attack: creature is tapped' }
@@ -1608,7 +1818,7 @@ export class GameState {
       return { success: false, message: 'Invalid attack type' }
     }
 
-    // Apply Cower damage reduction
+    // Apply damage reduction from defense
     const originalDamage = damage
     damage = Math.max(0, damage - damageReduction)
 
@@ -1629,8 +1839,17 @@ export class GameState {
       attackType,
       damage,
       originalDamage,
-      damageReduced: damageReduction
+      damageReduced: damageReduction,
+      defenseUsed: defenseType
     }
+  }
+
+  /**
+   * Legacy method - kept for backwards compatibility
+   * @deprecated Use executeAttackWithDefense instead
+   */
+  executeAttackWithCower(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0) {
+    return this.executeAttackWithDefense(attackerInstance, defenderInstance, attackType, damageReduction, 'unstoppable_hordes')
   }
 
   /**
