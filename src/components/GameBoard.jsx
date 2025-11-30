@@ -595,6 +595,20 @@ function GameBoard() {
   const processAIAttackIntention = (action) => {
     const { attackerInstance, defenderInstance, targetInfo } = action
 
+    // VALIDATION: Skip attack if target is already dead (killed by previous attack in queue)
+    if (defenderInstance.isDestroyed() || !defenderInstance.position) {
+      console.log(`[AI Attack] Skipping attack - target ${defenderInstance.creature.name} is already dead`)
+      setProcessingAIAction(false)
+      return
+    }
+
+    // VALIDATION: Skip attack if attacker is already dead (e.g., killed by reaction)
+    if (attackerInstance.isDestroyed() || !attackerInstance.position) {
+      console.log(`[AI Attack] Skipping attack - attacker ${attackerInstance.creature.name} is already dead`)
+      setProcessingAIAction(false)
+      return
+    }
+
     // Check if defender is a human player
     const defenderPlayerId = defenderInstance.owner
     const isDefenderHuman = isPlayerHuman(defenderPlayerId)

@@ -1,5 +1,5 @@
-import { GamePhases } from '../models/gameState'
-import { CreatureInstance } from '../models/creatures'
+import { GamePhases } from '../models/gameState.js'
+import { CreatureInstance } from '../models/creatures.js'
 // ActionTypes import removed - not used
 
 /**

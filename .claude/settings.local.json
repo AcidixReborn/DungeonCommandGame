@@ -9,7 +9,8 @@
       "Bash(npm run electron:dev:*)",
       "Bash(npm uninstall:*)",
       "Bash(npm start)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(node test-game-simulation.js:*)"
     ],
     "deny": [],
     "ask": []

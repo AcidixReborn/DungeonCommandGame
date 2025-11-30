@@ -1,9 +1,9 @@
 // Main factions file - imports all faction data from individual files
-import * as StingOfLolth from './factions/stingOfLolth'
-import * as HeartOfCormyr from './factions/heartOfCormyr'
-import * as TyrannyOfGoblins from './factions/tyrannyOfGoblins'
-import * as CurseOfUndeath from './factions/curseOfUndeath'
-import * as BloodOfGruumsh from './factions/bloodOfGruumsh'
+import * as StingOfLolth from './factions/stingOfLolth.js'
+import * as HeartOfCormyr from './factions/heartOfCormyr.js'
+import * as TyrannyOfGoblins from './factions/tyrannyOfGoblins.js'
+import * as CurseOfUndeath from './factions/curseOfUndeath.js'
+import * as BloodOfGruumsh from './factions/bloodOfGruumsh.js'
 
 // Faction name constants
 export const Factions = {
