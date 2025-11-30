@@ -43,15 +43,13 @@ function CommanderAbilitiesTest() {
   }
 
   const createOrderDeck = (faction) => {
-    const deck = []
-    for (let i = 0; i < 12; i++) {
-      deck.push(...sampleOrderCards[faction].map(o => new OrderCard(o)))
-    }
+    // Create single copy of each order card (no duplicates)
+    const deck = sampleOrderCards[faction].map(o => new OrderCard(o))
     return deck
   }
 
   /**
-   * Process attack queue with BLOODTHIRSTY, COWER, and BLACK HAND OF BANE ability tracking
+   * Process attack queue with BLOODTHIRSTY, COWER, UNSTOPPABLE HORDES and BLACK HAND OF BANE ability tracking
    */
   const processAttackQueue = (attackIntentions, gameState, abilityStats) => {
     const results = { attacksSuccessful: 0, damageDealt: 0, creaturesDestroyed: 0 }
@@ -67,36 +65,85 @@ function CommanderAbilitiesTest() {
       const attackerOwner = attackerInstance.owner
       const defenderOwner = defenderInstance.owner
 
-      // Check for COWER ability (UNSTOPPABLE HORDES) before executing attack
+      // Calculate incoming damage for defensive options
+      const incomingDamage = targetInfo.attackType === 'melee'
+        ? attackerInstance.creature.meleeAttack?.damage || 0
+        : attackerInstance.creature.rangedAttack?.damage || 0
+
+      // Check for defense options using the newer decideDefense method
       let damageReduction = 0
+      let defenseType = null
       const defenderAI = new SimpleAI(gameState, defenderOwner)
-      const cowerDecision = defenderAI.decideCower(defenderInstance, attackerOwner)
+      const defenseDecision = defenderAI.decideDefense
+        ? defenderAI.decideDefense(defenderInstance, incomingDamage, attackerOwner)
+        : { type: 'none', hadOpportunity: false }
 
-      if (cowerDecision.hadOpportunity) {
-        abilityStats.unstoppable_hordes.cowerGranted++
+      // Apply defense if AI decided to use one
+      if (defenseDecision.type === 'cower') {
+        // COWER: Avoid ALL damage
+        const cowerResult = gameState.applyCower
+          ? gameState.applyCower(defenderInstance, incomingDamage, attackerOwner)
+          : { success: false }
 
-        if (cowerDecision.useCower) {
-          // Apply COWER
-          const cowerResult = gameState.applyCower(defenderInstance, attackerOwner)
-          if (cowerResult.success) {
-            damageReduction = cowerResult.damageReduction
-            abilityStats.unstoppable_hordes.cowerUsed++
-            abilityStats.unstoppable_hordes.damagePrevented += damageReduction
-            abilityStats.unstoppable_hordes.moraleLost += cowerResult.moraleCost
+        if (cowerResult.success) {
+          damageReduction = cowerResult.damageAvoided
+          defenseType = 'cower'
+          abilityStats.unstoppable_hordes.cowerGranted++
+          abilityStats.unstoppable_hordes.cowerUsed++
+          abilityStats.unstoppable_hordes.damagePrevented += damageReduction
+          abilityStats.unstoppable_hordes.moraleLost += cowerResult.moraleCost
 
-            // Track BLACK HAND OF BANE if attacker has it
-            if (cowerDecision.cowerInfo.extraCost > 0) {
-              abilityStats.black_hand_of_bane.timesTriggered++
-              abilityStats.black_hand_of_bane.extraMoraleDrained += cowerDecision.cowerInfo.extraCost
-            }
+          // Track BLACK HAND OF BANE if extra cost was applied
+          if (cowerResult.extraCost > 0) {
+            abilityStats.black_hand_of_bane.timesTriggered++
+            abilityStats.black_hand_of_bane.extraMoraleDrained += cowerResult.extraCost
           }
+        }
+      } else if (defenseDecision.type === 'unstoppable_hordes') {
+        // UNSTOPPABLE HORDES: Prevent 20 damage per creature
+        let totalDamageReduction = 0
+        let creaturesUsed = 0
+
+        // Apply for defender if can use
+        if (defenseDecision.defenderCanUse) {
+          const result = gameState.applyUnstoppableHordes
+            ? gameState.applyUnstoppableHordes(defenderInstance)
+            : { success: false }
+
+          if (result.success) {
+            totalDamageReduction += result.damagePrevented
+            creaturesUsed++
+          }
+        }
+
+        // Apply for adjacent Undead creatures
+        for (const creature of defenseDecision.creatures || []) {
+          const result = gameState.applyUnstoppableHordes
+            ? gameState.applyUnstoppableHordes(creature)
+            : { success: false }
+
+          if (result.success) {
+            totalDamageReduction += result.damagePrevented
+            creaturesUsed++
+          }
+        }
+
+        if (creaturesUsed > 0) {
+          damageReduction = totalDamageReduction
+          defenseType = 'unstoppable_hordes'
+          abilityStats.unstoppable_hordes.cowerGranted++
+          abilityStats.unstoppable_hordes.cowerUsed++
+          abilityStats.unstoppable_hordes.damagePrevented += totalDamageReduction
+          abilityStats.unstoppable_hordes.moraleLost += creaturesUsed
         }
       }
 
-      // Execute the attack (with or without damage reduction)
+      // Execute the attack with or without damage reduction
       let attackResult
       if (damageReduction > 0) {
-        attackResult = gameState.executeAttackWithCower(attackerInstance, defenderInstance, targetInfo.attackType, damageReduction)
+        attackResult = gameState.executeAttackWithDefense
+          ? gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, damageReduction, defenseType)
+          : gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
       } else {
         attackResult = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
       }

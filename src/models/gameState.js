@@ -1221,21 +1221,23 @@ export class GameState {
 
   /**
    * Get all available defense options for a creature being attacked
-   * This includes COWER (universal) and UNSTOPPABLE HORDES (Morgana's Undead)
+   * This includes COWER (universal), UNSTOPPABLE HORDES (Morgana's Undead), and IMMEDIATE cards
    *
-   * Big O Complexity: O(a + t + 8) where a = abilities, t = types, 8 = adjacent tiles
-   * All are small constants, effectively O(1)
+   * Big O Complexity: O(a + t + 8 + h + c*8) where:
+   *   a = abilities, t = types, 8 = adjacent tiles, h = hand size, c = creatures in play
+   * Effectively O(h + c) since hand and creatures are the larger factors
    *
    * @param {CreatureInstance} defenderInstance - The creature being attacked
    * @param {number} incomingDamage - The damage amount
    * @param {string} attackerOwner - The attacker's owner ID
-   * @returns {Object} { cower: {...}, unstoppableHordes: {...}, adjacentUndead: [...] }
+   * @returns {Object} { cower: {...}, unstoppableHordes: {...}, adjacentUndead: [...], immediateCards: [...] }
    */
   getDefenseOptions(defenderInstance, incomingDamage, attackerOwner) {
     const options = {
       cower: null,
       unstoppableHordes: null,
-      adjacentUndead: []
+      adjacentUndead: [],
+      immediateCards: []
     }
 
     // Check COWER availability (universal)
@@ -1252,7 +1254,158 @@ export class GameState {
       options.adjacentUndead = this.getAdjacentUndeadForUnstoppableHordes(defenderInstance)
     }
 
+    // Check IMMEDIATE cards availability
+    options.immediateCards = this.getImmediateCardsForDefense(defenderInstance)
+
     return options
+  }
+
+  /**
+   * Get all IMMEDIATE cards that can be used for defense
+   * IMMEDIATE cards can be played by the defender or adjacent friendly creatures
+   * Each card prevents 10 damage and taps the creature that uses it
+   *
+   * Big O Complexity: O(h * c) where h = hand size, c = eligible creatures (max 9)
+   * In practice, hand size is small (5-10 cards) and creatures are limited
+   *
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @returns {Array} Array of { card, eligibleCreatures: [...] } objects
+   */
+  getImmediateCardsForDefense(defenderInstance) {
+    if (!defenderInstance || !defenderInstance.owner) {
+      return []
+    }
+
+    const player = this.players[defenderInstance.owner]
+    if (!player || !player.orderHand) {
+      return []
+    }
+
+    // Get all eligible creatures (defender + adjacent friendly untapped creatures)
+    const eligibleCreatures = this.getCreaturesForImmediateCard(defenderInstance)
+
+    // Find IMMEDIATE cards in hand
+    const immediateCards = []
+    for (const card of player.orderHand) {
+      if (card.isImmediate && card.isImmediate()) {
+        // Find which creatures can use this card
+        const creaturesForCard = eligibleCreatures.filter(creature => {
+          // Check if creature meets card requirements
+          return card.canBeUsedBy(creature.creature)
+        })
+
+        if (creaturesForCard.length > 0) {
+          immediateCards.push({
+            card,
+            eligibleCreatures: creaturesForCard,
+            damagePrevented: 10, // All IMMEDIATE cards prevent 10 damage when used defensively
+            moraleCost: 0 // No morale cost for immediate cards (card is discarded)
+          })
+        }
+      }
+    }
+
+    return immediateCards
+  }
+
+  /**
+   * Get all creatures that can use an IMMEDIATE card for defense
+   * Includes the defender (if untapped) and adjacent friendly untapped creatures
+   *
+   * Big O Complexity: O(8) = O(1) - Only checks 8 adjacent tiles plus defender
+   *
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @returns {Array} Array of CreatureInstances that can use immediate cards
+   */
+  getCreaturesForImmediateCard(defenderInstance) {
+    if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
+      return []
+    }
+
+    const eligibleCreatures = []
+
+    // Check if defender itself can use immediate cards (must be untapped)
+    if (!defenderInstance.isTapped) {
+      eligibleCreatures.push(defenderInstance)
+    }
+
+    // Check adjacent friendly creatures
+    const pos = defenderInstance.position
+    const directions = [
+      { dx: 0, dy: -1 },   // North
+      { dx: 1, dy: -1 },   // NE
+      { dx: 1, dy: 0 },    // East
+      { dx: 1, dy: 1 },    // SE
+      { dx: 0, dy: 1 },    // South
+      { dx: -1, dy: 1 },   // SW
+      { dx: -1, dy: 0 },   // West
+      { dx: -1, dy: -1 }   // NW
+    ]
+
+    for (const dir of directions) {
+      const tile = this.getTile(pos.x + dir.dx, pos.y + dir.dy)
+      if (!tile || !tile.occupant) continue
+
+      const adjacentCreature = tile.occupant
+
+      // Must be same owner and untapped
+      if (adjacentCreature.owner !== defenderInstance.owner) continue
+      if (adjacentCreature.isTapped) continue
+
+      eligibleCreatures.push(adjacentCreature)
+    }
+
+    return eligibleCreatures
+  }
+
+  /**
+   * Apply an IMMEDIATE card for defense
+   * - Discards the card from hand
+   * - Taps the creature that used the card
+   * - Returns damage prevention amount (10)
+   *
+   * Big O Complexity: O(h) where h = hand size for card removal
+   *
+   * @param {OrderCard} card - The immediate card to use
+   * @param {CreatureInstance} usingCreature - The creature using the card
+   * @returns {Object} { success: boolean, damagePrevented: number, cardUsed: card }
+   */
+  applyImmediateCardDefense(card, usingCreature) {
+    if (!card || !usingCreature || !usingCreature.owner) {
+      return { success: false, damagePrevented: 0, cardUsed: null }
+    }
+
+    // Verify creature is untapped
+    if (usingCreature.isTapped) {
+      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'creature_tapped' }
+    }
+
+    // Verify card is in player's hand
+    const player = this.players[usingCreature.owner]
+    const cardIndex = player.orderHand.findIndex(c => c.id === card.id)
+    if (cardIndex === -1) {
+      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'card_not_in_hand' }
+    }
+
+    // Verify creature can use the card
+    if (!card.canBeUsedBy(usingCreature.creature)) {
+      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'creature_cannot_use' }
+    }
+
+    // Remove card from hand (discard it)
+    player.orderHand.splice(cardIndex, 1)
+    if (player.orderDiscard) {
+      player.orderDiscard.push(card)
+    }
+
+    // Tap the creature
+    usingCreature.tap()
+
+    return {
+      success: true,
+      damagePrevented: 10, // All IMMEDIATE cards prevent 10 damage
+      cardUsed: card
+    }
   }
 
   /**

@@ -168,12 +168,9 @@ function GameBoard() {
       return deck
     }
 
-    // Create 36 order cards (12 copies of each unique order)
+    // Create 32 order cards (one of each unique order card #1-#32)
     const createOrderDeck = (faction) => {
-      const deck = []
-      for (let i = 0; i < 12; i++) {
-        deck.push(...sampleOrderCards[faction].map(o => new OrderCard(o)))
-      }
+      const deck = sampleOrderCards[faction].map(o => new OrderCard(o))
       return deck
     }
 
@@ -585,21 +582,39 @@ function GameBoard() {
 
   /**
    * Handle defense selection from ImmediateReactionModal
-   * Supports both COWER (universal) and UNSTOPPABLE HORDES (Morgana's Undead)
+   * Supports COWER (universal), UNSTOPPABLE HORDES (Morgana's Undead), and IMMEDIATE cards
+   * After using a defense, checks if more defensive options are available and re-shows modal
    *
    * Big O Complexity: O(c) where c = creatures selected for UNSTOPPABLE HORDES (max 9)
    *
-   * @param {Object} defense - { type: 'cower' | 'unstoppable_hordes' | 'skip', damageReduction, moraleCost, creatures }
+   * @param {Object} defense - { type: 'cower' | 'unstoppable_hordes' | 'immediate_card' | 'skip', damageReduction, moraleCost, creatures, card, creature }
    */
   const handleDefenseSelected = (defense) => {
     if (!pendingAttack) return
 
     const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
 
+    // Get current accumulated damage reduction (or initialize to 0)
+    const accumulatedReduction = pendingAttack.accumulatedDamageReduction || 0
+
+    // Calculate original incoming damage
+    const originalDamage = targetInfo.attackType === 'melee'
+      ? attackerInstance.creature.meleeAttack?.damage || 0
+      : attackerInstance.creature.rangedAttack?.damage || 0
+
     if (defense.type === 'skip') {
-      // No defense - execute attack normally
+      // No more defense - execute attack with accumulated reduction
       setShowReactionModal(false)
-      executeAttackAfterReactions([])
+      if (accumulatedReduction > 0) {
+        executeAttackAfterDefense({
+          type: 'stacked_defense',
+          damageReduction: accumulatedReduction,
+          moraleCost: 0,
+          success: true
+        })
+      } else {
+        executeAttackAfterReactions([])
+      }
       return
     }
 
@@ -607,9 +622,7 @@ function GameBoard() {
       // COWER: Avoid ALL damage, pay morale, tap creature
       const cowerResult = gameState.applyCower(
         defenderInstance,
-        targetInfo.attackType === 'melee'
-          ? attackerInstance.creature.meleeAttack?.damage || 0
-          : attackerInstance.creature.rangedAttack?.damage || 0,
+        originalDamage,
         attackerInstance.owner
       )
 
@@ -640,11 +653,65 @@ function GameBoard() {
       setShowReactionModal(false)
       executeAttackAfterDefense({
         type: 'unstoppable_hordes',
-        damageReduction: totalDamageReduction,
+        damageReduction: totalDamageReduction + accumulatedReduction,
         moraleCost: totalMoraleCost,
         tappedCreatures,
         success: totalDamageReduction > 0
       })
+    } else if (defense.type === 'immediate_card') {
+      // IMMEDIATE CARD: Prevent 10 damage, discard card, tap creature
+      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature)
+
+      if (result.success) {
+        const newAccumulatedReduction = accumulatedReduction + result.damagePrevented
+        const remainingDamage = originalDamage - newAccumulatedReduction
+
+        // Check if there are more defensive options available
+        if (remainingDamage > 0) {
+          const moreOptions = gameState.getDefenseOptions(defenderInstance, remainingDamage, attackerInstance.owner)
+          const hasMoreOptions = moreOptions.cower?.canCower ||
+                                  moreOptions.unstoppableHordes?.canUse ||
+                                  moreOptions.adjacentUndead?.length > 0 ||
+                                  moreOptions.immediateCards?.length > 0
+
+          if (hasMoreOptions) {
+            // Update pendingAttack with accumulated reduction and re-show modal
+            setPendingAttack({
+              ...pendingAttack,
+              accumulatedDamageReduction: newAccumulatedReduction
+            })
+            // Force re-render of modal by toggling it
+            setShowReactionModal(false)
+            setTimeout(() => setShowReactionModal(true), 0)
+            return
+          }
+        }
+
+        // No more options or damage fully prevented - execute attack
+        setShowReactionModal(false)
+        executeAttackAfterDefense({
+          type: 'immediate_card',
+          damageReduction: newAccumulatedReduction,
+          moraleCost: 0,
+          cardUsed: result.cardUsed?.name || defense.card.name,
+          creatureTapped: defense.creature.creature.name,
+          success: true
+        })
+      } else {
+        // Failed to use immediate card - show error or just skip
+        console.warn('Failed to use IMMEDIATE card:', result.reason)
+        setShowReactionModal(false)
+        if (accumulatedReduction > 0) {
+          executeAttackAfterDefense({
+            type: 'stacked_defense',
+            damageReduction: accumulatedReduction,
+            moraleCost: 0,
+            success: true
+          })
+        } else {
+          executeAttackAfterReactions([])
+        }
+      }
     }
   }
 
@@ -1584,7 +1651,7 @@ function GameBoard() {
         </div>
       </div>
 
-      {/* Immediate Reaction Modal - Defense Options (COWER / UNSTOPPABLE HORDES) */}
+      {/* Immediate Reaction Modal - Defense Options (COWER / UNSTOPPABLE HORDES / IMMEDIATE Cards) */}
       {pendingAttack && (
         <ImmediateReactionModal
           show={showReactionModal}
@@ -1592,6 +1659,7 @@ function GameBoard() {
           defenderInstance={pendingAttack.defenderInstance}
           defenderPlayerState={gameState.players[pendingAttack.defenderInstance.owner]}
           gameState={gameState}
+          accumulatedDamageReduction={pendingAttack.accumulatedDamageReduction || 0}
           onDefenseSelected={handleDefenseSelected}
           onCardsPlayed={handleReactionsPlayed}
           onSkip={handleReactionsSkipped}

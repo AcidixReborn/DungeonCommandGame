@@ -223,12 +223,12 @@ function createCreatureDeck(faction) {
 
 /**
  * Create an order deck for a faction
+ * Each faction has 32 unique order cards (numbered #1-#32)
+ * Only one copy of each card exists in the deck
  */
 function createOrderDeck(faction) {
-  const deck = []
-  for (let i = 0; i < 12; i++) {
-    deck.push(...sampleOrderCards[faction].map(o => new OrderCard(o)))
-  }
+  // Create single copy of each order card (no duplicates)
+  const deck = sampleOrderCards[faction].map(o => new OrderCard(o))
   return deck
 }
 
@@ -791,14 +791,22 @@ function runGameSimulation(gameNum, numPlayers = 2) {
 // ============================================================================
 
 /**
+ * Helper to format average per game
+ */
+function avgPerGame(total) {
+  if (stats.gamesCompleted === 0) return '0.00'
+  return (total / stats.gamesCompleted).toFixed(2)
+}
+
+/**
  * Print comprehensive results
  */
 function printResults() {
-  const divider = '='.repeat(70)
-  const subDivider = '-'.repeat(70)
+  const divider = '='.repeat(80)
+  const subDivider = '-'.repeat(80)
 
   console.log('\n' + divider)
-  console.log('COMMANDER ABILITIES TEST RESULTS v2.0')
+  console.log('COMMANDER ABILITIES TEST RESULTS v2.1')
   console.log(divider)
 
   // ===== Core Statistics =====
@@ -811,90 +819,92 @@ function printResults() {
   // ===== Turn Statistics =====
   console.log('\n[TURN STATISTICS]')
   const avgTurns = stats.gamesCompleted > 0 ? (stats.totalTurns / stats.gamesCompleted).toFixed(2) : 'N/A'
-  console.log(`  Average Turns: ${avgTurns}`)
+  console.log(`  Average Turns per Game: ${avgTurns}`)
   console.log(`  Min Turns: ${stats.minTurns === Infinity ? 'N/A' : stats.minTurns}`)
   console.log(`  Max Turns: ${stats.maxTurns}`)
-  console.log(`  Infinite Loops: ${stats.infiniteLoops}`)
+  console.log(`  Total Turns (all games): ${stats.totalTurns}`)
+  console.log(`  Infinite Loops Detected: ${stats.infiniteLoops}`)
 
   // ===== Combat Statistics =====
   console.log('\n[COMBAT STATISTICS]')
-  console.log(`  Attacks Attempted: ${stats.attacksAttempted}`)
-  console.log(`  Attacks Successful: ${stats.attacksSuccessful}`)
-  console.log(`  Total Damage Dealt: ${stats.totalDamageDealt}`)
-  console.log(`  Creatures Destroyed: ${stats.creaturesDestroyed}`)
-  console.log(`  Creatures Deployed: ${stats.creaturesDeployed}`)
+  console.log(`                              TOTAL       AVG/GAME`)
+  console.log(`  Attacks Attempted:         ${String(stats.attacksAttempted).padStart(6)}       ${avgPerGame(stats.attacksAttempted)}`)
+  console.log(`  Attacks Successful:        ${String(stats.attacksSuccessful).padStart(6)}       ${avgPerGame(stats.attacksSuccessful)}`)
+  console.log(`  Total Damage Dealt:        ${String(stats.totalDamageDealt).padStart(6)}       ${avgPerGame(stats.totalDamageDealt)}`)
+  console.log(`  Creatures Destroyed:       ${String(stats.creaturesDestroyed).padStart(6)}       ${avgPerGame(stats.creaturesDestroyed)}`)
+  console.log(`  Creatures Deployed:        ${String(stats.creaturesDeployed).padStart(6)}       ${avgPerGame(stats.creaturesDeployed)}`)
 
   // ===== COMMANDER ABILITY STATISTICS =====
   console.log('\n' + divider)
-  console.log('COMMANDER ABILITY STATISTICS')
+  console.log('COMMANDER ABILITY STATISTICS (TOTAL / AVG PER GAME)')
   console.log(divider)
 
   // Blood of Gruumsh
   console.log('\n[BLOOD OF GRUUMSH]')
   console.log(`  GRUUMSH COMMANDS IT (PASSIVE - Ignore Difficult Terrain):`)
-  console.log(`    Times Triggered: ${stats.abilityStats.gruumsh_commands_it.timesTriggered}`)
-  console.log(`    Tiles on Difficult Terrain: ${stats.abilityStats.gruumsh_commands_it.tilesMovedOnDifficult}`)
-  console.log(`    Movement Saved: ${stats.abilityStats.gruumsh_commands_it.movementSaved}`)
+  console.log(`    Times Triggered:           ${String(stats.abilityStats.gruumsh_commands_it.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.gruumsh_commands_it.timesTriggered)}/game)`)
+  console.log(`    Tiles on Difficult:        ${String(stats.abilityStats.gruumsh_commands_it.tilesMovedOnDifficult).padStart(6)}    (${avgPerGame(stats.abilityStats.gruumsh_commands_it.tilesMovedOnDifficult)}/game)`)
+  console.log(`    Movement Points Saved:     ${String(stats.abilityStats.gruumsh_commands_it.movementSaved).padStart(6)}    (${avgPerGame(stats.abilityStats.gruumsh_commands_it.movementSaved)}/game)`)
 
-  console.log(`  ORC SCOUT (ACTIVE - Deploy to Treasure):`)
-  console.log(`    Times Available: ${stats.abilityStats.orc_scout.timesAvailable}`)
-  console.log(`    Times Used: ${stats.abilityStats.orc_scout.timesUsed}`)
-  console.log(`    Orcs Deployed to Treasure: ${stats.abilityStats.orc_scout.orcsDeployedToTreasure}`)
+  console.log(`  ORC SCOUT (ACTIVE - Deploy Orc to Treasure):`)
+  console.log(`    Times Available:           ${String(stats.abilityStats.orc_scout.timesAvailable).padStart(6)}    (${avgPerGame(stats.abilityStats.orc_scout.timesAvailable)}/game)`)
+  console.log(`    Times Used:                ${String(stats.abilityStats.orc_scout.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.orc_scout.timesUsed)}/game)`)
+  console.log(`    Orcs Deployed to Treasure: ${String(stats.abilityStats.orc_scout.orcsDeployedToTreasure).padStart(6)}    (${avgPerGame(stats.abilityStats.orc_scout.orcsDeployedToTreasure)}/game)`)
 
   // Sting of Lolth
   console.log('\n[STING OF LOLTH]')
   console.log(`  WALLS OF WEB (PASSIVE - +2 Speed to Drow/Spider):`)
-  console.log(`    Times Applied: ${stats.abilityStats.walls_of_web.timesApplied}`)
-  console.log(`    Extra Tiles Moved: ${stats.abilityStats.walls_of_web.extraTilesMoved}`)
+  console.log(`    Times Applied:             ${String(stats.abilityStats.walls_of_web.timesApplied).padStart(6)}    (${avgPerGame(stats.abilityStats.walls_of_web.timesApplied)}/game)`)
+  console.log(`    Extra Tiles Moved:         ${String(stats.abilityStats.walls_of_web.extraTilesMoved).padStart(6)}    (${avgPerGame(stats.abilityStats.walls_of_web.extraTilesMoved)}/game)`)
 
-  console.log(`  SELLSWORD (ACTIVE - Card Instead of Morale):`)
-  console.log(`    Times Triggered: ${stats.abilityStats.sellsword.timesTriggered}`)
-  console.log(`    Chose Morale: ${stats.abilityStats.sellsword.choseMorale}`)
-  console.log(`    Chose Card: ${stats.abilityStats.sellsword.choseCard}`)
+  console.log(`  SELLSWORD (ACTIVE - Card or +1 Morale on Treasure):`)
+  console.log(`    Times Triggered:           ${String(stats.abilityStats.sellsword.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.sellsword.timesTriggered)}/game)`)
+  console.log(`    Chose +1 Morale:           ${String(stats.abilityStats.sellsword.choseMorale).padStart(6)}    (${avgPerGame(stats.abilityStats.sellsword.choseMorale)}/game)`)
+  console.log(`    Chose Draw Card:           ${String(stats.abilityStats.sellsword.choseCard).padStart(6)}    (${avgPerGame(stats.abilityStats.sellsword.choseCard)}/game)`)
 
   // Curse of Undeath
   console.log('\n[CURSE OF UNDEATH]')
   console.log(`  BLOODTHIRSTY (PASSIVE - +1 Leadership on Kill):`)
-  console.log(`    Times Triggered: ${stats.abilityStats.bloodthirsty.timesTriggered}`)
-  console.log(`    Leadership Gained: ${stats.abilityStats.bloodthirsty.leadershipGained}`)
+  console.log(`    Times Triggered:           ${String(stats.abilityStats.bloodthirsty.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.bloodthirsty.timesTriggered)}/game)`)
+  console.log(`    Leadership Gained:         ${String(stats.abilityStats.bloodthirsty.leadershipGained).padStart(6)}    (${avgPerGame(stats.abilityStats.bloodthirsty.leadershipGained)}/game)`)
 
-  console.log(`  UNSTOPPABLE HORDES (PASSIVE - Undead prevent 20 damage each):`)
-  console.log(`    Times Used: ${stats.abilityStats.unstoppable_hordes.timesUsed}`)
-  console.log(`    Creatures Used: ${stats.abilityStats.unstoppable_hordes.creaturesUsed}`)
-  console.log(`    Morale Lost: ${stats.abilityStats.unstoppable_hordes.moraleLost}`)
-  console.log(`    Damage Prevented: ${stats.abilityStats.unstoppable_hordes.damagePrevented}`)
-  console.log(`    Adjacent Undead Helped: ${stats.abilityStats.unstoppable_hordes.adjacentUndeadHelped}`)
+  console.log(`  UNSTOPPABLE HORDES (PASSIVE - Undead prevent 20 damage):`)
+  console.log(`    Times Used:                ${String(stats.abilityStats.unstoppable_hordes.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.timesUsed)}/game)`)
+  console.log(`    Creatures Used:            ${String(stats.abilityStats.unstoppable_hordes.creaturesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.creaturesUsed)}/game)`)
+  console.log(`    Morale Lost:               ${String(stats.abilityStats.unstoppable_hordes.moraleLost).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.moraleLost)}/game)`)
+  console.log(`    Damage Prevented:          ${String(stats.abilityStats.unstoppable_hordes.damagePrevented).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.damagePrevented)}/game)`)
+  console.log(`    Adjacent Undead Helped:    ${String(stats.abilityStats.unstoppable_hordes.adjacentUndeadHelped).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.adjacentUndeadHelped)}/game)`)
 
   // Universal Mechanics
   console.log('\n[UNIVERSAL MECHANICS]')
   console.log(`  COWER (UNIVERSAL - Avoid ALL damage, costs damage/10 morale):`)
-  console.log(`    Times Used: ${stats.abilityStats.cower.timesUsed}`)
-  console.log(`    Morale Lost: ${stats.abilityStats.cower.moraleLost}`)
-  console.log(`    Damage Avoided: ${stats.abilityStats.cower.damageAvoided}`)
-  console.log(`    BLACK HAND OF BANE Extra Cost: ${stats.abilityStats.cower.blackHandOfBaneExtra}`)
+  console.log(`    Times Used:                ${String(stats.abilityStats.cower.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.timesUsed)}/game)`)
+  console.log(`    Morale Lost:               ${String(stats.abilityStats.cower.moraleLost).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.moraleLost)}/game)`)
+  console.log(`    Damage Avoided:            ${String(stats.abilityStats.cower.damageAvoided).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.damageAvoided)}/game)`)
+  console.log(`    BLACK HAND Extra Cost:     ${String(stats.abilityStats.cower.blackHandOfBaneExtra).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.blackHandOfBaneExtra)}/game)`)
 
   // Tyranny of Goblins
   console.log('\n[TYRANNY OF GOBLINS]')
-  console.log(`  HORDE (PASSIVE - Deploy in Refresh):`)
-  console.log(`    Times Used: ${stats.abilityStats.horde.timesUsed}`)
-  console.log(`    Creatures Deployed: ${stats.abilityStats.horde.creaturesDeployed}`)
+  console.log(`  HORDE (PASSIVE - Deploy creature in Refresh phase):`)
+  console.log(`    Times Used:                ${String(stats.abilityStats.horde.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.horde.timesUsed)}/game)`)
+  console.log(`    Creatures Deployed:        ${String(stats.abilityStats.horde.creaturesDeployed).padStart(6)}    (${avgPerGame(stats.abilityStats.horde.creaturesDeployed)}/game)`)
 
-  console.log(`  BLACK HAND OF BANE (PASSIVE - Extra Cower Penalty):`)
-  console.log(`    Times Triggered: ${stats.abilityStats.black_hand_of_bane.timesTriggered}`)
-  console.log(`    Extra Morale Drained: ${stats.abilityStats.black_hand_of_bane.extraMoraleDrained}`)
+  console.log(`  BLACK HAND OF BANE (PASSIVE - +1 Enemy Cower Cost):`)
+  console.log(`    Times Triggered:           ${String(stats.abilityStats.black_hand_of_bane.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.black_hand_of_bane.timesTriggered)}/game)`)
+  console.log(`    Extra Morale Drained:      ${String(stats.abilityStats.black_hand_of_bane.extraMoraleDrained).padStart(6)}    (${avgPerGame(stats.abilityStats.black_hand_of_bane.extraMoraleDrained)}/game)`)
 
   // Heart of Cormyr
   console.log('\n[HEART OF CORMYR]')
-  console.log(`  SCROLLBOOK (ACTIVE - Discard to Draw):`)
-  console.log(`    Times Available: ${stats.abilityStats.scrollbook.timesAvailable}`)
-  console.log(`    Times Used: ${stats.abilityStats.scrollbook.timesUsed}`)
-  console.log(`    Cards Cycled: ${stats.abilityStats.scrollbook.cardsDrawn}`)
+  console.log(`  SCROLLBOOK (ACTIVE - Discard order card to draw one):`)
+  console.log(`    Times Available:           ${String(stats.abilityStats.scrollbook.timesAvailable).padStart(6)}    (${avgPerGame(stats.abilityStats.scrollbook.timesAvailable)}/game)`)
+  console.log(`    Times Used:                ${String(stats.abilityStats.scrollbook.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.scrollbook.timesUsed)}/game)`)
+  console.log(`    Cards Cycled:              ${String(stats.abilityStats.scrollbook.cardsDrawn).padStart(6)}    (${avgPerGame(stats.abilityStats.scrollbook.cardsDrawn)}/game)`)
 
-  console.log(`  VERSATILE (ACTIVE - Extra Move for Adventurers):`)
-  console.log(`    Times Triggered: ${stats.abilityStats.versatile.timesTriggered}`)
-  console.log(`    Extra Moves Used: ${stats.abilityStats.versatile.extraMovesUsed}`)
-  console.log(`    Extra Moves Declined: ${stats.abilityStats.versatile.extraMoveDeclined}`)
-  console.log(`    Extra Tiles Moved: ${stats.abilityStats.versatile.totalExtraTilesMoved}`)
+  console.log(`  VERSATILE (ACTIVE - Extra 2-tile move for Adventurers):`)
+  console.log(`    Times Triggered:           ${String(stats.abilityStats.versatile.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.timesTriggered)}/game)`)
+  console.log(`    Extra Moves Used:          ${String(stats.abilityStats.versatile.extraMovesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.extraMovesUsed)}/game)`)
+  console.log(`    Extra Moves Declined:      ${String(stats.abilityStats.versatile.extraMoveDeclined).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.extraMoveDeclined)}/game)`)
+  console.log(`    Extra Tiles Moved:         ${String(stats.abilityStats.versatile.totalExtraTilesMoved).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.totalExtraTilesMoved)}/game)`)
 
   // ===== Faction Balance =====
   console.log('\n' + subDivider)
