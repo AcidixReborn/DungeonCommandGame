@@ -16,7 +16,18 @@ export const commanders = [
     startingMorale: 12,
     startingLeadership: 7,
     specialAbilityDescription: 'SCROLLBOOK: Once during your turn, you can discard 1 Order card from your hand to draw 1 Order card.',
-    imageUrl: cormyrCmd1
+    imageUrl: cormyrCmd1,
+    abilities: [{
+      id: 'scrollbook',
+      name: 'SCROLLBOOK',
+      type: 'ACTIVE',
+      category: 'RESOURCE',
+      description: 'Once during your turn, you can discard 1 Order card from your hand to draw 1 Order card.',
+      effect: {
+        discardToDraw: true,
+        usesPerTurn: 1
+      }
+    }]
   },
   {
     id: 'hoc_cmd_2',
@@ -27,7 +38,18 @@ export const commanders = [
     startingMorale: 14,
     startingLeadership: 7,
     specialAbilityDescription: 'VERSATILE: Each Adventurer you control can use a standard action to move up to its Speed.',
-    imageUrl: cormyrCmd2
+    imageUrl: cormyrCmd2,
+    abilities: [{
+      id: 'versatile',
+      name: 'VERSATILE',
+      type: 'ACTIVE',
+      category: 'COMBAT',
+      description: 'Each Adventurer you control can use a standard action to move up to its Speed.',
+      effect: {
+        moveAsAction: true,
+        creatureTypesAffected: ['Adventurer']
+      }
+    }]
   }
 ]
 
@@ -36,7 +58,7 @@ export const creatures = [
     id: 'hoc_cr_1',
     name: 'Knight',
     level: 5,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 6,
     hitPoints: 100,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
@@ -50,7 +72,7 @@ export const creatures = [
     id: 'hoc_cr_2',
     name: 'Cleric',
     level: 4,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 6,
     hitPoints: 80,
     abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: true, CHA: true },
@@ -78,7 +100,7 @@ export const creatures = [
     id: 'hoc_cr_4',
     name: 'Defender',
     level: 3,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 6,
     hitPoints: 60,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
@@ -92,7 +114,7 @@ export const creatures = [
     id: 'hoc_cr_5',
     name: 'Paladin #5',
     level: 4,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 6,
     hitPoints: 85,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
@@ -106,7 +128,7 @@ export const creatures = [
     id: 'hoc_cr_6',
     name: 'Wizard #6',
     level: 3,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 6,
     hitPoints: 55,
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: false },
@@ -120,7 +142,7 @@ export const creatures = [
     id: 'hoc_cr_7',
     name: 'Archer #7',
     level: 3,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 7,
     hitPoints: 60,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
@@ -134,7 +156,7 @@ export const creatures = [
     id: 'hoc_cr_8',
     name: 'Fighter #8',
     level: 2,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 6,
     hitPoints: 50,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
@@ -148,7 +170,7 @@ export const creatures = [
     id: 'hoc_cr_9',
     name: 'Rogue #9',
     level: 2,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 7,
     hitPoints: 45,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
@@ -176,7 +198,7 @@ export const creatures = [
     id: 'hoc_cr_11',
     name: 'Soldier #11',
     level: 1,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 6,
     hitPoints: 35,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
@@ -190,7 +212,7 @@ export const creatures = [
     id: 'hoc_cr_12',
     name: 'Militia #12',
     level: 1,
-    type: ['Humanoid', 'Human', 'Good'],
+    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
     speed: 6,
     hitPoints: 30,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },

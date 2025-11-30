@@ -14,7 +14,17 @@ export const commanders = [
     startingMorale: 14,
     startingLeadership: 7,
     specialAbilityDescription: 'HORDE: You can deploy creatures during your Refresh Phase.',
-    imageUrl: goblinsCmd1
+    imageUrl: goblinsCmd1,
+    abilities: [{
+      id: 'horde',
+      name: 'HORDE',
+      type: 'PASSIVE',
+      category: 'DEPLOYMENT',
+      description: 'You can deploy creatures during your Refresh Phase.',
+      effect: {
+        deployInRefreshPhase: true
+      }
+    }]
   },
   {
     id: 'tog_cmd_2',
@@ -25,7 +35,17 @@ export const commanders = [
     startingMorale: 12,
     startingLeadership: 9,
     specialAbilityDescription: 'BLACK HAND OF BANE: Whenever an enemy creature cowers, its controller loses 1 extra Morale.',
-    imageUrl: goblinsCmd2
+    imageUrl: goblinsCmd2,
+    abilities: [{
+      id: 'black_hand_of_bane',
+      name: 'BLACK HAND OF BANE',
+      type: 'PASSIVE',
+      category: 'COMBAT',
+      description: 'Whenever an enemy creature cowers, its controller loses 1 extra Morale.',
+      effect: {
+        extraCowerMoraleLoss: 1
+      }
+    }]
   }
 ]
 

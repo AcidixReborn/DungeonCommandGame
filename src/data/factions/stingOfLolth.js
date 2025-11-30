@@ -17,7 +17,18 @@ export const commanders = [
     startingMorale: 13,
     startingLeadership: 7,
     specialAbilityDescription: 'WALLS OF WEB: Add 2 to the Speed of each Spider and Drow you control.',
-    imageUrl: lolthCmd1
+    imageUrl: lolthCmd1,
+    abilities: [{
+      id: 'walls_of_web',
+      name: 'WALLS OF WEB',
+      type: 'PASSIVE',
+      category: 'SPEED',
+      description: 'Add 2 to the Speed of each Spider and Drow you control.',
+      effect: {
+        speedBonus: 2,
+        creatureTypesAffected: ['Spider', 'Drow']
+      }
+    }]
   },
   {
     id: 'sol_cmd_2',
@@ -28,7 +39,19 @@ export const commanders = [
     startingMorale: 12,
     startingLeadership: 9,
     specialAbilityDescription: 'SELLSWORD: Whenever a Drow you control collects a Treasure token, you can draw 1 Order card instead of gaining 1 Morale.',
-    imageUrl: lolthCmd2
+    imageUrl: lolthCmd2,
+    abilities: [{
+      id: 'sellsword',
+      name: 'SELLSWORD',
+      type: 'ACTIVE',
+      category: 'RESOURCE',
+      description: 'Whenever a Drow you control collects a Treasure token, you can draw 1 Order card instead of gaining 1 Morale.',
+      effect: {
+        triggerOnTreasure: true,
+        creatureTypeRequired: 'Drow',
+        choices: ['morale', 'card']  // Player chooses +1 morale or draw 1 card
+      }
+    }]
   }
 ]
 

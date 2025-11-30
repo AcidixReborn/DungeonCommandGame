@@ -21,7 +21,10 @@ export class SimpleAI {
 
     switch (phase) {
       case GamePhases.REFRESH:
-        // Refresh is automatic, no decisions needed
+        // Check for HORDE ability - allows deployment during REFRESH phase
+        if (this.gameState.canDeployDuringRefresh && this.gameState.canDeployDuringRefresh(this.playerId)) {
+          return this.executeDeployPhase(true) // Pass true to indicate HORDE deployment
+        }
         return { action: 'advance', message: 'AI refreshed' }
 
       case GamePhases.ACTIVATE:
@@ -139,8 +142,10 @@ export class SimpleAI {
    * - Filter tiles: O(Z)
    * - Sort creatures: O(C log C)
    * - Deploy loop: O(C) iterations, each O(1)
+   *
+   * @param {boolean} isHordeDeploy - True if this is HORDE ability deployment during REFRESH
    */
-  executeDeployPhase() {
+  executeDeployPhase(isHordeDeploy = false) {
     const player = this.gameState.players[this.playerId]
     const actions = []
 
@@ -150,6 +155,44 @@ export class SimpleAI {
     const startingZoneTiles = player.startingZoneTiles
       .map(coord => this.gameState.getTile(coord.x, coord.y))
       .filter(tile => tile && !tile.occupant)
+
+    // Check for ORC SCOUT ability - can deploy one Orc to treasure tile on turn 1
+    if (this.gameState.turnNumber === 1 &&
+        this.gameState.canUseOrcScout &&
+        this.gameState.canUseOrcScout(this.playerId)) {
+      const treasureTiles = this.gameState.getOrcScoutValidTiles ? this.gameState.getOrcScoutValidTiles() : []
+      const orcsInHand = player.creatureHand.filter(c => c.type && c.type.includes('Orc'))
+
+      if (treasureTiles.length > 0 && orcsInHand.length > 0 && Math.random() < 0.7) {
+        // 70% chance to use ORC SCOUT
+        const orcCard = orcsInHand[Math.floor(Math.random() * orcsInHand.length)]
+        const treasureTile = treasureTiles[Math.floor(Math.random() * treasureTiles.length)]
+
+        if (player.canDeployCreature(orcCard)) {
+          const creatureIndex = player.creatureHand.indexOf(orcCard)
+          const creatureInstance = new CreatureInstance(orcCard, this.playerId)
+          creatureInstance.position = { x: treasureTile.x, y: treasureTile.y }
+          creatureInstance.markAsDeployed(this.gameState.turnNumber)
+
+          player.creaturesInPlay.push(creatureInstance)
+          player.creatureHand.splice(creatureIndex, 1)
+          treasureTile.occupant = creatureInstance
+
+          // Mark ORC SCOUT as used
+          if (this.gameState.markOrcScoutUsed) {
+            this.gameState.markOrcScoutUsed(this.playerId)
+          }
+
+          actions.push({
+            type: 'deploy',
+            creature: orcCard.name,
+            creatureTypes: orcCard.type || [],
+            position: { x: treasureTile.x, y: treasureTile.y },
+            isOrcScout: true
+          })
+        }
+      }
+    }
 
     // Deploy creatures in order of level (highest first) until out of leadership
     const sortedCreatures = [...player.creatureHand].sort((a, b) => b.level - a.level)
@@ -181,7 +224,9 @@ export class SimpleAI {
       actions.push({
         type: 'deploy',
         creature: creatureCard.name,
-        position: { x: tile.x, y: tile.y }
+        creatureTypes: creatureCard.type || [],
+        position: { x: tile.x, y: tile.y },
+        isHordeDeploy: isHordeDeploy
       })
     }
 
@@ -191,7 +236,7 @@ export class SimpleAI {
 
     return {
       action: 'advance',
-      message: `AI deployed ${actions.length} creature(s)`,
+      message: `AI deployed ${actions.length} creature(s)${isHordeDeploy ? ' (HORDE)' : ''}`,
       actions
     }
   }
@@ -500,6 +545,81 @@ export class SimpleAI {
     }
 
     return { reactions: [], hadOpportunity } // Decided not to use reactions (but could have!)
+  }
+
+  /**
+   * Decide whether to use COWER ability (UNSTOPPABLE HORDES) when being attacked
+   * Returns object with cower decision and info
+   *
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @param {string} attackerOwner - Owner of the attacking creature (for BLACK HAND OF BANE check)
+   * @returns {Object} { useCower: boolean, cowerInfo: Object, hadOpportunity: boolean }
+   */
+  decideCower(defenderInstance, attackerOwner) {
+    // Check if COWER is available for this creature
+    if (!this.gameState.canUseCower) {
+      return { useCower: false, cowerInfo: null, hadOpportunity: false }
+    }
+
+    const cowerInfo = this.gameState.canUseCower(defenderInstance, attackerOwner)
+
+    if (!cowerInfo.canCower) {
+      return { useCower: false, cowerInfo: null, hadOpportunity: false }
+    }
+
+    // We have the opportunity to cower!
+    const hadOpportunity = true
+    const player = this.gameState.players[this.playerId]
+
+    // Decision factors:
+    // 1. Current morale level
+    // 2. Creature's importance (level)
+    // 3. How much damage would be prevented vs morale cost
+    // 4. Current HP of defender
+
+    const defenderHP = defenderInstance.currentHP || defenderInstance.creature.hp
+    const defenderMaxHP = defenderInstance.creature.hp
+    const creatureLevel = defenderInstance.creature.level || 1
+    const currentMorale = player.morale
+
+    // Base chance to use COWER
+    let useChance = 50 // 50% base
+
+    // Increase chance if creature is valuable (high level)
+    if (creatureLevel >= 5) {
+      useChance += 30
+    } else if (creatureLevel >= 3) {
+      useChance += 15
+    }
+
+    // Increase chance if creature is low HP
+    const hpPercentage = (defenderHP / defenderMaxHP) * 100
+    if (hpPercentage < 30) {
+      useChance += 25
+    } else if (hpPercentage < 60) {
+      useChance += 10
+    }
+
+    // Decrease chance if morale is critically low
+    if (currentMorale <= 3) {
+      useChance -= 40 // Don't waste morale when nearly defeated
+    } else if (currentMorale <= 5) {
+      useChance -= 20
+    }
+
+    // Decrease chance if extra cost from BLACK HAND OF BANE
+    if (cowerInfo.extraCost > 0) {
+      useChance -= 15
+    }
+
+    // Make decision
+    const shouldUseCower = Math.random() * 100 < useChance
+
+    return {
+      useCower: shouldUseCower,
+      cowerInfo: cowerInfo,
+      hadOpportunity: hadOpportunity
+    }
   }
 }
 

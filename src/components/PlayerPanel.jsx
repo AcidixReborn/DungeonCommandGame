@@ -1,4 +1,4 @@
-import { Card, Badge, ProgressBar, Row, Col } from 'react-bootstrap'
+import { Card, Badge, ProgressBar, Row, Col, Button } from 'react-bootstrap'
 import CreatureCard from './CreatureCard'
 import OrderCard from './OrderCard'
 import './PlayerPanel.css'
@@ -20,6 +20,8 @@ import './PlayerPanel.css'
  * @param {string} currentPhase - Current game phase
  * @param {boolean} horizontal - Use horizontal layout
  * @param {boolean} vertical - Use vertical layout
+ * @param {boolean} canUseScrollbook - Whether SCROLLBOOK ability is available
+ * @param {Function} onScrollbookUse - Handler for SCROLLBOOK ability (passes card index)
  */
 function PlayerPanel({
   player,
@@ -34,7 +36,9 @@ function PlayerPanel({
   onDragEnd,
   currentPhase,
   horizontal = false,
-  vertical = false
+  vertical = false,
+  canUseScrollbook = false,
+  onScrollbookUse
 }) {
   const moralePercentage = (player.morale / player.commander.startingMorale) * 100
   const leadershipUsage = player.getCurrentLeadershipUsage()
@@ -136,7 +140,26 @@ function PlayerPanel({
               {/* Order Hand */}
               {isHuman && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <h6 className="mb-2" style={{ fontSize: '0.9rem' }}>Order Hand ({player.orderHand.length}):</h6>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="mb-0" style={{ fontSize: '0.9rem' }}>Order Hand ({player.orderHand.length}):</h6>
+                    {/* SCROLLBOOK ability button */}
+                    {canUseScrollbook && selectedOrder !== null && (
+                      <Button
+                        variant="info"
+                        size="sm"
+                        onClick={() => onScrollbookUse && onScrollbookUse(selectedOrder)}
+                        style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                        title="SCROLLBOOK: Discard selected card to draw a new one"
+                      >
+                        SCROLLBOOK
+                      </Button>
+                    )}
+                    {canUseScrollbook && selectedOrder === null && (
+                      <Badge bg="info" style={{ fontSize: '0.65rem' }}>
+                        Select card for SCROLLBOOK
+                      </Badge>
+                    )}
+                  </div>
                   <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
                     {player.orderHand.length === 0 ? (
                       <small className="text-muted">No order cards in hand</small>
@@ -255,7 +278,24 @@ function PlayerPanel({
             {/* Order Hand Column */}
             {isHuman && (
               <Col md={5}>
-                <h6 className="mb-2">Order Hand ({player.orderHand.length}):</h6>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="mb-0">Order Hand ({player.orderHand.length}):</h6>
+                  {/* SCROLLBOOK ability button */}
+                  {canUseScrollbook && selectedOrder !== null && (
+                    <Button
+                      variant="info"
+                      size="sm"
+                      onClick={() => onScrollbookUse && onScrollbookUse(selectedOrder)}
+                      style={{ fontSize: '0.75rem' }}
+                      title="SCROLLBOOK: Discard selected card to draw a new one"
+                    >
+                      SCROLLBOOK
+                    </Button>
+                  )}
+                  {canUseScrollbook && selectedOrder === null && (
+                    <Badge bg="info">Select card for SCROLLBOOK</Badge>
+                  )}
+                </div>
                 <div className="card-hand-horizontal">
                   {player.orderHand.length === 0 ? (
                     <small className="text-muted">No order cards in hand</small>

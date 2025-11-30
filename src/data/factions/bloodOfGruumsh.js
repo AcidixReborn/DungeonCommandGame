@@ -15,7 +15,17 @@ export const commanders = [
     startingMorale: 15,
     startingLeadership: 7,
     specialAbilityDescription: 'GRUUMSH COMMANDS IT: Creatures you control ignore difficult terrain.',
-    imageUrl: gruumshCmd1
+    imageUrl: gruumshCmd1,
+    abilities: [{
+      id: 'gruumsh_commands_it',
+      name: 'GRUUMSH COMMANDS IT',
+      type: 'PASSIVE',
+      category: 'TERRAIN',
+      description: 'Creatures you control ignore difficult terrain.',
+      effect: {
+        ignoreDifficultTerrain: true
+      }
+    }]
   },
   {
     id: 'bog_cmd_2',
@@ -26,7 +36,19 @@ export const commanders = [
     startingMorale: 11,
     startingLeadership: 9,
     specialAbilityDescription: 'ORC SCOUT: When you deploy starting Orc creatures, you can deploy 1 of them in any unoccupied Treasure square on the board.',
-    imageUrl: gruumshCmd2
+    imageUrl: gruumshCmd2,
+    abilities: [{
+      id: 'orc_scout',
+      name: 'ORC SCOUT',
+      type: 'ACTIVE',
+      category: 'DEPLOYMENT',
+      description: 'When you deploy starting Orc creatures, you can deploy 1 of them in any unoccupied Treasure square on the board.',
+      effect: {
+        deployToTreasure: true,
+        creatureTypeRequired: 'Orc',
+        usesRemaining: 1  // Only once during initial deployment
+      }
+    }]
   }
 ]
 

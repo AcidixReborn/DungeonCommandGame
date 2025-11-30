@@ -3,6 +3,7 @@ import { Container, Nav, Navbar, Button, Dropdown, Modal } from 'react-bootstrap
 import GameBoard from './components/GameBoard'
 import DataEntry from './components/DataEntry'
 import GameSimulation from './test/GameSimulation'
+import CommanderAbilitiesTest from './test/CommanderAbilitiesTest'
 import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 
@@ -63,6 +64,12 @@ function App() {
                 >
                   Game Test
                 </Nav.Link>
+                <Nav.Link
+                  active={currentView === 'abilities'}
+                  onClick={() => setCurrentView('abilities')}
+                >
+                  Abilities Test
+                </Nav.Link>
               </Nav>
               <Nav>
                 <Dropdown align="end">
@@ -84,6 +91,7 @@ function App() {
           {currentView === 'game' && <GameBoard />}
           {currentView === 'data' && <DataEntry />}
           {currentView === 'test' && <GameSimulation />}
+          {currentView === 'abilities' && <CommanderAbilitiesTest />}
         </Container>
 
         {/* Exit Confirmation Modal */}

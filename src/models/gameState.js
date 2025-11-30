@@ -64,6 +64,48 @@ export class PlayerState {
 
     // Starting zone tiles for this player
     this.startingZoneTiles = []
+
+    // Commander ability state tracking
+    this.commanderAbilityState = {
+      usedThisTurn: [],      // Track once-per-turn abilities (array of ability IDs)
+      cooldowns: {},         // Track cooldown-based abilities { abilityId: turnsRemaining }
+      orcScoutUsed: false    // Special flag for ORC SCOUT (only usable during initial deployment)
+    }
+  }
+
+  /**
+   * Mark an ability as used this turn
+   * @param {string} abilityId - The ability ID that was used
+   */
+  useAbility(abilityId) {
+    if (!this.commanderAbilityState.usedThisTurn.includes(abilityId)) {
+      this.commanderAbilityState.usedThisTurn.push(abilityId)
+    }
+  }
+
+  /**
+   * Check if an ability has been used this turn
+   * @param {string} abilityId - The ability ID to check
+   * @returns {boolean} True if ability was used this turn
+   */
+  hasUsedAbilityThisTurn(abilityId) {
+    return this.commanderAbilityState.usedThisTurn.includes(abilityId)
+  }
+
+  /**
+   * Reset turn-based ability tracking (called at start of each turn)
+   */
+  resetAbilitiesForNewTurn() {
+    this.commanderAbilityState.usedThisTurn = []
+    // Reset SCROLLBOOK for new turn
+    this.commanderAbilityState.scrollbookUsedThisTurn = false
+    // Decrement cooldowns
+    for (const abilityId in this.commanderAbilityState.cooldowns) {
+      this.commanderAbilityState.cooldowns[abilityId]--
+      if (this.commanderAbilityState.cooldowns[abilityId] <= 0) {
+        delete this.commanderAbilityState.cooldowns[abilityId]
+      }
+    }
   }
 
   /**
@@ -802,18 +844,388 @@ export class GameState {
     )
   }
 
+  // ==========================================
+  // COMMANDER ABILITY HELPER METHODS
+  // ==========================================
+
   /**
-   * Check if tile is passable for movement
+   * Check if a player's commander has a specific ability
+   *
+   * Big O Complexity: O(a) where a = number of commander abilities (typically 1-2, effectively O(1))
+   *
+   * @param {string} playerId - The player ID
+   * @param {string} abilityId - The ability ID to check for
+   * @returns {boolean} True if commander has this ability
+   */
+  hasCommanderAbility(playerId, abilityId) {
+    const player = this.players[playerId] // O(1) - hash lookup
+    if (!player || !player.commander) return false
+    return player.commander.hasAbility(abilityId) // O(a) - searches abilities array
+  }
+
+  /**
+   * Get a commander ability by ID for a player
+   *
+   * Big O Complexity: O(a) where a = number of commander abilities (typically 1-2, effectively O(1))
+   *
+   * @param {string} playerId - The player ID
+   * @param {string} abilityId - The ability ID to get
+   * @returns {Object|null} The ability object or null
+   */
+  getCommanderAbility(playerId, abilityId) {
+    const player = this.players[playerId] // O(1) - hash lookup
+    if (!player || !player.commander) return null
+    return player.commander.getAbility(abilityId) // O(a) - searches abilities array
+  }
+
+  /**
+   * Check if a creature's owner has the "ignore difficult terrain" ability
+   * (GRUUMSH COMMANDS IT ability)
+   *
+   * Big O Complexity: O(a) where a = number of commander abilities (typically 1-2, effectively O(1))
+   *
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {boolean} True if creature ignores difficult terrain
+   */
+  ignoresDifficultTerrain(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.owner) return false
+    return this.hasCommanderAbility(creatureInstance.owner, 'gruumsh_commands_it') // O(a)
+  }
+
+  /**
+   * Get commander speed bonus for a creature based on creature types
+   * (WALLS OF WEB ability: +2 speed to Spider and Drow)
+   *
+   * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
+   * Both are small constants, effectively O(1)
+   *
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {number} Speed bonus from commander abilities
+   */
+  getCommanderSpeedBonus(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.owner) return 0
+
+    let bonus = 0
+    const player = this.players[creatureInstance.owner]
+    if (!player || !player.commander) return 0
+
+    // Check for WALLS OF WEB (+2 speed to Spider/Drow)
+    if (player.commander.hasAbility('walls_of_web')) {
+      const creatureTypes = creatureInstance.creature.type || []
+      if (creatureTypes.includes('Spider') || creatureTypes.includes('Drow')) {
+        bonus += 2
+      }
+    }
+
+    return bonus
+  }
+
+  /**
+   * Check if a player can deploy during Refresh phase
+   * (HORDE ability from Tyranny of Goblins)
+   *
+   * Big O Complexity: O(a) where a = commander abilities (1-2), effectively O(1)
+   *
+   * @param {string} playerId - The player ID
+   * @returns {boolean} True if can deploy in Refresh phase
+   */
+  canDeployInRefreshPhase(playerId) {
+    return this.hasCommanderAbility(playerId, 'horde')
+  }
+
+  /**
+   * Check if a creature can use VERSATILE ability (extra move action)
+   * Requires: Adventurer type, has moved this turn, hasn't attacked yet
+   *
+   * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
+   * Both are small constants, effectively O(1)
+   *
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {boolean} True if creature can use VERSATILE
+   */
+  canUseVersatile(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.owner) return false
+
+    // Must have the VERSATILE ability
+    if (!this.hasCommanderAbility(creatureInstance.owner, 'versatile')) return false
+
+    // Must be Adventurer type
+    const creatureTypes = creatureInstance.creature.type || []
+    if (!creatureTypes.includes('Adventurer')) return false
+
+    // Must have moved but not attacked yet
+    if (!creatureInstance.hasMovedThisTurn) return false
+    if (creatureInstance.hasAttackedThisTurn) return false
+    if (creatureInstance.isTapped) return false
+
+    return true
+  }
+
+  /**
+   * Check if SELLSWORD ability should trigger (Drow on treasure)
+   *
+   * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
+   * getTile is O(1). Both a and t are small constants, effectively O(1)
+   *
+   * @param {CreatureInstance} creatureInstance - The creature that landed on treasure
+   * @returns {boolean} True if should show SELLSWORD choice
+   */
+  shouldTriggerSellsword(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.owner) return false
+
+    // Must have the SELLSWORD ability
+    if (!this.hasCommanderAbility(creatureInstance.owner, 'sellsword')) return false
+
+    // Must be Drow type
+    const creatureTypes = creatureInstance.creature.type || []
+    if (!creatureTypes.includes('Drow')) return false
+
+    // Must be standing on a tile with treasure
+    const tile = this.getTile(creatureInstance.position.x, creatureInstance.position.y)
+    if (!tile || !tile.treasure) return false
+
+    return true
+  }
+
+  /**
+   * Check if creature can use COWER ability (UNSTOPPABLE HORDES)
+   *
+   * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
+   * Includes call to getBlackHandOfBaneExtraCost which is O(a). Effectively O(1)
+   *
+   * @param {CreatureInstance} creatureInstance - The creature taking damage
+   * @param {string} attackerOwner - Optional attacker owner to check for BLACK HAND OF BANE
+   * @returns {Object} { canCower: boolean, moraleCost: number, damageReduction: number, extraCost: number }
+   */
+  canUseCower(creatureInstance, attackerOwner = null) {
+    if (!creatureInstance || !creatureInstance.owner) {
+      return { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
+    }
+
+    // Must have the UNSTOPPABLE HORDES ability
+    if (!this.hasCommanderAbility(creatureInstance.owner, 'unstoppable_hordes')) {
+      return { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
+    }
+
+    // Must be Undead type
+    const creatureTypes = creatureInstance.creature.type || []
+    if (!creatureTypes.includes('Undead')) {
+      return { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
+    }
+
+    // Check for BLACK HAND OF BANE extra cost
+    const extraCost = attackerOwner ? this.getBlackHandOfBaneExtraCost(attackerOwner) : 0
+    const totalCost = 1 + extraCost
+
+    // Player must have enough morale to pay
+    const player = this.players[creatureInstance.owner]
+    if (player.morale < totalCost) {
+      return { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
+    }
+
+    return { canCower: true, moraleCost: totalCost, damageReduction: 20, extraCost }
+  }
+
+  /**
+   * Apply COWER ability - reduce damage by 20, pay morale cost
+   *
+   * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
+   * Calls canUseCower which is O(a + t). Effectively O(1)
+   *
+   * @param {CreatureInstance} creatureInstance - The creature using Cower
+   * @param {string} attackerOwner - Optional attacker owner for BLACK HAND OF BANE
+   * @returns {Object} { success: boolean, damageReduction: number, moraleCost: number }
+   */
+  applyCower(creatureInstance, attackerOwner = null) {
+    const cowerInfo = this.canUseCower(creatureInstance, attackerOwner)
+    if (!cowerInfo.canCower) {
+      return { success: false, damageReduction: 0, moraleCost: 0 }
+    }
+
+    // Pay the morale cost (includes BLACK HAND OF BANE extra)
+    const player = this.players[creatureInstance.owner]
+    player.loseMorale(cowerInfo.moraleCost)
+
+    return { success: true, damageReduction: cowerInfo.damageReduction, moraleCost: cowerInfo.moraleCost }
+  }
+
+  /**
+   * Check if player can deploy during REFRESH phase (HORDE ability)
+   *
+   * Big O Complexity: O(a) where a = commander abilities (1-2), effectively O(1)
+   *
+   * @param {string} playerId - Player to check
+   * @returns {boolean} True if player can deploy during refresh
+   */
+  canDeployDuringRefresh(playerId) {
+    return this.hasCommanderAbility(playerId, 'horde')
+  }
+
+  /**
+   * Check if player can use ORC SCOUT ability to deploy to treasure tiles
+   *
+   * Big O Complexity: O(a) where a = commander abilities (1-2), effectively O(1)
+   * Turn number check and ability state check are O(1)
+   *
+   * @param {string} playerId - Player to check
+   * @returns {boolean} True if ORC SCOUT is available
+   */
+  canUseOrcScout(playerId) {
+    // Only available on turn 1 (initial deployment)
+    if (this.turnNumber !== 1) return false
+
+    // Must have the ORC SCOUT ability
+    if (!this.hasCommanderAbility(playerId, 'orc_scout')) return false
+
+    // Check if ability has already been used
+    const player = this.players[playerId]
+    if (player.commanderAbilityState?.orcScoutUsed) return false
+
+    return true
+  }
+
+  /**
+   * Get valid treasure tiles for ORC SCOUT deployment
+   *
+   * Big O Complexity: O(W × H) where W = boardWidth, H = boardHeight
+   * Iterates through all tiles to find treasure tiles. For a 16×16 board = O(256)
+   *
+   * @param {string} playerId - Player deploying
+   * @returns {Array} Array of valid treasure tiles
+   */
+  getOrcScoutValidTiles() {
+    const validTiles = []
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
+        const tile = this.getTile(x, y)
+        if (tile && tile.treasure && !tile.occupant) {
+          validTiles.push(tile)
+        }
+      }
+    }
+    return validTiles
+  }
+
+  /**
+   * Mark ORC SCOUT ability as used
+   *
+   * Big O Complexity: O(1) - Direct hash lookup and property assignment
+   *
+   * @param {string} playerId - Player who used the ability
+   */
+  markOrcScoutUsed(playerId) {
+    const player = this.players[playerId]
+    if (!player.commanderAbilityState) {
+      player.commanderAbilityState = {}
+    }
+    player.commanderAbilityState.orcScoutUsed = true
+  }
+
+  /**
+   * Check if BLACK HAND OF BANE applies (enemy cower costs extra morale)
+   *
+   * Big O Complexity: O(a) where a = commander abilities (1-2), effectively O(1)
+   *
+   * @param {string} attackerOwner - The owner of the attacking creature
+   * @returns {number} Extra morale cost (0 if not applicable)
+   */
+  getBlackHandOfBaneExtraCost(attackerOwner) {
+    // Check if the attacker's owner has BLACK HAND OF BANE
+    if (this.hasCommanderAbility(attackerOwner, 'black_hand_of_bane')) {
+      return 1 // Enemy cowers cost 1 extra morale
+    }
+    return 0
+  }
+
+  /**
+   * Check if player can use SCROLLBOOK ability (Heart of Cormyr)
+   * - Must have SCROLLBOOK ability
+   * - Must have at least 1 order card in hand
+   * - Must not have used SCROLLBOOK this turn
+   *
+   * Big O Complexity: O(a) where a = commander abilities (1-2), effectively O(1)
+   *
+   * @param {string} playerId - Player ID to check
+   * @returns {boolean} True if SCROLLBOOK can be used
+   */
+  canUseScrollbook(playerId) {
+    if (!this.hasCommanderAbility(playerId, 'scrollbook')) return false
+
+    const player = this.players[playerId]
+    if (!player || player.orderHand.length === 0) return false
+
+    // Check if already used this turn
+    if (player.commanderAbilityState?.scrollbookUsedThisTurn) return false
+
+    return true
+  }
+
+  /**
+   * Use SCROLLBOOK ability - discard 1 order card to draw 1 order card
+   *
+   * Big O Complexity: O(1) - Array splice and push operations
+   *
+   * @param {string} playerId - Player using the ability
+   * @param {number} discardIndex - Index of card to discard from hand
+   * @returns {Object} { success, discardedCard, drawnCard, message }
+   */
+  useScrollbook(playerId, discardIndex) {
+    if (!this.canUseScrollbook(playerId)) {
+      return { success: false, message: 'Cannot use SCROLLBOOK ability' }
+    }
+
+    const player = this.players[playerId]
+
+    // Validate discard index
+    if (discardIndex < 0 || discardIndex >= player.orderHand.length) {
+      return { success: false, message: 'Invalid card index' }
+    }
+
+    // Discard the selected card
+    const discardedCard = player.orderHand.splice(discardIndex, 1)[0]
+
+    // Draw a new card
+    const drawnCards = player.drawOrderCards(1)
+    const drawnCard = drawnCards.length > 0 ? drawnCards[0] : null
+
+    // Mark ability as used this turn
+    if (!player.commanderAbilityState) {
+      player.commanderAbilityState = {}
+    }
+    player.commanderAbilityState.scrollbookUsedThisTurn = true
+
+    return {
+      success: true,
+      discardedCard,
+      drawnCard,
+      message: `SCROLLBOOK: Discarded ${discardedCard.name}, drew ${drawnCard ? drawnCard.name : 'nothing (deck empty)'}`
+    }
+  }
+
+  /**
+   * Check if tile is passable for movement (can be traversed/stopped on)
+   *
+   * Movement rules for terrain:
+   * - MOUNTAIN: Non-flying creatures cannot pass through OR stop on mountains
+   *             Flying creatures CAN pass through but CANNOT stop on mountains
+   * - All other terrain: Passable for both flying and non-flying
+   *
+   * Note: The pathfinding uses this to determine valid waypoints, and
+   * getTerrainMovementCost returns 999 for mountains to prevent stopping on them.
+   *
    * @param {Object} tile - Tile to check
    * @param {boolean} flying - Whether creature is flying
-   * @returns {boolean} True if passable
+   * @returns {boolean} True if passable (can traverse through this tile)
    */
   isTerrainPassable(tile, flying = false) {
     if (!tile) return false
 
-    // Flying creatures can fly over mountains but cannot stop on them
-    if (tile.terrain === TerrainTypes.MOUNTAIN) {
-      return false // Cannot stop on mountains even if flying
+    // Mountains block non-flying creatures entirely (cannot pass through)
+    // Flying creatures can pass over mountains but cannot stop on them
+    // (stopping is prevented by movement cost of 999 in getTerrainMovementCost)
+    // Check both string value and TerrainTypes constant for robustness
+    if (tile.terrain === TerrainTypes.MOUNTAIN || tile.terrain === 'MOUNTAIN') {
+      return flying // Only flying creatures can traverse mountains
     }
 
     return true
@@ -823,9 +1235,10 @@ export class GameState {
    * Get movement cost for terrain type
    * @param {string} terrain - Terrain type
    * @param {boolean} flying - Whether creature is flying
+   * @param {CreatureInstance} creatureInstance - Optional creature for ability checks
    * @returns {number} Movement cost (999 = impassable)
    */
-  getTerrainMovementCost(terrain, flying = false) {
+  getTerrainMovementCost(terrain, flying = false, creatureInstance = null) {
     // Flying creatures ignore difficult terrain
     if (flying) {
       switch (terrain) {
@@ -838,7 +1251,21 @@ export class GameState {
       }
     }
 
-    // Ground creatures
+    // Check for GRUUMSH COMMANDS IT ability (ignore difficult terrain)
+    if (creatureInstance && this.ignoresDifficultTerrain(creatureInstance)) {
+      switch (terrain) {
+        case TerrainTypes.DIFFICULT:
+        case TerrainTypes.FOREST:
+        case TerrainTypes.WATER:
+          return 1 // Treat difficult terrain as normal
+        case TerrainTypes.MOUNTAIN:
+          return 999 // Still impassable
+        default:
+          return 1
+      }
+    }
+
+    // Ground creatures without terrain-ignoring abilities
     switch (terrain) {
       case TerrainTypes.DIFFICULT:
         return 2 // Costs 2 movement to enter
@@ -857,15 +1284,19 @@ export class GameState {
   getValidMovementTiles(creatureInstance) {
     if (!creatureInstance.position) return []
 
-    const speed = creatureInstance.creature.speed
+    // Base speed + commander speed bonuses (e.g., WALLS OF WEB)
+    const baseSpeed = creatureInstance.creature.speed
+    const speedBonus = this.getCommanderSpeedBonus(creatureInstance)
+    const speed = baseSpeed + speedBonus
+
     const startPos = creatureInstance.position
     const flying = this.hasFlying(creatureInstance)
 
-    // Use pathfinding algorithm
+    // Use pathfinding algorithm with creature context for ability checks
     const validMovement = pathfindingGetValidMovement(
       startPos,
       speed,
-      (terrain, isFlying) => this.getTerrainMovementCost(terrain, isFlying),
+      (terrain, isFlying) => this.getTerrainMovementCost(terrain, isFlying, creatureInstance),
       (tile, isFlying) => this.isTerrainPassable(tile, isFlying),
       (x, y) => this.getTile(x, y),
       flying
@@ -1144,6 +1575,65 @@ export class GameState {
   }
 
   /**
+   * Execute attack with Cower damage reduction (UNSTOPPABLE HORDES ability)
+   * Same as executeAttack but applies damage reduction before resolving
+   *
+   * Big O Complexity: O(c) where c = creatures in play for defender (for removal)
+   * Most operations are O(1). Creature removal uses findIndex which is O(c)
+   *
+   * @param {CreatureInstance} attackerInstance - The attacking creature
+   * @param {CreatureInstance} defenderInstance - The defending creature
+   * @param {string} attackType - 'melee' or 'ranged'
+   * @param {number} damageReduction - Amount to reduce damage by
+   * @returns {Object} Attack result
+   */
+  executeAttackWithCower(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0) {
+    // Cannot attack if tapped
+    if (attackerInstance.isTapped) {
+      return { success: false, message: 'Cannot attack: creature is tapped' }
+    }
+
+    // Cannot attack if already attacked this turn
+    if (attackerInstance.hasAttackedThisTurn) {
+      return { success: false, message: 'Cannot attack: creature has already attacked this turn' }
+    }
+
+    let damage = 0
+
+    if (attackType === 'melee' && attackerInstance.creature.meleeAttack) {
+      damage = attackerInstance.creature.meleeAttack.damage
+    } else if (attackType === 'ranged' && attackerInstance.creature.rangedAttack) {
+      damage = attackerInstance.creature.rangedAttack.damage
+    } else {
+      return { success: false, message: 'Invalid attack type' }
+    }
+
+    // Apply Cower damage reduction
+    const originalDamage = damage
+    damage = Math.max(0, damage - damageReduction)
+
+    // Mark as attacked
+    attackerInstance.hasAttackedThisTurn = true
+
+    // Tap the creature if it has both moved AND attacked
+    if (attackerInstance.hasMovedThisTurn) {
+      attackerInstance.tap()
+    }
+
+    // Use the custom combat resolution (includes +1 morale on kill)
+    const result = this.resolveAttack(attackerInstance, defenderInstance, damage)
+
+    return {
+      success: true,
+      ...result,
+      attackType,
+      damage,
+      originalDamage,
+      damageReduced: damageReduction
+    }
+  }
+
+  /**
    * Collect morale from a treasure token
    * - Creature must be standing on treasure tile
    * - Uses creature's ACTION (not movement)
@@ -1365,13 +1855,22 @@ export class GameState {
       const attackerPlayer = this.players[attackerOwner]
       attackerPlayer.gainMorale(1)
 
+      // BLOODTHIRSTY ability: Gain +1 Leadership on kill (Curse of Undeath)
+      // Big O: O(a) where a = commander abilities (1-2), effectively O(1)
+      let leadershipGained = 0
+      if (this.hasCommanderAbility(attackerOwner, 'bloodthirsty')) {
+        attackerPlayer.leadership = (attackerPlayer.leadership || 0) + 1
+        leadershipGained = 1
+      }
+
       return {
         destroyed: true,
         damage: damageAmount,
         moraleChange: {
           attacker: +1,
           defender: -defenderInstance.creature.level
-        }
+        },
+        bloodthirsty: leadershipGained > 0 ? { leadershipGained } : null
       }
     }
 
@@ -1420,6 +1919,9 @@ export class GameState {
   // Execute refresh phase
   executeRefreshPhase() {
     const player = this.getCurrentPlayerState()
+
+    // Reset commander ability state for new turn
+    player.resetAbilitiesForNewTurn()
 
     // Draw 1 order card
     player.drawOrderCards(1)

@@ -55,6 +55,14 @@ function GameBoard() {
   const [showCollectConfirm, setShowCollectConfirm] = useState(false)
   const [pendingCollection, setPendingCollection] = useState(null) // Stores {creature, treasure}
 
+  // SELLSWORD ability modal state (Drow on treasure - choose morale or card)
+  const [showSellswordModal, setShowSellswordModal] = useState(false)
+  const [sellswordPending, setSellswordPending] = useState(null) // Stores {creature, treasure}
+
+  // VERSATILE ability modal state (Adventurer extra move)
+  const [showVersatileModal, setShowVersatileModal] = useState(false)
+  const [versatilePending, setVersatilePending] = useState(null) // Stores {creature}
+
   /**
    * Faction color mapping from faction IDs to hex colors
    */
@@ -101,6 +109,26 @@ function GameBoard() {
     console.log(`[isPlayerHuman] playerId: ${playerId}, playerNum: ${playerNum}, playerKey: ${playerKey}, isHuman: ${isHuman}`)
     console.log(`[isPlayerHuman] gameConfig[${playerKey}]:`, gameConfig[playerKey])
     return isHuman
+  }
+
+  /**
+   * Check if deployment is allowed in the current phase
+   * Normal: only DEPLOY phase allows deployment
+   * HORDE ability: REFRESH phase also allows deployment
+   * @returns {boolean} True if deployment is currently allowed
+   */
+  const canDeployInCurrentPhase = () => {
+    if (!gameState) return false
+
+    // Always allow deployment in DEPLOY phase
+    if (gameState.currentPhase === GamePhases.DEPLOY) return true
+
+    // HORDE ability allows deployment in REFRESH phase
+    if (gameState.currentPhase === GamePhases.REFRESH) {
+      return gameState.canDeployDuringRefresh(gameState.currentPlayer)
+    }
+
+    return false
   }
 
   /**
@@ -173,16 +201,27 @@ function GameBoard() {
     setSelectedTile(tile)
     const currentPlayer = gameState.getCurrentPlayerState()
 
-    // DEPLOY PHASE: Deploy creature from hand
-    if (selectedCreatureIndex !== null && gameState.currentPhase === GamePhases.DEPLOY) {
+    // DEPLOY PHASE (or REFRESH with HORDE): Deploy creature from hand
+    if (selectedCreatureIndex !== null && canDeployInCurrentPhase()) {
       const creatureCard = currentPlayer.creatureHand[selectedCreatureIndex]
 
       // Check if tile is in player's starting zone
       const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
                                tile.startingZoneOwner === gameState.currentPlayer
 
-      if (!isInStartingZone) {
-        setActionMessage('You can only deploy creatures in your starting zone (highlighted area)!')
+      // ORC SCOUT: Check if deploying Orc to treasure tile
+      const isOrcScoutDeploy = tile.treasure && !tile.occupant &&
+                               gameState.canUseOrcScout(gameState.currentPlayer) &&
+                               (creatureCard.type || []).includes('Orc')
+
+      if (!isInStartingZone && !isOrcScoutDeploy) {
+        if (gameState.canUseOrcScout(gameState.currentPlayer) && tile.treasure) {
+          setActionMessage('ORC SCOUT: Only Orc creatures can be deployed to treasure tiles!')
+        } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
+          setActionMessage('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
+        } else {
+          setActionMessage('You can only deploy creatures in your starting zone (highlighted area)!')
+        }
         return
       }
 
@@ -199,8 +238,15 @@ function GameBoard() {
 
           tile.occupant = creatureInstance
 
-          setSelectedCreatureIndex(null)
-          setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+          // Mark ORC SCOUT as used if deployed to treasure
+          if (isOrcScoutDeploy) {
+            gameState.markOrcScoutUsed(gameState.currentPlayer)
+            setSelectedCreatureIndex(null)
+            setActionMessage(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          } else {
+            setSelectedCreatureIndex(null)
+            setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+          }
           setRenderCounter(prev => prev + 1)
         } else {
           setActionMessage('Tile is occupied!')
@@ -332,9 +378,18 @@ function GameBoard() {
     const success = gameState.moveCreature(pendingMove.creature, pendingMove.destination)
 
     if (success) {
-      setActionMessage(
-        `${pendingMove.creature.creature.name} moved to (${pendingMove.destination.x}, ${pendingMove.destination.y}) - Cost: ${pendingMove.cost}`
-      )
+      // Check if this was a VERSATILE move (using action to move)
+      if (pendingMove.creature.usingVersatileMove) {
+        pendingMove.creature.isTapped = true // Uses action, so tap the creature
+        pendingMove.creature.usingVersatileMove = false // Clear the flag
+        setActionMessage(
+          `VERSATILE: ${pendingMove.creature.creature.name} moved to (${pendingMove.destination.x}, ${pendingMove.destination.y}) using their action!`
+        )
+      } else {
+        setActionMessage(
+          `${pendingMove.creature.creature.name} moved to (${pendingMove.destination.x}, ${pendingMove.destination.y}) - Cost: ${pendingMove.cost}`
+        )
+      }
 
       // Check if creature landed on treasure and is a human player
       const tile = gameState.getTile(pendingMove.destination.x, pendingMove.destination.y)
@@ -410,9 +465,17 @@ function GameBoard() {
       })
       setShowReactionModal(true)
     } else {
-      // Defender is AI - use AI logic to decide on reactions
+      // Defender is AI - use AI logic to decide on reactions and COWER
       const defenderAI = new SimpleAI(gameState, defenderPlayerId)
       const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
+
+      // AI decides whether to use COWER ability (UNSTOPPABLE HORDES)
+      const cowerDecision = defenderAI.decideCower(defenderInstance, attackerInstance.owner)
+      let cowerResult = null
+
+      if (cowerDecision.useCower) {
+        cowerResult = gameState.applyCower(defenderInstance, attackerInstance.owner)
+      }
 
       // Process AI reactions
       if (reactionDecision.reactions.length > 0) {
@@ -429,11 +492,21 @@ function GameBoard() {
         })
       }
 
-      // Execute attack immediately for AI defender
-      const result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+      // Execute attack immediately for AI defender (with or without COWER)
+      let result
+      if (cowerResult && cowerResult.success) {
+        result = gameState.executeAttackWithCower(attackerInstance, defenderInstance, targetInfo.attackType, cowerResult.damageReduction)
+      } else {
+        result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+      }
 
       if (result.success) {
         let message = ''
+
+        // Add COWER info to message
+        if (cowerResult && cowerResult.success) {
+          message += `🛡️ AI used COWER: ${cowerResult.damageReduction} damage prevented (cost ${cowerResult.moraleCost} morale)! `
+        }
 
         // Add reaction info to message
         if (reactionDecision.reactions.length > 0) {
@@ -447,6 +520,10 @@ function GameBoard() {
           message += ` ${defenderInstance.creature.name} was destroyed! `
           message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
                     `Defender ${result.moraleChange.defender}`
+          // BLOODTHIRSTY ability notification
+          if (result.bloodthirsty) {
+            message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
+          }
         } else {
           message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
         }
@@ -498,6 +575,81 @@ function GameBoard() {
     executeAttackAfterReactions([])
   }
 
+  // Handle when defender uses COWER ability (UNSTOPPABLE HORDES)
+  const handleCowerUsed = (selectedReactions) => {
+    if (!pendingAttack) return
+
+    // Apply Cower to reduce damage (pass attacker owner for BLACK HAND OF BANE check)
+    const cowerResult = gameState.applyCower(pendingAttack.defenderInstance, pendingAttack.attackerInstance.owner)
+
+    // If reactions were also selected, process them
+    if (selectedReactions && selectedReactions.length > 0) {
+      const defenderPlayer = gameState.players[pendingAttack.defenderInstance.owner]
+      const sortedReactions = [...selectedReactions].sort((a, b) => b.cardIndex - a.cardIndex)
+
+      sortedReactions.forEach(reaction => {
+        reaction.creature.isTapped = true
+        defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
+      })
+    }
+
+    setShowReactionModal(false)
+    executeAttackAfterReactionsWithCower(selectedReactions || [], cowerResult)
+  }
+
+  // Execute attack after reactions with Cower damage reduction
+  const executeAttackAfterReactionsWithCower = (reactions, cowerResult) => {
+    if (!pendingAttack) return
+
+    const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
+
+    // Execute attack with Cower damage reduction
+    const result = gameState.executeAttackWithCower(attackerInstance, defenderInstance, targetInfo.attackType, cowerResult.damageReduction)
+
+    if (result.success) {
+      let message = ''
+
+      // Add Cower info to message
+      if (cowerResult.success) {
+        message += `🛡️ COWER: ${cowerResult.damageReduction} damage prevented! `
+      }
+
+      // Add reaction info to message
+      if (reactions.length > 0) {
+        message += `⚡ ${reactions.length} Immediate card${reactions.length !== 1 ? 's' : ''} played! `
+      }
+
+      message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+                 `with ${targetInfo.attackType} for ${result.damage} damage!`
+
+      if (result.destroyed) {
+        message += ` ${defenderInstance.creature.name} was destroyed! `
+        message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+                  `Defender ${result.moraleChange.defender}`
+        // BLOODTHIRSTY ability notification
+        if (result.bloodthirsty) {
+          message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
+        }
+      } else {
+        message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
+      }
+
+      setActionMessage(message)
+      gameState.checkGameOver()
+    } else {
+      setActionMessage(result.message || 'Attack failed!')
+    }
+
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+    setPendingAttack(null)
+    setRenderCounter(prev => prev + 1)
+
+    // Continue processing remaining AI actions
+    setProcessingAIAction(false)
+  }
+
   // Execute the attack after reactions have been handled
   const executeAttackAfterReactions = (reactions) => {
     if (!pendingAttack) return
@@ -522,6 +674,10 @@ function GameBoard() {
         message += ` ${defenderInstance.creature.name} was destroyed! `
         message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
                   `Defender ${result.moraleChange.defender}`
+        // BLOODTHIRSTY ability notification
+        if (result.bloodthirsty) {
+          message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
+        }
       } else {
         message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
       }
@@ -557,12 +713,86 @@ function GameBoard() {
       return
     }
 
-    // Show confirmation modal for human players
+    // Check for SELLSWORD ability - Drow on treasure gives choice
+    if (gameState.shouldTriggerSellsword(selectedBoardCreature)) {
+      setSellswordPending({
+        creature: selectedBoardCreature,
+        treasure: tile.treasure
+      })
+      setShowSellswordModal(true)
+      return
+    }
+
+    // Show normal confirmation modal for human players
     setPendingCollection({
       creature: selectedBoardCreature,
       treasure: tile.treasure
     })
     setShowCollectConfirm(true)
+  }
+
+  // SELLSWORD ability - choose morale
+  const handleSellswordMorale = () => {
+    if (!sellswordPending) return
+
+    const result = gameState.collectMorale(sellswordPending.creature)
+    if (result.success) {
+      setActionMessage(`SELLSWORD: ${sellswordPending.creature.creature.name} chose +1 Morale!`)
+    } else {
+      setActionMessage(result.message)
+    }
+
+    setSellswordPending(null)
+    setShowSellswordModal(false)
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+    setRenderCounter(prev => prev + 1)
+  }
+
+  // SELLSWORD ability - choose card draw
+  const handleSellswordCard = () => {
+    if (!sellswordPending) return
+
+    const player = gameState.players[sellswordPending.creature.owner]
+    const drawnCards = player.drawOrderCards(1)
+
+    // Mark treasure as collected (reduce morale count) but don't give morale
+    const tile = gameState.getTile(sellswordPending.creature.position.x, sellswordPending.creature.position.y)
+    if (tile?.treasure) {
+      tile.treasure.remainingMorale = Math.max(0, tile.treasure.remainingMorale - 1)
+    }
+
+    // Tap the creature (uses action)
+    sellswordPending.creature.isTapped = true
+
+    if (drawnCards.length > 0) {
+      setActionMessage(`SELLSWORD: ${sellswordPending.creature.creature.name} drew an Order card instead of morale!`)
+    } else {
+      setActionMessage(`SELLSWORD: No Order cards left to draw!`)
+    }
+
+    setSellswordPending(null)
+    setShowSellswordModal(false)
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+    setRenderCounter(prev => prev + 1)
+  }
+
+  // SCROLLBOOK ability - discard selected order card to draw a new one
+  const handleScrollbookUse = (cardIndex) => {
+    if (!gameState || cardIndex === null) return
+
+    const result = gameState.useScrollbook(gameState.currentPlayer, cardIndex)
+
+    if (result.success) {
+      setActionMessage(`SCROLLBOOK: Discarded ${result.discardedCard.name}, drew ${result.drawnCard ? result.drawnCard.name : 'nothing (deck empty)'}`)
+      setSelectedOrderIndex(null) // Clear selection
+      setRenderCounter(prev => prev + 1)
+    } else {
+      setActionMessage(result.message)
+    }
   }
 
   // Confirm morale collection
@@ -623,9 +853,17 @@ function GameBoard() {
       setShowReactionModal(true)
       // Modal handlers will call executeAttackAfterReactions which continues processing
     } else {
-      // Defender is AI - use AI logic to decide on reactions
+      // Defender is AI - use AI logic to decide on reactions and COWER
       const defenderAI = new SimpleAI(gameState, defenderPlayerId)
       const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
+
+      // AI decides whether to use COWER ability (UNSTOPPABLE HORDES)
+      const cowerDecision = defenderAI.decideCower(defenderInstance, attackerInstance.owner)
+      let cowerResult = null
+
+      if (cowerDecision.useCower) {
+        cowerResult = gameState.applyCower(defenderInstance, attackerInstance.owner)
+      }
 
       // Process AI reactions
       if (reactionDecision.reactions.length > 0) {
@@ -642,11 +880,21 @@ function GameBoard() {
         })
       }
 
-      // Execute attack immediately for AI defender
-      const result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+      // Execute attack immediately for AI defender (with or without COWER)
+      let result
+      if (cowerResult && cowerResult.success) {
+        result = gameState.executeAttackWithCower(attackerInstance, defenderInstance, targetInfo.attackType, cowerResult.damageReduction)
+      } else {
+        result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+      }
 
       if (result.success) {
         let message = ''
+
+        // Add COWER info to message
+        if (cowerResult && cowerResult.success) {
+          message += `🛡️ AI used COWER: ${cowerResult.damageReduction} damage prevented (cost ${cowerResult.moraleCost} morale)! `
+        }
 
         // Add reaction info to message
         if (reactionDecision.reactions.length > 0) {
@@ -660,6 +908,10 @@ function GameBoard() {
           message += ` ${defenderInstance.creature.name} was destroyed! `
           message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
                     `Defender ${result.moraleChange.defender}`
+          // BLOODTHIRSTY ability notification
+          if (result.bloodthirsty) {
+            message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
+          }
         } else {
           message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
         }
@@ -681,7 +933,7 @@ function GameBoard() {
 
   // Drag and Drop handlers
   const handleDragStart = (creatureIndex) => {
-    if (gameState.currentPhase === GamePhases.DEPLOY) {
+    if (canDeployInCurrentPhase()) {
       setDraggingCreatureIndex(creatureIndex)
     }
   }
@@ -692,12 +944,18 @@ function GameBoard() {
   }
 
   const handleDragOver = (tile, e) => {
-    if (draggingCreatureIndex !== null && gameState.currentPhase === GamePhases.DEPLOY) {
+    if (draggingCreatureIndex !== null && canDeployInCurrentPhase()) {
       const currentPlayer = gameState.getCurrentPlayerState()
+      const creatureCard = currentPlayer.creatureHand[draggingCreatureIndex]
       const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
                                tile.startingZoneOwner === gameState.currentPlayer
 
-      if (isInStartingZone && !tile.occupant) {
+      // ORC SCOUT: Allow dragging Orc to treasure tiles
+      const isOrcScoutValid = tile.treasure && !tile.occupant &&
+                              gameState.canUseOrcScout(gameState.currentPlayer) &&
+                              (creatureCard?.type || []).includes('Orc')
+
+      if ((isInStartingZone || isOrcScoutValid) && !tile.occupant) {
         setDragOverTile(tile)
       } else {
         setDragOverTile(null)
@@ -707,7 +965,7 @@ function GameBoard() {
 
   const handleDrop = (tile, e) => {
     try {
-      if (draggingCreatureIndex === null || gameState.currentPhase !== GamePhases.DEPLOY) {
+      if (draggingCreatureIndex === null || !canDeployInCurrentPhase()) {
         return
       }
 
@@ -718,8 +976,17 @@ function GameBoard() {
       const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
                                tile.startingZoneOwner === gameState.currentPlayer
 
-      if (!isInStartingZone) {
-        setActionMessage('You can only deploy creatures in your starting zone!')
+      // ORC SCOUT: Check if deploying Orc to treasure tile
+      const isOrcScoutDeploy = tile.treasure && !tile.occupant &&
+                               gameState.canUseOrcScout(gameState.currentPlayer) &&
+                               (creatureCard.type || []).includes('Orc')
+
+      if (!isInStartingZone && !isOrcScoutDeploy) {
+        if (gameState.canUseOrcScout(gameState.currentPlayer)) {
+          setActionMessage('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
+        } else {
+          setActionMessage('You can only deploy creatures in your starting zone!')
+        }
         setDraggingCreatureIndex(null)
         setDragOverTile(null)
         return
@@ -737,7 +1004,13 @@ function GameBoard() {
           currentPlayer.creatureHand.splice(draggingCreatureIndex, 1)
           tile.occupant = creatureInstance
 
-          setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+          // Mark ORC SCOUT as used if deployed to treasure
+          if (isOrcScoutDeploy) {
+            gameState.markOrcScoutUsed(gameState.currentPlayer)
+            setActionMessage(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          } else {
+            setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+          }
           setRenderCounter(prev => prev + 1)
         } else {
           setActionMessage('Tile is occupied!')
@@ -977,8 +1250,8 @@ function GameBoard() {
               </h5>
             </div>
             <div>
-              {/* Show button for ACTIVATE and DEPLOY phases (player decision phases) */}
-              {(gameState.currentPhase === GamePhases.ACTIVATE || gameState.currentPhase === GamePhases.DEPLOY) && (
+              {/* Show button for ACTIVATE, DEPLOY phases, and REFRESH with HORDE ability */}
+              {(gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase()) && (
                 <Button
                   variant="primary"
                   size="sm"
@@ -988,8 +1261,8 @@ function GameBoard() {
                   {getPhaseButtonText()}
                 </Button>
               )}
-              {/* Show status for auto-executing phases */}
-              {(gameState.currentPhase === GamePhases.REFRESH ||
+              {/* Show status for auto-executing phases (REFRESH without HORDE, CLEANUP) */}
+              {((gameState.currentPhase === GamePhases.REFRESH && !gameState.canDeployDuringRefresh(gameState.currentPlayer)) ||
                 gameState.currentPhase === GamePhases.CLEANUP) && !isCurrentPlayerAI && (
                 <Badge bg="warning" className="px-3 py-2">Auto-Executing...</Badge>
               )}
@@ -1024,9 +1297,14 @@ function GameBoard() {
           <Card bg="dark" text="white" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Card.Header className="py-2">
               <h6 className="mb-1">Battlefield</h6>
-              {gameState.currentPhase === GamePhases.REFRESH && (
+              {gameState.currentPhase === GamePhases.REFRESH && !gameState.canDeployDuringRefresh(gameState.currentPlayer) && (
                 <small className="text-info d-block" style={{ fontSize: '0.85rem' }}>
                   REFRESH Phase: Click "Execute Refresh" to draw cards and untap creatures
+                </small>
+              )}
+              {gameState.currentPhase === GamePhases.REFRESH && gameState.canDeployDuringRefresh(gameState.currentPlayer) && (
+                <small className="text-success d-block" style={{ fontSize: '0.85rem' }}>
+                  REFRESH Phase (HORDE): You may deploy creatures! Click/Drag to starting zone, then click "Execute Refresh"
                 </small>
               )}
               {gameState.currentPhase === GamePhases.ACTIVATE && (
@@ -1034,9 +1312,14 @@ function GameBoard() {
                   ACTIVATE Phase: Click your creatures to move and attack
                 </small>
               )}
-              {gameState.currentPhase === GamePhases.DEPLOY && (
+              {gameState.currentPhase === GamePhases.DEPLOY && !gameState.canUseOrcScout(gameState.currentPlayer) && (
                 <small className="text-success d-block" style={{ fontSize: '0.85rem' }}>
                   DEPLOY Phase: Click/Drag creatures from hand to your starting zone (colored tiles)
+                </small>
+              )}
+              {gameState.currentPhase === GamePhases.DEPLOY && gameState.canUseOrcScout(gameState.currentPlayer) && (
+                <small className="text-warning d-block" style={{ fontSize: '0.85rem' }}>
+                  DEPLOY Phase (ORC SCOUT): Deploy to starting zone, OR deploy 1 Orc to any treasure tile!
                 </small>
               )}
               {gameState.currentPhase === GamePhases.CLEANUP && (
@@ -1044,7 +1327,7 @@ function GameBoard() {
                   CLEANUP Phase: Click "End Turn" to finish
                 </small>
               )}
-              {selectedCreatureIndex !== null && gameState.currentPhase === GamePhases.DEPLOY && (
+              {selectedCreatureIndex !== null && canDeployInCurrentPhase() && (
                 <small className="text-warning d-block" style={{ fontSize: '0.85rem' }}>
                   → Creature selected! Click or drag to a {currentPlayerId} starting zone tile
                 </small>
@@ -1069,6 +1352,25 @@ function GameBoard() {
                       </Button>
                     )
                   })()}
+                  {/* Show VERSATILE Move as Action button for Adventurers */}
+                  {gameState.canUseVersatile(selectedBoardCreature) && (
+                    <Button
+                      variant="info"
+                      size="sm"
+                      onClick={() => {
+                        // Allow another movement using the action
+                        const moves = gameState.getValidMoves(selectedBoardCreature)
+                        setValidMoveTiles(moves)
+                        setValidAttackTargets([]) // Clear attack targets since using action to move
+                        setActionMessage(`VERSATILE: ${selectedBoardCreature.creature.name} can move again using their action!`)
+                        // Mark that we're using versatile so completing move taps the creature
+                        selectedBoardCreature.usingVersatileMove = true
+                      }}
+                      style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                    >
+                      🏃 Move as Action (VERSATILE)
+                    </Button>
+                  )}
                 </div>
               )}
             </Card.Header>
@@ -1139,6 +1441,8 @@ function GameBoard() {
             onDragEnd={handleDragEnd}
             currentPhase={gameState.currentPhase}
             vertical={true}
+            canUseScrollbook={gameState.canUseScrollbook(currentPlayerId)}
+            onScrollbookUse={handleScrollbookUse}
           />
         </div>
       </div>
@@ -1153,6 +1457,7 @@ function GameBoard() {
           gameState={gameState}
           onCardsPlayed={handleReactionsPlayed}
           onSkip={handleReactionsSkipped}
+          onCower={handleCowerUsed}
         />
       )}
 
@@ -1321,6 +1626,113 @@ function GameBoard() {
           </Button>
           <Button variant="warning" onClick={confirmCollectMorale}>
             Yes, Collect Morale
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* SELLSWORD Ability Modal - Choose Morale or Order Card */}
+      <Modal
+        show={showSellswordModal}
+        onHide={() => {
+          setShowSellswordModal(false)
+          setSellswordPending(null)
+        }}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header style={{ backgroundColor: '#8b008b', color: 'white' }}>
+          <Modal.Title>⚔️ SELLSWORD - Choose Your Reward!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {sellswordPending && (
+            <div>
+              <p><strong>{sellswordPending.creature.creature.name}</strong> is collecting treasure!</p>
+              <p style={{ color: '#ffc107' }}>
+                The Drow work for profit above all. Choose your reward:
+              </p>
+              <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '15px' }}>
+                <div style={{
+                  padding: '15px',
+                  border: '2px solid #ffc107',
+                  borderRadius: '8px',
+                  textAlign: 'center',
+                  flex: 1
+                }}>
+                  <div style={{ fontSize: '2rem' }}>💰</div>
+                  <div style={{ fontWeight: 'bold' }}>+1 Morale</div>
+                  <div style={{ fontSize: '0.85rem', color: '#aaa' }}>Standard treasure reward</div>
+                </div>
+                <div style={{
+                  padding: '15px',
+                  border: '2px solid #17a2b8',
+                  borderRadius: '8px',
+                  textAlign: 'center',
+                  flex: 1
+                }}>
+                  <div style={{ fontSize: '2rem' }}>📜</div>
+                  <div style={{ fontWeight: 'bold' }}>Draw 1 Order Card</div>
+                  <div style={{ fontSize: '0.85rem', color: '#aaa' }}>More tactical options</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
+          <Button variant="warning" size="lg" onClick={handleSellswordMorale}>
+            💰 Take Morale
+          </Button>
+          <Button variant="info" size="lg" onClick={handleSellswordCard}>
+            📜 Draw Card
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* VERSATILE Ability Modal - Extra Move After Attack */}
+      <Modal
+        show={showVersatileModal}
+        onHide={() => {
+          setShowVersatileModal(false)
+          setVersatilePending(null)
+        }}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header style={{ backgroundColor: '#0066cc', color: 'white' }}>
+          <Modal.Title>🏃 VERSATILE - Tactical Reposition!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {versatilePending && (
+            <div>
+              <p><strong>{versatilePending.creature.creature.name}</strong> has made an attack!</p>
+              <p style={{ color: '#5bc0de' }}>
+                Adventurers are versatile combatants. After attacking, you may move up to 2 tiles!
+              </p>
+              <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
+                This allows you to reposition after striking - perfect for hit-and-run tactics.
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
+          <Button variant="secondary" onClick={() => {
+            setShowVersatileModal(false)
+            setVersatilePending(null)
+          }}>
+            Skip Movement
+          </Button>
+          <Button variant="primary" onClick={() => {
+            // Enable movement mode for the creature
+            if (versatilePending) {
+              setSelectedBoardCreature(versatilePending.creature)
+              // Calculate valid moves (2 tiles)
+              const moves = gameState.getValidMoves(versatilePending.creature, 2)
+              setValidMoveTiles(moves)
+              setActionMessage(`VERSATILE: Select a tile to move ${versatilePending.creature.creature.name} (up to 2 tiles)`)
+            }
+            setShowVersatileModal(false)
+            setVersatilePending(null)
+          }}>
+            🏃 Move (up to 2 tiles)
           </Button>
         </Modal.Footer>
       </Modal>

@@ -23,9 +23,11 @@ function ImmediateReactionModal({
   defenderPlayerState,
   gameState,
   onCardsPlayed,
-  onSkip
+  onSkip,
+  onCower // New callback for Cower ability
 }) {
   const [selectedReactions, setSelectedReactions] = useState([])
+  const [useCower, setUseCower] = useState(false)
 
   if (!show || !defenderPlayerState || !defenderInstance) return null
 
@@ -79,6 +81,12 @@ function ImmediateReactionModal({
 
   const eligibleReactions = getEligibleReactions()
 
+  // Check if defender can use Cower ability (UNSTOPPABLE HORDES)
+  // Pass attackerInstance.owner to check for BLACK HAND OF BANE extra cost
+  const cowerInfo = gameState?.canUseCower
+    ? gameState.canUseCower(defenderInstance, attackerInstance?.owner)
+    : { canCower: false, moraleCost: 0, damageReduction: 0, extraCost: 0 }
+
   // Handle selecting/deselecting a reaction
   const toggleReaction = (reaction) => {
     const reactionKey = `${reaction.creature.instanceId}-${reaction.cardIndex}`
@@ -106,17 +114,22 @@ function ImmediateReactionModal({
   }
 
   const handleConfirm = () => {
-    if (selectedReactions.length > 0) {
+    if (useCower && onCower) {
+      // Using Cower ability (with or without cards)
+      onCower(selectedReactions.length > 0 ? selectedReactions : null)
+    } else if (selectedReactions.length > 0) {
       onCardsPlayed(selectedReactions)
     } else {
       onSkip()
     }
     setSelectedReactions([])
+    setUseCower(false)
   }
 
   const handleSkip = () => {
     onSkip()
     setSelectedReactions([])
+    setUseCower(false)
   }
 
   return (
@@ -141,6 +154,56 @@ function ImmediateReactionModal({
           <br />
           You may use Immediate (IMD) order cards to respond before damage is dealt.
         </Alert>
+
+        {/* COWER Ability (UNSTOPPABLE HORDES) */}
+        {cowerInfo.canCower && (
+          <Card
+            bg={useCower ? 'info' : 'dark'}
+            text="white"
+            className="mb-3"
+            style={{
+              cursor: 'pointer',
+              border: useCower ? '3px solid #00bcd4' : '2px solid #00bcd4',
+              transition: 'all 0.2s'
+            }}
+            onClick={() => setUseCower(!useCower)}
+          >
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-start">
+                <div style={{ flex: 1 }}>
+                  <h6 className="mb-1">
+                    🛡️ COWER (UNSTOPPABLE HORDES)
+                    <Badge bg="cyan" style={{ backgroundColor: '#00bcd4' }} className="ms-2">Commander</Badge>
+                    {cowerInfo.extraCost > 0 && (
+                      <Badge bg="danger" className="ms-2">BLACK HAND OF BANE +{cowerInfo.extraCost}</Badge>
+                    )}
+                  </h6>
+                  <small className="d-block mb-2">
+                    Pay {cowerInfo.moraleCost} Morale to prevent {cowerInfo.damageReduction} damage to {defenderInstance.creature.name}
+                    {cowerInfo.extraCost > 0 && (
+                      <span style={{ color: '#dc3545' }}> (includes {cowerInfo.extraCost} extra from enemy's Black Hand of Bane!)</span>
+                    )}
+                  </small>
+                  <div>
+                    <Badge bg="secondary" className="me-2">
+                      Cost: {cowerInfo.moraleCost} Morale
+                    </Badge>
+                    <Badge bg="secondary">
+                      Prevents: {cowerInfo.damageReduction} Damage
+                    </Badge>
+                  </div>
+                </div>
+                {useCower && (
+                  <div className="ms-3">
+                    <Badge bg="success" style={{ fontSize: '1.2rem', padding: '0.5rem' }}>
+                      ✓
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </Card.Body>
+          </Card>
+        )}
 
         {eligibleReactions.length === 0 ? (
           <Alert variant="warning">
@@ -210,12 +273,19 @@ function ImmediateReactionModal({
           </>
         )}
 
-        {selectedReactions.length > 0 && (
+        {(selectedReactions.length > 0 || useCower) && (
           <Alert variant="warning" className="mt-3">
-            <strong>⚠️ Warning:</strong> Playing {selectedReactions.length} card{selectedReactions.length !== 1 ? 's' : ''} will:
+            <strong>⚠️ Warning:</strong> This reaction will:
             <ul className="mb-0 mt-2">
-              <li>Tap {selectedReactions.length} creature{selectedReactions.length !== 1 ? 's' : ''} until your next Refresh phase</li>
-              <li>Discard {selectedReactions.length} order card{selectedReactions.length !== 1 ? 's' : ''} from your hand</li>
+              {selectedReactions.length > 0 && (
+                <>
+                  <li>Tap {selectedReactions.length} creature{selectedReactions.length !== 1 ? 's' : ''} until your next Refresh phase</li>
+                  <li>Discard {selectedReactions.length} order card{selectedReactions.length !== 1 ? 's' : ''} from your hand</li>
+                </>
+              )}
+              {useCower && (
+                <li>Cost {cowerInfo.moraleCost} Morale to prevent {cowerInfo.damageReduction} damage</li>
+              )}
             </ul>
           </Alert>
         )}
@@ -228,9 +298,14 @@ function ImmediateReactionModal({
         <Button
           variant="primary"
           onClick={handleConfirm}
-          disabled={selectedReactions.length === 0}
+          disabled={selectedReactions.length === 0 && !useCower}
         >
-          Use {selectedReactions.length > 0 ? selectedReactions.length : ''} Card{selectedReactions.length !== 1 ? 's' : ''}
+          {useCower && selectedReactions.length === 0
+            ? '🛡️ Use Cower'
+            : useCower
+              ? `🛡️ Cower + ${selectedReactions.length} Card${selectedReactions.length !== 1 ? 's' : ''}`
+              : `Use ${selectedReactions.length > 0 ? selectedReactions.length : ''} Card${selectedReactions.length !== 1 ? 's' : ''}`
+          }
         </Button>
       </Modal.Footer>
     </Modal>

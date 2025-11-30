@@ -15,7 +15,17 @@ export const commanders = [
     startingMorale: 12,
     startingLeadership: 6,
     specialAbilityDescription: 'BLOODTHIRSTY: Gain 1 Leadership for each enemy creature destroyed during your turn.',
-    imageUrl: undeathCmd1
+    imageUrl: undeathCmd1,
+    abilities: [{
+      id: 'bloodthirsty',
+      name: 'BLOODTHIRSTY',
+      type: 'PASSIVE',
+      category: 'RESOURCE',
+      description: 'Gain 1 Leadership for each enemy creature destroyed during your turn.',
+      effect: {
+        gainLeadershipOnKill: 1
+      }
+    }]
   },
   {
     id: 'cou_cmd_2',
@@ -26,7 +36,20 @@ export const commanders = [
     startingMorale: 14,
     startingLeadership: 7,
     specialAbilityDescription: 'UNSTOPPABLE HORDES: All Undead creatures you control gain the Cower power. Lose 1 MORALE. Prevent 20 DAMAGE to this creature from 1 source.',
-    imageUrl: undeathCmd2
+    imageUrl: undeathCmd2,
+    abilities: [{
+      id: 'unstoppable_hordes',
+      name: 'UNSTOPPABLE HORDES',
+      type: 'PASSIVE',
+      category: 'COMBAT',
+      description: 'All Undead creatures you control gain the Cower power. Lose 1 MORALE. Prevent 20 DAMAGE to this creature from 1 source.',
+      effect: {
+        grantCower: true,
+        creatureTypesAffected: ['Undead'],
+        cowerMoraleCost: 1,
+        cowerDamagePrevented: 20
+      }
+    }]
   }
 ]
 
