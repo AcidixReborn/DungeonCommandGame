@@ -165,7 +165,19 @@ function reconstructPath(goalNode) {
 }
 
 /**
- * Get all valid movement tiles within movement range using pathfinding
+ * Get all valid movement tiles within movement range using Dijkstra's algorithm
+ *
+ * BUG FIX: Previous BFS implementation didn't find optimal paths when terrain
+ * costs vary (e.g., forest=2, normal=1). BFS explores by tile count, not cost,
+ * so a 2-tile path through forest (cost 4) would be found before a 3-tile path
+ * through normal terrain (cost 3), incorrectly marking the tile as visited.
+ *
+ * Dijkstra's algorithm uses a priority queue ordered by cost, ensuring we always
+ * find the lowest-cost path to each tile.
+ *
+ * Big O: O((V + E) * log V) where V = tiles in range, E = edges (8 per tile)
+ * For typical movement range of 7: V ≈ 150 tiles, so O(150 * 8 * log 150) ≈ O(8700)
+ *
  * @param {Object} start - Starting position {x, y}
  * @param {number} maxMovement - Maximum movement points
  * @param {Function} getTerrainCost - Function to get terrain cost
@@ -176,20 +188,37 @@ function reconstructPath(goalNode) {
  */
 export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPassable, getTile, flying = false) {
   const validTiles = []
-  const visited = new Set()
+  // Track best cost to reach each tile (allows updating if better path found)
+  const bestCost = new Map()
+  // Track best path to reach each tile
+  const bestPath = new Map()
+
+  // Priority queue: sorted by cost (lowest first) - Dijkstra's algorithm
+  // Using array with sort for simplicity; could use a proper heap for better perf
   const queue = [{ node: new PathfindingNode(start.x, start.y, 0, 0), path: [start] }]
 
-  visited.add(`${start.x},${start.y}`)
+  const startKey = `${start.x},${start.y}`
+  bestCost.set(startKey, 0)
+  bestPath.set(startKey, [start])
 
   while (queue.length > 0) {
+    // Sort by cost and take lowest - O(n log n) per iteration
+    // For better performance, could use a binary heap: O(log n) per iteration
+    queue.sort((a, b) => a.node.g - b.node.g)
     const { node: current, path } = queue.shift()
+
+    const currentKey = `${current.x},${current.y}`
+
+    // Skip if we've already found a better path to this node
+    if (bestCost.has(currentKey) && current.g > bestCost.get(currentKey)) {
+      continue
+    }
 
     // Get all neighbors
     const neighbors = getNeighbors(current, getTile)
 
     for (const neighbor of neighbors) {
       const key = `${neighbor.x},${neighbor.y}`
-      if (visited.has(key)) continue
 
       const tile = getTile(neighbor.x, neighbor.y)
       if (!tile) continue
@@ -207,20 +236,32 @@ export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPass
       // Skip if exceeds movement range
       if (newCost > maxMovement) continue
 
-      visited.add(key)
+      // Only process if this is a better path than previously found
+      if (!bestCost.has(key) || newCost < bestCost.get(key)) {
+        bestCost.set(key, newCost)
 
-      const newPath = [...path, { x: neighbor.x, y: neighbor.y }]
+        const newPath = [...path, { x: neighbor.x, y: neighbor.y }]
+        bestPath.set(key, newPath)
 
-      validTiles.push({
-        tile,
-        path: newPath,
-        cost: newCost
-      })
-
-      // Add to queue for further exploration
-      neighbor.g = newCost
-      queue.push({ node: neighbor, path: newPath })
+        // Add to queue for further exploration
+        neighbor.g = newCost
+        queue.push({ node: neighbor, path: newPath })
+      }
     }
+  }
+
+  // Convert bestCost/bestPath maps to result array (excluding start position)
+  for (const [key, cost] of bestCost.entries()) {
+    if (key === startKey) continue // Don't include starting position
+
+    const [x, y] = key.split(',').map(Number)
+    const tile = getTile(x, y)
+
+    validTiles.push({
+      tile,
+      path: bestPath.get(key),
+      cost
+    })
   }
 
   return validTiles

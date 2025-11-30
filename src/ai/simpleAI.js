@@ -134,14 +134,22 @@ export class SimpleAI {
 
   /**
    * Deploy Phase: Deploy creatures from hand
+   *
+   * Big O: O(Z * C) where Z = starting zone tiles (6), C = creatures in hand
+   * - Filter tiles: O(Z)
+   * - Sort creatures: O(C log C)
+   * - Deploy loop: O(C) iterations, each O(1)
    */
   executeDeployPhase() {
     const player = this.gameState.players[this.playerId]
     const actions = []
 
-    // PERFORMANCE: Use cached starting zone tiles instead of scanning entire board (256 tiles)
-    // Filter to only unoccupied tiles
-    const startingZoneTiles = player.startingZoneTiles.filter(tile => !tile.occupant)
+    // PERFORMANCE: Use cached starting zone coordinates, but look up actual tiles
+    // to check occupancy. startingZoneTiles contains {x, y} objects, not tile refs.
+    // Filter to only unoccupied tiles by checking the actual board tile
+    const startingZoneTiles = player.startingZoneTiles
+      .map(coord => this.gameState.getTile(coord.x, coord.y))
+      .filter(tile => tile && !tile.occupant)
 
     // Deploy creatures in order of level (highest first) until out of leadership
     const sortedCreatures = [...player.creatureHand].sort((a, b) => b.level - a.level)

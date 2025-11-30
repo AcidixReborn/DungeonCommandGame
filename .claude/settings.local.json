@@ -10,7 +10,8 @@
       "Bash(npm uninstall:*)",
       "Bash(npm start)",
       "Bash(dir:*)",
-      "Bash(node test-game-simulation.js:*)"
+      "Bash(node test-game-simulation.js:*)",
+      "Bash(npx vite-node:*)"
     ],
     "deny": [],
     "ask": []

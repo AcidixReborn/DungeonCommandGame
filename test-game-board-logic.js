@@ -66,6 +66,8 @@ const stats = {
   // ===== Deployment Statistics =====
   creaturesDeployed: 0,
   deploymentProtectionTriggered: 0, // Attacks blocked by deployment protection
+  deploymentCollisions: 0, // BUG CHECK: Creatures deployed to occupied tiles
+  deploymentCollisionDetails: [], // Details of collision incidents
 
   // ===== Morale Statistics =====
   moraleFromKills: 0,
@@ -366,6 +368,41 @@ function executeAITurn(gameState, playerId) {
         if (stats.creaturesByPlayer[playerId]) {
           stats.creaturesByPlayer[playerId].deployed++
         }
+
+        // BUG CHECK: Verify deployment tile was actually empty
+        // This catches the bug where startingZoneTiles contained {x,y} coords
+        // instead of tile references, causing occupant checks to fail
+        if (action.position) {
+          const deployTile = gameState.getTile(action.position.x, action.position.y)
+          if (deployTile && deployTile.occupant) {
+            // Check if there's MORE than one creature at this position
+            // (the one we just deployed should be there, but no others)
+            const creaturesAtPosition = []
+            for (const pid of gameState.activePlayers) {
+              const player = gameState.players[pid]
+              for (const creature of player.creaturesInPlay) {
+                if (creature.position &&
+                    creature.position.x === action.position.x &&
+                    creature.position.y === action.position.y) {
+                  creaturesAtPosition.push({
+                    name: creature.creature.name,
+                    owner: pid
+                  })
+                }
+              }
+            }
+
+            if (creaturesAtPosition.length > 1) {
+              stats.deploymentCollisions++
+              stats.deploymentCollisionDetails.push({
+                position: action.position,
+                creatures: creaturesAtPosition,
+                turn: gameState.turnNumber
+              })
+              console.error(`[DEPLOYMENT COLLISION] Multiple creatures at (${action.position.x}, ${action.position.y}):`, creaturesAtPosition)
+            }
+          }
+        }
         break
 
       case 'move':
@@ -656,6 +693,19 @@ function printResults() {
   console.log(`  Creatures Destroyed: ${stats.creaturesDestroyed}`)
   console.log(`  Deployment Protection Triggered: ${stats.deploymentProtectionTriggered}`)
 
+  // ===== Deployment Collision Check =====
+  if (stats.deploymentCollisions > 0) {
+    console.log('\n[DEPLOYMENT COLLISION BUG DETECTED] *** CRITICAL ***')
+    console.log(`  >>> Collisions Detected: ${stats.deploymentCollisions} <<<`)
+    console.log(`  This indicates the deployment bug has regressed!`)
+    stats.deploymentCollisionDetails.slice(0, 5).forEach((detail, idx) => {
+      console.log(`  ${idx + 1}. Turn ${detail.turn} at (${detail.position.x}, ${detail.position.y}): ${detail.creatures.map(c => c.name).join(', ')}`)
+    })
+    if (stats.deploymentCollisionDetails.length > 5) {
+      console.log(`  ... and ${stats.deploymentCollisionDetails.length - 5} more collisions`)
+    }
+  }
+
   // ===== Ranged Attack Restrictions =====
   console.log('\n[RANGED ATTACK RESTRICTIONS]')
   console.log(`  Blocked by Forest (Attacker): ${stats.rangedBlockedByForestAttacker}`)
@@ -791,6 +841,9 @@ function printResults() {
   if (stats.phaseErrors > 0) {
     criticalIssues.push(`${stats.phaseErrors} phase errors`)
   }
+  if (stats.deploymentCollisions > 0) {
+    criticalIssues.push(`${stats.deploymentCollisions} deployment collisions (multiple creatures on same tile)`)
+  }
 
   // Check for passed items
   if (stats.gamesCompleted > 0) {
@@ -813,6 +866,9 @@ function printResults() {
   }
   if (stats.waterDamageInstances > 0) {
     passedChecks.push('Water damage working')
+  }
+  if (stats.deploymentCollisions === 0 && stats.creaturesDeployed > 0) {
+    passedChecks.push('No deployment collisions detected')
   }
 
   if (criticalIssues.length === 0) {
