@@ -143,6 +143,8 @@
   padding-bottom: 15px;
   background-color: rgba(255, 255, 255, 0.05);
   border-radius: 5px;
+  align-items: flex-start;
+  align-content: flex-start;
 }
 
 .card-hand-vertical::-webkit-scrollbar {

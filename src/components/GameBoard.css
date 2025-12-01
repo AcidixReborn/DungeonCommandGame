@@ -317,3 +317,38 @@
   background: #f8f9fa;
   border-top: 1px solid #dee2e6;
 }
+
+/* ============================================
+   TOAST NOTIFICATION SYSTEM
+   ============================================ */
+
+/* Toast slide-in animation */
+@keyframes toastSlideIn {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Toast notification styling */
+.toast-notification {
+  transition: all 0.2s ease;
+}
+
+/* Expanded log overlay animation */
+.expanded-log-overlay {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}

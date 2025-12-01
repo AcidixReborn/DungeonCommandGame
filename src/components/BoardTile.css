@@ -9,7 +9,7 @@
   flex: 1; /* Tiles expand to fill available space */
   min-width: 0; /* Allow flex shrinking */
   min-height: 0; /* Allow flex shrinking */
-  aspect-ratio: 1 / 1; /* Keep tiles square */
+  aspect-ratio: 2 / 3; /* Vertical rectangle - taller than wide */
 
   border: none; /* No borders - completely seamless */
   display: flex;

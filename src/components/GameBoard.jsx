@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Container, Row, Col, Card, Button, Badge, Alert, Modal } from 'react-bootstrap' // Added Modal
 import { GameState, GamePhases, Players } from '../models/gameState'
 import { Creature, CreatureInstance } from '../models/creatures'
@@ -14,6 +14,40 @@ import ImmediateReactionModal from './ImmediateReactionModal'
 import './GameBoard.css'
 
 /**
+ * ToastNotification - Individual toast with auto-dismiss
+ * Auto-dismisses after 3 seconds
+ */
+function ToastNotification({ toast, onRemove }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onRemove(toast.id)
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [toast.id, onRemove])
+
+  return (
+    <div
+      className="toast-notification"
+      style={{
+        backgroundColor: '#2a2a2a',
+        border: '2px solid #4a90e2',
+        borderRadius: '6px',
+        padding: '10px 14px',
+        color: '#fff',
+        fontSize: '0.85rem',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+        animation: 'toastSlideIn 0.3s ease-out',
+        maxWidth: '100%',
+        wordWrap: 'break-word'
+      }}
+    >
+      {toast.message}
+    </div>
+  )
+}
+
+/**
  * GameBoard - Main game component
  * Manages the entire game state, player interactions, and UI
  * Handles human and AI players, game phases, and all game actions
@@ -26,7 +60,60 @@ function GameBoard() {
   const [selectedCreatureIndex, setSelectedCreatureIndex] = useState(null)
   const [selectedOrderIndex, setSelectedOrderIndex] = useState(null)
   const [selectedBoardCreature, setSelectedBoardCreature] = useState(null) // Creature on board
-  const [actionMessage, setActionMessage] = useState('')
+
+  // Toast notification system
+  const [toastMessages, setToastMessages] = useState([]) // Array of {id, message, timestamp, round}
+  const [isLogExpanded, setIsLogExpanded] = useState(false)
+  const [turnLog, setTurnLog] = useState([]) // Full log since last turn
+  const [nextToastId, setNextToastId] = useState(1)
+  const [currentRound, setCurrentRound] = useState(1) // Track rounds for log clearing
+
+  /**
+   * Add a toast notification
+   * Auto-dismisses after 3 seconds, max 10 visible at a time
+   * Also adds to turn log for expanded view
+   * Filters out "AI turn ended" messages
+   */
+  const addToast = (message) => {
+    // Filter out "AI turn ended" messages
+    if (message === 'AI: AI turn ended') return
+
+    const id = nextToastId
+    setNextToastId(prev => prev + 1)
+
+    const newToast = {
+      id,
+      message,
+      timestamp: Date.now(),
+      round: currentRound
+    }
+
+    // Add to turn log
+    setTurnLog(prev => [...prev, newToast])
+
+    // Add to visible toasts (max 10)
+    setToastMessages(prev => {
+      const updated = [...prev, newToast]
+      // Keep only the last 10 toasts
+      return updated.slice(-10)
+    })
+  }
+
+  /**
+   * Remove a toast by ID (memoized to prevent timer resets)
+   */
+  const removeToast = useCallback((id) => {
+    setToastMessages(prev => prev.filter(t => t.id !== id))
+  }, [])
+
+  /**
+   * Clear old logs when human player's turn ends
+   * Keeps current round and previous round visible
+   */
+  const clearOldLogs = (newRound) => {
+    setTurnLog(prev => prev.filter(t => t.round >= newRound - 1))
+    setToastMessages(prev => prev.filter(t => t.round >= newRound - 1))
+  }
   const [validMoveTiles, setValidMoveTiles] = useState([])
   const [validAttackTargets, setValidAttackTargets] = useState([])
   const [lineOfSightPath, setLineOfSightPath] = useState([]) // Visual path for ranged attacks
@@ -192,7 +279,6 @@ function GameBoard() {
 
     const newGame = new GameState(playerSetups)
     setGameState(newGame)
-    setActionMessage('Game started! DEPLOY Phase: Click or drag creatures from your hand to your starting zone (colored tiles).')
   }
 
   /**
@@ -221,11 +307,11 @@ function GameBoard() {
 
       if (!isInStartingZone && !isOrcScoutDeploy) {
         if (gameState.canUseOrcScout(gameState.currentPlayer) && tile.treasure) {
-          setActionMessage('ORC SCOUT: Only Orc creatures can be deployed to treasure tiles!')
+          addToast('ORC SCOUT: Only Orc creatures can be deployed to treasure tiles!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
-          setActionMessage('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
+          addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
         } else {
-          setActionMessage('You can only deploy creatures in your starting zone (highlighted area)!')
+          addToast('You can only deploy creatures in your starting zone (highlighted area)!')
         }
         return
       }
@@ -247,17 +333,17 @@ function GameBoard() {
           if (isOrcScoutDeploy) {
             gameState.markOrcScoutUsed(gameState.currentPlayer)
             setSelectedCreatureIndex(null)
-            setActionMessage(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+            addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
           } else {
             setSelectedCreatureIndex(null)
-            setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+            addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
           }
           setRenderCounter(prev => prev + 1)
         } else {
-          setActionMessage('Tile is occupied!')
+          addToast('Tile is occupied!')
         }
       } else {
-        setActionMessage('Not enough leadership to deploy this creature!')
+        addToast('Not enough leadership to deploy this creature!')
       }
       return
     }
@@ -291,7 +377,7 @@ function GameBoard() {
         setValidMoveTiles([])
         setValidAttackTargets([])
         setLineOfSightPath([])
-        setActionMessage('Creature deselected')
+        addToast('Creature deselected')
       }
       // If clicking on a creature on the board
       else if (tile.occupant) {
@@ -299,7 +385,7 @@ function GameBoard() {
         if (tile.occupant.owner === gameState.currentPlayer) {
           handleCreatureSelect(tile.occupant)
         } else {
-          setActionMessage('Cannot select enemy creatures!')
+          addToast('Cannot select enemy creatures!')
         }
       }
     }
@@ -312,7 +398,7 @@ function GameBoard() {
    */
   const handleCreatureSelect = (creatureInstance) => {
     if (creatureInstance.isTapped) {
-      setActionMessage('Creature is tapped! Cannot move or attack.')
+      addToast('Creature is tapped! Cannot move or attack.')
       return
     }
 
@@ -351,7 +437,7 @@ function GameBoard() {
     })
     setLineOfSightPath(losPath)
 
-    setActionMessage(
+    addToast(
       `Selected ${creatureInstance.creature.name}. ` +
       `Can move to ${moves.length} tiles or attack ${targets.length} enemies.`
     )
@@ -364,7 +450,7 @@ function GameBoard() {
     if (success) {
       // Show movement cost in message
       const cost = validMove ? validMove.cost : '?'
-      setActionMessage(
+      addToast(
         `${creatureInstance.creature.name} moved to (${targetTile.x}, ${targetTile.y}) - Cost: ${cost}`
       )
       setSelectedBoardCreature(null)
@@ -372,7 +458,7 @@ function GameBoard() {
       setValidAttackTargets([])
       setRenderCounter(prev => prev + 1)
     } else {
-      setActionMessage('Invalid move!')
+      addToast('Invalid move!')
     }
   }
 
@@ -387,11 +473,11 @@ function GameBoard() {
       if (pendingMove.creature.usingVersatileMove) {
         pendingMove.creature.isTapped = true // Uses action, so tap the creature
         pendingMove.creature.usingVersatileMove = false // Clear the flag
-        setActionMessage(
+        addToast(
           `VERSATILE: ${pendingMove.creature.creature.name} moved to (${pendingMove.destination.x}, ${pendingMove.destination.y}) using their action!`
         )
       } else {
-        setActionMessage(
+        addToast(
           `${pendingMove.creature.creature.name} moved to (${pendingMove.destination.x}, ${pendingMove.destination.y}) - Cost: ${pendingMove.cost}`
         )
       }
@@ -413,7 +499,7 @@ function GameBoard() {
         }
       }
     } else {
-      setActionMessage('Invalid move!')
+      addToast('Invalid move!')
     }
 
     setPendingMove(null)
@@ -438,13 +524,13 @@ function GameBoard() {
    */
   const handleAttack = (attackerInstance, defenderInstance) => {
     if (attackerInstance.isTapped) {
-      setActionMessage('Creature is already tapped!')
+      addToast('Creature is already tapped!')
       return
     }
 
     // Check if defender is protected (deployed this turn)
     if (defenderInstance.deployedThisTurn) {
-      setActionMessage(`${defenderInstance.creature.name} was just deployed and is protected until next turn!`)
+      addToast(`${defenderInstance.creature.name} was just deployed and is protected until next turn!`)
       return
     }
 
@@ -453,7 +539,7 @@ function GameBoard() {
     const targetInfo = targets.find(t => t.creature.instanceId === defenderInstance.instanceId)
 
     if (!targetInfo) {
-      setActionMessage('Target is out of range!')
+      addToast('Target is out of range!')
       return
     }
 
@@ -576,12 +662,12 @@ function GameBoard() {
           message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
         }
 
-        setActionMessage(message)
+        addToast(message)
 
         // Check for game over
         gameState.checkGameOver()
       } else {
-        setActionMessage(result.message || 'Attack failed!')
+        addToast(result.message || 'Attack failed!')
       }
 
       setSelectedBoardCreature(null)
@@ -844,10 +930,10 @@ function GameBoard() {
         message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
       }
 
-      setActionMessage(message)
+      addToast(message)
       gameState.checkGameOver()
     } else {
-      setActionMessage(result.message || 'Attack failed!')
+      addToast(result.message || 'Attack failed!')
     }
 
     setSelectedBoardCreature(null)
@@ -892,12 +978,12 @@ function GameBoard() {
         message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
       }
 
-      setActionMessage(message)
+      addToast(message)
 
       // Check for game over
       gameState.checkGameOver()
     } else {
-      setActionMessage(result.message || 'Attack failed!')
+      addToast(result.message || 'Attack failed!')
     }
 
     setSelectedBoardCreature(null)
@@ -913,13 +999,13 @@ function GameBoard() {
   // Handle collect morale from treasure (show confirmation modal)
   const handleCollectMorale = () => {
     if (!selectedBoardCreature) {
-      setActionMessage('No creature selected')
+      addToast('No creature selected')
       return
     }
 
     const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
     if (!tile?.treasure) {
-      setActionMessage('No treasure at this location')
+      addToast('No treasure at this location')
       return
     }
 
@@ -947,9 +1033,9 @@ function GameBoard() {
 
     const result = gameState.collectMorale(sellswordPending.creature)
     if (result.success) {
-      setActionMessage(`SELLSWORD: ${sellswordPending.creature.creature.name} chose +1 Morale!`)
+      addToast(`SELLSWORD: ${sellswordPending.creature.creature.name} chose +1 Morale!`)
     } else {
-      setActionMessage(result.message)
+      addToast(result.message)
     }
 
     setSellswordPending(null)
@@ -977,9 +1063,9 @@ function GameBoard() {
     sellswordPending.creature.isTapped = true
 
     if (drawnCards.length > 0) {
-      setActionMessage(`SELLSWORD: ${sellswordPending.creature.creature.name} drew an Order card instead of morale!`)
+      addToast(`SELLSWORD: ${sellswordPending.creature.creature.name} drew an Order card instead of morale!`)
     } else {
-      setActionMessage(`SELLSWORD: No Order cards left to draw!`)
+      addToast(`SELLSWORD: No Order cards left to draw!`)
     }
 
     setSellswordPending(null)
@@ -997,11 +1083,11 @@ function GameBoard() {
     const result = gameState.useScrollbook(gameState.currentPlayer, cardIndex)
 
     if (result.success) {
-      setActionMessage(`SCROLLBOOK: Discarded ${result.discardedCard.name}, drew ${result.drawnCard ? result.drawnCard.name : 'nothing (deck empty)'}`)
+      addToast(`SCROLLBOOK: Discarded ${result.discardedCard.name}, drew ${result.drawnCard ? result.drawnCard.name : 'nothing (deck empty)'}`)
       setSelectedOrderIndex(null) // Clear selection
       setRenderCounter(prev => prev + 1)
     } else {
-      setActionMessage(result.message)
+      addToast(result.message)
     }
   }
 
@@ -1012,13 +1098,13 @@ function GameBoard() {
     const result = gameState.collectMorale(pendingCollection.creature)
 
     if (result.success) {
-      setActionMessage(result.message)
+      addToast(result.message)
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
       setValidAttackTargets([])
       setRenderCounter(prev => prev + 1)
     } else {
-      setActionMessage(result.message)
+      addToast(result.message)
     }
 
     setPendingCollection(null)
@@ -1169,12 +1255,12 @@ function GameBoard() {
           message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
         }
 
-        setActionMessage(message)
+        addToast(message)
 
         // Check for game over
         gameState.checkGameOver()
       } else {
-        setActionMessage(result.message || 'Attack failed!')
+        addToast(result.message || 'Attack failed!')
       }
 
       setRenderCounter(prev => prev + 1)
@@ -1236,9 +1322,9 @@ function GameBoard() {
 
       if (!isInStartingZone && !isOrcScoutDeploy) {
         if (gameState.canUseOrcScout(gameState.currentPlayer)) {
-          setActionMessage('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
+          addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
         } else {
-          setActionMessage('You can only deploy creatures in your starting zone!')
+          addToast('You can only deploy creatures in your starting zone!')
         }
         setDraggingCreatureIndex(null)
         setDragOverTile(null)
@@ -1260,16 +1346,16 @@ function GameBoard() {
           // Mark ORC SCOUT as used if deployed to treasure
           if (isOrcScoutDeploy) {
             gameState.markOrcScoutUsed(gameState.currentPlayer)
-            setActionMessage(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+            addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
           } else {
-            setActionMessage(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+            addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
           }
           setRenderCounter(prev => prev + 1)
         } else {
-          setActionMessage('Tile is occupied!')
+          addToast('Tile is occupied!')
         }
       } else {
-        setActionMessage('Not enough leadership to deploy this creature!')
+        addToast('Not enough leadership to deploy this creature!')
       }
 
       setDraggingCreatureIndex(null)
@@ -1277,7 +1363,7 @@ function GameBoard() {
     } catch (error) {
       console.error('!!! ERROR IN handleDrop !!!', error)
       console.error('Error stack:', error.stack)
-      setActionMessage(`Error deploying creature: ${error.message}`)
+      addToast(`Error deploying creature: ${error.message}`)
       setDraggingCreatureIndex(null)
       setDragOverTile(null)
       setRenderCounter(prev => prev + 1)
@@ -1300,23 +1386,54 @@ function GameBoard() {
           })
           setHordeRefreshExecuted(false)
           gameState.advancePhase()
-          setActionMessage('HORDE deployment complete! Moving to Activate Phase.')
         } else {
           gameState.executeRefreshPhase()
-          setActionMessage('Refresh phase complete. Draw 1 order card, untapped all creatures.')
         }
         break
       case GamePhases.ACTIVATE:
         gameState.advancePhase()
-        setActionMessage('Moving to Deploy phase.')
         break
       case GamePhases.DEPLOY:
         gameState.executeDeployPhase()
-        setActionMessage('Deploy phase complete. Leadership increased, drew creature cards.')
         break
       case GamePhases.CLEANUP:
-        gameState.executeCleanupPhase()
-        setActionMessage(`Turn ended. ${gameState.currentPlayer}'s turn begins.`)
+        {
+          // Track the player whose turn is ending (before cleanup advances to next player)
+          const endingPlayer = gameState.currentPlayer
+          const wasHumanTurn = isPlayerHuman(endingPlayer)
+
+          // Track active players before cleanup to detect eliminations
+          const playersBeforeCleanup = [...gameState.activePlayers]
+          gameState.executeCleanupPhase()
+
+          // Check for player eliminations and notify BEFORE incrementing round
+          const eliminatedPlayers = playersBeforeCleanup.filter(
+            playerId => !gameState.activePlayers.includes(playerId)
+          )
+          eliminatedPlayers.forEach(playerId => {
+            const player = gameState.players[playerId]
+            let reason = ''
+            if (player.morale <= 0) {
+              reason = 'Morale reached 0!'
+            } else if (player.creaturesInPlay.length === 0) {
+              reason = 'All creatures destroyed!'
+            }
+            addToast(`💀 ${playerId} has been eliminated! ${reason}`)
+          })
+
+          // Handle round increment and log clearing when HUMAN turn ends
+          // This happens AFTER elimination toasts are added so they don't get cleared
+          if (wasHumanTurn) {
+            // Increment round and clear old logs (keeps current + previous round)
+            const newRound = currentRound + 1
+            setCurrentRound(newRound)
+            clearOldLogs(newRound)
+          }
+
+          if (!gameState.gameOver) {
+            addToast(`${gameState.currentPlayer}'s turn begins.`)
+          }
+        }
         break
     }
 
@@ -1388,13 +1505,13 @@ function GameBoard() {
       if (attackIntentions.length > 0) {
         // Queue the attack intentions for processing
         setPendingAIActions(attackIntentions)
-        setActionMessage(`AI: ${result.message}`)
+        addToast(`AI: ${result.message}`)
         setRenderCounter(prev => prev + 1)
         setIsAIThinking(false)
         // Don't advance phase yet - will advance after all actions are processed
       } else {
         // No attack intentions, proceed normally
-        setActionMessage(`AI: ${result.message}`)
+        addToast(`AI: ${result.message}`)
         setRenderCounter(prev => prev + 1)
 
         // Small delay before advancing phase
@@ -1430,7 +1547,6 @@ function GameBoard() {
       if (gameState.canDeployDuringRefresh(gameState.currentPlayer)) {
         // HORDE ability - execute refresh actions then show deployment modal
         const executeHordeRefresh = async () => {
-          setActionMessage('HORDE: Executing Refresh Phase...')
           await new Promise(resolve => setTimeout(resolve, 500))
 
           // Execute refresh actions (untap, draw card, clear old protection)
@@ -1456,7 +1572,6 @@ function GameBoard() {
       } else {
         // Normal refresh - auto-execute
         const executePhase = async () => {
-          setActionMessage('Executing Refresh Phase...')
           await new Promise(resolve => setTimeout(resolve, 800))
           advancePhase()
         }
@@ -1464,7 +1579,6 @@ function GameBoard() {
       }
     } else if (gameState.currentPhase === GamePhases.CLEANUP) {
       const executePhase = async () => {
-        setActionMessage('Executing Cleanup Phase...')
         await new Promise(resolve => setTimeout(resolve, 800))
         advancePhase()
       }
@@ -1530,50 +1644,7 @@ function GameBoard() {
 
   return (
     <div className="game-board-container" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Turn Info Header */}
-      <div style={{ flexShrink: 0, marginBottom: '10px' }}>
-        <Card bg="dark" text="white">
-          <Card.Body className="d-flex justify-content-between align-items-center py-2">
-            <div>
-              <h5 className="mb-0">
-                Turn {gameState.turnNumber} - {currentPlayerId}
-                <Badge bg="info" className="ms-3">{gameState.currentPhase}</Badge>
-                {isAIThinking && <Badge bg="warning" className="ms-2">AI Thinking...</Badge>}
-                {isCurrentPlayerAI && !isAIThinking && <Badge bg="secondary" className="ms-2">AI Player</Badge>}
-              </h5>
-            </div>
-            <div>
-              {/* Show button for ACTIVATE, DEPLOY phases, and REFRESH with HORDE ability */}
-              {(gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase()) && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={advancePhase}
-                  disabled={isCurrentPlayerAI || isAIThinking}
-                >
-                  {getPhaseButtonText()}
-                </Button>
-              )}
-              {/* Show status for auto-executing phases (REFRESH without HORDE, CLEANUP) */}
-              {((gameState.currentPhase === GamePhases.REFRESH && !gameState.canDeployDuringRefresh(gameState.currentPlayer)) ||
-                gameState.currentPhase === GamePhases.CLEANUP) && !isCurrentPlayerAI && (
-                <Badge bg="warning" className="px-3 py-2">Auto-Executing...</Badge>
-              )}
-            </div>
-          </Card.Body>
-        </Card>
-      </div>
-
-      {/* Action Message */}
-      {actionMessage && (
-        <div style={{ flexShrink: 0, marginBottom: '10px' }}>
-          <Alert variant="success" dismissible onClose={() => setActionMessage('')} className="py-2 mb-0">
-            {actionMessage}
-          </Alert>
-        </div>
-      )}
-
-      {/* Game Over */}
+      {/* Game Over Alert - Full Width at Top */}
       {gameState.gameOver && (
         <div style={{ flexShrink: 0, marginBottom: '10px' }}>
           <Alert variant="warning" className="py-2 mb-0">
@@ -1583,159 +1654,265 @@ function GameBoard() {
         </div>
       )}
 
-      {/* Battlefield and Player Panel Side by Side */}
+      {/* Battlefield and Right Panel Side by Side */}
       <div style={{ flex: 1, display: 'flex', gap: '10px', minHeight: 0 }}>
-        {/* Battlefield - Left Side */}
+        {/* Battlefield - Left Side (no Card wrapper, just the grid) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Card bg="dark" text="white" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Card.Header className="py-2">
-              <h6 className="mb-1">Battlefield</h6>
-              {gameState.currentPhase === GamePhases.REFRESH && !gameState.canDeployDuringRefresh(gameState.currentPlayer) && (
-                <small className="text-info d-block" style={{ fontSize: '0.85rem' }}>
-                  REFRESH Phase: Click "Execute Refresh" to draw cards and untap creatures
-                </small>
-              )}
-              {gameState.currentPhase === GamePhases.REFRESH && gameState.canDeployDuringRefresh(gameState.currentPlayer) && (
-                <small className="text-success d-block" style={{ fontSize: '0.85rem' }}>
-                  REFRESH Phase (HORDE): You may deploy creatures! Click/Drag to starting zone, then click "Execute Refresh"
-                </small>
-              )}
-              {gameState.currentPhase === GamePhases.ACTIVATE && (
-                <small className="text-info d-block" style={{ fontSize: '0.85rem' }}>
-                  ACTIVATE Phase: Click your creatures to move and attack
-                </small>
-              )}
-              {gameState.currentPhase === GamePhases.DEPLOY && !gameState.canUseOrcScout(gameState.currentPlayer) && (
-                <small className="text-success d-block" style={{ fontSize: '0.85rem' }}>
-                  DEPLOY Phase: Click/Drag creatures from hand to your starting zone (colored tiles)
-                </small>
-              )}
-              {gameState.currentPhase === GamePhases.DEPLOY && gameState.canUseOrcScout(gameState.currentPlayer) && (
-                <small className="text-warning d-block" style={{ fontSize: '0.85rem' }}>
-                  DEPLOY Phase (ORC SCOUT): Deploy to starting zone, OR deploy 1 Orc to any treasure tile!
-                </small>
-              )}
-              {gameState.currentPhase === GamePhases.CLEANUP && (
-                <small className="text-info d-block" style={{ fontSize: '0.85rem' }}>
-                  CLEANUP Phase: Click "End Turn" to finish
-                </small>
-              )}
-              {selectedCreatureIndex !== null && canDeployInCurrentPhase() && (
-                <small className="text-warning d-block" style={{ fontSize: '0.85rem' }}>
-                  → Creature selected! Click or drag to a {currentPlayerId} starting zone tile
-                </small>
-              )}
-              {selectedBoardCreature && (
-                <div className="d-flex align-items-center gap-2">
-                  <small className="text-info" style={{ fontSize: '0.85rem' }}>
-                    {selectedBoardCreature.creature.name} selected - Click to move or attack
-                  </small>
-                  {/* Show Collect Morale button if creature is on treasure */}
-                  {(() => {
-                    const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
-                    return tile?.treasure && (
+          <div className="board-grid" style={{ flex: 1 }}>
+            {Array.from({ length: gameState.boardHeight }).map((_, y) => (
+              <div key={y} className="board-row">
+                {Array.from({ length: gameState.boardWidth }).map((_, x) => {
+                  const tile = gameState.getTile(x, y)
+                  const creature = getTileCreature(x, y)
+
+                  // Check if this tile is a valid move (handle new pathfinding format)
+                  const validMove = validMoveTiles.find(vm => vm.tile.x === x && vm.tile.y === y)
+                  const isValidMove = validMove !== undefined
+
+                  // Check if this creature is a valid attack target and get attack type
+                  const attackTargetInfo = validAttackTargets.find(
+                    t => t.creature.position?.x === x && t.creature.position?.y === y
+                  )
+                  const isAttackTarget = attackTargetInfo !== undefined
+                  const attackType = attackTargetInfo?.attackType
+
+                  // Check if this is the selected creature
+                  const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
+                                              selectedBoardCreature?.position?.y === y
+
+                  // Check if this tile is in the line-of-sight path
+                  const isLineOfSight = lineOfSightPath.some(pos => pos.x === x && pos.y === y)
+
+                  return (
+                    <BoardTile
+                      key={`${x}-${y}`}
+                      tile={tile}
+                      creature={creature}
+                      isSelected={isSelectedCreature}
+                      isValidMove={isValidMove}
+                      movementInfo={validMove} // Pass movement info for cost display
+                      isAttackTarget={isAttackTarget}
+                      attackType={attackType}
+                      isLineOfSight={isLineOfSight}
+                      onClick={handleTileClick}
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      isDragTarget={dragOverTile?.x === x && dragOverTile?.y === y}
+                      playerFactionColors={playerFactionColors}
+                      currentPlayer={gameState?.currentPlayer}
+                    />
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Panel - Turn Bar + Player Panel */}
+        <div style={{ width: '500px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Compact Turn Bar - Above Player Panel */}
+          <Card bg="dark" text="white" style={{ flexShrink: 0 }}>
+            <Card.Body className="py-2 px-3">
+              <div className="d-flex justify-content-between align-items-center">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                    Turn {gameState.turnNumber}
+                  </span>
+                  <span style={{ color: '#aaa' }}>-</span>
+                  <span style={{ fontSize: '0.95rem' }}>{currentPlayerId}</span>
+                  <Badge bg="info" style={{ fontSize: '0.75rem' }}>{gameState.currentPhase}</Badge>
+                  {isAIThinking && <Badge bg="warning" style={{ fontSize: '0.7rem' }}>AI Thinking...</Badge>}
+                  {isCurrentPlayerAI && !isAIThinking && <Badge bg="secondary" style={{ fontSize: '0.7rem' }}>AI</Badge>}
+                </div>
+                <div>
+                  {/* Show button for ACTIVATE, DEPLOY phases, and REFRESH with HORDE ability */}
+                  {(gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase()) && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={advancePhase}
+                      disabled={isCurrentPlayerAI || isAIThinking}
+                      style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+                    >
+                      {getPhaseButtonText()}
+                    </Button>
+                  )}
+                  {/* Show status for auto-executing phases (REFRESH without HORDE, CLEANUP) */}
+                  {((gameState.currentPhase === GamePhases.REFRESH && !gameState.canDeployDuringRefresh(gameState.currentPlayer)) ||
+                    gameState.currentPhase === GamePhases.CLEANUP) && !isCurrentPlayerAI && (
+                    <Badge bg="warning" style={{ fontSize: '0.75rem', padding: '6px 10px' }}>Auto-Executing...</Badge>
+                  )}
+                </div>
+              </div>
+              {/* Action Buttons Row - shown when creature selected on treasure */}
+              {gameState.currentPhase === GamePhases.ACTIVATE && !isCurrentPlayerAI && selectedBoardCreature && (() => {
+                const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
+                const canCollect = tile?.treasure &&
+                                   tile.treasure.remainingMorale > 0 &&
+                                   !selectedBoardCreature.isTapped &&
+                                   selectedBoardCreature.owner === gameState.currentPlayer
+
+                if (canCollect) {
+                  return (
+                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <Button
                         variant="warning"
                         size="sm"
                         onClick={handleCollectMorale}
-                        disabled={selectedBoardCreature.isTapped}
-                        style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                        style={{ fontSize: '0.8rem', padding: '4px 12px' }}
                       >
-                        💎 Collect Morale ({tile.treasure.getDisplayString()})
+                        💎 Collect Morale
                       </Button>
-                    )
-                  })()}
-                  {/* Show VERSATILE Move as Action button for Adventurers */}
-                  {gameState.canUseVersatile(selectedBoardCreature) && (
-                    <Button
-                      variant="info"
-                      size="sm"
-                      onClick={() => {
-                        // Show confirmation modal before activating VERSATILE
-                        setVersatileActionPending(selectedBoardCreature)
-                        setShowVersatileActionModal(true)
-                      }}
-                      style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                    >
-                      🏃 Move as Action (VERSATILE)
-                    </Button>
-                  )}
-                </div>
-              )}
-            </Card.Header>
-            <Card.Body style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
-              <div className="board-grid">
-                {Array.from({ length: gameState.boardHeight }).map((_, y) => (
-                  <div key={y} className="board-row">
-                    {Array.from({ length: gameState.boardWidth }).map((_, x) => {
-                      const tile = gameState.getTile(x, y)
-                      const creature = getTileCreature(x, y)
-
-                      // Check if this tile is a valid move (handle new pathfinding format)
-                      const validMove = validMoveTiles.find(vm => vm.tile.x === x && vm.tile.y === y)
-                      const isValidMove = validMove !== undefined
-
-                      // Check if this creature is a valid attack target and get attack type
-                      const attackTargetInfo = validAttackTargets.find(
-                        t => t.creature.position?.x === x && t.creature.position?.y === y
-                      )
-                      const isAttackTarget = attackTargetInfo !== undefined
-                      const attackType = attackTargetInfo?.attackType
-
-                      // Check if this is the selected creature
-                      const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
-                                                  selectedBoardCreature?.position?.y === y
-
-                      // Check if this tile is in the line-of-sight path
-                      const isLineOfSight = lineOfSightPath.some(pos => pos.x === x && pos.y === y)
-
-                      return (
-                        <BoardTile
-                          key={`${x}-${y}`}
-                          tile={tile}
-                          creature={creature}
-                          isSelected={isSelectedCreature}
-                          isValidMove={isValidMove}
-                          movementInfo={validMove} // Pass movement info for cost display
-                          isAttackTarget={isAttackTarget}
-                          attackType={attackType}
-                          isLineOfSight={isLineOfSight}
-                          onClick={handleTileClick}
-                          onDrop={handleDrop}
-                          onDragOver={handleDragOver}
-                          isDragTarget={dragOverTile?.x === x && dragOverTile?.y === y}
-                          playerFactionColors={playerFactionColors}
-                        />
-                      )
-                    })}
-                  </div>
-                ))}
-              </div>
+                    </div>
+                  )
+                }
+                return null
+              })()}
             </Card.Body>
           </Card>
-        </div>
 
-        {/* Current Player Panel - Right Side Vertical */}
-        <div style={{ width: '500px', flexShrink: 0 }}>
-          <PlayerPanel
-            player={currentPlayer}
-            playerId={currentPlayerId}
-            isCurrentPlayer={true}
-            isHuman={isPlayerHuman(currentPlayerId)}
-            selectedCreature={selectedCreatureIndex}
-            selectedOrder={selectedOrderIndex}
-            onCreatureSelect={(idx) => setSelectedCreatureIndex(idx)}
-            onOrderSelect={(idx) => setSelectedOrderIndex(idx)}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            currentPhase={gameState.currentPhase}
-            vertical={true}
-            canUseScrollbook={gameState.canUseScrollbook(currentPlayerId)}
-            onScrollbookUse={handleScrollbookUse}
-            canDeployCreatures={canDeployInCurrentPhase()}
-          />
+          {/* Player Panel - Takes remaining space */}
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <PlayerPanel
+              player={currentPlayer}
+              playerId={currentPlayerId}
+              isCurrentPlayer={true}
+              isHuman={isPlayerHuman(currentPlayerId)}
+              selectedCreature={selectedCreatureIndex}
+              selectedOrder={selectedOrderIndex}
+              onCreatureSelect={(idx) => setSelectedCreatureIndex(idx)}
+              onOrderSelect={(idx) => setSelectedOrderIndex(idx)}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              currentPhase={gameState.currentPhase}
+              vertical={true}
+              canUseScrollbook={gameState.canUseScrollbook(currentPlayerId)}
+              onScrollbookUse={handleScrollbookUse}
+              canDeployCreatures={canDeployInCurrentPhase()}
+            />
+          </div>
         </div>
       </div>
+
+      {/* Toast Notification System - Bottom Right */}
+      <div
+        className="toast-container-wrapper"
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '8px',
+          maxWidth: '400px'
+        }}
+      >
+        {/* Individual Toasts */}
+        {toastMessages.map((toast) => (
+          <ToastNotification
+            key={toast.id}
+            toast={toast}
+            onRemove={removeToast}
+          />
+        ))}
+
+        {/* Expand Log Button */}
+        {turnLog.length > 0 && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsLogExpanded(true)}
+            style={{
+              fontSize: '0.75rem',
+              padding: '4px 10px',
+              opacity: 0.8
+            }}
+          >
+            📜 View Full Log ({turnLog.length})
+          </Button>
+        )}
+      </div>
+
+      {/* Expanded Log Overlay */}
+      {isLogExpanded && (
+        <div
+          className="expanded-log-overlay"
+          onClick={() => setIsLogExpanded(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1001,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'stretch'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '500px',
+              backgroundColor: '#1a1a1a',
+              borderLeft: '3px solid #4a90e2',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{
+              padding: '15px',
+              backgroundColor: '#2a2a2a',
+              borderBottom: '2px solid #3a3a3a',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h5 style={{ margin: 0, color: '#fff' }}>📜 Turn Log</h5>
+              <Button
+                variant="outline-light"
+                size="sm"
+                onClick={() => setIsLogExpanded(false)}
+              >
+                ✕
+              </Button>
+            </div>
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '10px'
+            }}>
+              {turnLog.length === 0 ? (
+                <p style={{ color: '#888', textAlign: 'center', marginTop: '20px' }}>
+                  No events this turn
+                </p>
+              ) : (
+                turnLog.map((entry, idx) => (
+                  <div
+                    key={entry.id}
+                    style={{
+                      padding: '8px 12px',
+                      marginBottom: '6px',
+                      backgroundColor: '#2a2a2a',
+                      borderRadius: '4px',
+                      borderLeft: '3px solid #4a90e2',
+                      color: '#fff',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    <span style={{ color: '#888', marginRight: '8px' }}>#{idx + 1}</span>
+                    {entry.message}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Immediate Reaction Modal - Defense Options (COWER / UNSTOPPABLE HORDES / IMMEDIATE Cards) */}
       {pendingAttack && (
@@ -2018,7 +2195,7 @@ function GameBoard() {
               const moves = gameState.getValidMovementTiles(versatileActionPending)
               setValidMoveTiles(moves)
               setValidAttackTargets([]) // Clear attack targets since using action to move
-              setActionMessage(`VERSATILE: ${versatileActionPending.creature.name} can move again using their action!`)
+              addToast(`VERSATILE: ${versatileActionPending.creature.name} can move again using their action!`)
               // Mark that we're using versatile so completing move taps the creature
               versatileActionPending.usingVersatileMove = true
             }
@@ -2070,7 +2247,7 @@ function GameBoard() {
               // Calculate valid moves (limited to 2 tiles for post-attack movement)
               const moves = gameState.getValidMovementTiles(versatilePending.creature, 2)
               setValidMoveTiles(moves)
-              setActionMessage(`VERSATILE: Select a tile to move ${versatilePending.creature.creature.name} (up to 2 tiles)`)
+              addToast(`VERSATILE: Select a tile to move ${versatilePending.creature.creature.name} (up to 2 tiles)`)
             }
             setShowVersatileModal(false)
             setVersatilePending(null)
@@ -2190,7 +2367,6 @@ function GameBoard() {
             variant="warning"
             onClick={() => {
               setShowHordeModal(false)
-              setActionMessage('HORDE: Deploy creatures to your starting zone, then click "Execute Refresh" to continue!')
             }}
           >
             📦 Deploy Creatures
@@ -2211,7 +2387,6 @@ function GameBoard() {
               setShowHordeModal(false)
               setHordeRefreshExecuted(false)
               gameState.advancePhase()
-              setActionMessage('HORDE deployment complete! Moving to Activate Phase.')
               setRenderCounter(prev => prev + 1)
             }}
           >

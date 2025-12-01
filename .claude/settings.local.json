@@ -12,7 +12,8 @@
       "Bash(dir:*)",
       "Bash(node test-game-simulation.js:*)",
       "Bash(npx vite-node:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

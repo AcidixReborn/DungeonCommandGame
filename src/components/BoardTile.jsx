@@ -18,8 +18,9 @@ import './BoardTile.css'
  * @param {Function} onDragOver - Drag over handler
  * @param {boolean} isDragTarget - Whether this tile is a valid drag target
  * @param {Object} playerFactionColors - Mapping of player IDs to faction colors
+ * @param {string} currentPlayer - Current player's ID for highlighting their starting zone
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer }) {
   /**
    * Get CSS class for terrain type
    * @returns {string} Terrain CSS class
@@ -103,13 +104,39 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
     const rgb = hexToRgb(factionColor)
     if (!rgb) return {}
 
+    // Check if this is the current player's starting zone
+    const isCurrentPlayerZone = tile.startingZoneOwner === currentPlayer
+
+    // Brighten the color for current player highlight
+    const brightenColor = (r, g, b, factor = 1.4) => ({
+      r: Math.min(255, Math.floor(r * factor)),
+      g: Math.min(255, Math.floor(g * factor)),
+      b: Math.min(255, Math.floor(b * factor))
+    })
+
+    const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
+
+    if (isCurrentPlayerZone) {
+      // Current player's zone - brighter inner border highlight
+      return {
+        background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25) 100%)`,
+        boxShadow: `
+          inset 0 0 0 3px rgba(${brightRgb.r}, ${brightRgb.g}, ${brightRgb.b}, 0.9),
+          inset 0 0 20px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5),
+          inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)
+        `,
+        borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`
+      }
+    }
+
+    // Other players' zones - dimmed appearance
     return {
-      background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2) 100%)`,
+      background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1) 100%)`,
       boxShadow: `
-        inset 0 0 20px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5),
-        inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)
+        inset 0 0 10px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2),
+        inset 2px 2px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)
       `,
-      borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`
+      borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`
     }
   }
 
