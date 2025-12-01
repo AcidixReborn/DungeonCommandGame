@@ -470,19 +470,58 @@ function GameBoard() {
       })
       setShowReactionModal(true)
     } else {
-      // Defender is AI - use AI logic to decide on reactions and COWER
+      // Defender is AI - use AI logic to decide on reactions and defensive abilities
       const defenderAI = new SimpleAI(gameState, defenderPlayerId)
       const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
 
-      // AI decides whether to use COWER ability (UNSTOPPABLE HORDES)
-      const cowerDecision = defenderAI.decideCower(defenderInstance, attackerInstance.owner)
-      let cowerResult = null
+      // Calculate incoming damage for defensive decisions
+      const incomingDamage = targetInfo.attackType === 'melee'
+        ? attackerInstance.creature.meleeAttack?.damage || 0
+        : attackerInstance.creature.rangedAttack?.damage || 0
 
-      if (cowerDecision.useCower) {
-        cowerResult = gameState.applyCower(defenderInstance, attackerInstance.owner)
+      // AI decides whether to use defensive abilities (COWER or UNSTOPPABLE HORDES)
+      const defenseDecision = defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
+      let defenseResult = null
+
+      if (defenseDecision.type === 'cower') {
+        defenseResult = gameState.applyCower(defenderInstance, incomingDamage, attackerInstance.owner)
+        if (defenseResult.success) {
+          defenseResult.type = 'cower'
+          defenseResult.damagePrevented = defenseResult.damageAvoided
+        }
+      } else if (defenseDecision.type === 'unstoppable_hordes') {
+        // Apply UNSTOPPABLE HORDES for defender and any adjacent Undead
+        let totalDamagePrevented = 0
+        const creaturesUsed = []
+
+        if (defenseDecision.defenderCanUse) {
+          const result = gameState.applyUnstoppableHordes(defenderInstance)
+          if (result.success) {
+            totalDamagePrevented += result.damagePrevented
+            creaturesUsed.push(defenderInstance)
+          }
+        }
+
+        for (const creature of defenseDecision.creatures || []) {
+          const result = gameState.applyUnstoppableHordes(creature)
+          if (result.success) {
+            totalDamagePrevented += result.damagePrevented
+            creaturesUsed.push(creature)
+          }
+        }
+
+        if (creaturesUsed.length > 0) {
+          defenseResult = {
+            success: true,
+            type: 'unstoppable_hordes',
+            damagePrevented: totalDamagePrevented,
+            moraleCost: creaturesUsed.length,
+            creaturesUsed
+          }
+        }
       }
 
-      // Process AI reactions
+      // Process AI reactions (IMMEDIATE cards)
       if (reactionDecision.reactions.length > 0) {
         const defenderPlayer = gameState.players[defenderPlayerId]
 
@@ -497,10 +536,10 @@ function GameBoard() {
         })
       }
 
-      // Execute attack immediately for AI defender (with or without COWER)
+      // Execute attack immediately for AI defender (with or without defense)
       let result
-      if (cowerResult && cowerResult.success) {
-        result = gameState.executeAttackWithCower(attackerInstance, defenderInstance, targetInfo.attackType, cowerResult.damageReduction)
+      if (defenseResult && defenseResult.success) {
+        result = gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, defenseResult.damagePrevented, defenseResult.type)
       } else {
         result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
       }
@@ -508,9 +547,13 @@ function GameBoard() {
       if (result.success) {
         let message = ''
 
-        // Add COWER info to message
-        if (cowerResult && cowerResult.success) {
-          message += `🛡️ AI used COWER: ${cowerResult.damageReduction} damage prevented (cost ${cowerResult.moraleCost} morale)! `
+        // Add defense info to message
+        if (defenseResult && defenseResult.success) {
+          if (defenseResult.type === 'cower') {
+            message += `🛡️ AI used COWER: ${defenseResult.damagePrevented} damage avoided (cost ${defenseResult.moraleCost} morale)! `
+          } else if (defenseResult.type === 'unstoppable_hordes') {
+            message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
+          }
         }
 
         // Add reaction info to message
@@ -1020,19 +1063,58 @@ function GameBoard() {
       setShowReactionModal(true)
       // Modal handlers will call executeAttackAfterReactions which continues processing
     } else {
-      // Defender is AI - use AI logic to decide on reactions and COWER
+      // Defender is AI - use AI logic to decide on reactions and defensive abilities
       const defenderAI = new SimpleAI(gameState, defenderPlayerId)
       const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
 
-      // AI decides whether to use COWER ability (UNSTOPPABLE HORDES)
-      const cowerDecision = defenderAI.decideCower(defenderInstance, attackerInstance.owner)
-      let cowerResult = null
+      // Calculate incoming damage for defensive decisions
+      const incomingDamage = targetInfo.attackType === 'melee'
+        ? attackerInstance.creature.meleeAttack?.damage || 0
+        : attackerInstance.creature.rangedAttack?.damage || 0
 
-      if (cowerDecision.useCower) {
-        cowerResult = gameState.applyCower(defenderInstance, attackerInstance.owner)
+      // AI decides whether to use defensive abilities (COWER or UNSTOPPABLE HORDES)
+      const defenseDecision = defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
+      let defenseResult = null
+
+      if (defenseDecision.type === 'cower') {
+        defenseResult = gameState.applyCower(defenderInstance, incomingDamage, attackerInstance.owner)
+        if (defenseResult.success) {
+          defenseResult.type = 'cower'
+          defenseResult.damagePrevented = defenseResult.damageAvoided
+        }
+      } else if (defenseDecision.type === 'unstoppable_hordes') {
+        // Apply UNSTOPPABLE HORDES for defender and any adjacent Undead
+        let totalDamagePrevented = 0
+        const creaturesUsed = []
+
+        if (defenseDecision.defenderCanUse) {
+          const result = gameState.applyUnstoppableHordes(defenderInstance)
+          if (result.success) {
+            totalDamagePrevented += result.damagePrevented
+            creaturesUsed.push(defenderInstance)
+          }
+        }
+
+        for (const creature of defenseDecision.creatures || []) {
+          const result = gameState.applyUnstoppableHordes(creature)
+          if (result.success) {
+            totalDamagePrevented += result.damagePrevented
+            creaturesUsed.push(creature)
+          }
+        }
+
+        if (creaturesUsed.length > 0) {
+          defenseResult = {
+            success: true,
+            type: 'unstoppable_hordes',
+            damagePrevented: totalDamagePrevented,
+            moraleCost: creaturesUsed.length,
+            creaturesUsed
+          }
+        }
       }
 
-      // Process AI reactions
+      // Process AI reactions (IMMEDIATE cards)
       if (reactionDecision.reactions.length > 0) {
         const defenderPlayer = gameState.players[defenderPlayerId]
 
@@ -1047,10 +1129,10 @@ function GameBoard() {
         })
       }
 
-      // Execute attack immediately for AI defender (with or without COWER)
+      // Execute attack immediately for AI defender (with or without defense)
       let result
-      if (cowerResult && cowerResult.success) {
-        result = gameState.executeAttackWithCower(attackerInstance, defenderInstance, targetInfo.attackType, cowerResult.damageReduction)
+      if (defenseResult && defenseResult.success) {
+        result = gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, defenseResult.damagePrevented, defenseResult.type)
       } else {
         result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
       }
@@ -1058,9 +1140,13 @@ function GameBoard() {
       if (result.success) {
         let message = ''
 
-        // Add COWER info to message
-        if (cowerResult && cowerResult.success) {
-          message += `🛡️ AI used COWER: ${cowerResult.damageReduction} damage prevented (cost ${cowerResult.moraleCost} morale)! `
+        // Add defense info to message
+        if (defenseResult && defenseResult.success) {
+          if (defenseResult.type === 'cower') {
+            message += `🛡️ AI used COWER: ${defenseResult.damagePrevented} damage avoided (cost ${defenseResult.moraleCost} morale)! `
+          } else if (defenseResult.type === 'unstoppable_hordes') {
+            message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
+          }
         }
 
         // Add reaction info to message

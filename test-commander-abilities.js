@@ -212,13 +212,11 @@ function initBalanceTracking(faction, commanderName) {
 
 /**
  * Create a creature deck for a faction
+ * Each faction has exactly 12 unique creatures (no duplicates)
  */
 function createCreatureDeck(faction) {
-  const deck = []
-  for (let i = 0; i < 3; i++) {
-    deck.push(...sampleCreatures[faction].map(c => new Creature(c)))
-  }
-  return deck
+  // Create single copy of each creature (12 total per faction)
+  return sampleCreatures[faction].map(c => new Creature(c))
 }
 
 /**

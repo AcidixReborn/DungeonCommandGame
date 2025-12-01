@@ -182,7 +182,9 @@ export class PlayerState {
    * @returns {boolean} True if player is defeated (morale <= 0)
    */
   loseMorale(amount) {
-    this.morale = Math.max(0, this.morale - amount)
+    // Guard against NaN/undefined to prevent morale corruption
+    const safeAmount = (typeof amount === 'number' && !isNaN(amount)) ? amount : 0
+    this.morale = Math.max(0, this.morale - safeAmount)
     return this.morale <= 0 // Returns true if defeated
   }
 
@@ -191,7 +193,9 @@ export class PlayerState {
    * @param {number} amount - Amount of morale to gain
    */
   gainMorale(amount) {
-    this.morale += amount
+    // Guard against NaN/undefined to prevent morale corruption
+    const safeAmount = (typeof amount === 'number' && !isNaN(amount)) ? amount : 0
+    this.morale += safeAmount
   }
 
   /**
@@ -497,7 +501,7 @@ export class GameState {
    */
   getEdgePositionsForPlayers(numPlayers) {
     const positions = []
-    const minDistance = 8 // Minimum distance between starting zones
+    const minDistance = 10 // Minimum gap between starting zone EDGES (not corners)
 
     // Generate all possible edge positions (keeping zones within bounds)
     const possiblePositions = []
@@ -524,15 +528,58 @@ export class GameState {
       possiblePositions.push({ startX: this.boardWidth - 2, startY: y, edge: 'right' })
     }
 
-    // Helper function to calculate Manhattan distance
-    const getManhattanDistance = (pos1, pos2) => {
-      return Math.abs(pos1.startX - pos2.startX) + Math.abs(pos1.startY - pos2.startY)
+    // Get zone dimensions based on edge type
+    const getZoneDimensions = (edge) => {
+      if (edge === 'top' || edge === 'bottom') {
+        return { width: 3, height: 2 }
+      } else {
+        return { width: 2, height: 3 }
+      }
+    }
+
+    // Calculate minimum gap between two zones (edge-to-edge distance)
+    const getMinGapBetweenZones = (pos1, pos2) => {
+      const dim1 = getZoneDimensions(pos1.edge)
+      const dim2 = getZoneDimensions(pos2.edge)
+
+      // Calculate bounding boxes
+      const zone1 = {
+        left: pos1.startX,
+        right: pos1.startX + dim1.width - 1,
+        top: pos1.startY,
+        bottom: pos1.startY + dim1.height - 1
+      }
+      const zone2 = {
+        left: pos2.startX,
+        right: pos2.startX + dim2.width - 1,
+        top: pos2.startY,
+        bottom: pos2.startY + dim2.height - 1
+      }
+
+      // Calculate horizontal gap (0 if overlapping)
+      let horizGap = 0
+      if (zone2.left > zone1.right) {
+        horizGap = zone2.left - zone1.right - 1
+      } else if (zone1.left > zone2.right) {
+        horizGap = zone1.left - zone2.right - 1
+      }
+
+      // Calculate vertical gap (0 if overlapping)
+      let vertGap = 0
+      if (zone2.top > zone1.bottom) {
+        vertGap = zone2.top - zone1.bottom - 1
+      } else if (zone1.top > zone2.bottom) {
+        vertGap = zone1.top - zone2.bottom - 1
+      }
+
+      // Return combined gap (Manhattan-style for diagonal separation)
+      return horizGap + vertGap
     }
 
     // Helper function to check if a position meets minimum distance from all existing positions
     const meetsMinDistance = (candidate, existingPositions) => {
       for (const existingPos of existingPositions) {
-        if (getManhattanDistance(candidate, existingPos) < minDistance) {
+        if (getMinGapBetweenZones(candidate, existingPos) < minDistance) {
           return false
         }
       }
@@ -543,7 +590,7 @@ export class GameState {
     const getTotalDistance = (candidate, existingPositions) => {
       let total = 0
       for (const existingPos of existingPositions) {
-        total += getManhattanDistance(candidate, existingPos)
+        total += getMinGapBetweenZones(candidate, existingPos)
       }
       return total
     }
@@ -1044,8 +1091,9 @@ export class GameState {
       return { canCower: false, moraleCost: 0, extraCost: 0, damageAvoided: 0, reason: 'tapped' }
     }
 
-    // Calculate morale cost: damage/10, rounded up
-    const baseMoraleCost = Math.ceil(incomingDamage / 10)
+    // Calculate morale cost: damage/10, rounded up (guard against undefined/NaN)
+    const safeDamage = (typeof incomingDamage === 'number' && !isNaN(incomingDamage)) ? incomingDamage : 0
+    const baseMoraleCost = Math.ceil(safeDamage / 10)
 
     // Check for BLACK HAND OF BANE extra cost (only applies to COWER, not UNSTOPPABLE HORDES)
     const extraCost = attackerOwner ? this.getBlackHandOfBaneExtraCost(attackerOwner) : 0
@@ -2174,8 +2222,36 @@ export class GameState {
   }
 
   endTurn() {
+    // Check for defeated players and eliminate them
+    const defeatedPlayers = this.activePlayers.filter(
+      playerId => this.players[playerId].isDefeated(this.turnNumber)
+    )
+
+    // Eliminate defeated players (remove their creatures from board)
+    for (const playerId of defeatedPlayers) {
+      this.eliminatePlayer(playerId)
+    }
+
+    // Remove defeated players from active players list
+    this.activePlayers = this.activePlayers.filter(
+      playerId => !defeatedPlayers.includes(playerId)
+    )
+
+    // Check if game should end (1 or fewer players remaining)
+    if (this.activePlayers.length <= 1) {
+      this.gameOver = true
+      this.winner = this.activePlayers[0] || null
+      return
+    }
+
+    // If current player was eliminated, adjust index
+    let currentIndex = this.activePlayers.indexOf(this.currentPlayer)
+    if (currentIndex === -1) {
+      // Current player was eliminated, start from beginning of remaining players
+      currentIndex = -1
+    }
+
     // Move to next active player
-    const currentIndex = this.activePlayers.indexOf(this.currentPlayer)
     const nextIndex = (currentIndex + 1) % this.activePlayers.length
     this.currentPlayer = this.activePlayers[nextIndex]
 
@@ -2191,7 +2267,7 @@ export class GameState {
       this.currentPhase = GamePhases.REFRESH
     }
 
-    // Check for game over conditions
+    // Check for game over conditions (handles turn limit, etc.)
     this.checkGameOver()
   }
 
@@ -2251,6 +2327,29 @@ export class GameState {
       damage: damageAmount,
       moraleChange: null
     }
+  }
+
+  /**
+   * Eliminate a player from the game - removes all their creatures from the board
+   * @param {string} playerId - The player to eliminate
+   */
+  eliminatePlayer(playerId) {
+    const player = this.players[playerId]
+    if (!player) return
+
+    // Remove all creatures from the board and clear their tiles
+    for (const creature of player.creaturesInPlay) {
+      if (creature.position) {
+        const tile = this.getTile(creature.position.x, creature.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+        creature.position = null
+      }
+    }
+
+    // Clear the creaturesInPlay array
+    player.creaturesInPlay = []
   }
 
   checkGameOver() {

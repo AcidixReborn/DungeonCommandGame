@@ -73,6 +73,8 @@ const stats = {
   moraleFromKills: 0,
   moraleFromTreasures: 0,
   moraleLostFromDeaths: 0,
+  nanMoraleDetected: 0, // BUG CHECK: Tracks if any player's morale becomes NaN
+  nanMoraleDetails: [], // Details of NaN morale incidents
 
   // ===== Treasure Statistics =====
   treasuresCollected: 0,
@@ -110,7 +112,14 @@ const stats = {
 
   // ===== Multi-player Statistics =====
   gamesByPlayerCount: {}, // { 2: 50, 3: 20, 4: 20, 5: 10 }
-  winsByPlayerCount: {} // { 2: { PLAYER1: 25, PLAYER2: 25 }, ... }
+  winsByPlayerCount: {}, // { 2: { PLAYER1: 25, PLAYER2: 25 }, ... }
+
+  // ===== Starting Zone Spacing Statistics =====
+  startingZoneSpacingViolations: 0, // BUG CHECK: Zones closer than minimum distance
+  startingZoneSpacingDetails: [], // Details of spacing violations
+  minStartingZoneGap: Infinity, // Smallest gap observed between any two zones
+  avgStartingZoneGap: 0, // Average gap between zones
+  totalStartingZoneGapMeasurements: 0 // Number of measurements taken
 }
 
 /**
@@ -145,19 +154,150 @@ function initBalanceTracking(faction, commanderName) {
 }
 
 /**
+ * Check all players' morale for NaN values
+ * This catches the bug where morale becomes NaN due to undefined arithmetic
+ * O(P) where P = number of players
+ *
+ * @param {GameState} gameState - Current game state
+ * @param {number} gameNum - Game number for logging
+ * @param {number} turnNum - Current turn number
+ * @param {string} phase - Current phase name
+ * @returns {boolean} True if NaN morale was detected
+ */
+function checkForNaNMorale(gameState, gameNum, turnNum, phase) {
+  let nanDetected = false
+
+  for (const playerId of gameState.activePlayers) {
+    const player = gameState.players[playerId]
+    if (player && (typeof player.morale !== 'number' || isNaN(player.morale))) {
+      stats.nanMoraleDetected++
+      stats.nanMoraleDetails.push({
+        gameNum,
+        turn: turnNum,
+        phase,
+        playerId,
+        morale: player.morale,
+        faction: player.faction
+      })
+      nanDetected = true
+
+      if (CONFIG.VERBOSE_LOGGING) {
+        console.error(`[NaN MORALE] Game ${gameNum}, Turn ${turnNum}, Phase ${phase}: ${playerId} has morale = ${player.morale}`)
+      }
+    }
+  }
+
+  return nanDetected
+}
+
+/**
+ * Check starting zone spacing between all players
+ * Validates that zones have at least 10 tiles gap (edge-to-edge, not corner-to-corner)
+ * O(P^2) where P = number of players
+ *
+ * @param {GameState} gameState - Current game state
+ * @param {number} gameNum - Game number for logging
+ * @returns {boolean} True if spacing violation was detected
+ */
+function checkStartingZoneSpacing(gameState, gameNum) {
+  const MIN_REQUIRED_GAP = 10 // Must match gameState.js minDistance value
+  let violationDetected = false
+
+  // Get all players' starting zones
+  const playerZones = []
+  for (const playerId of Object.keys(gameState.players)) {
+    const player = gameState.players[playerId]
+    if (player.startingZoneTiles && player.startingZoneTiles.length > 0) {
+      // Calculate bounding box from starting zone tiles
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+      for (const tile of player.startingZoneTiles) {
+        // Handle both tile objects and coordinate objects
+        const x = tile.x !== undefined ? tile.x : tile.position?.x
+        const y = tile.y !== undefined ? tile.y : tile.position?.y
+        if (x !== undefined && y !== undefined) {
+          minX = Math.min(minX, x)
+          maxX = Math.max(maxX, x)
+          minY = Math.min(minY, y)
+          maxY = Math.max(maxY, y)
+        }
+      }
+      if (minX !== Infinity) {
+        playerZones.push({
+          playerId,
+          left: minX,
+          right: maxX,
+          top: minY,
+          bottom: maxY
+        })
+      }
+    }
+  }
+
+  // Check spacing between all pairs of zones
+  for (let i = 0; i < playerZones.length; i++) {
+    for (let j = i + 1; j < playerZones.length; j++) {
+      const zone1 = playerZones[i]
+      const zone2 = playerZones[j]
+
+      // Calculate horizontal gap (0 if overlapping)
+      let horizGap = 0
+      if (zone2.left > zone1.right) {
+        horizGap = zone2.left - zone1.right - 1
+      } else if (zone1.left > zone2.right) {
+        horizGap = zone1.left - zone2.right - 1
+      }
+
+      // Calculate vertical gap (0 if overlapping)
+      let vertGap = 0
+      if (zone2.top > zone1.bottom) {
+        vertGap = zone2.top - zone1.bottom - 1
+      } else if (zone1.top > zone2.bottom) {
+        vertGap = zone1.top - zone2.bottom - 1
+      }
+
+      // Total gap (Manhattan-style for diagonal separation)
+      const totalGap = horizGap + vertGap
+
+      // Track statistics
+      stats.totalStartingZoneGapMeasurements++
+      stats.avgStartingZoneGap = ((stats.avgStartingZoneGap * (stats.totalStartingZoneGapMeasurements - 1)) + totalGap) / stats.totalStartingZoneGapMeasurements
+      stats.minStartingZoneGap = Math.min(stats.minStartingZoneGap, totalGap)
+
+      // Check for violation
+      if (totalGap < MIN_REQUIRED_GAP) {
+        stats.startingZoneSpacingViolations++
+        stats.startingZoneSpacingDetails.push({
+          gameNum,
+          player1: zone1.playerId,
+          player2: zone2.playerId,
+          gap: totalGap,
+          required: MIN_REQUIRED_GAP,
+          zone1Bounds: { left: zone1.left, right: zone1.right, top: zone1.top, bottom: zone1.bottom },
+          zone2Bounds: { left: zone2.left, right: zone2.right, top: zone2.top, bottom: zone2.bottom }
+        })
+        violationDetected = true
+
+        if (CONFIG.VERBOSE_LOGGING) {
+          console.error(`[ZONE SPACING] Game ${gameNum}: ${zone1.playerId} and ${zone2.playerId} zones only ${totalGap} tiles apart (required: ${MIN_REQUIRED_GAP})`)
+        }
+      }
+    }
+  }
+
+  return violationDetected
+}
+
+/**
  * Create a creature deck for a faction
- * O(C) where C = number of unique creatures per faction (typically 5-8)
+ * Each faction has exactly 12 unique creatures (no duplicates)
+ * O(C) where C = number of unique creatures per faction (12)
  *
  * @param {string} faction - Faction name
  * @returns {Array<Creature>} Array of creature cards
  */
 function createCreatureDeck(faction) {
-  const deck = []
-  // Create 3 copies of each creature for deck variety
-  for (let i = 0; i < 3; i++) {
-    deck.push(...sampleCreatures[faction].map(c => new Creature(c)))
-  }
-  return deck
+  // Create single copy of each creature (12 total per faction)
+  return sampleCreatures[faction].map(c => new Creature(c))
 }
 
 /**
@@ -491,6 +631,9 @@ function runGameSimulation(gameNum, numPlayers = 2) {
     // Create game state
     const gameState = new GameState(playerSetups)
 
+    // Check starting zone spacing immediately after game creation
+    checkStartingZoneSpacing(gameState, gameNum)
+
     // Track game by player count
     if (!stats.gamesByPlayerCount[numPlayers]) {
       stats.gamesByPlayerCount[numPlayers] = 0
@@ -580,6 +723,9 @@ function runGameSimulation(gameNum, numPlayers = 2) {
 
       // Check game over
       gameState.checkGameOver()
+
+      // Check for NaN morale bug after each phase
+      checkForNaNMorale(gameState, gameNum, turnCount, currentPhase)
     }
 
     // Check for timeout
@@ -720,6 +866,38 @@ function printResults() {
   console.log(`  Morale from Treasures: ${stats.moraleFromTreasures}`)
   console.log(`  Morale Lost from Deaths: ${stats.moraleLostFromDeaths}`)
 
+  // ===== NaN Morale Bug Check =====
+  if (stats.nanMoraleDetected > 0) {
+    console.log('\n[NaN MORALE BUG DETECTED] *** CRITICAL ***')
+    console.log(`  >>> NaN Morale Incidents: ${stats.nanMoraleDetected} <<<`)
+    console.log(`  This indicates morale corruption from undefined arithmetic!`)
+    stats.nanMoraleDetails.slice(0, 5).forEach((detail, idx) => {
+      console.log(`  ${idx + 1}. Game ${detail.gameNum}, Turn ${detail.turn}, Phase ${detail.phase}: ${detail.playerId} (${detail.faction}) morale = ${detail.morale}`)
+    })
+    if (stats.nanMoraleDetails.length > 5) {
+      console.log(`  ... and ${stats.nanMoraleDetails.length - 5} more incidents`)
+    }
+  }
+
+  // ===== Starting Zone Spacing Check =====
+  if (stats.totalStartingZoneGapMeasurements > 0) {
+    console.log('\n[STARTING ZONE SPACING]')
+    console.log(`  Minimum Gap Observed: ${stats.minStartingZoneGap} tiles`)
+    console.log(`  Average Gap: ${stats.avgStartingZoneGap.toFixed(1)} tiles`)
+    console.log(`  Total Zone Pairs Checked: ${stats.totalStartingZoneGapMeasurements}`)
+  }
+  if (stats.startingZoneSpacingViolations > 0) {
+    console.log('\n[ZONE SPACING BUG DETECTED] *** CRITICAL ***')
+    console.log(`  >>> Spacing Violations: ${stats.startingZoneSpacingViolations} <<<`)
+    console.log(`  Starting zones are closer than the required 10 tile minimum!`)
+    stats.startingZoneSpacingDetails.slice(0, 5).forEach((detail, idx) => {
+      console.log(`  ${idx + 1}. Game ${detail.gameNum}: ${detail.player1} and ${detail.player2} only ${detail.gap} tiles apart (required: ${detail.required})`)
+    })
+    if (stats.startingZoneSpacingDetails.length > 5) {
+      console.log(`  ... and ${stats.startingZoneSpacingDetails.length - 5} more violations`)
+    }
+  }
+
   // ===== Treasure Statistics =====
   console.log('\n[TREASURE STATISTICS]')
   console.log(`  Treasures Collected: ${stats.treasuresCollected}`)
@@ -844,6 +1022,12 @@ function printResults() {
   if (stats.deploymentCollisions > 0) {
     criticalIssues.push(`${stats.deploymentCollisions} deployment collisions (multiple creatures on same tile)`)
   }
+  if (stats.nanMoraleDetected > 0) {
+    criticalIssues.push(`${stats.nanMoraleDetected} NaN morale incidents (morale corruption bug)`)
+  }
+  if (stats.startingZoneSpacingViolations > 0) {
+    criticalIssues.push(`${stats.startingZoneSpacingViolations} starting zone spacing violations (zones closer than 10 tiles)`)
+  }
 
   // Check for passed items
   if (stats.gamesCompleted > 0) {
@@ -869,6 +1053,12 @@ function printResults() {
   }
   if (stats.deploymentCollisions === 0 && stats.creaturesDeployed > 0) {
     passedChecks.push('No deployment collisions detected')
+  }
+  if (stats.nanMoraleDetected === 0 && stats.gamesCompleted > 0) {
+    passedChecks.push('No NaN morale corruption detected')
+  }
+  if (stats.startingZoneSpacingViolations === 0 && stats.totalStartingZoneGapMeasurements > 0) {
+    passedChecks.push(`Starting zone spacing valid (min gap: ${stats.minStartingZoneGap} tiles)`)
   }
 
   if (criticalIssues.length === 0) {

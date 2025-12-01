@@ -42,7 +42,10 @@ function PlayerPanel({
   onScrollbookUse,
   canDeployCreatures = false
 }) {
-  const moralePercentage = (player.morale / player.commander.startingMorale) * 100
+  // Guard against NaN/undefined morale values for display
+  const safeMorale = (typeof player.morale === 'number' && !isNaN(player.morale)) ? player.morale : 0
+  const safeStartingMorale = player.commander?.startingMorale || 1 // Prevent division by 0
+  const moralePercentage = (safeMorale / safeStartingMorale) * 100
   const leadershipUsage = player.getCurrentLeadershipUsage()
   const leadershipPercentage = (leadershipUsage / player.leadership) * 100
 
@@ -135,7 +138,7 @@ function PlayerPanel({
                   now={moralePercentage}
                   variant={moralePercentage > 50 ? 'success' : moralePercentage > 25 ? 'warning' : 'danger'}
                   style={{ height: '20px', fontSize: '0.75rem' }}
-                  label={`${player.morale}`}
+                  label={`${safeMorale}`}
                 />
               </div>
 
@@ -213,7 +216,7 @@ function PlayerPanel({
                   now={moralePercentage}
                   variant={moralePercentage > 50 ? 'success' : moralePercentage > 25 ? 'warning' : 'danger'}
                   style={{ height: '25px' }}
-                  label={`${player.morale}`}
+                  label={`${safeMorale}`}
                 />
               </div>
 
