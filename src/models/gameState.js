@@ -350,12 +350,12 @@ export class GameState {
     }
 
     // Randomly decide terrain composition for this region
-    // 15-25% forests, 8-15% mountains, 5-10% difficult terrain, 3% water
+    // 8-15% forests, 8-15% mountains, 3-8% difficult terrain, 3-12% water
     const totalTiles = regionTiles.length
-    const forestCount = Math.floor(totalTiles * (0.15 + Math.random() * 0.10))
+    const forestCount = Math.floor(totalTiles * (0.08 + Math.random() * 0.07))
     const mountainCount = Math.floor(totalTiles * (0.08 + Math.random() * 0.07))
-    const difficultCount = Math.floor(totalTiles * (0.05 + Math.random() * 0.05))
-    const waterCount = Math.floor(totalTiles * 0.03) // 3% water coverage
+    const difficultCount = Math.floor(totalTiles * (0.03 + Math.random() * 0.05))
+    const waterCount = Math.floor(totalTiles * (0.03 + Math.random() * 0.09))
 
     // Add clustered forests (trees grow in groups)
     this.addClusteredTerrain(regionTiles, TerrainTypes.FOREST, forestCount, 3)
