@@ -1,13 +1,15 @@
 export default {
   packagerConfig: {
     name: 'Dungeon Command',
-    executableName: 'dungeon-command'
+    executableName: 'dungeon-command',
+    icon: './assets/icon'
   },
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        name: 'dungeon_command'
+        name: 'dungeon_command',
+        setupIcon: './assets/icon.ico'
       }
     },
     {
