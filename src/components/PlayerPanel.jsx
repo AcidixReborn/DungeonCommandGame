@@ -59,18 +59,10 @@ function PlayerPanel({
         border={isCurrentPlayer ? 'success' : 'secondary'}
       >
         <Card.Body style={{ height: '100%', padding: '3px 5px 5px 5px' }}>
-          {/* Player Info Header - Single Line */}
-          <div className="d-flex align-items-center justify-content-center gap-2 border-bottom border-secondary" style={{ flexWrap: 'wrap', marginBottom: '6px', paddingBottom: '6px' }}>
-            {isCurrentPlayer && <Badge bg="success">ACTIVE</Badge>}
-            {!isHuman && <Badge bg="warning" text="dark">AI</Badge>}
-            <span style={{ fontSize: '0.9rem' }}>{player.faction}</span>
-            <Badge bg="secondary" style={{ fontSize: '0.7rem' }}>In Play: {player.creaturesInPlay.length}</Badge>
-          </div>
-
           {/* Leadership + Morale on same row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '8px', flexShrink: 0 }}>
             {/* Leadership label */}
-            <strong style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Leadership</strong>
+            <strong style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Leadership</strong>
             {/* Leadership bar */}
             <div style={{ flex: 1, position: 'relative' }}>
               <ProgressBar
@@ -97,7 +89,7 @@ function PlayerPanel({
             </div>
 
             {/* Morale label */}
-            <strong style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Morale</strong>
+            <strong style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Morale</strong>
             {/* Morale bar */}
             <div style={{ flex: 1 }}>
               <ProgressBar

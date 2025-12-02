@@ -269,16 +269,16 @@
 
 /* Dynamic sizing based on hand size - use height to scale proportionally */
 .creature-card-compact-image.hand-size-small .creature-card-img {
-  height: 254px;  /* 3 or fewer cards - larger display */
+  height: 264px;  /* 3 or fewer cards - larger display */
   width: auto;
 }
 
 .creature-card-compact-image.hand-size-medium .creature-card-img {
-  height: 212px;  /* 4 cards */
+  height: 222px;  /* 4 cards */
   width: auto;
 }
 
 .creature-card-compact-image.hand-size-large .creature-card-img {
-  height: 182px;  /* 5+ cards - smaller to fit all */
+  height: 192px;  /* 5+ cards - smaller to fit all */
   width: auto;
 }

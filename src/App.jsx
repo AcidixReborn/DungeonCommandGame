@@ -46,32 +46,36 @@ function App() {
             <Navbar.Brand>Dungeon Command</Navbar.Brand>
             <Navbar.Toggle aria-controls="basic-navbar-nav" />
             <Navbar.Collapse id="basic-navbar-nav">
-              <Nav className="me-auto">
-                <Nav.Link
-                  active={currentView === 'game'}
-                  onClick={() => setCurrentView('game')}
-                >
-                  Game Board
-                </Nav.Link>
-                <Nav.Link
-                  active={currentView === 'data'}
-                  onClick={() => setCurrentView('data')}
-                >
-                  Data Entry
-                </Nav.Link>
-                <Nav.Link
-                  active={currentView === 'test'}
-                  onClick={() => setCurrentView('test')}
-                >
-                  Game Test
-                </Nav.Link>
-                <Nav.Link
-                  active={currentView === 'abilities'}
-                  onClick={() => setCurrentView('abilities')}
-                >
-                  Abilities Test
-                </Nav.Link>
-              </Nav>
+              {/* Spacer to push everything to the right */}
+              <div className="me-auto"></div>
+              {!turnInfo && (
+                <Nav>
+                  <Nav.Link
+                    active={currentView === 'game'}
+                    onClick={() => setCurrentView('game')}
+                  >
+                    Game Board
+                  </Nav.Link>
+                  <Nav.Link
+                    active={currentView === 'data'}
+                    onClick={() => setCurrentView('data')}
+                  >
+                    Data Entry
+                  </Nav.Link>
+                  <Nav.Link
+                    active={currentView === 'test'}
+                    onClick={() => setCurrentView('test')}
+                  >
+                    Game Test
+                  </Nav.Link>
+                  <Nav.Link
+                    active={currentView === 'abilities'}
+                    onClick={() => setCurrentView('abilities')}
+                  >
+                    Abilities Test
+                  </Nav.Link>
+                </Nav>
+              )}
 
               {/* Turn Bar - Only show when on game view and game is active */}
               {currentView === 'game' && turnInfo && (
@@ -136,6 +140,15 @@ function App() {
                     <Dropdown.Item onClick={toggleFullscreen}>
                       {isFullscreen ? '🗗 Windowed Mode' : '⛶ Fullscreen Mode'}
                     </Dropdown.Item>
+                    {turnInfo && (
+                      <>
+                        <Dropdown.Divider />
+                        <Dropdown.Item active={currentView === 'game'} onClick={() => setCurrentView('game')}>Game Board</Dropdown.Item>
+                        <Dropdown.Item active={currentView === 'data'} onClick={() => setCurrentView('data')}>Data Entry</Dropdown.Item>
+                        <Dropdown.Item active={currentView === 'test'} onClick={() => setCurrentView('test')}>Game Test</Dropdown.Item>
+                        <Dropdown.Item active={currentView === 'abilities'} onClick={() => setCurrentView('abilities')}>Abilities Test</Dropdown.Item>
+                      </>
+                    )}
                   </Dropdown.Menu>
                 </Dropdown>
               </Nav>
