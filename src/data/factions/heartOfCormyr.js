@@ -66,7 +66,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['Shield: Reduce damage by 10'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_cr_2',
@@ -80,7 +80,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['Heal: Can restore HP to allies'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_cr_3',
@@ -108,7 +108,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['Guard: Can protect adjacent allies'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_cr_5',
@@ -122,7 +122,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #5'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_cr_6',
@@ -136,7 +136,7 @@ export const creatures = [
     rangedAttack: { damage: 50, range: 7 },
     specialAbilities: ['Placeholder Ability #6', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // Added for testing
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_cr_7',
@@ -150,7 +150,7 @@ export const creatures = [
     rangedAttack: { damage: 40, range: 9 },
     specialAbilities: ['Placeholder Ability #7'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_cr_8',
@@ -164,7 +164,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #8'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_cr_9',
@@ -178,7 +178,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #9'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_cr_10',
@@ -206,7 +206,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #11'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_cr_12',
@@ -220,7 +220,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['Placeholder Ability #12'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: dwarfClericImg // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   }
 ]
 

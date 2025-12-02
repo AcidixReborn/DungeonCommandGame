@@ -58,55 +58,65 @@ function PlayerPanel({
         className="player-panel-vertical"
         border={isCurrentPlayer ? 'success' : 'secondary'}
       >
-        <Card.Body style={{ height: '100%', padding: '10px' }}>
-          {/* Player Info Header */}
-          <div className="text-center mb-2 pb-2 border-bottom border-secondary">
-            <h5 className="mb-1" style={{ fontSize: '1.1rem' }}>
-              {playerId}
-              {isCurrentPlayer && <Badge bg="success" className="ms-2">ACTIVE</Badge>}
-              {!isHuman && <Badge bg="warning" text="dark" className="ms-2">AI</Badge>}
-            </h5>
-            <h6 className="mb-1" style={{ fontSize: '0.95rem' }}>{player.faction}</h6>
-            <Badge bg="secondary" style={{ fontSize: '0.75rem' }}>In Play: {player.creaturesInPlay.length}</Badge>
+        <Card.Body style={{ height: '100%', padding: '3px 5px 5px 5px' }}>
+          {/* Player Info Header - Single Line */}
+          <div className="d-flex align-items-center justify-content-center gap-2 border-bottom border-secondary" style={{ flexWrap: 'wrap', marginBottom: '6px', paddingBottom: '6px' }}>
+            {isCurrentPlayer && <Badge bg="success">ACTIVE</Badge>}
+            {!isHuman && <Badge bg="warning" text="dark">AI</Badge>}
+            <span style={{ fontSize: '0.9rem' }}>{player.faction}</span>
+            <Badge bg="secondary" style={{ fontSize: '0.7rem' }}>In Play: {player.creaturesInPlay.length}</Badge>
           </div>
 
-          {/* Two Column Layout */}
-          <div style={{ display: 'flex', gap: '10px', height: 'calc(100% - 80px)' }}>
-            {/* Left Panel: Leadership + Creature Cards */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              {/* Leadership */}
-              <div className="mb-2" style={{ flexShrink: 0 }}>
-                <strong className="d-block mb-1" style={{ fontSize: '0.85rem' }}>Leadership</strong>
-                <div style={{ position: 'relative' }}>
-                  <ProgressBar
-                    now={leadershipPercentage}
-                    variant={leadershipPercentage > 80 ? 'danger' : 'info'}
-                    style={{ height: '20px', fontSize: '0.75rem' }}
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    color: '#000',
-                    pointerEvents: 'none'
-                  }}>
-                    {leadershipUsage}/{player.leadership}
-                  </div>
-                </div>
+          {/* Leadership + Morale on same row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexShrink: 0 }}>
+            {/* Leadership label */}
+            <strong style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Leadership</strong>
+            {/* Leadership bar */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              <ProgressBar
+                now={leadershipPercentage}
+                variant={leadershipPercentage > 80 ? 'danger' : 'info'}
+                style={{ height: '20px', fontSize: '0.75rem' }}
+              />
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                color: '#000',
+                pointerEvents: 'none'
+              }}>
+                {leadershipUsage}/{player.leadership}
               </div>
+            </div>
 
+            {/* Morale label */}
+            <strong style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>Morale</strong>
+            {/* Morale bar */}
+            <div style={{ flex: 1 }}>
+              <ProgressBar
+                now={moralePercentage}
+                variant={moralePercentage > 50 ? 'success' : moralePercentage > 25 ? 'warning' : 'danger'}
+                style={{ height: '20px', fontSize: '0.75rem' }}
+                label={`${safeMorale}`}
+              />
+            </div>
+          </div>
+
+          {/* Two Column Layout for Cards */}
+          <div style={{ display: 'flex', gap: '5px', height: 'calc(100% - 100px)' }}>
+            {/* Left Panel: Creature Cards */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               {/* Creature Hand */}
               {isHuman && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <h6 className="mb-2" style={{ fontSize: '0.9rem' }}>Creature Hand ({player.creatureHand.length}):</h6>
-                  <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
+                                    <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
                     {player.creatureHand.length === 0 ? (
                       <small className="text-muted">No creatures in hand</small>
                     ) : (
@@ -121,6 +131,7 @@ function PlayerPanel({
                           onDragStart={onDragStart}
                           onDragEnd={onDragEnd}
                           cardIndex={idx}
+                          handSize={player.creatureHand.length}
                         />
                       ))
                     )}
@@ -129,24 +140,12 @@ function PlayerPanel({
               )}
             </div>
 
-            {/* Right Panel: Morale + Order Cards */}
+            {/* Right Panel: Order Cards */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              {/* Morale */}
-              <div className="mb-2" style={{ flexShrink: 0 }}>
-                <strong className="d-block mb-1" style={{ fontSize: '0.85rem' }}>Morale</strong>
-                <ProgressBar
-                  now={moralePercentage}
-                  variant={moralePercentage > 50 ? 'success' : moralePercentage > 25 ? 'warning' : 'danger'}
-                  style={{ height: '20px', fontSize: '0.75rem' }}
-                  label={`${safeMorale}`}
-                />
-              </div>
-
               {/* Order Hand */}
               {isHuman && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <div className="d-flex justify-content-between align-items-center mb-2">
-                    <h6 className="mb-0" style={{ fontSize: '0.9rem' }}>Order Hand ({player.orderHand.length}):</h6>
                     {/* SCROLLBOOK ability button */}
                     {canUseScrollbook && selectedOrder !== null && (
                       <Button
@@ -273,6 +272,7 @@ function PlayerPanel({
                         onDragStart={onDragStart}
                         onDragEnd={onDragEnd}
                         cardIndex={idx}
+                        handSize={player.creatureHand.length}
                       />
                     ))
                   )}

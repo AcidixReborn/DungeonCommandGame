@@ -14,7 +14,13 @@ import './CreatureCard.css'
  * @param {Function} onDragEnd - Drag end handler
  * @param {number} cardIndex - Card index in hand
  */
-function CreatureCard({ creature, onClick, isSelected, compact = false, draggable = false, onDragStart, onDragEnd, cardIndex }) {
+function CreatureCard({ creature, onClick, isSelected, compact = false, draggable = false, onDragStart, onDragEnd, cardIndex, handSize }) {
+  // Determine size class based on hand size
+  const getSizeClass = () => {
+    if (!handSize || handSize <= 3) return 'hand-size-small'
+    if (handSize === 4) return 'hand-size-medium'
+    return 'hand-size-large' // 5+
+  }
   /**
    * Render ability score badges
    * @returns {Array<JSX.Element>} Array of ability badges
@@ -49,7 +55,7 @@ function CreatureCard({ creature, onClick, isSelected, compact = false, draggabl
     if (creature.imageUrl) {
       return (
         <div
-          className={`creature-card-compact creature-card-compact-image ${isSelected ? 'selected' : ''} ${draggable ? 'draggable' : ''}`}
+          className={`creature-card-compact creature-card-compact-image ${getSizeClass()} ${isSelected ? 'selected' : ''} ${draggable ? 'draggable' : ''}`}
           onClick={onClick}
           draggable={draggable}
           onDragStart={handleDragStart}
