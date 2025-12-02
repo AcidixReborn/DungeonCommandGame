@@ -130,6 +130,10 @@ function GameBoard() {
   const [showMoveConfirm, setShowMoveConfirm] = useState(false)
   const [pendingMove, setPendingMove] = useState(null) // Stores {creature, destination, path, cost}
 
+  // Right-click Attack Confirmation Modal state
+  const [showAttackConfirm, setShowAttackConfirm] = useState(false)
+  const [pendingRightClickAttack, setPendingRightClickAttack] = useState(null) // Stores {attacker, target, attackInfo}
+
   // AI action queue for processing attacks with modal support
   const [pendingAIActions, setPendingAIActions] = useState([])
   const [processingAIAction, setProcessingAIAction] = useState(false)
@@ -348,44 +352,21 @@ function GameBoard() {
       return
     }
 
-    // ACTIVATE PHASE: Handle movement and combat
+    // ACTIVATE PHASE: Left-click to select creatures, right-click to move/attack
     if (gameState.currentPhase === GamePhases.ACTIVATE) {
-      // If we have a creature selected on the board
-      if (selectedBoardCreature) {
-        // Check if clicking on an enemy creature (attack)
-        if (tile.occupant && tile.occupant.owner !== gameState.currentPlayer) {
-          handleAttack(selectedBoardCreature, tile.occupant)
-          return
-        }
-
-        // Check if clicking on a valid movement tile (handle new pathfinding format)
-        const validMove = validMoveTiles.find(vm => vm.tile.x === tile.x && vm.tile.y === tile.y)
-        if (validMove && !tile.occupant) {
-          // Show confirmation modal instead of moving immediately
-          setPendingMove({
-            creature: selectedBoardCreature,
-            destination: tile,
-            path: validMove.path,
-            cost: validMove.cost
-          })
-          setShowMoveConfirm(true)
-          return
-        }
-
-        // Deselect if clicking somewhere invalid
-        setSelectedBoardCreature(null)
-        setValidMoveTiles([])
-        setValidAttackTargets([])
-        setLineOfSightPath([])
-        addToast('Creature deselected')
-      }
       // If clicking on a creature on the board
-      else if (tile.occupant) {
-        // Only select own creatures
+      if (tile.occupant) {
+        // Select own creatures
         if (tile.occupant.owner === gameState.currentPlayer) {
           handleCreatureSelect(tile.occupant)
-        } else {
-          addToast('Cannot select enemy creatures!')
+        }
+      } else {
+        // Clicking on empty tile - deselect current creature
+        if (selectedBoardCreature) {
+          setSelectedBoardCreature(null)
+          setValidMoveTiles([])
+          setValidAttackTargets([])
+          setLineOfSightPath([])
         }
       }
     }
@@ -408,8 +389,9 @@ function GameBoard() {
     const moves = gameState.getValidMovementTiles(creatureInstance)
     setValidMoveTiles(moves)
 
-    // Calculate valid attack targets
+    // Calculate valid attack targets (filter out eliminated players)
     const targets = gameState.getValidAttackTargets(creatureInstance)
+      .filter(target => gameState.activePlayers.includes(target.creature.owner))
     setValidAttackTargets(targets)
 
     // Calculate line-of-sight paths for ranged attacks
@@ -932,6 +914,15 @@ function GameBoard() {
 
       addToast(message)
       gameState.checkGameOver()
+
+      // Check for immediate elimination of defender
+      const eliminationResult = gameState.checkAndEliminatePlayer(defenderInstance.owner)
+      if (eliminationResult.eliminated) {
+        const reason = eliminationResult.reason === 'morale'
+          ? 'Morale reduced to 0!'
+          : 'All creatures destroyed!'
+        addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
+      }
     } else {
       addToast(result.message || 'Attack failed!')
     }
@@ -982,6 +973,15 @@ function GameBoard() {
 
       // Check for game over
       gameState.checkGameOver()
+
+      // Check for immediate elimination of defender
+      const eliminationResult = gameState.checkAndEliminatePlayer(defenderInstance.owner)
+      if (eliminationResult.eliminated) {
+        const reason = eliminationResult.reason === 'morale'
+          ? 'Morale reduced to 0!'
+          : 'All creatures destroyed!'
+        addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
+      }
     } else {
       addToast(result.message || 'Attack failed!')
     }
@@ -1370,6 +1370,67 @@ function GameBoard() {
     }
   }
 
+  /**
+   * Handle right-click on tile for movement and attack
+   * - Move to valid tiles with confirmation modal
+   * - Attack enemies with confirmation modal
+   * @param {Object} tile - Right-clicked tile
+   */
+  const handleTileRightClick = (tile) => {
+    if (!gameState || gameState.gameOver) return
+    if (gameState.currentPhase !== GamePhases.ACTIVATE) return
+
+    // Must have a creature selected (via left-click) to use right-click actions
+    if (!selectedBoardCreature) return
+
+    // CASE 1: Creature selected - check for movement
+    const validMove = validMoveTiles.find(vm => vm.tile.x === tile.x && vm.tile.y === tile.y)
+    if (validMove && !tile.occupant) {
+      // Show movement confirmation modal
+      setPendingMove({
+        creature: selectedBoardCreature,
+        destination: tile,
+        path: validMove.path,
+        cost: validMove.cost
+      })
+      setShowMoveConfirm(true)
+      return
+    }
+
+    // CASE 2: Creature selected - check for attack
+    if (tile.occupant && tile.occupant.owner !== selectedBoardCreature.owner) {
+      const attackInfo = validAttackTargets.find(
+        target => target.creature.instanceId === tile.occupant.instanceId
+      )
+      if (attackInfo) {
+        setPendingRightClickAttack({
+          attacker: selectedBoardCreature,
+          target: tile.occupant,
+          attackInfo: attackInfo
+        })
+        setShowAttackConfirm(true)
+      }
+    }
+    // Right-click on invalid tile does nothing - use left-click to deselect
+  }
+
+  // Confirm right-click attack from modal
+  const confirmRightClickAttack = () => {
+    if (!pendingRightClickAttack) return
+
+    // Trigger the actual attack (uses existing handleAttack which handles defender reactions)
+    handleAttack(pendingRightClickAttack.attacker, pendingRightClickAttack.target)
+
+    setPendingRightClickAttack(null)
+    setShowAttackConfirm(false)
+  }
+
+  // Cancel right-click attack from modal
+  const cancelRightClickAttack = () => {
+    setPendingRightClickAttack(null)
+    setShowAttackConfirm(false)
+  }
+
   const advancePhase = () => {
     if (!gameState) return
 
@@ -1695,6 +1756,7 @@ function GameBoard() {
                       attackType={attackType}
                       isLineOfSight={isLineOfSight}
                       onClick={handleTileClick}
+                      onRightClick={handleTileRightClick}
                       onDrop={handleDrop}
                       onDragOver={handleDragOver}
                       isDragTarget={dragOverTile?.x === x && dragOverTile?.y === y}
@@ -1994,6 +2056,53 @@ function GameBoard() {
           </Button>
           <Button variant="primary" size="sm" onClick={confirmMove}>
             Confirm
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Right-Click Attack Confirmation Modal */}
+      <Modal
+        show={showAttackConfirm}
+        onHide={cancelRightClickAttack}
+        dialogClassName="move-confirm-modal"
+        centered
+      >
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #ff5252 0%, #b71c1c 100%)', color: '#fff' }}>
+          <Modal.Title style={{ fontSize: '1rem' }}>⚔️ Confirm Attack</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="py-2" style={{ color: '#000', fontSize: '0.9rem' }}>
+          {pendingRightClickAttack && (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>
+                <strong>{pendingRightClickAttack.attacker.creature.name}</strong> attacks{' '}
+                <strong>{pendingRightClickAttack.target.creature.name}</strong>
+              </p>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
+                <div>
+                  Attack Type: <Badge bg={pendingRightClickAttack.attackInfo.attackType === 'ranged' ? 'info' : 'danger'}>
+                    {pendingRightClickAttack.attackInfo.attackType === 'ranged' ? '🏹 Ranged' : '⚔️ Melee'}
+                  </Badge>
+                </div>
+                <div>
+                  Damage: <Badge bg="warning" text="dark">
+                    {pendingRightClickAttack.attackInfo.attackType === 'ranged'
+                      ? pendingRightClickAttack.attacker.creature.rangedAttack?.damage
+                      : pendingRightClickAttack.attacker.creature.meleeAttack?.damage}
+                  </Badge>
+                </div>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                Target HP: {pendingRightClickAttack.target.currentHP}/{pendingRightClickAttack.target.creature.hitPoints}
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="py-2">
+          <Button variant="secondary" size="sm" onClick={cancelRightClickAttack}>
+            Cancel
+          </Button>
+          <Button variant="danger" size="sm" onClick={confirmRightClickAttack}>
+            Attack
           </Button>
         </Modal.Footer>
       </Modal>

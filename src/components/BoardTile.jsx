@@ -19,8 +19,9 @@ import './BoardTile.css'
  * @param {boolean} isDragTarget - Whether this tile is a valid drag target
  * @param {Object} playerFactionColors - Mapping of player IDs to faction colors
  * @param {string} currentPlayer - Current player's ID for highlighting their starting zone
+ * @param {Function} onRightClick - Handler for right-click (attack shortcut)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer, onRightClick }) {
   /**
    * Get CSS class for terrain type
    * @returns {string} Terrain CSS class
@@ -76,6 +77,13 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
     if (onDrop) {
       e.preventDefault()
       onDrop(tile, e)
+    }
+  }
+
+  const handleContextMenu = (e) => {
+    e.preventDefault() // Prevent browser context menu
+    if (onRightClick) {
+      onRightClick(tile, e)
     }
   }
 
@@ -151,6 +159,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         ${isDragTarget ? 'drag-target' : ''}`}
       style={getStartingZoneStyle()}
       onClick={() => onClick && onClick(tile)}
+      onContextMenu={handleContextMenu}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       title={`(${tile.x}, ${tile.y}) - ${tile.terrain}`}

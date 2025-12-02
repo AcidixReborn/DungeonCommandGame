@@ -36,17 +36,13 @@
   z-index: 10; /* Lift above other tiles */
 }
 
-/* Cartoon selection with outline glow */
+/* Cartoon selection with inner glow */
 .board-tile.selected {
-  border: 3px solid #ffeb3b;
-  border-bottom: 4px solid #ffa000;
-  border-right: 3px solid #ffa000;
   box-shadow:
-    0 0 0 2px #fff,
-    0 0 15px rgba(255, 235, 59, 0.8),
-    3px 3px 0px rgba(255, 160, 0, 0.5),
-    inset 2px 2px 0px rgba(255, 255, 255, 0.3);
-  transform: scale(1.08);
+    inset 0 0 0 3px #ffeb3b,
+    inset 0 0 15px rgba(255, 235, 59, 0.8),
+    inset 3px 3px 0px rgba(255, 255, 255, 0.3);
+  z-index: 10;
 }
 
 /* Vibrant green cartoon style for valid moves */

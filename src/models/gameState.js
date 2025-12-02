@@ -2387,6 +2387,35 @@ export class GameState {
     }
   }
 
+  /**
+   * Check if a specific player should be eliminated and remove them immediately
+   * Called after attacks to prevent wasted attacks on defeated players
+   * @param {string} playerId - Player to check
+   * @returns {Object} { eliminated: boolean, reason: string }
+   */
+  checkAndEliminatePlayer(playerId) {
+    const player = this.players[playerId]
+    if (!player || !this.activePlayers.includes(playerId)) {
+      return { eliminated: false, reason: null }
+    }
+
+    // Check morale defeat
+    if (player.morale <= 0) {
+      this.eliminatePlayer(playerId)
+      this.activePlayers = this.activePlayers.filter(id => id !== playerId)
+      return { eliminated: true, reason: 'morale' }
+    }
+
+    // Check creature defeat (after turn 1)
+    if (this.turnNumber > 1 && player.creaturesInPlay.length === 0) {
+      this.eliminatePlayer(playerId)
+      this.activePlayers = this.activePlayers.filter(id => id !== playerId)
+      return { eliminated: true, reason: 'creatures' }
+    }
+
+    return { eliminated: false, reason: null }
+  }
+
   // Execute refresh phase
   executeRefreshPhase() {
     const player = this.getCurrentPlayerState()
