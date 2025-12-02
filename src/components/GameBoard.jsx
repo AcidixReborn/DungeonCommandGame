@@ -52,7 +52,7 @@ function ToastNotification({ toast, onRemove }) {
  * Manages the entire game state, player interactions, and UI
  * Handles human and AI players, game phases, and all game actions
  */
-function GameBoard() {
+function GameBoard({ onTurnInfoChange }) {
   const [gameState, setGameState] = useState(null)
   const [gameConfig, setGameConfig] = useState(null)
   const [factionConfig, setFactionConfig] = useState(null) // Stores faction selection before commander selection
@@ -1483,6 +1483,48 @@ function GameBoard() {
     setRenderCounter(prev => prev + 1)
   }
 
+  // Report turn info to parent (App.jsx) for navbar display
+  useEffect(() => {
+    if (!onTurnInfoChange) return
+
+    if (!gameState || !gameConfig) {
+      onTurnInfoChange(null)
+      return
+    }
+
+    const currentPlayerId = gameState.currentPlayer
+    const currentPlayerState = gameState.players[currentPlayerId]
+    const isCurrentPlayerAI = !isPlayerHuman(currentPlayerId)
+
+    // Determine if collect morale is available
+    let canCollectMorale = false
+    if (gameState.currentPhase === GamePhases.ACTIVATE && !isCurrentPlayerAI && selectedBoardCreature) {
+      const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
+      canCollectMorale = tile?.treasure &&
+                         tile.treasure.remainingMorale > 0 &&
+                         !selectedBoardCreature.isTapped &&
+                         selectedBoardCreature.owner === gameState.currentPlayer
+    }
+
+    // Determine auto-executing state
+    const isAutoExecuting = ((gameState.currentPhase === GamePhases.REFRESH && !gameState.canDeployDuringRefresh(gameState.currentPlayer)) ||
+                             gameState.currentPhase === GamePhases.CLEANUP) && !isCurrentPlayerAI
+
+    onTurnInfoChange({
+      turnNumber: gameState.turnNumber,
+      factionName: currentPlayerState?.faction || currentPlayerId,
+      phase: gameState.currentPhase,
+      isAIThinking: isAIThinking,
+      isCurrentPlayerAI: isCurrentPlayerAI,
+      canAdvancePhase: gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase(),
+      isAutoExecuting: isAutoExecuting,
+      phaseButtonText: getPhaseButtonText(),
+      advancePhase: advancePhase,
+      canCollectMorale: canCollectMorale,
+      handleCollectMorale: handleCollectMorale
+    })
+  }, [gameState, gameConfig, isAIThinking, selectedBoardCreature, renderCounter, onTurnInfoChange])
+
   // Process pending AI actions queue (for attacks that need defender modals)
   useEffect(() => {
     if (processingAIAction) return
@@ -1752,70 +1794,9 @@ function GameBoard() {
           </div>
         </div>
 
-        {/* Right Panel - Turn Bar + Player Panel */}
+        {/* Right Panel - Player Panel */}
         <div style={{ width: '500px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Compact Turn Bar - Above Player Panel */}
-          <Card bg="dark" text="white" style={{ flexShrink: 0 }}>
-            <Card.Body className="py-2 px-3">
-              <div className="d-flex justify-content-between align-items-center">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
-                    Turn {gameState.turnNumber}
-                  </span>
-                  <span style={{ color: '#aaa' }}>-</span>
-                  <span style={{ fontSize: '0.95rem' }}>{currentPlayerId}</span>
-                  <Badge bg="info" style={{ fontSize: '0.75rem' }}>{gameState.currentPhase}</Badge>
-                  {isAIThinking && <Badge bg="warning" style={{ fontSize: '0.7rem' }}>AI Thinking...</Badge>}
-                  {isCurrentPlayerAI && !isAIThinking && <Badge bg="secondary" style={{ fontSize: '0.7rem' }}>AI</Badge>}
-                </div>
-                <div>
-                  {/* Show button for ACTIVATE, DEPLOY phases, and REFRESH with HORDE ability */}
-                  {(gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase()) && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={advancePhase}
-                      disabled={isCurrentPlayerAI || isAIThinking}
-                      style={{ fontSize: '0.8rem', padding: '4px 12px' }}
-                    >
-                      {getPhaseButtonText()}
-                    </Button>
-                  )}
-                  {/* Show status for auto-executing phases (REFRESH without HORDE, CLEANUP) */}
-                  {((gameState.currentPhase === GamePhases.REFRESH && !gameState.canDeployDuringRefresh(gameState.currentPlayer)) ||
-                    gameState.currentPhase === GamePhases.CLEANUP) && !isCurrentPlayerAI && (
-                    <Badge bg="warning" style={{ fontSize: '0.75rem', padding: '6px 10px' }}>Auto-Executing...</Badge>
-                  )}
-                </div>
-              </div>
-              {/* Action Buttons Row - shown when creature selected on treasure */}
-              {gameState.currentPhase === GamePhases.ACTIVATE && !isCurrentPlayerAI && selectedBoardCreature && (() => {
-                const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
-                const canCollect = tile?.treasure &&
-                                   tile.treasure.remainingMorale > 0 &&
-                                   !selectedBoardCreature.isTapped &&
-                                   selectedBoardCreature.owner === gameState.currentPlayer
-
-                if (canCollect) {
-                  return (
-                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <Button
-                        variant="warning"
-                        size="sm"
-                        onClick={handleCollectMorale}
-                        style={{ fontSize: '0.8rem', padding: '4px 12px' }}
-                      >
-                        💎 Collect Morale
-                      </Button>
-                    </div>
-                  )
-                }
-                return null
-              })()}
-            </Card.Body>
-          </Card>
-
-          {/* Player Panel - Takes remaining space */}
+          {/* Player Panel - Takes full space (Turn Bar moved to navbar) */}
           <div style={{ flex: 1, minHeight: 0 }}>
             <PlayerPanel
               player={currentPlayer}

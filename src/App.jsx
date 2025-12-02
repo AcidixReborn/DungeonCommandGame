@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Container, Nav, Navbar, Button, Dropdown, Modal } from 'react-bootstrap'
+import { Container, Nav, Navbar, Button, Dropdown, Modal, Badge } from 'react-bootstrap'
 import GameBoard from './components/GameBoard'
 import DataEntry from './components/DataEntry'
 import GameSimulation from './test/GameSimulation'
@@ -11,6 +11,7 @@ function App() {
   const [currentView, setCurrentView] = useState('game')
   const [isFullscreen, setIsFullscreen] = useState(true)
   const [showExitModal, setShowExitModal] = useState(false)
+  const [turnInfo, setTurnInfo] = useState(null)
 
   const toggleFullscreen = async () => {
     if (window.electronAPI) {
@@ -42,7 +43,7 @@ function App() {
       <div className="App" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Navbar bg="dark" variant="dark" expand="lg" style={{ flexShrink: 0 }}>
           <Container fluid>
-            <Navbar.Brand>Dungeon Command - Digital Edition</Navbar.Brand>
+            <Navbar.Brand>Dungeon Command</Navbar.Brand>
             <Navbar.Toggle aria-controls="basic-navbar-nav" />
             <Navbar.Collapse id="basic-navbar-nav">
               <Nav className="me-auto">
@@ -71,6 +72,61 @@ function App() {
                   Abilities Test
                 </Nav.Link>
               </Nav>
+
+              {/* Turn Bar - Only show when on game view and game is active */}
+              {currentView === 'game' && turnInfo && (
+                <Nav className="me-3">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 'bold', color: 'rgba(255,255,255,.55)' }}>
+                      Turn {turnInfo.turnNumber}
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,.55)' }}>-</span>
+                    <span style={{ color: 'rgba(255,255,255,.55)' }}>{turnInfo.factionName}</span>
+                    <Badge bg="info">{turnInfo.phase}</Badge>
+                    {turnInfo.isAIThinking && <Badge bg="warning">AI Thinking...</Badge>}
+                    {turnInfo.isCurrentPlayerAI && !turnInfo.isAIThinking && <Badge bg="secondary">AI</Badge>}
+
+                    {/* Phase advance button */}
+                    {turnInfo.canAdvancePhase && (
+                      <Dropdown>
+                        <Dropdown.Toggle
+                          variant="primary"
+                          className="no-caret"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            turnInfo.advancePhase()
+                          }}
+                          disabled={turnInfo.isCurrentPlayerAI || turnInfo.isAIThinking}
+                        >
+                          🎮 {turnInfo.phaseButtonText}
+                        </Dropdown.Toggle>
+                      </Dropdown>
+                    )}
+
+                    {/* Auto-executing badge */}
+                    {turnInfo.isAutoExecuting && !turnInfo.isCurrentPlayerAI && (
+                      <Badge bg="warning">Auto-Executing...</Badge>
+                    )}
+
+                    {/* Collect Morale button */}
+                    {turnInfo.canCollectMorale && (
+                      <Dropdown>
+                        <Dropdown.Toggle
+                          variant="warning"
+                          className="no-caret"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            turnInfo.handleCollectMorale()
+                          }}
+                        >
+                          💎 Collect Morale
+                        </Dropdown.Toggle>
+                      </Dropdown>
+                    )}
+                  </div>
+                </Nav>
+              )}
+
               <Nav>
                 <Dropdown align="end">
                   <Dropdown.Toggle variant="secondary" id="settings-dropdown">
@@ -88,7 +144,7 @@ function App() {
         </Navbar>
 
         <Container fluid style={{ flex: 1, overflow: 'auto', padding: '10px' }}>
-          {currentView === 'game' && <GameBoard />}
+          {currentView === 'game' && <GameBoard onTurnInfoChange={setTurnInfo} />}
           {currentView === 'data' && <DataEntry />}
           {currentView === 'test' && <GameSimulation />}
           {currentView === 'abilities' && <CommanderAbilitiesTest />}
