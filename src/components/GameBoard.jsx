@@ -1121,6 +1121,13 @@ function GameBoard() {
   const processAIAttackIntention = (action) => {
     const { attackerInstance, defenderInstance, targetInfo } = action
 
+    // VALIDATION: Skip attack if defender's owner is already eliminated
+    if (!gameState.activePlayers.includes(defenderInstance.owner)) {
+      console.log(`[AI Attack] Skipping attack - defender's owner ${defenderInstance.owner} is already eliminated`)
+      setProcessingAIAction(false)
+      return
+    }
+
     // VALIDATION: Skip attack if target is already dead (killed by previous attack in queue)
     if (defenderInstance.isDestroyed() || !defenderInstance.position) {
       console.log(`[AI Attack] Skipping attack - target ${defenderInstance.creature.name} is already dead`)
