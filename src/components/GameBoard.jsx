@@ -66,7 +66,6 @@ function GameBoard() {
   const [isLogExpanded, setIsLogExpanded] = useState(false)
   const [turnLog, setTurnLog] = useState([]) // Full log since last turn
   const [nextToastId, setNextToastId] = useState(1)
-  const [currentRound, setCurrentRound] = useState(1) // Track rounds for log clearing
 
   /**
    * Add a toast notification
@@ -85,7 +84,7 @@ function GameBoard() {
       id,
       message,
       timestamp: Date.now(),
-      round: currentRound
+      round: gameState?.turnNumber || 1
     }
 
     // Add to turn log
@@ -107,12 +106,12 @@ function GameBoard() {
   }, [])
 
   /**
-   * Clear old logs when human player's turn ends
-   * Keeps current round and previous round visible
+   * Clear old logs when a turn ends
+   * Keeps current turn and previous turn visible
    */
-  const clearOldLogs = (newRound) => {
-    setTurnLog(prev => prev.filter(t => t.round >= newRound - 1))
-    setToastMessages(prev => prev.filter(t => t.round >= newRound - 1))
+  const clearOldLogs = (turnNumber) => {
+    setTurnLog(prev => prev.filter(t => t.round >= turnNumber - 1))
+    setToastMessages(prev => prev.filter(t => t.round >= turnNumber - 1))
   }
   const [validMoveTiles, setValidMoveTiles] = useState([])
   const [validAttackTargets, setValidAttackTargets] = useState([])
@@ -1466,37 +1465,13 @@ function GameBoard() {
         break
       case GamePhases.CLEANUP:
         {
-          // Track the player whose turn is ending (before cleanup advances to next player)
-          const endingPlayer = gameState.currentPlayer
-          const wasHumanTurn = isPlayerHuman(endingPlayer)
-
-          // Track active players before cleanup to detect eliminations
-          const playersBeforeCleanup = [...gameState.activePlayers]
           gameState.executeCleanupPhase()
 
-          // Check for player eliminations and notify BEFORE incrementing round
-          const eliminatedPlayers = playersBeforeCleanup.filter(
-            playerId => !gameState.activePlayers.includes(playerId)
-          )
-          eliminatedPlayers.forEach(playerId => {
-            const player = gameState.players[playerId]
-            let reason = ''
-            if (player.morale <= 0) {
-              reason = 'Morale reached 0!'
-            } else if (player.creaturesInPlay.length === 0) {
-              reason = 'All creatures destroyed!'
-            }
-            addToast(`💀 ${playerId} has been eliminated! ${reason}`)
-          })
+          // Player eliminations are now handled immediately when morale hits 0
+          // (in executeAttackAfterReactions/executeAttackAfterDefense)
 
-          // Handle round increment and log clearing when HUMAN turn ends
-          // This happens AFTER elimination toasts are added so they don't get cleared
-          if (wasHumanTurn) {
-            // Increment round and clear old logs (keeps current + previous round)
-            const newRound = currentRound + 1
-            setCurrentRound(newRound)
-            clearOldLogs(newRound)
-          }
+          // Clear old logs after every turn (keeps current + previous turn visible)
+          clearOldLogs(gameState.turnNumber)
 
           if (!gameState.gameOver) {
             addToast(`${gameState.currentPlayer}'s turn begins.`)

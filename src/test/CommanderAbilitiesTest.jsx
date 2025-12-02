@@ -161,6 +161,9 @@ function CommanderAbilitiesTest() {
             abilityStats.bloodthirsty.leadershipGained++
           }
         }
+
+        // Check for immediate elimination of defender after attack
+        gameState.checkAndEliminatePlayer(defenderInstance.owner)
       }
     }
 

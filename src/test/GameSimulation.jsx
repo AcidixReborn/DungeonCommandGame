@@ -208,7 +208,10 @@ function GameSimulation() {
                     // Execute the attack
                     const attackResult = gameState.executeAttack(attacker, defender)
 
-                    // Attack execution doesn't need additional tracking beyond attack type counts
+                    // Check for immediate elimination of defender after attack
+                    if (attackResult.success) {
+                      gameState.checkAndEliminatePlayer(defender.owner)
+                    }
                   }
 
                   // TERRAIN: Track movement actions
