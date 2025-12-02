@@ -253,3 +253,16 @@
     inset 1px 1px 0px rgba(255, 255, 255, 0.2);
   text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
 }
+
+/* Image-only compact card */
+.creature-card-compact-image {
+  padding: 0;
+  overflow: hidden;
+}
+
+.creature-card-compact-image .creature-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}

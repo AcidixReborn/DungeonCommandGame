@@ -45,6 +45,26 @@ function CreatureCard({ creature, onClick, isSelected, compact = false, draggabl
   }
 
   if (compact) {
+    // If creature has an image, show image-only view
+    if (creature.imageUrl) {
+      return (
+        <div
+          className={`creature-card-compact creature-card-compact-image ${isSelected ? 'selected' : ''} ${draggable ? 'draggable' : ''}`}
+          onClick={onClick}
+          draggable={draggable}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <img
+            src={creature.imageUrl}
+            alt={creature.name}
+            className="creature-card-img"
+          />
+        </div>
+      )
+    }
+
+    // Fallback: No image - show stats placeholder
     return (
       <div
         className={`creature-card-compact ${isSelected ? 'selected' : ''} ${draggable ? 'draggable' : ''}`}
