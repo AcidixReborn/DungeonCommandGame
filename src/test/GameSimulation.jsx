@@ -84,6 +84,18 @@ function GameSimulation() {
         treasuresCollected: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0 },
         moraleFromTreasures: { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0 },
         treasurePlacementRelaxed: 0
+      },
+      // ============================================
+      // MOVE + ACTION TRACKING
+      // Verifies AI creatures use BOTH movement AND action per turn
+      // Big O Complexity: O(1) per creature per turn
+      // ============================================
+      moveActionStats: {
+        totalCreatureTurns: 0,       // Total creature activations
+        moveOnlyTurns: 0,            // Creature moved but didn't attack/collect
+        actionOnlyTurns: 0,          // Creature attacked/collected but didn't move
+        moveAndActionTurns: 0,       // Creature used BOTH (correct behavior)
+        noActionTurns: 0             // Creature did nothing (tapped or stuck)
       }
     }
 
@@ -167,6 +179,53 @@ function GameSimulation() {
               // AI makes activation decisions (with stats tracking)
               const currentAI = new SimpleAI(gameState, gameState.currentPlayer, stats.rangedAttackStats)
               const aiResult = currentAI.executeTurn()
+
+              // ============================================
+              // MOVE + ACTION TRACKING
+              // Track whether each creature used move, action, or both
+              // Big O Complexity: O(A) where A = number of AI actions
+              // ============================================
+              if (aiResult.actions) {
+                // Build a map of creature -> { moved, acted } for this turn
+                const creatureActivity = new Map()
+
+                aiResult.actions.forEach(action => {
+                  // Get creature identifier (name used as key since we track per activation)
+                  let creatureName = null
+
+                  if (action.type === 'move') {
+                    creatureName = action.creature
+                    if (!creatureActivity.has(creatureName)) {
+                      creatureActivity.set(creatureName, { moved: false, acted: false })
+                    }
+                    creatureActivity.get(creatureName).moved = true
+                  } else if (action.type === 'attack_intention') {
+                    creatureName = action.attackerInstance?.creature?.name
+                    if (creatureName && !creatureActivity.has(creatureName)) {
+                      creatureActivity.set(creatureName, { moved: false, acted: false })
+                    }
+                    if (creatureName) creatureActivity.get(creatureName).acted = true
+                  } else if (action.type === 'collect_morale') {
+                    creatureName = action.creature
+                    if (!creatureActivity.has(creatureName)) {
+                      creatureActivity.set(creatureName, { moved: false, acted: false })
+                    }
+                    creatureActivity.get(creatureName).acted = true
+                  }
+                })
+
+                // Tally results for each creature that participated
+                creatureActivity.forEach(({ moved, acted }) => {
+                  stats.moveActionStats.totalCreatureTurns++
+                  if (moved && acted) {
+                    stats.moveActionStats.moveAndActionTurns++
+                  } else if (moved && !acted) {
+                    stats.moveActionStats.moveOnlyTurns++
+                  } else if (!moved && acted) {
+                    stats.moveActionStats.actionOnlyTurns++
+                  }
+                })
+              }
 
               // Track IMD card usage from AI actions
               if (aiResult.actions) {
@@ -440,6 +499,18 @@ function GameSimulation() {
         totalMoraleFromTreasuresP5: 0,
         gamesWithRelaxedPlacement: 0,
         totalRelaxedPlacements: 0
+      },
+      // ============================================
+      // MOVE + ACTION STATISTICS
+      // Verifies AI properly uses both move AND action per creature turn
+      // Big O Complexity: O(1) - simple counter aggregation
+      // ============================================
+      moveActionStats: {
+        totalCreatureTurns: 0,
+        moveOnlyTurns: 0,
+        actionOnlyTurns: 0,
+        moveAndActionTurns: 0,
+        noActionTurns: 0
       }
     }
 
@@ -546,6 +617,16 @@ function GameSimulation() {
       if (gameStats.treasureStats.treasurePlacementRelaxed > 0) {
         summary.treasureStats.gamesWithRelaxedPlacement++
       }
+
+      // ============================================
+      // AGGREGATE MOVE + ACTION STATISTICS
+      // Big O Complexity: O(1) - simple counter addition
+      // ============================================
+      summary.moveActionStats.totalCreatureTurns += gameStats.moveActionStats.totalCreatureTurns
+      summary.moveActionStats.moveOnlyTurns += gameStats.moveActionStats.moveOnlyTurns
+      summary.moveActionStats.actionOnlyTurns += gameStats.moveActionStats.actionOnlyTurns
+      summary.moveActionStats.moveAndActionTurns += gameStats.moveActionStats.moveAndActionTurns
+      summary.moveActionStats.noActionTurns += gameStats.moveActionStats.noActionTurns
     }
 
     if (summary.completedGames > 0) {
@@ -1228,6 +1309,89 @@ function GameSimulation() {
                       This is normal for crowded boards.
                     </Alert>
                   )}
+                </Card.Body>
+              </Card>
+
+              {/* ============================================
+                  MOVE + ACTION STATISTICS
+                  Verifies AI creatures properly use BOTH movement AND action per turn
+                  Big O Complexity: O(1) - simple display of aggregated counters
+                  ============================================ */}
+              <Card bg="primary" text="white" className="mb-3">
+                <Card.Header><h5>🎮 Move + Action Statistics (AI Behavior)</h5></Card.Header>
+                <Card.Body>
+                  <Table striped bordered variant="dark">
+                    <tbody>
+                      <tr>
+                        <td><strong>Total Creature Activations</strong></td>
+                        <td>
+                          <Badge bg="info">{results.summary.moveActionStats.totalCreatureTurns}</Badge>
+                          {' '}
+                          <small>
+                            Avg per game:{' '}
+                            {results.summary.completedGames > 0
+                              ? (results.summary.moveActionStats.totalCreatureTurns / results.summary.completedGames).toFixed(1)
+                              : 0}
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Move + Action (Both Used)</strong></td>
+                        <td>
+                          <Badge bg="success">{results.summary.moveActionStats.moveAndActionTurns}</Badge>
+                          {' '}
+                          <small>
+                            ({results.summary.moveActionStats.totalCreatureTurns > 0
+                              ? ((results.summary.moveActionStats.moveAndActionTurns / results.summary.moveActionStats.totalCreatureTurns) * 100).toFixed(1)
+                              : 0}% of activations)
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Move Only (No Attack/Collect)</strong></td>
+                        <td>
+                          <Badge bg="warning">{results.summary.moveActionStats.moveOnlyTurns}</Badge>
+                          {' '}
+                          <small>
+                            ({results.summary.moveActionStats.totalCreatureTurns > 0
+                              ? ((results.summary.moveActionStats.moveOnlyTurns / results.summary.moveActionStats.totalCreatureTurns) * 100).toFixed(1)
+                              : 0}% - may be moving towards targets)
+                          </small>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td><strong>Action Only (No Movement)</strong></td>
+                        <td>
+                          <Badge bg="info">{results.summary.moveActionStats.actionOnlyTurns}</Badge>
+                          {' '}
+                          <small>
+                            ({results.summary.moveActionStats.totalCreatureTurns > 0
+                              ? ((results.summary.moveActionStats.actionOnlyTurns / results.summary.moveActionStats.totalCreatureTurns) * 100).toFixed(1)
+                              : 0}% - already in position)
+                          </small>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+
+                  {results.summary.moveActionStats.moveAndActionTurns > 0 ? (
+                    <Alert variant="success" className="mt-3 mb-0">
+                      <strong>✅ Move + Action System Working!</strong> AI creatures are using BOTH movement AND actions
+                      in the same turn. {results.summary.moveActionStats.moveAndActionTurns} creature turns used both
+                      capabilities as intended.
+                    </Alert>
+                  ) : (
+                    <Alert variant="danger" className="mt-3 mb-0">
+                      <strong>⚠️ Move + Action Issue!</strong> No creatures used both movement AND action in the same turn.
+                      This may indicate a bug in the AI activation logic.
+                    </Alert>
+                  )}
+
+                  <Alert variant="info" className="mt-2 mb-0" style={{ fontSize: '0.85rem' }}>
+                    <strong>💡 Expected Behavior:</strong> Creatures should use BOTH their movement AND action each turn
+                    when possible. "Move Only" is normal when no targets are in range. "Action Only" is normal when
+                    already adjacent to an enemy or on a treasure.
+                  </Alert>
                 </Card.Body>
               </Card>
 

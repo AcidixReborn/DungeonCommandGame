@@ -44,19 +44,39 @@ export class SimpleAI {
 
   /**
    * Activate Phase: Move creatures and attack enemies
+   *
+   * Big O Complexity:
+   * - O(C * (T + E)) where C = creatures, T = treasures check, E = enemy targets
+   * - Each creature can perform BOTH a movement AND an action per turn
+   * - Creature gets tapped only after doing BOTH move AND attack
+   *
+   * Turn Structure per creature:
+   * 1. Try ACTION first (collect morale or attack if in range)
+   * 2. Try MOVEMENT (towards treasures or enemies)
+   * 3. Try ACTION again (attack after moving into range)
    */
   executeActivatePhase() {
     const player = this.gameState.players[this.playerId]
     const actions = []
 
-    // Get all untapped creatures
+    // O(C) - Get all untapped creatures
     const availableCreatures = player.creaturesInPlay.filter(c => !c.isTapped)
 
-    // Check if there are any treasures with morale remaining on the board
+    // O(T) - Check if there are any treasures with morale remaining on the board
     const hasTreasuresAvailable = this.gameState.treasures?.some(t => !t.isDepleted()) || false
 
+    // O(C) iterations - each creature can do BOTH move AND action
     for (const creature of availableCreatures) {
-      // Priority 1 - Collect morale if standing on treasure - O(1)
+      // Track if this creature performed actions for stats
+      let didAction = false
+      let didMove = false
+
+      // ============================================
+      // STEP 1: Try to perform an ACTION first (collect morale or attack)
+      // O(1) for morale check, O(E) for attack targets
+      // ============================================
+
+      // Priority 1a - Collect morale if standing on treasure - O(1)
       const tile = this.gameState.getTile(creature.position.x, creature.position.y)
       if (tile?.treasure && !tile.treasure.isDepleted()) {
         const result = this.gameState.collectMorale(creature)
@@ -68,59 +88,74 @@ export class SimpleAI {
             moraleCollected: result.moraleCollected,
             treasureDepleted: result.treasureDepleted
           })
-          continue
+          didAction = true
+          // DON'T continue - creature can still move after collecting morale!
         }
       }
 
-      // Priority 2 - Try to attack
-      const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
-
-      if (attackTargets.length > 0) {
-        // Attack the weakest enemy (lowest HP)
-        const target = this.selectWeakestTarget(attackTargets)
-
-        // Return attack intention instead of executing it
-        // GameBoard will handle execution and show modals for human defenders
-        actions.push({
-          type: 'attack_intention',
-          attackerInstance: creature,
-          defenderInstance: target.creature,
-          targetInfo: target
-        })
-        continue
+      // Priority 1b - Try to attack if in range (and hasn't attacked yet) - O(E)
+      if (!creature.hasAttackedThisTurn) {
+        const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
+        if (attackTargets.length > 0) {
+          const target = this.selectWeakestTarget(attackTargets)
+          actions.push({
+            type: 'attack_intention',
+            attackerInstance: creature,
+            defenderInstance: target.creature,
+            targetInfo: target
+          })
+          didAction = true
+          // DON'T continue - creature can still move after attacking!
+        }
       }
 
-      // Priority 3 - Movement strategy depends on treasure availability
-      // If treasures available: move towards treasures for morale advantage
-      // If no treasures: move towards enemies for combat
-      if (hasTreasuresAvailable) {
-        const treasureMoveResult = this.tryMoveTowardsTreasures(creature)
-        if (treasureMoveResult) {
+      // ============================================
+      // STEP 2: Try to MOVE (if hasn't moved yet)
+      // O(V + E log V) for pathfinding where V = tiles, E = edges
+      // ============================================
+      if (!creature.hasMovedThisTurn) {
+        let moveResult = null
+
+        // Movement strategy depends on treasure availability
+        if (hasTreasuresAvailable) {
+          moveResult = this.tryMoveTowardsTreasures(creature)
+        }
+
+        // If no treasure move found (or no treasures), move towards enemies
+        if (!moveResult) {
+          moveResult = this.tryMoveTowardsEnemies(creature)
+        }
+
+        if (moveResult) {
           actions.push({
             type: 'move',
             creature: creature.creature.name,
-            from: treasureMoveResult.from,
-            to: treasureMoveResult.to,
-            isFlying: treasureMoveResult.isFlying,
-            terrainTypes: treasureMoveResult.terrainTypes,
-            cost: treasureMoveResult.cost
+            from: moveResult.from,
+            to: moveResult.to,
+            isFlying: moveResult.isFlying,
+            terrainTypes: moveResult.terrainTypes,
+            cost: moveResult.cost
           })
-          continue
+          didMove = true
         }
       }
 
-      // Priority 4 - Move towards enemies (always try if can't do anything else, or if no treasures)
-      const moveResult = this.tryMoveTowardsEnemies(creature)
-      if (moveResult) {
-        actions.push({
-          type: 'move',
-          creature: creature.creature.name,
-          from: moveResult.from,
-          to: moveResult.to,
-          isFlying: moveResult.isFlying,
-          terrainTypes: moveResult.terrainTypes,
-          cost: moveResult.cost
-        })
+      // ============================================
+      // STEP 3: Try to attack AFTER moving (if didn't attack before)
+      // This allows move-then-attack pattern - O(E)
+      // ============================================
+      if (!creature.hasAttackedThisTurn && didMove) {
+        const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
+        if (attackTargets.length > 0) {
+          const target = this.selectWeakestTarget(attackTargets)
+          actions.push({
+            type: 'attack_intention',
+            attackerInstance: creature,
+            defenderInstance: target.creature,
+            targetInfo: target
+          })
+          didAction = true
+        }
       }
     }
 

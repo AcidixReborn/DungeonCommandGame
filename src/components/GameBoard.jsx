@@ -1770,6 +1770,25 @@ function GameBoard({ onTurnInfoChange }) {
       const actions = result.actions || []
       const attackIntentions = actions.filter(action => action.type === 'attack_intention')
 
+      // ============================================
+      // HORDE PROTECTION FIX FOR AI
+      // If AI used HORDE deployment during REFRESH, clear protection for creatures
+      // deployed this turn. This mirrors the human HORDE logic at lines 1612-1615.
+      // Without this, AI HORDE creatures would keep protection indefinitely.
+      // ============================================
+      const usedHorde = gameState.currentPhase === GamePhases.REFRESH &&
+                        gameState.canDeployDuringRefresh(currentPlayerId) &&
+                        actions.some(a => a.isHordeDeploy)
+
+      if (usedHorde) {
+        const player = gameState.getCurrentPlayerState()
+        player.creaturesInPlay.forEach(creature => {
+          if (creature.deployedThisTurn && creature.turnDeployed === gameState.turnNumber) {
+            creature.clearDeploymentProtection()
+          }
+        })
+      }
+
       if (attackIntentions.length > 0) {
         // Queue the attack intentions for processing
         setPendingAIActions(attackIntentions)
