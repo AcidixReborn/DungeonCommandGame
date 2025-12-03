@@ -6,6 +6,10 @@ import './BoardTile.css'
  * BoardTile - Renders a single tile on the game board
  * Displays terrain, creatures, treasures, and movement/attack indicators
  *
+ * Big O Complexity:
+ * - Rendering: O(1) - constant time for class/style computation
+ * - Hover preview: O(1) - simple state toggle
+ *
  * @param {Object} tile - Tile data with terrain and position
  * @param {Function} onClick - Handler for tile clicks
  * @param {boolean} isSelected - Whether this tile is selected
@@ -21,8 +25,9 @@ import './BoardTile.css'
  * @param {Object} playerFactionColors - Mapping of player IDs to faction colors
  * @param {string} currentPlayer - Current player's ID for highlighting their starting zone
  * @param {Function} onRightClick - Handler for right-click (attack shortcut)
+ * @param {string} combatHighlight - Combat highlight type: 'attacker' | 'defender' | null
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8 }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -218,7 +223,9 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         ${isValidMove ? 'valid-move' : ''}
         ${isAttackTarget ? 'attack-target' : ''}
         ${isLineOfSight ? 'line-of-sight' : ''}
-        ${isDragTarget ? 'drag-target' : ''}`}
+        ${isDragTarget ? 'drag-target' : ''}
+        ${combatHighlight === 'attacker' ? 'combat-highlight-attacker' : ''}
+        ${combatHighlight === 'defender' ? 'combat-highlight-defender' : ''}`}
       style={getStartingZoneStyle()}
       onClick={() => onClick && onClick(tile)}
       onContextMenu={handleContextMenu}

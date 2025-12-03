@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react'
 import { Card, Badge, ProgressBar, Row, Col } from 'react-bootstrap'
-import { GiDragonHead, GiCardPlay } from 'react-icons/gi'
+import { GiDragonHead, GiCardPlay, GiCrossedSwords } from 'react-icons/gi'
 import CreatureCard from './CreatureCard'
 import OrderCard from './OrderCard'
+import AttackConfirmPanel from './AttackConfirmPanel'
+import DefenseOptionsPanel from './DefenseOptionsPanel'
 import './PlayerPanel.css'
 
 /**
  * PlayerPanel - Displays player information, resources, and cards
- * Supports horizontal and vertical layouts
+ * Supports horizontal and vertical layouts with combat view integration
+ *
+ * Big O Complexity:
+ * - View switching: O(1) - state update and conditional render
+ * - Combat mode detection: O(1) - simple prop checks
+ * - Auto-view switching: O(1) - effect runs on phase/combat change
  *
  * @param {PlayerState} player - Player state data
  * @param {string} playerId - Player ID
@@ -23,6 +30,17 @@ import './PlayerPanel.css'
  * @param {boolean} horizontal - Use horizontal layout
  * @param {boolean} vertical - Use vertical layout
  * @param {boolean} canDeployCreatures - Whether creatures can be deployed (DEPLOY phase or HORDE during REFRESH)
+ * @param {string} combatMode - Combat mode: 'attack' | 'defense' | null
+ * @param {CreatureInstance} attackerCreature - The attacking creature instance
+ * @param {CreatureInstance} defenderCreature - The defending creature instance
+ * @param {Object} attackInfo - Attack details { attackType: 'melee'|'ranged', ... }
+ * @param {number} accumulatedDamageReduction - Damage prevented so far (for stacking defenses)
+ * @param {PlayerState} defenderPlayerState - Defender's player state (for defense options)
+ * @param {Object} gameState - Current game state (for defense options)
+ * @param {Function} onConfirmAttack - Callback when attack is confirmed
+ * @param {Function} onCancelAttack - Callback when attack is cancelled
+ * @param {Function} onDefenseSelected - Callback when defense option is selected
+ * @param {Function} onSkipDefense - Callback when skipping defense (take damage)
  */
 function PlayerPanel({
   player,
@@ -38,11 +56,23 @@ function PlayerPanel({
   currentPhase,
   horizontal = false,
   vertical = false,
-  canDeployCreatures = false
+  canDeployCreatures = false,
+  // Combat mode props - O(1) prop access
+  combatMode = null,
+  attackerCreature = null,
+  defenderCreature = null,
+  attackInfo = null,
+  accumulatedDamageReduction = 0,
+  defenderPlayerState = null,
+  gameState = null,
+  onConfirmAttack,
+  onCancelAttack,
+  onDefenseSelected,
+  onSkipDefense
 }) {
   // ============================================
   // STATE: Active view for vertical nav bar - O(1) state access
-  // 'creatures' or 'orders' - switches which cards are displayed
+  // 'creatures', 'orders', or 'combat' - switches which view is displayed
   // ============================================
   const [activeView, setActiveView] = useState('creatures')
 
@@ -57,6 +87,20 @@ function PlayerPanel({
       setActiveView('orders')
     }
   }, [currentPhase])
+
+  // ============================================
+  // EFFECT: Auto-switch to combat view when combat mode is active - O(1)
+  // Combat mode takes priority over phase-based switching
+  // When combat ends, switch back to orders view (combat happens in ACTIVATE phase)
+  // ============================================
+  useEffect(() => {
+    if (combatMode) {
+      setActiveView('combat')
+    } else if (activeView === 'combat') {
+      // Combat ended - switch back to orders view
+      setActiveView('orders')
+    }
+  }, [combatMode])
 
   // Guard against NaN/undefined morale values for display
   const safeMorale = (typeof player.morale === 'number' && !isNaN(player.morale)) ? player.morale : 0
@@ -81,49 +125,83 @@ function PlayerPanel({
               O(1) view switching via activeView state
               ============================================ */}
           <div style={{ display: 'flex', gap: '5px', flex: 1, minHeight: 0 }}>
-            {/* Main Card Display Area - Shows either Creatures OR Orders */}
+            {/* Main Card Display Area - Shows Creatures, Orders, or Combat */}
             <div className="card-display-area" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
               {isHuman && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
-                    {/* Creature Cards View - O(n) render where n = creatures in hand */}
-                    {activeView === 'creatures' && (
-                      player.creatureHand.length === 0 ? (
-                        <small className="text-muted">No creatures in hand</small>
-                      ) : (
-                        player.creatureHand.map((creature, idx) => (
-                          <CreatureCard
-                            key={idx}
-                            creature={creature}
-                            compact={true}
-                            isSelected={selectedCreature === idx}
-                            onClick={() => onCreatureSelect && onCreatureSelect(idx)}
-                            draggable={canDeployCreatures && isCurrentPlayer}
-                            onDragStart={onDragStart}
-                            onDragEnd={onDragEnd}
-                            cardIndex={idx}
-                            handSize={player.creatureHand.length}
-                          />
-                        ))
-                      )
-                    )}
-                    {/* Order Cards View - O(n) render where n = orders in hand */}
-                    {activeView === 'orders' && (
-                      player.orderHand.length === 0 ? (
-                        <small className="text-muted">No order cards in hand</small>
-                      ) : (
-                        player.orderHand.map((order, idx) => (
-                          <OrderCard
-                            key={idx}
-                            order={order}
-                            compact={true}
-                            isSelected={selectedOrder === idx}
-                            onClick={() => onOrderSelect && onOrderSelect(idx)}
-                          />
-                        ))
-                      )
-                    )}
-                  </div>
+                  {/* ============================================
+                      COMBAT VIEW - O(1) render for attack/defense panels
+                      Shows when combatMode is active and user is on combat tab
+                      ============================================ */}
+                  {activeView === 'combat' && combatMode && (
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
+                      {/* Attack Confirmation Panel - O(1) render */}
+                      {combatMode === 'attack' && (
+                        <AttackConfirmPanel
+                          attacker={attackerCreature}
+                          defender={defenderCreature}
+                          attackInfo={attackInfo}
+                          onConfirm={onConfirmAttack}
+                          onCancel={onCancelAttack}
+                        />
+                      )}
+                      {/* Defense Options Panel - O(1) render for options, O(n) for creature lists */}
+                      {combatMode === 'defense' && (
+                        <DefenseOptionsPanel
+                          attackerInstance={attackerCreature}
+                          defenderInstance={defenderCreature}
+                          attackInfo={attackInfo}
+                          defenderPlayerState={defenderPlayerState}
+                          gameState={gameState}
+                          accumulatedDamageReduction={accumulatedDamageReduction}
+                          onDefenseSelected={onDefenseSelected}
+                          onSkip={onSkipDefense}
+                        />
+                      )}
+                    </div>
+                  )}
+                  {/* Card hands - only show when not in combat view */}
+                  {activeView !== 'combat' && (
+                    <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
+                      {/* Creature Cards View - O(n) render where n = creatures in hand */}
+                      {activeView === 'creatures' && (
+                        player.creatureHand.length === 0 ? (
+                          <small className="text-muted">No creatures in hand</small>
+                        ) : (
+                          player.creatureHand.map((creature, idx) => (
+                            <CreatureCard
+                              key={idx}
+                              creature={creature}
+                              compact={true}
+                              isSelected={selectedCreature === idx}
+                              onClick={() => onCreatureSelect && onCreatureSelect(idx)}
+                              draggable={canDeployCreatures && isCurrentPlayer}
+                              onDragStart={onDragStart}
+                              onDragEnd={onDragEnd}
+                              cardIndex={idx}
+                              handSize={player.creatureHand.length}
+                            />
+                          ))
+                        )
+                      )}
+                      {/* Order Cards View - O(n) render where n = orders in hand */}
+                      {activeView === 'orders' && (
+                        player.orderHand.length === 0 ? (
+                          <small className="text-muted">No order cards in hand</small>
+                        ) : (
+                          player.orderHand.map((order, idx) => (
+                            <OrderCard
+                              key={idx}
+                              order={order}
+                              compact={true}
+                              isSelected={selectedOrder === idx}
+                              onClick={() => onOrderSelect && onOrderSelect(idx)}
+                            />
+                          ))
+                        )
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -144,6 +222,16 @@ function PlayerPanel({
               >
                 <GiCardPlay size={20} />
               </button>
+              {/* Combat Nav Button - Only visible when combat is active - O(1) conditional render */}
+              {combatMode && (
+                <button
+                  className={`player-panel-nav-btn combat-btn ${activeView === 'combat' ? 'active' : ''} ${combatMode === 'defense' ? 'defense-mode' : ''}`}
+                  onClick={() => setActiveView('combat')}
+                  title={combatMode === 'attack' ? 'Confirm Attack' : 'Defend'}
+                >
+                  <GiCrossedSwords size={20} />
+                </button>
+              )}
             </div>
           </div>
         </Card.Body>

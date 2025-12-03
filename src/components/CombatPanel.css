@@ -1,0 +1,535 @@
+/* ============================================
+   COMBAT PANEL STYLES
+   In-panel attack confirmation and defense options
+   Replaces modal-based combat UI for better battlefield visibility
+
+   Big O Complexity:
+   - CSS selectors: O(1) constant time matching
+   - Animations: GPU-accelerated, O(1) per frame
+   ============================================ */
+
+/* ============================================
+   BASE COMBAT PANEL CONTAINER
+   ============================================ */
+.combat-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.95) 100%);
+  border-radius: 10px;
+  border: 2px solid #555;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.combat-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.combat-panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.combat-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.combat-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   ATTACK CONFIRM PANEL SPECIFIC STYLES
+   ============================================ */
+.attack-confirm-panel {
+  border-color: #dc3545;
+  box-shadow:
+    inset 0 0 20px rgba(220, 53, 69, 0.2),
+    0 0 15px rgba(220, 53, 69, 0.3);
+}
+
+.attack-confirm-panel .combat-panel-header {
+  border-bottom-color: #dc3545;
+}
+
+/* ============================================
+   DEFENSE OPTIONS PANEL SPECIFIC STYLES
+   ============================================ */
+.defense-options-panel {
+  border-color: #4dd0e1;
+  box-shadow:
+    inset 0 0 20px rgba(77, 208, 225, 0.2),
+    0 0 15px rgba(77, 208, 225, 0.3);
+}
+
+.defense-options-panel .combat-panel-header {
+  border-bottom-color: #4dd0e1;
+}
+
+/* ============================================
+   COMBAT PANEL HEADER
+   ============================================ */
+.combat-panel-header {
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #555;
+  margin-bottom: 4px;
+}
+
+.combat-panel-header h5 {
+  margin: 0;
+  font-weight: bold;
+  font-size: 1rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.attack-header h5 {
+  color: #ff6b6b;
+}
+
+.defense-header h5 {
+  color: #4dd0e1;
+}
+
+/* ============================================
+   COMBAT CREATURES DISPLAY
+   Shows attacker vs defender cards side by side
+   ============================================ */
+.combat-creatures-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.combat-creature-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.combat-creature-label {
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.attacker-section .combat-creature-label {
+  color: #ff6b6b;
+}
+
+.defender-section .combat-creature-label {
+  color: #4dd0e1;
+}
+
+.combat-creature-card {
+  transform: scale(1.0);
+  transform-origin: center center;
+}
+
+.combat-creature-name {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* VS Divider between attacker and defender */
+.combat-vs-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+
+.combat-vs-divider span {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.8),
+    0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* ============================================
+   COMBAT INFO SECTION
+   Shows attack type, damage, HP, etc.
+   ============================================ */
+.combat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.combat-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.combat-info-row span:first-child {
+  color: #aaa;
+}
+
+.hp-display {
+  font-weight: bold;
+  color: #66bb6a;
+}
+
+/* ============================================
+   DAMAGE INFO SECTION (Defense Panel)
+   Shows incoming, prevented, remaining damage
+   ============================================ */
+.damage-info-section {
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.2) 0%, rgba(150, 30, 40, 0.2) 100%);
+  border-radius: 8px;
+  border: 2px solid rgba(220, 53, 69, 0.5);
+}
+
+.damage-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+}
+
+.damage-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.damage-stat-label {
+  font-size: 0.65rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.damage-stat-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.damage-stat-value.incoming {
+  color: #ff6b6b;
+}
+
+.damage-stat-value.prevented {
+  color: #66bb6a;
+}
+
+.damage-stat-value.remaining {
+  color: #ffc107;
+}
+
+/* ============================================
+   DEFENSE OPTIONS SECTIONS
+   ============================================ */
+.defense-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.defense-option-section {
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.defense-option-section h6 {
+  margin: 0 0 8px 0;
+  font-size: 0.85rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.defense-option-section .option-description {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+/* Cower Section */
+.cower-section {
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+.cower-section h6 {
+  color: #ffc107;
+}
+
+/* Unstoppable Hordes Section */
+.unstoppable-section {
+  border-color: rgba(156, 39, 176, 0.3);
+}
+
+.unstoppable-section h6 {
+  color: #ce93d8;
+}
+
+/* Immediate Cards Section */
+.immediate-section {
+  border-color: rgba(77, 208, 225, 0.3);
+}
+
+.immediate-section h6 {
+  color: #4dd0e1;
+}
+
+/* ============================================
+   CREATURE SELECTION GRID
+   For selecting creatures in defense options
+   ============================================ */
+.creature-selection-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.creature-select-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid #555;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 70px;
+}
+
+.creature-select-item:hover {
+  border-color: #81c784;
+  background: rgba(129, 199, 132, 0.1);
+}
+
+.creature-select-item.selected {
+  border-color: #66bb6a;
+  background: rgba(102, 187, 106, 0.2);
+  box-shadow: 0 0 10px rgba(102, 187, 106, 0.4);
+}
+
+.creature-select-item .creature-name {
+  font-size: 0.65rem;
+  color: #fff;
+  text-align: center;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.creature-select-item .creature-hp {
+  font-size: 0.6rem;
+  color: #66bb6a;
+}
+
+/* ============================================
+   IMMEDIATE CARD SELECTION
+   ============================================ */
+.immediate-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.immediate-card-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid #555;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.immediate-card-option:hover {
+  border-color: #4dd0e1;
+  background: rgba(77, 208, 225, 0.1);
+}
+
+.immediate-card-option.selected {
+  border-color: #4dd0e1;
+  background: rgba(77, 208, 225, 0.2);
+  box-shadow: 0 0 10px rgba(77, 208, 225, 0.4);
+}
+
+.immediate-card-option .card-info {
+  flex: 1;
+}
+
+.immediate-card-option .card-name {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.immediate-card-option .card-effect {
+  font-size: 0.7rem;
+  color: #aaa;
+}
+
+/* ============================================
+   COMBAT ACTION BUTTONS
+   ============================================ */
+.combat-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.combat-actions .btn {
+  flex: 1;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Defense-specific action buttons */
+.defense-action-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.skip-defense-btn {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+  border-color: #6c757d;
+}
+
+.skip-defense-btn:hover {
+  background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+}
+
+/* ============================================
+   NO OPTIONS MESSAGE
+   ============================================ */
+.no-options-message {
+  text-align: center;
+  padding: 15px;
+  color: #aaa;
+  font-style: italic;
+}
+
+/* ============================================
+   COMBAT NAV BUTTON (in PlayerPanel nav)
+   Active combat indicator with pulsing effect
+   ============================================ */
+.player-panel-nav-btn.combat-btn {
+  border-color: #dc3545;
+  color: #ff6b6b;
+}
+
+.player-panel-nav-btn.combat-btn.active {
+  border-color: #dc3545;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  animation: combatPulse 1.5s infinite;
+}
+
+@keyframes combatPulse {
+  0%, 100% {
+    box-shadow:
+      2px 2px 0px rgba(0, 0, 0, 0.5),
+      0 0 10px rgba(220, 53, 69, 0.5);
+  }
+  50% {
+    box-shadow:
+      2px 2px 0px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(220, 53, 69, 0.8);
+  }
+}
+
+/* Defense mode variant */
+.player-panel-nav-btn.combat-btn.defense-mode {
+  border-color: #4dd0e1;
+  color: #4dd0e1;
+}
+
+.player-panel-nav-btn.combat-btn.defense-mode.active {
+  border-color: #4dd0e1;
+  background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
+  animation: defensePulse 1.5s infinite;
+}
+
+@keyframes defensePulse {
+  0%, 100% {
+    box-shadow:
+      2px 2px 0px rgba(0, 0, 0, 0.5),
+      0 0 10px rgba(77, 208, 225, 0.5);
+  }
+  50% {
+    box-shadow:
+      2px 2px 0px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(77, 208, 225, 0.8);
+  }
+}
+
+/* ============================================
+   DEFENSE OPTIONS SCROLLABLE CONTAINER
+   Allows scrolling through defense options when space is limited
+   ============================================ */
+.defense-options-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  padding-right: 4px;
+}
+
+.defense-options-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.defense-options-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.defense-options-scroll::-webkit-scrollbar-thumb {
+  background: rgba(77, 208, 225, 0.5);
+  border-radius: 3px;
+}
+
+.defense-options-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(77, 208, 225, 0.7);
+}
+
+/* Defense option cards styling */
+.defense-option-card {
+  transition: all 0.2s ease;
+}
+
+.defense-option-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}

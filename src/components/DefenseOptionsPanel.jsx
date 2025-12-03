@@ -1,0 +1,530 @@
+import { useState, useEffect } from 'react'
+import { Button, Badge, Card, Alert, Form } from 'react-bootstrap'
+import CreatureCard from './CreatureCard'
+import './CombatPanel.css'
+
+/**
+ * DefenseOptionsPanel - In-panel defense options UI
+ * Replaces ImmediateReactionModal for better battlefield visibility
+ * Mirrors all functionality from the original modal
+ *
+ * Defensive Options:
+ * 1. COWER (Universal) - Any untapped creature can avoid ALL damage
+ *    - Cost: damage/10 morale (rounded up)
+ *    - Effect: Avoid ALL damage from the attack
+ *    - Taps the creature
+ *    - BLACK HAND OF BANE: +1 extra morale if attacker has this ability
+ *
+ * 2. UNSTOPPABLE HORDES (Morgana's Commander Ability)
+ *    - Only for untapped Undead creatures controlled by Morgana
+ *    - Cost: 1 morale per creature
+ *    - Effect: Prevent 20 damage per creature
+ *    - Can stack with multiple Undead (defender + adjacent allies)
+ *
+ * 3. IMMEDIATE Cards (Order Cards)
+ *    - Use an IMMEDIATE order card from your hand
+ *    - Cost: 0 morale
+ *    - Effect: Prevent 10 damage
+ *    - Can be used by defender OR adjacent friendly untapped creatures
+ *
+ * Big O Complexity:
+ * - getDefenseOptions: O(n) where n = cards in hand + adjacent creatures
+ * - Rendering: O(n) where n = adjacent creatures + immediate cards
+ * - toggleUndeadCreature: O(n) where n = selected creatures
+ * - calculateUnstoppableDamageReduction: O(1) - simple count * 20
+ */
+function DefenseOptionsPanel({
+  attackerInstance,
+  defenderInstance,
+  attackInfo,
+  defenderPlayerState,
+  gameState,
+  accumulatedDamageReduction = 0,
+  onDefenseSelected,
+  onSkip
+}) {
+  const [selectedDefense, setSelectedDefense] = useState(null)
+  const [selectedUndeadCreatures, setSelectedUndeadCreatures] = useState([])
+  const [selectedImmediateCard, setSelectedImmediateCard] = useState(null)
+  const [selectedCardCreature, setSelectedCardCreature] = useState(null)
+
+  // O(1) - Reset state when defender changes
+  useEffect(() => {
+    setSelectedDefense(null)
+    setSelectedUndeadCreatures([])
+    setSelectedImmediateCard(null)
+    setSelectedCardCreature(null)
+  }, [defenderInstance?.instanceId])
+
+  if (!defenderPlayerState || !defenderInstance || !attackerInstance) return null
+
+  // O(1) - Calculate incoming damage using attackInfo prop
+  const attackType = attackInfo?.attackType || 'melee'
+  const originalDamage = attackType === 'melee'
+    ? attackerInstance.creature.meleeAttack?.damage || 0
+    : attackerInstance.creature.rangedAttack?.damage || 0
+
+  const incomingDamage = Math.max(0, originalDamage - accumulatedDamageReduction)
+
+  // O(n) - Get defense options from gameState
+  const defenseOptions = gameState?.getDefenseOptions
+    ? gameState.getDefenseOptions(defenderInstance, incomingDamage, attackerInstance.owner)
+    : { cower: null, unstoppableHordes: null, adjacentUndead: [], immediateCards: [] }
+
+  const { cower: cowerInfo, unstoppableHordes: unstoppableInfo, adjacentUndead, immediateCards } = defenseOptions
+  const defenderCanUseUnstoppable = unstoppableInfo?.canUse
+
+  // O(n) - Toggle Undead creature selection
+  const toggleUndeadCreature = (creature) => {
+    setSelectedUndeadCreatures(prev => {
+      const isSelected = prev.some(c => c.instanceId === creature.instanceId)
+      if (isSelected) {
+        return prev.filter(c => c.instanceId !== creature.instanceId)
+      } else {
+        return [...prev, creature]
+      }
+    })
+  }
+
+  // O(1) - Calculate unstoppable damage reduction
+  const calculateUnstoppableDamageReduction = () => {
+    let count = selectedUndeadCreatures.length
+    if (selectedDefense === 'unstoppable_hordes' && defenderCanUseUnstoppable) {
+      count++
+    }
+    return count * 20
+  }
+
+  // O(1) - Calculate unstoppable morale cost
+  const calculateUnstoppableMoraleCost = () => {
+    let count = selectedUndeadCreatures.length
+    if (selectedDefense === 'unstoppable_hordes' && defenderCanUseUnstoppable) {
+      count++
+    }
+    return count
+  }
+
+  // O(1) - Handle defense selection
+  const handleSelectDefense = (defenseType) => {
+    if (selectedDefense === defenseType) {
+      setSelectedDefense(null)
+      setSelectedUndeadCreatures([])
+      setSelectedImmediateCard(null)
+      setSelectedCardCreature(null)
+    } else {
+      setSelectedDefense(defenseType)
+      if (defenseType !== 'unstoppable_hordes') {
+        setSelectedUndeadCreatures([])
+      }
+      if (defenseType !== 'immediate_card') {
+        setSelectedImmediateCard(null)
+        setSelectedCardCreature(null)
+      }
+    }
+  }
+
+  // O(1) - Handle IMMEDIATE card selection
+  const handleSelectImmediateCard = (cardInfo) => {
+    setSelectedDefense('immediate_card')
+    setSelectedImmediateCard(cardInfo)
+    if (cardInfo.eligibleCreatures.length === 1) {
+      setSelectedCardCreature(cardInfo.eligibleCreatures[0])
+    } else {
+      setSelectedCardCreature(null)
+    }
+  }
+
+  // O(1) - Handle confirm
+  const handleConfirm = () => {
+    if (selectedDefense === 'cower') {
+      onDefenseSelected({
+        type: 'cower',
+        damageReduction: incomingDamage,
+        moraleCost: cowerInfo.moraleCost,
+        extraCost: cowerInfo.extraCost,
+        creatures: [defenderInstance]
+      })
+    } else if (selectedDefense === 'unstoppable_hordes') {
+      const creatures = [...selectedUndeadCreatures]
+      if (defenderCanUseUnstoppable) {
+        creatures.unshift(defenderInstance)
+      }
+      onDefenseSelected({
+        type: 'unstoppable_hordes',
+        damageReduction: calculateUnstoppableDamageReduction(),
+        moraleCost: calculateUnstoppableMoraleCost(),
+        creatures: creatures
+      })
+    } else if (selectedDefense === 'immediate_card') {
+      if (selectedImmediateCard && selectedCardCreature) {
+        onDefenseSelected({
+          type: 'immediate_card',
+          card: selectedImmediateCard.card,
+          creature: selectedCardCreature,
+          damageReduction: selectedImmediateCard.damagePrevented,
+          moraleCost: selectedImmediateCard.moraleCost
+        })
+      }
+    } else {
+      onDefenseSelected({ type: 'skip' })
+    }
+
+    // Reset state
+    setSelectedDefense(null)
+    setSelectedUndeadCreatures([])
+    setSelectedImmediateCard(null)
+    setSelectedCardCreature(null)
+  }
+
+  // O(1) - Handle skip
+  const handleSkip = () => {
+    onDefenseSelected({ type: 'skip' })
+    setSelectedDefense(null)
+    setSelectedUndeadCreatures([])
+    setSelectedImmediateCard(null)
+    setSelectedCardCreature(null)
+  }
+
+  const hasAnyDefense = cowerInfo?.canCower || unstoppableInfo?.canUse || adjacentUndead.length > 0 || immediateCards.length > 0
+
+  // O(1) - Calculate final damage for display
+  const finalDamage = selectedDefense === 'cower'
+    ? 0
+    : selectedDefense === 'unstoppable_hordes'
+      ? Math.max(0, incomingDamage - calculateUnstoppableDamageReduction())
+      : selectedDefense === 'immediate_card' && selectedImmediateCard
+        ? Math.max(0, incomingDamage - selectedImmediateCard.damagePrevented)
+        : incomingDamage
+
+  return (
+    <div className="combat-panel defense-options-panel">
+      {/* Header */}
+      <div className="combat-panel-header defense-header">
+        <h5>🛡️ Defend Against Attack</h5>
+      </div>
+
+      {/* Combat Creatures Display - O(1) render */}
+      <div className="combat-creatures-display">
+        {/* Attacker */}
+        <div className="combat-creature-section attacker-section">
+          <span className="combat-creature-label">Attacker</span>
+          <div className="combat-creature-card">
+            <CreatureCard creature={attackerInstance.creature} compact={true} />
+          </div>
+          <span className="combat-creature-name">{attackerInstance.creature.name}</span>
+        </div>
+
+        {/* VS Divider */}
+        <div className="combat-vs-divider">
+          <span>VS</span>
+        </div>
+
+        {/* Defender */}
+        <div className="combat-creature-section defender-section">
+          <span className="combat-creature-label">Your Creature</span>
+          <div className="combat-creature-card">
+            <CreatureCard creature={defenderInstance.creature} compact={true} />
+          </div>
+          <span className="combat-creature-name">{defenderInstance.creature.name}</span>
+        </div>
+      </div>
+
+      {/* Attack Info */}
+      <div className="combat-info">
+        <div className="combat-info-row">
+          <span>Attack Type:</span>
+          <Badge bg={attackType === 'ranged' ? 'info' : 'danger'}>
+            {attackType === 'ranged' ? '🏹 Ranged' : '⚔️ Melee'}
+          </Badge>
+        </div>
+        <div className="combat-info-row">
+          <span>Damage:</span>
+          <Badge bg="warning" text="dark">{originalDamage}</Badge>
+        </div>
+        {accumulatedDamageReduction > 0 && (
+          <div className="combat-info-row">
+            <span>Already Prevented:</span>
+            <Badge bg="success">{accumulatedDamageReduction}</Badge>
+          </div>
+        )}
+        <div className="combat-info-row">
+          <span>Remaining Damage:</span>
+          <Badge bg="danger">{incomingDamage}</Badge>
+        </div>
+        <div className="combat-info-row">
+          <span>Target HP:</span>
+          <span className="hp-display">
+            {defenderInstance.currentHP}/{defenderInstance.creature.hitPoints}
+          </span>
+        </div>
+      </div>
+
+      {/* Scrollable Defense Options */}
+      <div className="defense-options-scroll">
+        {!hasAnyDefense && (
+          <Alert variant="warning" className="py-2">
+            <strong>No defensive options available!</strong>
+            <br />
+            <small>
+              {defenderInstance.isTapped
+                ? 'Your creature is tapped.'
+                : 'Not enough morale or eligible creatures.'}
+            </small>
+          </Alert>
+        )}
+
+        {/* COWER Option */}
+        {cowerInfo?.canCower && (
+          <Card
+            bg={selectedDefense === 'cower' ? 'success' : 'dark'}
+            text="white"
+            className="defense-option-card mb-2"
+            style={{
+              cursor: 'pointer',
+              border: selectedDefense === 'cower' ? '2px solid #28a745' : '2px solid #ffc107'
+            }}
+            onClick={() => handleSelectDefense('cower')}
+          >
+            <Card.Body className="py-2 px-2">
+              <div className="d-flex justify-content-between align-items-start">
+                <div style={{ flex: 1 }}>
+                  <h6 className="mb-1">
+                    🛡️ COWER
+                    <Badge bg="warning" text="dark" className="ms-2" style={{ fontSize: '0.7rem' }}>Universal</Badge>
+                    {cowerInfo.extraCost > 0 && (
+                      <Badge bg="danger" className="ms-1" style={{ fontSize: '0.65rem' }}>
+                        +{cowerInfo.extraCost} BLACK HAND
+                      </Badge>
+                    )}
+                  </h6>
+                  <p className="mb-1" style={{ fontSize: '0.8rem' }}>
+                    Avoid <strong className="text-success">ALL {incomingDamage} damage</strong>.
+                    Creature becomes tapped.
+                  </p>
+                  <div className="d-flex gap-1 flex-wrap">
+                    <Badge bg="danger" style={{ fontSize: '0.75rem' }}>
+                      Cost: {cowerInfo.moraleCost} Morale
+                    </Badge>
+                  </div>
+                  <small style={{ fontSize: '0.75rem', color: '#adb5bd' }}>
+                    Morale: {defenderPlayerState.morale} → {defenderPlayerState.morale - cowerInfo.moraleCost}
+                  </small>
+                </div>
+                {selectedDefense === 'cower' && (
+                  <Badge bg="light" text="dark" style={{ fontSize: '1rem' }}>✓</Badge>
+                )}
+              </div>
+            </Card.Body>
+          </Card>
+        )}
+
+        {/* UNSTOPPABLE HORDES Option */}
+        {(unstoppableInfo?.canUse || adjacentUndead.length > 0) && (
+          <Card
+            bg={selectedDefense === 'unstoppable_hordes' ? 'info' : 'dark'}
+            text="white"
+            className="defense-option-card mb-2"
+            style={{
+              cursor: 'pointer',
+              border: selectedDefense === 'unstoppable_hordes' ? '2px solid #17a2b8' : '2px solid #17a2b8'
+            }}
+            onClick={() => handleSelectDefense('unstoppable_hordes')}
+          >
+            <Card.Body className="py-2 px-2">
+              <div className="d-flex justify-content-between align-items-start">
+                <div style={{ flex: 1 }}>
+                  <h6 className="mb-1">
+                    💀 UNSTOPPABLE HORDES
+                    <Badge bg="info" className="ms-2" style={{ fontSize: '0.7rem' }}>Commander</Badge>
+                  </h6>
+                  <p className="mb-1" style={{ fontSize: '0.8rem' }}>
+                    Tap Undead to prevent <strong>20 damage each</strong>. Can stack!
+                  </p>
+
+                  {selectedDefense === 'unstoppable_hordes' && (
+                    <div className="mt-2 p-2" style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '6px', fontSize: '0.8rem' }}>
+                      <strong className="d-block mb-1">Select Undead:</strong>
+                      {defenderCanUseUnstoppable && (
+                        <Form.Check
+                          type="checkbox"
+                          id="defender-unstoppable"
+                          label={<span><strong>{defenderInstance.creature.name}</strong> (Defender)</span>}
+                          checked={true}
+                          disabled={true}
+                          className="mb-1"
+                          style={{ color: '#fff', fontSize: '0.8rem' }}
+                        />
+                      )}
+                      {adjacentUndead.map((creature) => (
+                        <Form.Check
+                          key={creature.instanceId}
+                          type="checkbox"
+                          id={`undead-${creature.instanceId}`}
+                          label={<span><strong>{creature.creature.name}</strong> (Adjacent)</span>}
+                          checked={selectedUndeadCreatures.some(c => c.instanceId === creature.instanceId)}
+                          onChange={() => toggleUndeadCreature(creature)}
+                          className="mb-1"
+                          style={{ color: '#fff', fontSize: '0.8rem' }}
+                        />
+                      ))}
+                      {(selectedUndeadCreatures.length > 0 || defenderCanUseUnstoppable) && (
+                        <div className="mt-2 p-1" style={{ backgroundColor: 'rgba(23,162,184,0.3)', borderRadius: '4px' }}>
+                          <small>
+                            Prevention: {calculateUnstoppableDamageReduction()} |
+                            Cost: {calculateUnstoppableMoraleCost()} morale |
+                            After: {Math.max(0, incomingDamage - calculateUnstoppableDamageReduction())} damage
+                          </small>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {selectedDefense === 'unstoppable_hordes' && (
+                  <Badge bg="light" text="dark" style={{ fontSize: '1rem' }}>✓</Badge>
+                )}
+              </div>
+            </Card.Body>
+          </Card>
+        )}
+
+        {/* IMMEDIATE Cards Option */}
+        {immediateCards.length > 0 && (
+          <Card
+            bg={selectedDefense === 'immediate_card' ? 'warning' : 'dark'}
+            text={selectedDefense === 'immediate_card' ? 'dark' : 'white'}
+            className="defense-option-card mb-2"
+            style={{
+              cursor: 'pointer',
+              border: selectedDefense === 'immediate_card' ? '2px solid #ffc107' : '2px solid #6f42c1'
+            }}
+            onClick={() => {
+              if (!selectedImmediateCard && immediateCards.length > 0) {
+                handleSelectImmediateCard(immediateCards[0])
+              } else {
+                handleSelectDefense('immediate_card')
+              }
+            }}
+          >
+            <Card.Body className="py-2 px-2">
+              <h6 className="mb-2">
+                ⚡ IMMEDIATE Cards
+                <Badge bg="secondary" className="ms-2" style={{ fontSize: '0.7rem' }}>Order Cards</Badge>
+              </h6>
+
+              <div className="immediate-cards-list">
+                {immediateCards.map((cardInfo, index) => (
+                  <Card
+                    key={`${cardInfo.card.id}-${index}`}
+                    bg={selectedImmediateCard?.card.id === cardInfo.card.id ? 'success' : 'secondary'}
+                    text="white"
+                    className="mb-1"
+                    style={{
+                      cursor: 'pointer',
+                      border: selectedImmediateCard?.card.id === cardInfo.card.id ? '2px solid #28a745' : '1px solid #444',
+                      fontSize: '0.8rem'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSelectImmediateCard(cardInfo)
+                    }}
+                  >
+                    <Card.Body className="py-1 px-2">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <strong>{cardInfo.card.name}</strong>
+                          <Badge bg="info" className="ms-1" style={{ fontSize: '0.65rem' }}>Lv{cardInfo.card.level}</Badge>
+                          <br />
+                          <small>Prevents {cardInfo.damagePrevented} damage</small>
+                        </div>
+                        {selectedImmediateCard?.card.id === cardInfo.card.id && (
+                          <Badge bg="light" text="dark">✓</Badge>
+                        )}
+                      </div>
+                    </Card.Body>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Creature selection */}
+              {selectedDefense === 'immediate_card' && selectedImmediateCard && (
+                <div
+                  className="mt-2 p-2"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '6px', fontSize: '0.8rem' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <strong className="d-block mb-1">Select creature to use card:</strong>
+                  {selectedImmediateCard.eligibleCreatures.map((creature) => (
+                    <Form.Check
+                      key={creature.instanceId}
+                      type="radio"
+                      id={`immediate-creature-${creature.instanceId}`}
+                      name="immediateCreatureSelection"
+                      label={
+                        <span>
+                          <strong>{creature.creature.name}</strong>
+                          {creature.instanceId === defenderInstance.instanceId
+                            ? <Badge bg="primary" className="ms-1" style={{ fontSize: '0.65rem' }}>Defender</Badge>
+                            : <Badge bg="secondary" className="ms-1" style={{ fontSize: '0.65rem' }}>Adjacent</Badge>
+                          }
+                        </span>
+                      }
+                      checked={selectedCardCreature?.instanceId === creature.instanceId}
+                      onChange={() => setSelectedCardCreature(creature)}
+                      className="mb-1"
+                      style={{ color: '#fff', fontSize: '0.8rem' }}
+                    />
+                  ))}
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        )}
+
+        {/* Summary */}
+        {selectedDefense && (
+          <Alert
+            variant={finalDamage === 0 ? 'success' : finalDamage < incomingDamage ? 'info' : 'warning'}
+            className="py-2 mt-2"
+            style={{ fontSize: '0.8rem' }}
+          >
+            <strong>Summary:</strong>
+            <br />
+            Incoming: {incomingDamage} | Reduced: {incomingDamage - finalDamage} | Final: <strong>{finalDamage}</strong>
+          </Alert>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="combat-actions">
+        <Button variant="outline-secondary" size="sm" onClick={handleSkip}>
+          Take {incomingDamage} Damage
+        </Button>
+        <Button
+          variant={
+            selectedDefense === 'cower' ? 'success'
+            : selectedDefense === 'unstoppable_hordes' ? 'info'
+            : selectedDefense === 'immediate_card' ? 'warning'
+            : 'primary'
+          }
+          size="sm"
+          onClick={handleConfirm}
+          disabled={
+            !selectedDefense
+            || (selectedDefense === 'unstoppable_hordes' && calculateUnstoppableMoraleCost() === 0)
+            || (selectedDefense === 'immediate_card' && (!selectedImmediateCard || !selectedCardCreature))
+          }
+        >
+          {selectedDefense === 'cower'
+            ? '🛡️ COWER'
+            : selectedDefense === 'unstoppable_hordes'
+              ? `💀 Use (${calculateUnstoppableDamageReduction()} prevented)`
+              : selectedDefense === 'immediate_card' && selectedImmediateCard
+                ? `⚡ Use ${selectedImmediateCard.card.name}`
+                : 'Select Defense'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export default DefenseOptionsPanel

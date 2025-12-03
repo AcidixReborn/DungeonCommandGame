@@ -767,3 +767,83 @@
 .creature-hover-preview.preview-left {
   right: 50%;
 }
+
+/* ============================================
+   COMBAT HIGHLIGHT STYLES
+   Highlights attacker and defender during combat panel interaction
+   O(1) CSS class application based on combatHighlight prop
+   ============================================ */
+
+/* Attacker highlight - Red glow indicating the attacking creature */
+.board-tile.combat-highlight-attacker {
+  box-shadow:
+    0 0 0 3px #ff1744,
+    0 0 20px rgba(255, 23, 68, 0.8),
+    0 0 35px rgba(255, 23, 68, 0.5),
+    inset 0 0 15px rgba(255, 23, 68, 0.3);
+  animation: combat-attacker-pulse 1.5s ease-in-out infinite;
+  z-index: 100;
+}
+
+.board-tile.combat-highlight-attacker .creature-token {
+  border-color: #ff1744 !important;
+  box-shadow:
+    0 0 0 2px #ff5252,
+    0 0 15px rgba(255, 23, 68, 0.9),
+    3px 4px 0px rgba(183, 28, 28, 0.6),
+    inset 2px 2px 0px rgba(255, 82, 82, 0.4) !important;
+}
+
+@keyframes combat-attacker-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px #ff1744,
+      0 0 20px rgba(255, 23, 68, 0.8),
+      0 0 35px rgba(255, 23, 68, 0.5),
+      inset 0 0 15px rgba(255, 23, 68, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px #ff5252,
+      0 0 30px rgba(255, 23, 68, 1),
+      0 0 45px rgba(255, 23, 68, 0.7),
+      inset 0 0 20px rgba(255, 23, 68, 0.4);
+  }
+}
+
+/* Defender highlight - Blue glow indicating the defending creature */
+.board-tile.combat-highlight-defender {
+  box-shadow:
+    0 0 0 3px #2196f3,
+    0 0 20px rgba(33, 150, 243, 0.8),
+    0 0 35px rgba(33, 150, 243, 0.5),
+    inset 0 0 15px rgba(33, 150, 243, 0.3);
+  animation: combat-defender-pulse 1.5s ease-in-out infinite;
+  z-index: 100;
+}
+
+.board-tile.combat-highlight-defender .creature-token {
+  border-color: #2196f3 !important;
+  box-shadow:
+    0 0 0 2px #64b5f6,
+    0 0 15px rgba(33, 150, 243, 0.9),
+    3px 4px 0px rgba(21, 101, 192, 0.6),
+    inset 2px 2px 0px rgba(144, 202, 249, 0.4) !important;
+}
+
+@keyframes combat-defender-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px #2196f3,
+      0 0 20px rgba(33, 150, 243, 0.8),
+      0 0 35px rgba(33, 150, 243, 0.5),
+      inset 0 0 15px rgba(33, 150, 243, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px #64b5f6,
+      0 0 30px rgba(33, 150, 243, 1),
+      0 0 45px rgba(33, 150, 243, 0.7),
+      inset 0 0 20px rgba(33, 150, 243, 0.4);
+  }
+}

@@ -158,19 +158,22 @@ function App() {
 
                   {/* Right: Action buttons */}
                   <Nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {/* Phase advance button */}
-                    {turnInfo.canAdvancePhase && (
+                    {/* Phase advance button - shows disabled when combat is pending */}
+                    {(turnInfo.canAdvancePhase || turnInfo.combatPending) && (
                       <Dropdown>
                         <Dropdown.Toggle
-                          variant="primary"
+                          variant={turnInfo.combatPending ? 'secondary' : 'primary'}
                           className="no-caret"
                           onClick={(e) => {
                             e.preventDefault()
-                            turnInfo.advancePhase()
+                            if (!turnInfo.combatPending) {
+                              turnInfo.advancePhase()
+                            }
                           }}
-                          disabled={turnInfo.isCurrentPlayerAI || turnInfo.isAIThinking}
+                          disabled={turnInfo.isCurrentPlayerAI || turnInfo.isAIThinking || turnInfo.combatPending}
+                          title={turnInfo.combatPending ? 'Resolve combat first' : ''}
                         >
-                          🎮 {turnInfo.phaseButtonText}
+                          {turnInfo.combatPending ? '⚔️ Resolve Combat' : `🎮 ${turnInfo.phaseButtonText}`}
                         </Dropdown.Toggle>
                       </Dropdown>
                     )}

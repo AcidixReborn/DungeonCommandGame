@@ -10,7 +10,6 @@ import PlayerPanel from './PlayerPanel'
 import FactionSelector from './FactionSelector'
 import CommanderSelector from './CommanderSelector'
 import SimpleAI from '../ai/simpleAI'
-import ImmediateReactionModal from './ImmediateReactionModal'
 import './GameBoard.css'
 
 /**
@@ -124,16 +123,26 @@ function GameBoard({ onTurnInfoChange }) {
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [renderCounter, setRenderCounter] = useState(0) // Force re-renders without destroying GameState
 
-  // Immediate Reaction Modal state
-  const [showReactionModal, setShowReactionModal] = useState(false)
+  // ============================================
+  // IMMEDIATE REACTION STATE
+  // ============================================
   const [pendingAttack, setPendingAttack] = useState(null) // Stores attack info while waiting for reactions
+
+  // ============================================
+  // COMBAT PANEL STATE - O(1) state access
+  // Used for in-panel attack confirmation and defense options
+  // ============================================
+  const [combatPanelMode, setCombatPanelMode] = useState(null) // 'attack' | 'defense' | null
+  const [combatHighlightCreatures, setCombatHighlightCreatures] = useState({
+    attacker: null,  // instanceId of attacking creature
+    defender: null   // instanceId of defending creature
+  })
 
   // Movement Confirmation Modal state
   const [showMoveConfirm, setShowMoveConfirm] = useState(false)
   const [pendingMove, setPendingMove] = useState(null) // Stores {creature, destination, path, cost}
 
-  // Right-click Attack Confirmation Modal state
-  const [showAttackConfirm, setShowAttackConfirm] = useState(false)
+  // Right-click Attack state
   const [pendingRightClickAttack, setPendingRightClickAttack] = useState(null) // Stores {attacker, target, attackInfo}
 
   // AI action queue for processing attacks with modal support
@@ -157,6 +166,11 @@ function GameBoard({ onTurnInfoChange }) {
   const [showScrollbookModal, setShowScrollbookModal] = useState(false)
   const [scrollbookCardIndex, setScrollbookCardIndex] = useState(null)
   const [versatileActionPending, setVersatileActionPending] = useState(null) // Stores creature instance
+  // ============================================
+  // VERSATILE DECLINED TRACKING - O(1) lookup via Set
+  // Tracks creatures where user chose "Don't Use Ability" this turn
+  // ============================================
+  const [versatileDeclinedCreatures, setVersatileDeclinedCreatures] = useState(new Set())
 
   // HORDE ability modal state (deploy during REFRESH phase)
   const [showHordeModal, setShowHordeModal] = useState(false)
@@ -383,13 +397,21 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
-    // Check for VERSATILE ability - Adventurer who has already moved can use action to move again
+    // ============================================
+    // VERSATILE ability check - O(1) Set lookup
+    // Adventurer who has already moved can use action to move again
+    // Skip modal if user already declined for this creature this turn
+    // ============================================
     const isAdventurer = creatureInstance.creature.type?.includes('Adventurer')
     if (isAdventurer && creatureInstance.hasMovedThisTurn && !creatureInstance.isTapped) {
-      // Show VERSATILE modal - offer to use action for extra move
-      setVersatileActionPending(creatureInstance)
-      setShowVersatileActionModal(true)
-      return
+      // O(1) lookup - check if user already declined Versatile for this creature
+      if (!versatileDeclinedCreatures.has(creatureInstance.id)) {
+        // Show VERSATILE modal - offer to use action for extra move
+        setVersatileActionPending(creatureInstance)
+        setShowVersatileActionModal(true)
+        return
+      }
+      // User declined - fall through to normal selection
     }
 
     setSelectedBoardCreature(creatureInstance)
@@ -509,7 +531,10 @@ function GameBoard({ onTurnInfoChange }) {
 
   /**
    * Handle attack with Immediate reaction support
-   * Shows modal for human defenders, uses AI logic for AI defenders
+   * Shows panel for human defenders, uses AI logic for AI defenders
+   *
+   * Big O Complexity: O(t) where t = valid attack targets for validation
+   *
    * @param {CreatureInstance} attackerInstance - Attacking creature
    * @param {CreatureInstance} defenderInstance - Defending creature
    */
@@ -539,13 +564,21 @@ function GameBoard({ onTurnInfoChange }) {
     const isDefenderHuman = isPlayerHuman(defenderPlayerId)
 
     if (isDefenderHuman) {
-      // Defender is human - show reaction modal
+      // ============================================
+      // COMBAT PANEL: Defender is human - show defense panel
+      // O(1) state updates for panel mode and creature highlights
+      // ============================================
       setPendingAttack({
         attackerInstance,
         defenderInstance,
         targetInfo
       })
-      setShowReactionModal(true)
+      // Set combat panel to defense mode with creature highlights
+      setCombatPanelMode('defense')
+      setCombatHighlightCreatures({
+        attacker: attackerInstance.instanceId,
+        defender: defenderInstance.instanceId
+      })
     } else {
       // Defender is AI - use AI logic to decide on reactions and defensive abilities
       const defenderAI = new SimpleAI(gameState, defenderPlayerId)
@@ -689,21 +722,30 @@ function GameBoard({ onTurnInfoChange }) {
       console.log(`Reaction played: ${reaction.card.name} by ${reaction.creature.creature.name}`)
     })
 
-    // Close modal and execute the attack
-    setShowReactionModal(false)
+    // Close modal/panel and execute the attack
+    closeCombatPanel()
     executeAttackAfterReactions(selectedReactions)
   }
 
   // Handle when defender skips reactions
   const handleReactionsSkipped = () => {
-    setShowReactionModal(false)
+    closeCombatPanel()
     executeAttackAfterReactions([])
   }
 
   /**
-   * Handle defense selection from ImmediateReactionModal
+   * Helper function to close combat panel and clear all combat state - O(1)
+   * Used when defense is complete or attack is cancelled
+   */
+  const closeCombatPanel = () => {
+    setCombatPanelMode(null)
+    setCombatHighlightCreatures({ attacker: null, defender: null })
+  }
+
+  /**
+   * Handle defense selection from DefenseOptionsPanel
    * Supports COWER (universal), UNSTOPPABLE HORDES (Morgana's Undead), and IMMEDIATE cards
-   * After using a defense, checks if more defensive options are available and re-shows modal
+   * After using a defense, checks if more defensive options are available
    *
    * Big O Complexity: O(c) where c = creatures selected for UNSTOPPABLE HORDES (max 9)
    *
@@ -724,7 +766,7 @@ function GameBoard({ onTurnInfoChange }) {
 
     if (defense.type === 'skip') {
       // No more defense - execute attack with accumulated reduction
-      setShowReactionModal(false)
+      closeCombatPanel()
       if (accumulatedReduction > 0) {
         executeAttackAfterDefense({
           type: 'stacked_defense',
@@ -746,7 +788,7 @@ function GameBoard({ onTurnInfoChange }) {
         attackerInstance.owner
       )
 
-      setShowReactionModal(false)
+      closeCombatPanel()
       executeAttackAfterDefense({
         type: 'cower',
         damageReduction: cowerResult.damageAvoided,
@@ -770,7 +812,7 @@ function GameBoard({ onTurnInfoChange }) {
         }
       })
 
-      setShowReactionModal(false)
+      closeCombatPanel()
       executeAttackAfterDefense({
         type: 'unstoppable_hordes',
         damageReduction: totalDamageReduction + accumulatedReduction,
@@ -795,20 +837,19 @@ function GameBoard({ onTurnInfoChange }) {
                                   moreOptions.immediateCards?.length > 0
 
           if (hasMoreOptions) {
-            // Update pendingAttack with accumulated reduction and re-show modal
+            // Update pendingAttack with accumulated reduction and re-show panel
             setPendingAttack({
               ...pendingAttack,
               accumulatedDamageReduction: newAccumulatedReduction
             })
-            // Force re-render of modal by toggling it
-            setShowReactionModal(false)
-            setTimeout(() => setShowReactionModal(true), 0)
+            // Panel will automatically show updated damage reduction
+            // (no need to toggle like with modal)
             return
           }
         }
 
         // No more options or damage fully prevented - execute attack
-        setShowReactionModal(false)
+        closeCombatPanel()
         executeAttackAfterDefense({
           type: 'immediate_card',
           damageReduction: newAccumulatedReduction,
@@ -820,7 +861,7 @@ function GameBoard({ onTurnInfoChange }) {
       } else {
         // Failed to use immediate card - show error or just skip
         console.warn('Failed to use IMMEDIATE card:', result.reason)
-        setShowReactionModal(false)
+        closeCombatPanel()
         if (accumulatedReduction > 0) {
           executeAttackAfterDefense({
             type: 'stacked_defense',
@@ -856,7 +897,7 @@ function GameBoard({ onTurnInfoChange }) {
         pendingAttack.attackerInstance.owner
       )
 
-      setShowReactionModal(false)
+      closeCombatPanel()
       executeAttackAfterDefense({
         type: 'cower',
         damageReduction: cowerResult.damageAvoided,
@@ -1173,14 +1214,23 @@ function GameBoard({ onTurnInfoChange }) {
     const isDefenderHuman = isPlayerHuman(defenderPlayerId)
 
     if (isDefenderHuman) {
-      // Defender is human - show reaction modal
+      // ============================================
+      // COMBAT PANEL: Defender is human (AI attacking) - show defense panel
+      // O(1) state updates for panel mode and creature highlights
+      // Panel handlers will call executeAttackAfterReactions which continues processing
+      // ============================================
       setPendingAttack({
         attackerInstance,
         defenderInstance,
         targetInfo
       })
-      setShowReactionModal(true)
-      // Modal handlers will call executeAttackAfterReactions which continues processing
+      // Set combat panel to defense mode with creature highlights
+      setCombatPanelMode('defense')
+      setCombatHighlightCreatures({
+        attacker: attackerInstance.instanceId,
+        defender: defenderInstance.instanceId
+      })
+      // Panel handlers will call executeAttackAfterReactions which continues processing
     } else {
       // Defender is AI - use AI logic to decide on reactions and defensive abilities
       const defenderAI = new SimpleAI(gameState, defenderPlayerId)
@@ -1441,31 +1491,79 @@ function GameBoard({ onTurnInfoChange }) {
           target: tile.occupant,
           attackInfo: attackInfo
         })
-        setShowAttackConfirm(true)
+        // ============================================
+        // COMBAT PANEL: Use panel instead of modal - O(1) state updates
+        // Set combat mode and highlight creatures on battlefield
+        // ============================================
+        setCombatPanelMode('attack')
+        setCombatHighlightCreatures({
+          attacker: selectedBoardCreature.instanceId,
+          defender: tile.occupant.instanceId
+        })
       }
     }
     // Right-click on invalid tile does nothing - use left-click to deselect
   }
 
-  // Confirm right-click attack from modal
+  // ============================================
+  // COMBAT PANEL CALLBACKS - O(1) operations
+  // Handle attack confirmation and cancellation from in-panel UI
+  // ============================================
+
+  /**
+   * Confirm attack from combat panel - O(1) state updates
+   * Triggers handleAttack which handles defender reactions
+   *
+   * Flow:
+   * - If defender is human: handleAttack sets up defense panel, we don't clear combat state
+   * - If defender is AI: attack executes immediately, we need to clear combat state after
+   */
   const confirmRightClickAttack = () => {
     if (!pendingRightClickAttack) return
 
-    // Trigger the actual attack (uses existing handleAttack which handles defender reactions)
-    handleAttack(pendingRightClickAttack.attacker, pendingRightClickAttack.target)
+    // Store references before clearing
+    const attacker = pendingRightClickAttack.attacker
+    const target = pendingRightClickAttack.target
+    const isDefenderHumanPlayer = isPlayerHuman(target.owner)
 
+    // Clear the pending right-click attack state
     setPendingRightClickAttack(null)
-    setShowAttackConfirm(false)
+
+    // Trigger the actual attack (uses existing handleAttack which handles defender reactions)
+    handleAttack(attacker, target)
+
+    // If defender is AI, the attack completed immediately - clear combat panel state
+    // If defender is human, handleAttack set up the defense panel - don't clear
+    if (!isDefenderHumanPlayer) {
+      setCombatPanelMode(null)
+      setCombatHighlightCreatures({ attacker: null, defender: null })
+    }
   }
 
-  // Cancel right-click attack from modal
+  /**
+   * Cancel attack from combat panel - O(1) state updates
+   * Clears pending attack and combat panel state
+   */
   const cancelRightClickAttack = () => {
     setPendingRightClickAttack(null)
-    setShowAttackConfirm(false)
+    setCombatPanelMode(null)
+    setCombatHighlightCreatures({ attacker: null, defender: null })
   }
 
   const advancePhase = () => {
     if (!gameState) return
+
+    // ============================================
+    // COMBAT LOCK: Block phase advancement during combat - O(1)
+    // User must resolve attack confirmation or defense selection first
+    // ============================================
+    if (combatPanelMode) {
+      const message = combatPanelMode === 'attack'
+        ? 'You must confirm or cancel your attack before advancing the phase.'
+        : 'You must select a defense option or take damage before advancing the phase.'
+      addLog('system', `⚠️ ${message}`, 'warning')
+      return
+    }
 
     switch (gameState.currentPhase) {
       case GamePhases.REFRESH:
@@ -1499,6 +1597,12 @@ function GameBoard({ onTurnInfoChange }) {
 
           // Clear old logs after every turn (keeps current + previous turn visible)
           clearOldLogs(gameState.turnNumber)
+
+          // ============================================
+          // RESET VERSATILE DECLINED SET - O(1) operation
+          // Clear the set so Versatile modal shows again next turn
+          // ============================================
+          setVersatileDeclinedCreatures(new Set())
 
           if (!gameState.gameOver) {
             addToast(`${gameState.currentPlayer}'s turn begins.`)
@@ -1537,13 +1641,18 @@ function GameBoard({ onTurnInfoChange }) {
     const isAutoExecuting = ((gameState.currentPhase === GamePhases.REFRESH && !gameState.canDeployDuringRefresh(gameState.currentPlayer)) ||
                              gameState.currentPhase === GamePhases.CLEANUP) && !isCurrentPlayerAI
 
+    // ============================================
+    // COMBAT LOCK: Disable phase button when combat is pending - O(1)
+    // ============================================
+    const canAdvancePhaseValue = !combatPanelMode && (gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase())
+
     onTurnInfoChange({
       turnNumber: gameState.turnNumber,
       factionName: currentPlayerState?.faction || currentPlayerId,
       phase: gameState.currentPhase,
       isAIThinking: isAIThinking,
       isCurrentPlayerAI: isCurrentPlayerAI,
-      canAdvancePhase: gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase(),
+      canAdvancePhase: canAdvancePhaseValue,
       isAutoExecuting: isAutoExecuting,
       phaseButtonText: getPhaseButtonText(),
       advancePhase: advancePhase,
@@ -1552,9 +1661,10 @@ function GameBoard({ onTurnInfoChange }) {
       leadership: currentPlayerState?.leadership || 0,
       leadershipUsage: currentPlayerState?.getCurrentLeadershipUsage?.() || 0,
       morale: (typeof currentPlayerState?.morale === 'number' && !isNaN(currentPlayerState?.morale)) ? currentPlayerState.morale : 0,
-      startingMorale: currentPlayerState?.commander?.startingMorale || 1
+      startingMorale: currentPlayerState?.commander?.startingMorale || 1,
+      combatPending: !!combatPanelMode  // Let UI know combat is pending
     })
-  }, [gameState, gameConfig, isAIThinking, selectedBoardCreature, renderCounter, onTurnInfoChange])
+  }, [gameState, gameConfig, isAIThinking, selectedBoardCreature, renderCounter, onTurnInfoChange, combatPanelMode])
 
   // Process pending AI actions queue (for attacks that need defender modals)
   useEffect(() => {
@@ -1799,6 +1909,17 @@ function GameBoard({ onTurnInfoChange }) {
                   // Check if this tile is in the line-of-sight path
                   const isLineOfSight = lineOfSightPath.some(pos => pos.x === x && pos.y === y)
 
+                  // ============================================
+                  // COMBAT HIGHLIGHT: Determine if creature should be highlighted
+                  // O(1) - simple instanceId comparison
+                  // ============================================
+                  let combatHighlight = null
+                  if (creature && combatHighlightCreatures.attacker === creature.instanceId) {
+                    combatHighlight = 'attacker'
+                  } else if (creature && combatHighlightCreatures.defender === creature.instanceId) {
+                    combatHighlight = 'defender'
+                  }
+
                   return (
                     <BoardTile
                       key={`${x}-${y}`}
@@ -1819,6 +1940,7 @@ function GameBoard({ onTurnInfoChange }) {
                       currentPlayer={gameState?.currentPlayer}
                       boardWidth={gameState.boardWidth}
                       boardHeight={gameState.boardHeight}
+                      combatHighlight={combatHighlight}
                     />
                   )
                 })}
@@ -1862,6 +1984,34 @@ function GameBoard({ onTurnInfoChange }) {
                 currentPhase={gameState.currentPhase}
                 vertical={true}
                 canDeployCreatures={canDeployInCurrentPhase()}
+                // COMBAT PANEL PROPS - O(1) prop passing
+                combatMode={combatPanelMode}
+                attackerCreature={
+                  combatPanelMode === 'attack'
+                    ? pendingRightClickAttack?.attacker
+                    : pendingAttack?.attackerInstance
+                }
+                defenderCreature={
+                  combatPanelMode === 'attack'
+                    ? pendingRightClickAttack?.target
+                    : pendingAttack?.defenderInstance
+                }
+                attackInfo={
+                  combatPanelMode === 'attack'
+                    ? pendingRightClickAttack?.attackInfo
+                    : pendingAttack?.targetInfo
+                }
+                accumulatedDamageReduction={pendingAttack?.accumulatedDamageReduction || 0}
+                defenderPlayerState={
+                  pendingAttack
+                    ? gameState.players[pendingAttack.defenderInstance?.owner]
+                    : null
+                }
+                gameState={gameState}
+                onConfirmAttack={confirmRightClickAttack}
+                onCancelAttack={cancelRightClickAttack}
+                onDefenseSelected={handleDefenseSelected}
+                onSkipDefense={handleReactionsSkipped}
               />
             </div>
           )}
@@ -1988,22 +2138,6 @@ function GameBoard({ onTurnInfoChange }) {
         </div>
       )}
 
-      {/* Immediate Reaction Modal - Defense Options (COWER / UNSTOPPABLE HORDES / IMMEDIATE Cards) */}
-      {pendingAttack && (
-        <ImmediateReactionModal
-          show={showReactionModal}
-          attackerInstance={pendingAttack.attackerInstance}
-          defenderInstance={pendingAttack.defenderInstance}
-          defenderPlayerState={gameState.players[pendingAttack.defenderInstance.owner]}
-          gameState={gameState}
-          accumulatedDamageReduction={pendingAttack.accumulatedDamageReduction || 0}
-          onDefenseSelected={handleDefenseSelected}
-          onCardsPlayed={handleReactionsPlayed}
-          onSkip={handleReactionsSkipped}
-          onCower={handleCowerUsed}
-        />
-      )}
-
       {/* Movement Confirmation Modal - positioned dynamically */}
       <Modal
         show={showMoveConfirm}
@@ -2068,53 +2202,6 @@ function GameBoard({ onTurnInfoChange }) {
           </Button>
           <Button variant="primary" size="sm" onClick={confirmMove}>
             Confirm
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Right-Click Attack Confirmation Modal */}
-      <Modal
-        show={showAttackConfirm}
-        onHide={cancelRightClickAttack}
-        dialogClassName="move-confirm-modal"
-        centered
-      >
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #ff5252 0%, #b71c1c 100%)', color: '#fff' }}>
-          <Modal.Title style={{ fontSize: '1rem' }}>⚔️ Confirm Attack</Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="py-2" style={{ color: '#000', fontSize: '0.9rem' }}>
-          {pendingRightClickAttack && (
-            <div>
-              <p style={{ marginBottom: '0.5rem' }}>
-                <strong>{pendingRightClickAttack.attacker.creature.name}</strong> attacks{' '}
-                <strong>{pendingRightClickAttack.target.creature.name}</strong>
-              </p>
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
-                <div>
-                  Attack Type: <Badge bg={pendingRightClickAttack.attackInfo.attackType === 'ranged' ? 'info' : 'danger'}>
-                    {pendingRightClickAttack.attackInfo.attackType === 'ranged' ? '🏹 Ranged' : '⚔️ Melee'}
-                  </Badge>
-                </div>
-                <div>
-                  Damage: <Badge bg="warning" text="dark">
-                    {pendingRightClickAttack.attackInfo.attackType === 'ranged'
-                      ? pendingRightClickAttack.attacker.creature.rangedAttack?.damage
-                      : pendingRightClickAttack.attacker.creature.meleeAttack?.damage}
-                  </Badge>
-                </div>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                Target HP: {pendingRightClickAttack.target.currentHP}/{pendingRightClickAttack.target.creature.hitPoints}
-              </div>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer className="py-2">
-          <Button variant="secondary" size="sm" onClick={cancelRightClickAttack}>
-            Cancel
-          </Button>
-          <Button variant="danger" size="sm" onClick={confirmRightClickAttack}>
-            Attack
           </Button>
         </Modal.Footer>
       </Modal>
@@ -2303,13 +2390,55 @@ function GameBoard({ onTurnInfoChange }) {
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
-          <Button variant="secondary" onClick={() => {
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* ============================================
+              NEW BUTTONS: Don't Use Ability, Decide Later, Move as Action
+              O(1) Set operations for tracking declined creatures
+              ============================================ */}
+
+          {/* DON'T USE ABILITY - O(1) Set add, selects creature, won't show modal again this turn */}
+          <Button variant="danger" onClick={() => {
+            if (versatileActionPending) {
+              // O(1) - Add to declined set so modal won't show again for this creature this turn
+              setVersatileDeclinedCreatures(prev => new Set(prev).add(versatileActionPending.id))
+              // Select the creature normally (allows Collect Morale, etc.)
+              setSelectedBoardCreature(versatileActionPending)
+              // Calculate valid moves (even though they've moved, show where they could go)
+              const moves = gameState.getValidMovementTiles(versatileActionPending)
+              setValidMoveTiles(moves)
+              // Calculate valid attack targets
+              const targets = gameState.getValidAttackTargets(versatileActionPending)
+                .filter(target => gameState.activePlayers.includes(target.creature.owner))
+              setValidAttackTargets(targets)
+              addToast(`${versatileActionPending.creature.name} selected - Versatile ability declined for this turn.`)
+            }
             setShowVersatileActionModal(false)
             setVersatileActionPending(null)
           }}>
-            Cancel
+            ❌ Don't Use Ability
           </Button>
+
+          {/* DECIDE LATER - Selects creature, clicking again will re-show modal */}
+          <Button variant="secondary" onClick={() => {
+            if (versatileActionPending) {
+              // Select the creature normally (allows seeing movement path)
+              setSelectedBoardCreature(versatileActionPending)
+              // Calculate valid moves
+              const moves = gameState.getValidMovementTiles(versatileActionPending)
+              setValidMoveTiles(moves)
+              // Calculate valid attack targets
+              const targets = gameState.getValidAttackTargets(versatileActionPending)
+                .filter(target => gameState.activePlayers.includes(target.creature.owner))
+              setValidAttackTargets(targets)
+              addToast(`${versatileActionPending.creature.name} selected - Click again to use Versatile ability.`)
+            }
+            setShowVersatileActionModal(false)
+            setVersatileActionPending(null)
+          }}>
+            🕐 Decide Later
+          </Button>
+
+          {/* MOVE AS ACTION - Original functionality */}
           <Button variant="primary" onClick={() => {
             // Enable movement mode for the creature
             if (versatileActionPending) {
