@@ -1,6 +1,20 @@
 import { useState, useRef, useEffect } from 'react'
 import { TerrainTypes } from '../models/gameState'
+import { GiSpiderWeb, GiKnightBanner, GiGoblinHead, GiSkullCrossedBones, GiOrcHead } from 'react-icons/gi'
 import './BoardTile.css'
+
+/**
+ * Faction icons mapping - same icons used in PlayerPanel nav bar
+ * Maps faction name to react-icons/gi component
+ * Big O Complexity: O(1) - constant time lookup
+ */
+const factionIcons = {
+  'Sting of Lolth': GiSpiderWeb,
+  'Heart of Cormyr': GiKnightBanner,
+  'Tyranny of Goblins': GiGoblinHead,
+  'Curse of Undeath': GiSkullCrossedBones,
+  'Blood of Gruumsh': GiOrcHead
+}
 
 /**
  * BoardTile - Renders a single tile on the game board
@@ -23,12 +37,13 @@ import './BoardTile.css'
  * @param {Function} onDragOver - Drag over handler
  * @param {boolean} isDragTarget - Whether this tile is a valid drag target
  * @param {Object} playerFactionColors - Mapping of player IDs to faction colors
+ * @param {Object} playerFactions - Mapping of player IDs to faction names (for icon display)
  * @param {string} currentPlayer - Current player's ID for highlighting their starting zone
  * @param {Function} onRightClick - Handler for right-click (attack shortcut)
  * @param {string} combatHighlight - Combat highlight type: 'attacker' | 'defender' | null
  * @param {string} factionHighlight - Player ID of faction to highlight, or null (for faction nav icons)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -216,6 +231,20 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
   }
 
   /**
+   * Get faction icon component for a creature based on owner's faction
+   * Big O Complexity: O(1) - two hash map lookups
+   *
+   * @param {Object} creatureInstance - The creature instance with owner property
+   * @returns {Component|null} React icon component or null if not found
+   */
+  const getCreatureFactionIcon = (creatureInstance) => {
+    if (!creatureInstance || !playerFactions) return null
+    const factionName = playerFactions[creatureInstance.owner]
+    if (!factionName) return null
+    return factionIcons[factionName] || null
+  }
+
+  /**
    * Get dynamic inline styles for starting zones based on faction color
    * @returns {Object} Style object for starting zone
    */
@@ -314,14 +343,25 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
       {/* ============================================
           CREATURE TOKEN
           Big O Complexity: O(1) - constant time class computation
+          Layout: Level badge (top-left) + Faction Icon (center) + HP (bottom)
           factionHighlight adds inner glow when creature belongs to highlighted faction
           ============================================ */}
       {creature && (
         <div
           className={`creature-token ${isAttackTarget ? 'targetable' : ''} ${creature.deployedThisTurn ? 'protected' : ''} ${factionHighlight && factionHighlight === creature.owner ? 'faction-highlighted' : ''}`}
           style={getCreatureTokenStyle()}
+          title={creature.creature.name.replace(/ #\d+$/, '')}
         >
-          <div className="creature-name">{creature.creature.name.replace(/ #\d+$/, '')}</div>
+          {/* Level display - top left corner */}
+          <div className="token-level">L{creature.creature.level}</div>
+          {/* Faction icon - centered */}
+          <div className="creature-icon">
+            {(() => {
+              const FactionIcon = getCreatureFactionIcon(creature)
+              return FactionIcon ? <FactionIcon size={18} /> : null
+            })()}
+          </div>
+          {/* HP display - bottom */}
           <div className="creature-hp">{creature.currentHP}/{creature.creature.hitPoints}</div>
           {creature.isTapped && <div className="tapped-indicator">⤵️</div>}
           {isAttackTarget && (

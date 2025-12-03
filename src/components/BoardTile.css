@@ -328,28 +328,50 @@
     inset -2px -2px 0px rgba(0, 0, 0, 0.3);
 }
 
-/* Cartoon-style creature name with better text shadow - Reduced for smaller tiles */
-.creature-name {
-  font-size: 0.5rem;  /* Reduced from 0.6rem */
-  text-align: center;
-  color: #fff;
-  text-shadow:
-    1px 1px 0px rgba(0, 0, 0, 0.8),
-    -1px -1px 0px rgba(0, 0, 0, 0.5);
-  line-height: 1.1;
-  margin-bottom: 1px;  /* Reduced from 2px */
+/* ============================================
+   TOKEN LEVEL DISPLAY
+   Positioned in top-left corner of creature token on board
+   Shows creature level as "L1", "L2", etc.
+   Plain text - NOT a badge (different from CreatureCard's .creature-level)
+   Big O Complexity: O(1) - CSS matching is constant time
+   ============================================ */
+.token-level {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 0.4rem;
   font-weight: 900;
-  letter-spacing: 0.2px;  /* Reduced from 0.3px */
+  color: #fff;
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.9);
+  z-index: 3;
+  line-height: 1;
 }
 
-/* Cartoon-style HP display with border - Reduced for smaller tiles */
+/* ============================================
+   CREATURE FACTION ICON
+   Centered in creature token, replaces creature name
+   Uses react-icons/gi faction icons
+   Big O Complexity: O(1) - CSS matching is constant time
+   ============================================ */
+.creature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: #fff;
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.8));
+  max-height: 24px;
+  padding-left: 4px; /* Shift icon right to avoid level indicator */
+}
+
+/* Cartoon-style HP display with border - Compact for creature tokens */
 .creature-hp {
-  font-size: 0.45rem;  /* Reduced from 0.55rem */
+  font-size: 0.35rem;
   color: #fff;
   background-color: rgba(0, 0, 0, 0.7);
-  padding: 1px 3px;  /* Reduced from 2px 4px */
-  border-radius: 3px;  /* Reduced from 4px */
-  border: 1px solid rgba(255, 255, 255, 0.3);  /* Reduced from 2px */
+  padding: 1px 2px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   font-weight: 900;
   text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
   box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.2);
@@ -488,8 +510,6 @@
     transform: scale(1.03);
   }
 }
-
-/* Protected indicator removed - using only the cyan glow border effect on .creature-token.protected */
 
 /* ============================================
    FACTION HIGHLIGHT STYLING

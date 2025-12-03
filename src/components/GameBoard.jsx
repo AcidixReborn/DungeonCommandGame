@@ -225,6 +225,26 @@ function GameBoard({ onTurnInfoChange }) {
   }, [gameConfig, gameState])
 
   /**
+   * Mapping of player IDs to faction names
+   * Used for displaying faction icons on creature tokens
+   * Big O Complexity: O(n) where n = number of active players (max 5)
+   */
+  const playerFactions = useMemo(() => {
+    if (!gameConfig || !gameState) return {}
+
+    const factionMap = {}
+    gameState.activePlayers.forEach(playerId => {
+      const playerNum = playerId.replace('PLAYER', '')
+      const playerKey = `player${playerNum}`
+      const faction = gameConfig[playerKey]?.faction
+      if (faction) {
+        factionMap[playerId] = faction
+      }
+    })
+    return factionMap
+  }, [gameConfig, gameState])
+
+  /**
    * Helper function to check if a player is human
    * @param {string} playerId - Player ID (PLAYER1, PLAYER2, etc.)
    * @returns {boolean} True if player is human
@@ -1959,6 +1979,7 @@ function GameBoard({ onTurnInfoChange }) {
                       onDragOver={handleDragOver}
                       isDragTarget={dragOverTile?.x === x && dragOverTile?.y === y}
                       playerFactionColors={playerFactionColors}
+                      playerFactions={playerFactions}
                       currentPlayer={gameState?.currentPlayer}
                       boardWidth={gameState.boardWidth}
                       boardHeight={gameState.boardHeight}
