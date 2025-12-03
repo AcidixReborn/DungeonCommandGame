@@ -154,6 +154,8 @@ function GameBoard({ onTurnInfoChange }) {
 
   // VERSATILE "Move as Action" confirmation modal state
   const [showVersatileActionModal, setShowVersatileActionModal] = useState(false)
+  const [showScrollbookModal, setShowScrollbookModal] = useState(false)
+  const [scrollbookCardIndex, setScrollbookCardIndex] = useState(null)
   const [versatileActionPending, setVersatileActionPending] = useState(null) // Stores creature instance
 
   // HORDE ability modal state (deploy during REFRESH phase)
@@ -1098,6 +1100,23 @@ function GameBoard({ onTurnInfoChange }) {
     }
   }
 
+  // Handle order card click - shows SCROLLBOOK modal if ability available
+  const handleOrderCardClick = (cardIndex) => {
+    if (!gameState) return
+
+    const currentPlayerId = gameState.currentPlayer
+    const canUseScrollbook = gameState.canUseScrollbook(currentPlayerId)
+
+    if (canUseScrollbook) {
+      // Show modal with option to use SCROLLBOOK
+      setScrollbookCardIndex(cardIndex)
+      setShowScrollbookModal(true)
+    } else {
+      // Just toggle selection as before
+      setSelectedOrderIndex(selectedOrderIndex === cardIndex ? null : cardIndex)
+    }
+  }
+
   // Confirm morale collection
   const confirmCollectMorale = () => {
     if (!pendingCollection) return
@@ -1835,13 +1854,11 @@ function GameBoard({ onTurnInfoChange }) {
                 selectedCreature={selectedCreatureIndex}
                 selectedOrder={selectedOrderIndex}
                 onCreatureSelect={(idx) => setSelectedCreatureIndex(idx)}
-                onOrderSelect={(idx) => setSelectedOrderIndex(idx)}
+                onOrderSelect={handleOrderCardClick}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 currentPhase={gameState.currentPhase}
                 vertical={true}
-                canUseScrollbook={gameState.canUseScrollbook(currentPlayerId)}
-                onScrollbookUse={handleScrollbookUse}
                 canDeployCreatures={canDeployInCurrentPhase()}
               />
             </div>
@@ -2309,6 +2326,43 @@ function GameBoard({ onTurnInfoChange }) {
             setVersatileActionPending(null)
           }}>
             🏃 Move as Action
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* SCROLLBOOK Ability Modal - Discard order card to draw new one */}
+      <Modal
+        show={showScrollbookModal}
+        onHide={() => {
+          setShowScrollbookModal(false)
+          setScrollbookCardIndex(null)
+        }}
+        centered
+      >
+        <Modal.Header closeButton style={{ backgroundColor: '#17a2b8', color: 'white', borderBottom: '1px solid #138496' }}>
+          <Modal.Title>📜 SCROLLBOOK</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {scrollbookCardIndex !== null && currentPlayer && (
+            <div>
+              <p>Discard <strong style={{ color: '#17a2b8' }}>{currentPlayer.orderHand[scrollbookCardIndex]?.name}</strong> to draw a new Order card?</p>
+              <p style={{ fontSize: '0.9rem', color: '#adb5bd' }}>This ability can only be used once per turn.</p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444', justifyContent: 'center', gap: '20px' }}>
+          <Button variant="secondary" onClick={() => {
+            setShowScrollbookModal(false)
+            setScrollbookCardIndex(null)
+          }}>
+            Cancel
+          </Button>
+          <Button variant="info" onClick={() => {
+            handleScrollbookUse(scrollbookCardIndex)
+            setShowScrollbookModal(false)
+            setScrollbookCardIndex(null)
+          }}>
+            📜 Use SCROLLBOOK
           </Button>
         </Modal.Footer>
       </Modal>

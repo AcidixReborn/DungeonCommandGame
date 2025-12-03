@@ -118,7 +118,7 @@
   pointer-events: none;
 }
 
-/* Compact card hover - lift and glow */
+/* Compact card hover - glow effect */
 .order-card-compact:hover {
   border-color: #87ceeb;
   border-bottom-color: #4a90c0;
@@ -128,7 +128,6 @@
     0 0 15px rgba(135, 206, 235, 0.6),
     3px 4px 0px rgba(74, 144, 192, 0.5),
     inset 2px 2px 0px rgba(255, 255, 255, 0.2);
-  transform: translateY(-3px) scale(1.03);
 }
 
 /* Selected compact card */
@@ -356,7 +355,6 @@
     0 0 15px rgba(135, 206, 235, 0.6),
     3px 4px 0px rgba(74, 144, 192, 0.5),
     inset 2px 2px 0px rgba(255, 255, 255, 0.2);
-  transform: translateY(-3px) scale(1.03);
 }
 
 /* Image card selected state */
