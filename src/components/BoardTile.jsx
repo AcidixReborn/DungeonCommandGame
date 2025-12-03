@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import { TerrainTypes } from '../models/gameState'
 import './BoardTile.css'
 
@@ -21,7 +22,68 @@ import './BoardTile.css'
  * @param {string} currentPlayer - Current player's ID for highlighting their starting zone
  * @param {Function} onRightClick - Handler for right-click (attack shortcut)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer, onRightClick }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8 }) {
+  // Hover preview state
+  const [showPreview, setShowPreview] = useState(false)
+  const hoverTimeoutRef = useRef(null)
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  /**
+   * Handle mouse enter - start delay timer for preview
+   */
+  const handleMouseEnter = () => {
+    if (creature) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        setShowPreview(true)
+      }, 350) // 350ms delay before showing preview
+    }
+  }
+
+  /**
+   * Handle mouse leave - cancel timer and hide preview
+   */
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
+    setShowPreview(false)
+  }
+
+  /**
+   * Get preview position classes based on tile location
+   * Shows preview in direction with more space to keep it visible
+   * @returns {string} CSS classes for positioning
+   */
+  const getPreviewPosition = () => {
+    const positions = []
+
+    // Vertical: if tile is in top half, show below; otherwise show above
+    if (tile.y < boardHeight / 2) {
+      positions.push('preview-below')
+    } else {
+      positions.push('preview-above')
+    }
+
+    // Horizontal: if tile is in left third, show to right; otherwise show to left
+    // Using 33% threshold since right side has player panel taking space
+    if (tile.x < boardWidth / 3) {
+      positions.push('preview-right')
+    } else {
+      positions.push('preview-left')
+    }
+
+    return positions.join(' ')
+  }
+
   /**
    * Get CSS class for terrain type
    * @returns {string} Terrain CSS class
@@ -162,6 +224,8 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
       onContextMenu={handleContextMenu}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       title={`(${tile.x}, ${tile.y}) - ${tile.terrain}`}
     >
       <div className="terrain-symbol">{getTerrainSymbol()}</div>
@@ -206,6 +270,31 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
       {tile.treasure && creature && (
         <div className="treasure-indicator">
           {Array(tile.treasure.remainingMorale).fill('💎').join('')}
+        </div>
+      )}
+
+      {/* Creature card hover preview */}
+      {creature && showPreview && (
+        <div className={`creature-hover-preview ${getPreviewPosition()}`}>
+          {creature.creature.imageUrl ? (
+            <img
+              src={creature.creature.imageUrl}
+              alt={creature.creature.name}
+              className="creature-preview-img"
+            />
+          ) : (
+            <div className="creature-preview-placeholder">
+              <div className="preview-name">{creature.creature.name.replace(/ #\d+$/, '')}</div>
+              <div className="preview-stats">
+                <span>HP: {creature.creature.hitPoints}</span>
+                <span>Spd: {creature.creature.speed}</span>
+              </div>
+              <div className="preview-stats">
+                {creature.creature.meleeAttack && <span>Melee: {creature.creature.meleeAttack.damage}</span>}
+                {creature.creature.rangedAttack && <span>Ranged: {creature.creature.rangedAttack.damage}</span>}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -1817,6 +1817,8 @@ function GameBoard({ onTurnInfoChange }) {
                       isDragTarget={dragOverTile?.x === x && dragOverTile?.y === y}
                       playerFactionColors={playerFactionColors}
                       currentPlayer={gameState?.currentPlayer}
+                      boardWidth={gameState.boardWidth}
+                      boardHeight={gameState.boardHeight}
                     />
                   )
                 })}

@@ -682,3 +682,88 @@
     opacity: 1;
   }
 }
+
+/* ============================================
+   CREATURE HOVER PREVIEW
+   Shows creature card on battlefield hover
+   ============================================ */
+
+.creature-hover-preview {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none;
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+  border: 3px solid #5a5a5a;
+  border-bottom: 4px solid #2a2a2a;
+  border-right: 3px solid #2a2a2a;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow:
+    2px 3px 0px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(0, 0, 0, 0.6);
+}
+
+/* Image styling - larger preview for battlefield hover */
+.creature-preview-img {
+  height: 324px;
+  width: auto;
+  display: block;
+}
+
+/* Placeholder for creatures without images */
+.creature-preview-placeholder {
+  padding: 0.6rem;
+  min-width: 140px;
+  height: 324px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.preview-name {
+  font-weight: 900;
+  font-size: 1rem;
+  color: #fff;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.8);
+  margin-bottom: 0.5rem;
+}
+
+.preview-stats {
+  display: flex;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: #ffd700;
+  font-weight: bold;
+  margin-bottom: 0.3rem;
+}
+
+.preview-stats span {
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+/* Position classes - show preview in direction with more space */
+
+/* Show below the tile */
+.creature-hover-preview.preview-below {
+  top: 100%;
+  margin-top: 8px;
+}
+
+/* Show above the tile */
+.creature-hover-preview.preview-above {
+  bottom: 100%;
+  margin-bottom: 8px;
+}
+
+/* Show to the right of tile */
+.creature-hover-preview.preview-right {
+  left: 50%;
+}
+
+/* Show to the left of tile */
+.creature-hover-preview.preview-left {
+  right: 50%;
+}
