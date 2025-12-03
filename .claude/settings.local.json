@@ -13,7 +13,11 @@
       "Bash(node test-game-simulation.js:*)",
       "Bash(npx vite-node:*)",
       "Bash(npm run build:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(del \"\\?\\C:\\Users\\dougl\\Desktop\\SnapShotProgram\\nul\")",
+      "Bash(cmd.exe /c del \"\\?\\C:\\Users\\dougl\\Desktop\\SnapShotProgram\\nul\")",
+      "Bash(cmd.exe /c rmdir /s /q \"C:\\Users\\dougl\\Desktop\\SnapShotProgram\")",
+      "Bash(cmd.exe /c dir \"C:\\Users\\dougl\\Desktop\\SnapShotProgram\")"
     ],
     "deny": [],
     "ask": []

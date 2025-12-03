@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { Card, Badge, ProgressBar, Row, Col } from 'react-bootstrap'
+import { GiDragonHead, GiCardPlay } from 'react-icons/gi'
 import CreatureCard from './CreatureCard'
 import OrderCard from './OrderCard'
 import './PlayerPanel.css'
@@ -38,6 +40,24 @@ function PlayerPanel({
   vertical = false,
   canDeployCreatures = false
 }) {
+  // ============================================
+  // STATE: Active view for vertical nav bar - O(1) state access
+  // 'creatures' or 'orders' - switches which cards are displayed
+  // ============================================
+  const [activeView, setActiveView] = useState('creatures')
+
+  // ============================================
+  // EFFECT: Auto-switch view based on game phase - O(1) operation
+  // DEPLOY phase -> show creatures, ACTIVATE phase -> show orders
+  // ============================================
+  useEffect(() => {
+    if (currentPhase === 'DEPLOY') {
+      setActiveView('creatures')
+    } else if (currentPhase === 'ACTIVATE') {
+      setActiveView('orders')
+    }
+  }, [currentPhase])
+
   // Guard against NaN/undefined morale values for display
   const safeMorale = (typeof player.morale === 'number' && !isNaN(player.morale)) ? player.morale : 0
   const safeStartingMorale = player.commander?.startingMorale || 1 // Prevent division by 0
@@ -56,69 +76,74 @@ function PlayerPanel({
         style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
       >
         <Card.Body style={{ padding: '3px 5px 5px 5px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {/* Two Column Layout for Cards */}
+          {/* ============================================
+              NEW LAYOUT: Single Card Display + Vertical Nav Bar
+              O(1) view switching via activeView state
+              ============================================ */}
           <div style={{ display: 'flex', gap: '5px', flex: 1, minHeight: 0 }}>
-            {/* Left Panel: Creature Cards */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              {/* Creature Hand */}
+            {/* Main Card Display Area - Shows either Creatures OR Orders */}
+            <div className="card-display-area" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
               {isHuman && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
-                    {player.creatureHand.length === 0 ? (
-                      <small className="text-muted">No creatures in hand</small>
-                    ) : (
-                      player.creatureHand.map((creature, idx) => (
-                        <CreatureCard
-                          key={idx}
-                          creature={creature}
-                          compact={true}
-                          isSelected={selectedCreature === idx}
-                          onClick={() => onCreatureSelect && onCreatureSelect(idx)}
-                          draggable={canDeployCreatures && isCurrentPlayer}
-                          onDragStart={onDragStart}
-                          onDragEnd={onDragEnd}
-                          cardIndex={idx}
-                          handSize={player.creatureHand.length}
-                        />
-                      ))
+                    {/* Creature Cards View - O(n) render where n = creatures in hand */}
+                    {activeView === 'creatures' && (
+                      player.creatureHand.length === 0 ? (
+                        <small className="text-muted">No creatures in hand</small>
+                      ) : (
+                        player.creatureHand.map((creature, idx) => (
+                          <CreatureCard
+                            key={idx}
+                            creature={creature}
+                            compact={true}
+                            isSelected={selectedCreature === idx}
+                            onClick={() => onCreatureSelect && onCreatureSelect(idx)}
+                            draggable={canDeployCreatures && isCurrentPlayer}
+                            onDragStart={onDragStart}
+                            onDragEnd={onDragEnd}
+                            cardIndex={idx}
+                            handSize={player.creatureHand.length}
+                          />
+                        ))
+                      )
+                    )}
+                    {/* Order Cards View - O(n) render where n = orders in hand */}
+                    {activeView === 'orders' && (
+                      player.orderHand.length === 0 ? (
+                        <small className="text-muted">No order cards in hand</small>
+                      ) : (
+                        player.orderHand.map((order, idx) => (
+                          <OrderCard
+                            key={idx}
+                            order={order}
+                            compact={true}
+                            isSelected={selectedOrder === idx}
+                            onClick={() => onOrderSelect && onOrderSelect(idx)}
+                          />
+                        ))
+                      )
                     )}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Right Panel: Order Cards */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
-              {/* Order Hand */}
-              {isHuman && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <div className="card-hand-vertical" style={{
-                    flex: 1,
-                    minHeight: 0,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
-                    alignContent: 'flex-start',
-                    gap: '4px'
-                  }}>
-                    {player.orderHand.length === 0 ? (
-                      <small className="text-muted">No order cards in hand</small>
-                    ) : (
-                      player.orderHand.map((order, idx) => (
-                        <OrderCard
-                          key={idx}
-                          order={order}
-                          compact={true}
-                          isSelected={selectedOrder === idx}
-                          onClick={() => onOrderSelect && onOrderSelect(idx)}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
+            {/* Vertical Nav Bar - O(1) click handlers */}
+            <div className="player-panel-nav">
+              <button
+                className={`player-panel-nav-btn ${activeView === 'creatures' ? 'active' : ''}`}
+                onClick={() => setActiveView('creatures')}
+                title="Creature Cards"
+              >
+                <GiDragonHead size={20} />
+              </button>
+              <button
+                className={`player-panel-nav-btn ${activeView === 'orders' ? 'active' : ''}`}
+                onClick={() => setActiveView('orders')}
+                title="Order Cards"
+              >
+                <GiCardPlay size={20} />
+              </button>
             </div>
           </div>
         </Card.Body>
