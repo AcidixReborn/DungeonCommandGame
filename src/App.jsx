@@ -43,7 +43,26 @@ function App() {
       <div className="App" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Navbar bg="dark" variant="dark" expand="lg" style={{ flexShrink: 0 }}>
           <Container fluid>
-            <Navbar.Brand>Dungeon Command</Navbar.Brand>
+            <Navbar.Brand style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              Dungeon Command
+              {/* Turn Log Button - Shows in navbar when game is active */}
+              {turnInfo && turnInfo.turnLog && turnInfo.turnLog.length > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => turnInfo.setIsLogExpanded(true)}
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '4px 10px',
+                    opacity: 0.8,
+                    backgroundColor: '#6c757d',
+                    borderColor: '#6c757d'
+                  }}
+                >
+                  📜 View Full Log ({turnInfo.turnLog.length})
+                </Button>
+              )}
+            </Navbar.Brand>
             <Navbar.Toggle aria-controls="basic-navbar-nav" />
             <Navbar.Collapse id="basic-navbar-nav">
               {/* Left section: Nav links when no game active */}
@@ -244,6 +263,85 @@ function App() {
           {currentView === 'test' && <GameSimulation />}
           {currentView === 'abilities' && <CommanderAbilitiesTest />}
         </Container>
+
+        {/* Expanded Log Overlay - Displays turn log from navbar */}
+        {turnInfo?.isLogExpanded && (
+          <div
+            className="expanded-log-overlay"
+            onClick={() => turnInfo.setIsLogExpanded(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1001,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'stretch'
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '500px',
+                backgroundColor: '#1a1a1a',
+                borderLeft: '3px solid #4a90e2',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{
+                padding: '15px',
+                backgroundColor: '#2a2a2a',
+                borderBottom: '2px solid #3a3a3a',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <h5 style={{ margin: 0, color: '#fff' }}>📜 Turn Log</h5>
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={() => turnInfo.setIsLogExpanded(false)}
+                >
+                  ✕
+                </Button>
+              </div>
+              <div style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '10px'
+              }}>
+                {turnInfo.turnLog.length === 0 ? (
+                  <p style={{ color: '#888', textAlign: 'center', marginTop: '20px' }}>
+                    No events this turn
+                  </p>
+                ) : (
+                  turnInfo.turnLog.map((entry, idx) => (
+                    <div
+                      key={entry.id}
+                      style={{
+                        padding: '8px 12px',
+                        marginBottom: '6px',
+                        backgroundColor: '#2a2a2a',
+                        borderRadius: '4px',
+                        borderLeft: '3px solid #4a90e2',
+                        color: '#fff',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      <span style={{ color: '#888', marginRight: '8px' }}>#{idx + 1}</span>
+                      {entry.message}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Exit Confirmation Modal */}
         <Modal

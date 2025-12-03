@@ -155,6 +155,66 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
   }
 
   /**
+   * Convert hex color to RGB object
+   * Big O Complexity: O(1) - regex match on fixed-length hex string
+   *
+   * @param {string} hex - Hex color string (e.g., '#8b008b')
+   * @returns {Object|null} RGB object { r, g, b } or null if invalid
+   */
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null
+  }
+
+  /**
+   * Get dynamic inline styles for creature token based on faction color
+   * Uses the same faction colors as starting zones for visual consistency
+   *
+   * Big O Complexity:
+   * - O(1) - constant time property lookups and simple math operations
+   * - hexToRgb: O(1) - regex match on fixed-length hex string
+   * - darken helper: O(1) - simple arithmetic operations
+   *
+   * @returns {Object} Style object with background, borderColor, boxShadow
+   */
+  const getCreatureTokenStyle = () => {
+    if (!creature || !playerFactionColors) return {}
+
+    // O(1) - hash map lookup
+    const factionColor = playerFactionColors[creature.owner]
+    if (!factionColor) return {}
+
+    // O(1) - reuse hexToRgb function
+    const rgb = hexToRgb(factionColor)
+    if (!rgb) return {}
+
+    // O(1) - simple arithmetic operations to darken color
+    const darken = (r, g, b, factor = 0.6) => ({
+      r: Math.floor(r * factor),
+      g: Math.floor(g * factor),
+      b: Math.floor(b * factor)
+    })
+
+    const darkRgb = darken(rgb.r, rgb.g, rgb.b)
+
+    // O(1) - object construction with template literals
+    return {
+      background: `linear-gradient(135deg, rgb(${rgb.r}, ${rgb.g}, ${rgb.b}) 0%, rgb(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}) 100%)`,
+      borderColor: `rgb(${Math.floor(rgb.r * 0.8)}, ${Math.floor(rgb.g * 0.8)}, ${Math.floor(rgb.b * 0.8)})`,
+      boxShadow: `
+        0 0 0 1px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6),
+        2px 3px 0px rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.5),
+        inset 2px 2px 0px rgba(255, 255, 255, 0.3),
+        inset -2px -2px 0px rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.3)
+      `
+    }
+  }
+
+  /**
    * Get dynamic inline styles for starting zones based on faction color
    * @returns {Object} Style object for starting zone
    */
@@ -165,16 +225,6 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
 
     const factionColor = playerFactionColors[tile.startingZoneOwner]
     if (!factionColor) return {}
-
-    // Convert hex to RGB for transparency effects
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : null
-    }
 
     const rgb = hexToRgb(factionColor)
     if (!rgb) return {}
@@ -261,7 +311,10 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
       )}
 
       {creature && (
-        <div className={`creature-token player-${creature.owner} ${isAttackTarget ? 'targetable' : ''} ${creature.deployedThisTurn ? 'protected' : ''}`}>
+        <div
+          className={`creature-token ${isAttackTarget ? 'targetable' : ''} ${creature.deployedThisTurn ? 'protected' : ''}`}
+          style={getCreatureTokenStyle()}
+        >
           <div className="creature-name">{creature.creature.name.replace(/ #\d+$/, '')}</div>
           <div className="creature-hp">{creature.currentHP}/{creature.creature.hitPoints}</div>
           {creature.isTapped && <div className="tapped-indicator">⤵️</div>}

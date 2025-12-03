@@ -328,7 +328,25 @@
     inset -2px -2px 0px rgba(0, 0, 0, 0.3);
 }
 
-/* Player 1 - Vibrant blue with gradient */
+/* ============================================
+   OLD PLAYER-BASED COLORS - COMMENTED OUT
+   Replaced by dynamic faction-based colors in BoardTile.jsx
+   via getCreatureTokenStyle() function for visual consistency
+   with faction colors from FactionSelector.jsx
+
+   Faction colors:
+   - Sting of Lolth: #8b008b (purple)
+   - Heart of Cormyr: #0066cc (blue)
+   - Tyranny of Goblins: #cc0000 (red)
+   - Curse of Undeath: #00bcd4 (cyan)
+   - Blood of Gruumsh: #8b4513 (brown)
+
+   Kept commented for rollback capability.
+   To revert: uncomment these classes and change BoardTile.jsx
+   creature token className back to include player-${creature.owner}
+   ============================================ */
+
+/* Player 1 - Vibrant blue with gradient
 .creature-token.player-PLAYER1 {
   background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%);
   border: 3px solid #1976d2;
@@ -340,8 +358,9 @@
     inset 2px 2px 0px rgba(144, 202, 249, 0.4),
     inset -2px -2px 0px rgba(13, 71, 161, 0.3);
 }
+*/
 
-/* Player 2 - Vibrant red with gradient */
+/* Player 2 - Vibrant red with gradient
 .creature-token.player-PLAYER2 {
   background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
   border: 3px solid #d32f2f;
@@ -353,8 +372,9 @@
     inset 2px 2px 0px rgba(239, 154, 154, 0.4),
     inset -2px -2px 0px rgba(183, 28, 28, 0.3);
 }
+*/
 
-/* Player 3 - Vibrant green with gradient */
+/* Player 3 - Vibrant green with gradient
 .creature-token.player-PLAYER3 {
   background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
   border: 3px solid #388e3c;
@@ -366,8 +386,9 @@
     inset 2px 2px 0px rgba(165, 214, 167, 0.4),
     inset -2px -2px 0px rgba(27, 94, 32, 0.3);
 }
+*/
 
-/* Player 4 - Vibrant yellow/gold with gradient */
+/* Player 4 - Vibrant yellow/gold with gradient
 .creature-token.player-PLAYER4 {
   background: linear-gradient(135deg, #ffeb3b 0%, #f57f17 100%);
   border: 3px solid #fbc02d;
@@ -379,8 +400,9 @@
     inset 2px 2px 0px rgba(255, 245, 157, 0.5),
     inset -2px -2px 0px rgba(245, 127, 23, 0.3);
 }
+*/
 
-/* Player 5 - Vibrant purple/magenta with gradient */
+/* Player 5 - Vibrant purple/magenta with gradient
 .creature-token.player-PLAYER5 {
   background: linear-gradient(135deg, #e91e63 0%, #880e4f 100%);
   border: 3px solid #c2185b;
@@ -392,6 +414,7 @@
     inset 2px 2px 0px rgba(248, 187, 208, 0.4),
     inset -2px -2px 0px rgba(136, 14, 79, 0.3);
 }
+*/
 
 /* Cartoon-style creature name with better text shadow - Reduced for smaller tiles */
 .creature-name {
