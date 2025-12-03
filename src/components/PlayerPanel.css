@@ -276,9 +276,124 @@
   transform: translateY(-1px);
 }
 
+/* ============================================
+   DISABLED STATE FOR NAV BUTTONS
+   Applied during AI turn to prevent human interaction
+   Big O Complexity: O(1) - CSS matching is constant time
+   ============================================ */
+.player-panel-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Card display area - takes full width minus nav bar */
 .card-display-area {
   flex: 1;
   min-width: 0;
   min-height: 0;
+}
+
+/* ============================================
+   FACTION ICONS NAV SECTION
+   Separator and faction icon buttons for viewing any faction's creatures
+   Big O Complexity: O(1) - CSS matching is constant time
+   ============================================ */
+
+/* Separator between nav sections (creatures/orders vs faction icons) */
+.nav-separator {
+  width: 28px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 4px 0;
+  border-radius: 1px;
+}
+
+/* Faction nav button - inherits from .player-panel-nav-btn */
+.player-panel-nav-btn.faction-nav-btn {
+  /* Uses same base styles as other nav buttons */
+  /* No additional styles needed - inherits from .player-panel-nav-btn */
+}
+
+/* Faction nav button active state - gold/amber color to differentiate from green */
+.player-panel-nav-btn.faction-nav-btn.active {
+  border-color: #ffd700;
+  color: #fff;
+  background: linear-gradient(135deg, #ffd700 0%, #ffb300 100%);
+  box-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.5),
+    inset 1px 1px 0px rgba(255, 255, 255, 0.3),
+    0 0 12px rgba(255, 215, 0, 0.5);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.player-panel-nav-btn.faction-nav-btn.active:hover {
+  background: linear-gradient(135deg, #ffe033 0%, #ffd700 100%);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   FACTION CREATURES VIEW
+   Shows selected faction's deployed creatures on board
+   Big O Complexity: O(1) - CSS layout is constant time
+   ============================================ */
+
+.faction-creatures-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.faction-view-header {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #fff;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 180, 0, 0.15) 100%);
+  border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.faction-view-header .creature-count {
+  color: #aaa;
+  font-weight: normal;
+  font-size: 0.8rem;
+}
+
+.faction-creatures-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+  justify-content: center;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.faction-creatures-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.faction-creatures-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.faction-creatures-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.4);
+  border-radius: 4px;
+}
+
+.faction-creatures-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.6);
 }

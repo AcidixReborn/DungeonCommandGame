@@ -69,11 +69,19 @@ function GameBoard({ onTurnInfoChange }) {
   const [turnLog, setTurnLog] = useState([]) // Full log since last turn
   const [nextToastId, setNextToastId] = useState(1)
 
+  // ============================================
+  // STATE: Faction highlight for board creatures - O(1) state access
+  // Stores playerId of faction to highlight on board, or null for none
+  // Used by faction icons in PlayerPanel nav bar
+  // ============================================
+  const [factionHighlight, setFactionHighlight] = useState(null)
+
   /**
    * Add a toast notification
    * Auto-dismisses after 3 seconds, max 10 visible at a time
    * Also adds to turn log for expanded view
    * Filters out "AI turn ended" messages
+   * Only shows popup during AI turns - human turns just add to log
    */
   const addToast = (message) => {
     // Filter out "AI turn ended" messages
@@ -89,15 +97,25 @@ function GameBoard({ onTurnInfoChange }) {
       round: gameState?.turnNumber || 1
     }
 
-    // Add to turn log
+    // Always add to turn log
     setTurnLog(prev => [...prev, newToast])
 
-    // Add to visible toasts (max 10)
-    setToastMessages(prev => {
-      const updated = [...prev, newToast]
-      // Keep only the last 10 toasts
-      return updated.slice(-10)
-    })
+    // Only show popup during AI turns (not human turns)
+    // Inline human check since isPlayerHuman is defined later in component
+    const currentPlayer = gameState?.currentPlayer
+    if (currentPlayer && gameConfig) {
+      const playerNum = currentPlayer.replace('PLAYER', '')
+      const playerKey = `player${playerNum}`
+      const isHuman = gameConfig[playerKey]?.isHuman || false
+
+      if (!isHuman) {
+        setToastMessages(prev => {
+          const updated = [...prev, newToast]
+          // Keep only the last 10 toasts
+          return updated.slice(-10)
+        })
+      }
+    }
   }
 
   /**
@@ -1945,6 +1963,7 @@ function GameBoard({ onTurnInfoChange }) {
                       boardWidth={gameState.boardWidth}
                       boardHeight={gameState.boardHeight}
                       combatHighlight={combatHighlight}
+                      factionHighlight={factionHighlight}
                     />
                   )
                 })}
@@ -2016,6 +2035,11 @@ function GameBoard({ onTurnInfoChange }) {
                 onCancelAttack={cancelRightClickAttack}
                 onDefenseSelected={handleDefenseSelected}
                 onSkipDefense={handleReactionsSkipped}
+                // FACTION ICONS PROPS - O(1) prop passing
+                allPlayers={gameState?.players}
+                onFactionHighlight={setFactionHighlight}
+                // AI TURN HANDLING - Pass current player ID for auto-switch
+                currentPlayerId={currentPlayerId}
               />
             </div>
           )}

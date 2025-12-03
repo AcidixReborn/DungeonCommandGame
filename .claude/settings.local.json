@@ -17,7 +17,8 @@
       "Bash(del \"\\?\\C:\\Users\\dougl\\Desktop\\SnapShotProgram\\nul\")",
       "Bash(cmd.exe /c del \"\\?\\C:\\Users\\dougl\\Desktop\\SnapShotProgram\\nul\")",
       "Bash(cmd.exe /c rmdir /s /q \"C:\\Users\\dougl\\Desktop\\SnapShotProgram\")",
-      "Bash(cmd.exe /c dir \"C:\\Users\\dougl\\Desktop\\SnapShotProgram\")"
+      "Bash(cmd.exe /c dir \"C:\\Users\\dougl\\Desktop\\SnapShotProgram\")",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

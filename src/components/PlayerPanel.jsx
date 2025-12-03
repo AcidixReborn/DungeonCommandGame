@@ -1,11 +1,26 @@
 import { useState, useEffect } from 'react'
 import { Card, Badge, ProgressBar, Row, Col } from 'react-bootstrap'
-import { GiDragonHead, GiCardPlay, GiCrossedSwords } from 'react-icons/gi'
+import { GiDragonHead, GiCardPlay, GiCrossedSwords, GiSpiderWeb, GiKnightBanner, GiGoblinHead, GiSkullCrossedBones, GiOrcHead } from 'react-icons/gi'
 import CreatureCard from './CreatureCard'
 import OrderCard from './OrderCard'
 import AttackConfirmPanel from './AttackConfirmPanel'
 import DefenseOptionsPanel from './DefenseOptionsPanel'
 import './PlayerPanel.css'
+
+/**
+ * ============================================
+ * FACTION ICON MAPPING
+ * Maps faction names to their corresponding React Icons
+ * Big O Complexity: O(1) - constant time object lookup
+ * ============================================
+ */
+const factionIcons = {
+  'Sting of Lolth': GiSpiderWeb,
+  'Heart of Cormyr': GiKnightBanner,
+  'Tyranny of Goblins': GiGoblinHead,
+  'Curse of Undeath': GiSkullCrossedBones,
+  'Blood of Gruumsh': GiOrcHead
+}
 
 /**
  * PlayerPanel - Displays player information, resources, and cards
@@ -15,6 +30,8 @@ import './PlayerPanel.css'
  * - View switching: O(1) - state update and conditional render
  * - Combat mode detection: O(1) - simple prop checks
  * - Auto-view switching: O(1) - effect runs on phase/combat change
+ * - Faction icons render: O(n) where n = number of active players (max 5)
+ * - Faction creatures view: O(m) where m = creatures in selected faction
  *
  * @param {PlayerState} player - Player state data
  * @param {string} playerId - Player ID
@@ -41,6 +58,9 @@ import './PlayerPanel.css'
  * @param {Function} onCancelAttack - Callback when attack is cancelled
  * @param {Function} onDefenseSelected - Callback when defense option is selected
  * @param {Function} onSkipDefense - Callback when skipping defense (take damage)
+ * @param {Object} allPlayers - Object containing all player states (for faction icons)
+ * @param {Function} onFactionHighlight - Callback to highlight faction creatures on board
+ * @param {string} currentPlayerId - Current player's ID (for AI turn auto-switch to show AI faction)
  */
 function PlayerPanel({
   player,
@@ -68,25 +88,39 @@ function PlayerPanel({
   onConfirmAttack,
   onCancelAttack,
   onDefenseSelected,
-  onSkipDefense
+  onSkipDefense,
+  // Faction icons props - O(1) prop access
+  allPlayers = null,
+  onFactionHighlight = null,
+  // AI turn handling props - O(1) prop access
+  currentPlayerId = null
 }) {
   // ============================================
   // STATE: Active view for vertical nav bar - O(1) state access
-  // 'creatures', 'orders', or 'combat' - switches which view is displayed
+  // 'creatures', 'orders', 'combat', or 'faction' - switches which view is displayed
   // ============================================
   const [activeView, setActiveView] = useState('creatures')
 
   // ============================================
+  // STATE: Selected faction for faction view - O(1) state access
+  // Stores playerId of selected faction, or null if none selected
+  // ============================================
+  const [selectedFactionView, setSelectedFactionView] = useState(null)
+
+  // ============================================
   // EFFECT: Auto-switch view based on game phase - O(1) operation
   // DEPLOY phase -> show creatures, ACTIVATE phase -> show orders
+  // Only applies during human turns - AI turns stay on faction view
   // ============================================
   useEffect(() => {
-    if (currentPhase === 'DEPLOY') {
-      setActiveView('creatures')
-    } else if (currentPhase === 'ACTIVATE') {
-      setActiveView('orders')
+    if (isHuman) {
+      if (currentPhase === 'DEPLOY') {
+        setActiveView('creatures')
+      } else if (currentPhase === 'ACTIVATE') {
+        setActiveView('orders')
+      }
     }
-  }, [currentPhase])
+  }, [currentPhase, isHuman])
 
   // ============================================
   // EFFECT: Auto-switch to combat view when combat mode is active - O(1)
@@ -101,6 +135,60 @@ function PlayerPanel({
       setActiveView('orders')
     }
   }, [combatMode])
+
+  // ============================================
+  // EFFECT: Clear faction highlight when switching away from faction view - O(1)
+  // Ensures board highlighting is removed when user navigates to different tab
+  // Only runs when human manually switches views (not during AI auto-switch)
+  // ============================================
+  useEffect(() => {
+    // Only clear if human is controlling and switches away from faction view
+    if (isHuman && activeView !== 'faction') {
+      setSelectedFactionView(null)
+      onFactionHighlight && onFactionHighlight(null)
+    }
+  }, [activeView, onFactionHighlight, isHuman])
+
+  // ============================================
+  // EFFECT: Auto-switch to AI faction view during AI turn - O(1)
+  // When it's an AI's turn, show their faction creatures and highlight on board
+  // Real-time updates: allPlayers prop changes when creatures are killed,
+  // which triggers re-render and updates the creature list automatically
+  // IMPORTANT: Don't override combat mode - human needs to see defense panel
+  // ============================================
+  useEffect(() => {
+    if (!isHuman && currentPlayerId && allPlayers && !combatMode) {
+      // AI turn started - switch to faction view showing AI's creatures
+      // Only if not in combat mode (human might need to defend)
+      setSelectedFactionView(currentPlayerId)
+      setActiveView('faction')
+      onFactionHighlight && onFactionHighlight(currentPlayerId)
+    }
+  }, [isHuman, currentPlayerId, allPlayers, onFactionHighlight, combatMode])
+
+  // ============================================
+  // EFFECT: Return to orders view when human turn starts - O(1)
+  // When it becomes human's turn, switch back to orders tab and clear highlights
+  // ============================================
+  useEffect(() => {
+    if (isHuman && activeView === 'faction' && !combatMode) {
+      // Human turn started - switch back to orders view
+      setActiveView('orders')
+      setSelectedFactionView(null)
+      onFactionHighlight && onFactionHighlight(null)
+    }
+  }, [isHuman, onFactionHighlight, combatMode])
+
+  // ============================================
+  // HANDLER: Faction icon click - O(1)
+  // Sets selected faction, switches to faction view, and triggers board highlighting
+  // @param {string} factionPlayerId - The player ID of the faction to view
+  // ============================================
+  const handleFactionClick = (factionPlayerId) => {
+    setSelectedFactionView(factionPlayerId)
+    setActiveView('faction')
+    onFactionHighlight && onFactionHighlight(factionPlayerId)
+  }
 
   // Guard against NaN/undefined morale values for display
   const safeMorale = (typeof player.morale === 'number' && !isNaN(player.morale)) ? player.morale : 0
@@ -125,44 +213,77 @@ function PlayerPanel({
               O(1) view switching via activeView state
               ============================================ */}
           <div style={{ display: 'flex', gap: '5px', flex: 1, minHeight: 0 }}>
-            {/* Main Card Display Area - Shows Creatures, Orders, or Combat */}
+            {/* Main Card Display Area - Shows Creatures, Orders, Combat, or Faction */}
             <div className="card-display-area" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
-              {isHuman && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  {/* ============================================
-                      COMBAT VIEW - O(1) render for attack/defense panels
-                      Shows when combatMode is active and user is on combat tab
-                      ============================================ */}
-                  {activeView === 'combat' && combatMode && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
-                      {/* Attack Confirmation Panel - O(1) render */}
-                      {combatMode === 'attack' && (
-                        <AttackConfirmPanel
-                          attacker={attackerCreature}
-                          defender={defenderCreature}
-                          attackInfo={attackInfo}
-                          onConfirm={onConfirmAttack}
-                          onCancel={onCancelAttack}
+              {/* ============================================
+                  FACTION CREATURES VIEW - Shown for both human and AI turns
+                  Shows selected faction's deployed creatures on board
+                  Big O Complexity: O(m) where m = creatures in selected faction
+                  Real-time updates when creatures are killed (allPlayers prop updates)
+                  ============================================ */}
+              {activeView === 'faction' && selectedFactionView && allPlayers && allPlayers[selectedFactionView] && (
+                <div className="faction-creatures-view">
+                  {/* Header with faction name and creature count */}
+                  <div className="faction-view-header">
+                    <span>{allPlayers[selectedFactionView].faction}</span>
+                    <span className="creature-count">
+                      ({allPlayers[selectedFactionView].creaturesInPlay.length})
+                    </span>
+                  </div>
+                  {/* Scrollable creature list - O(m) render */}
+                  <div className="faction-creatures-scroll">
+                    {allPlayers[selectedFactionView].creaturesInPlay.length === 0 ? (
+                      <small className="text-muted">No creatures on board</small>
+                    ) : (
+                      allPlayers[selectedFactionView].creaturesInPlay.map((creatureInstance) => (
+                        <CreatureCard
+                          key={creatureInstance.instanceId}
+                          creature={creatureInstance.creature}
+                          compact={true}
+                          creatureInstance={creatureInstance}
                         />
-                      )}
-                      {/* Defense Options Panel - O(1) render for options, O(n) for creature lists */}
-                      {combatMode === 'defense' && (
-                        <DefenseOptionsPanel
-                          attackerInstance={attackerCreature}
-                          defenderInstance={defenderCreature}
-                          attackInfo={attackInfo}
-                          defenderPlayerState={defenderPlayerState}
-                          gameState={gameState}
-                          accumulatedDamageReduction={accumulatedDamageReduction}
-                          onDefenseSelected={onDefenseSelected}
-                          onSkip={onSkipDefense}
-                        />
-                      )}
-                    </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================
+                  COMBAT VIEW - Renders during combat regardless of whose turn
+                  Must be outside isHuman check so human can defend during AI turn
+                  ============================================ */}
+              {activeView === 'combat' && combatMode && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
+                  {/* Attack Confirmation Panel - O(1) render */}
+                  {combatMode === 'attack' && (
+                    <AttackConfirmPanel
+                      attacker={attackerCreature}
+                      defender={defenderCreature}
+                      attackInfo={attackInfo}
+                      onConfirm={onConfirmAttack}
+                      onCancel={onCancelAttack}
+                    />
                   )}
-                  {/* Card hands - only show when not in combat view */}
-                  {activeView !== 'combat' && (
-                    <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
+                  {/* Defense Options Panel - O(1) render for options, O(n) for creature lists */}
+                  {combatMode === 'defense' && (
+                    <DefenseOptionsPanel
+                      attackerInstance={attackerCreature}
+                      defenderInstance={defenderCreature}
+                      attackInfo={attackInfo}
+                      defenderPlayerState={defenderPlayerState}
+                      gameState={gameState}
+                      accumulatedDamageReduction={accumulatedDamageReduction}
+                      onDefenseSelected={onDefenseSelected}
+                      onSkip={onSkipDefense}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Human-only views: Creatures hand, Orders hand */}
+              {isHuman && activeView !== 'faction' && activeView !== 'combat' && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                  <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
                       {/* Creature Cards View - O(n) render where n = creatures in hand */}
                       {activeView === 'creatures' && (
                         player.creatureHand.length === 0 ? (
@@ -201,16 +322,17 @@ function PlayerPanel({
                         )
                       )}
                     </div>
-                  )}
                 </div>
               )}
             </div>
 
-            {/* Vertical Nav Bar - O(1) click handlers */}
+            {/* Vertical Nav Bar - O(1) click handlers
+                Buttons disabled during AI turn to prevent human interaction */}
             <div className="player-panel-nav">
               <button
                 className={`player-panel-nav-btn ${activeView === 'creatures' ? 'active' : ''}`}
                 onClick={() => setActiveView('creatures')}
+                disabled={!isHuman}
                 title="Creature Cards"
               >
                 <GiDragonHead size={20} />
@@ -218,6 +340,7 @@ function PlayerPanel({
               <button
                 className={`player-panel-nav-btn ${activeView === 'orders' ? 'active' : ''}`}
                 onClick={() => setActiveView('orders')}
+                disabled={!isHuman}
                 title="Order Cards"
               >
                 <GiCardPlay size={20} />
@@ -231,6 +354,44 @@ function PlayerPanel({
                 >
                   <GiCrossedSwords size={20} />
                 </button>
+              )}
+
+              {/* ============================================
+                  FACTION ICONS SECTION
+                  Separator and faction icon buttons for viewing any faction's creatures
+                  Big O Complexity: O(n) where n = number of active players (max 5)
+                  ============================================ */}
+              {allPlayers && Object.keys(allPlayers).length > 0 && (
+                <>
+                  {/* Separator between nav sections */}
+                  <div className="nav-separator" />
+
+                  {/* Faction Icons - O(n) where n = active players */}
+                  {Object.entries(allPlayers)
+                    .filter(([factionPlayerId, playerState]) => {
+                      // O(1) - Check if faction is still active (not defeated)
+                      // isDefeated returns true if morale <= 0 after turn 1
+                      return !playerState.isDefeated(gameState?.turnNumber || 1)
+                    })
+                    .map(([factionPlayerId, playerState]) => {
+                      // O(1) - Get faction icon component
+                      const FactionIcon = factionIcons[playerState.faction]
+                      if (!FactionIcon) return null
+
+                      return (
+                        <button
+                          key={factionPlayerId}
+                          className={`player-panel-nav-btn faction-nav-btn ${selectedFactionView === factionPlayerId ? 'active' : ''}`}
+                          onClick={() => handleFactionClick(factionPlayerId)}
+                          disabled={!isHuman}
+                          title={`${playerState.faction} (${playerState.creaturesInPlay.length} creatures)`}
+                        >
+                          <FactionIcon size={20} />
+                        </button>
+                      )
+                    })
+                  }
+                </>
               )}
             </div>
           </div>

@@ -26,8 +26,9 @@ import './BoardTile.css'
  * @param {string} currentPlayer - Current player's ID for highlighting their starting zone
  * @param {Function} onRightClick - Handler for right-click (attack shortcut)
  * @param {string} combatHighlight - Combat highlight type: 'attacker' | 'defender' | null
+ * @param {string} factionHighlight - Player ID of faction to highlight, or null (for faction nav icons)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -310,9 +311,14 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         </div>
       )}
 
+      {/* ============================================
+          CREATURE TOKEN
+          Big O Complexity: O(1) - constant time class computation
+          factionHighlight adds inner glow when creature belongs to highlighted faction
+          ============================================ */}
       {creature && (
         <div
-          className={`creature-token ${isAttackTarget ? 'targetable' : ''} ${creature.deployedThisTurn ? 'protected' : ''}`}
+          className={`creature-token ${isAttackTarget ? 'targetable' : ''} ${creature.deployedThisTurn ? 'protected' : ''} ${factionHighlight && factionHighlight === creature.owner ? 'faction-highlighted' : ''}`}
           style={getCreatureTokenStyle()}
         >
           <div className="creature-name">{creature.creature.name.replace(/ #\d+$/, '')}</div>
