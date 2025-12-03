@@ -149,10 +149,6 @@ function GameBoard({ onTurnInfoChange }) {
   const [showSellswordModal, setShowSellswordModal] = useState(false)
   const [sellswordPending, setSellswordPending] = useState(null) // Stores {creature, treasure}
 
-  // VERSATILE ability modal state (Adventurer extra move after attack)
-  const [showVersatileModal, setShowVersatileModal] = useState(false)
-  const [versatilePending, setVersatilePending] = useState(null) // Stores {creature}
-
   // VERSATILE "Move as Action" confirmation modal state
   const [showVersatileActionModal, setShowVersatileActionModal] = useState(false)
   const [versatileActionPending, setVersatileActionPending] = useState(null) // Stores creature instance
@@ -379,6 +375,15 @@ function GameBoard({ onTurnInfoChange }) {
   const handleCreatureSelect = (creatureInstance) => {
     if (creatureInstance.isTapped) {
       addToast('Creature is tapped! Cannot move or attack.')
+      return
+    }
+
+    // Check for VERSATILE ability - Adventurer who has already moved can use action to move again
+    const isAdventurer = creatureInstance.creature.type?.includes('Adventurer')
+    if (isAdventurer && creatureInstance.hasMovedThisTurn && !creatureInstance.isTapped) {
+      // Show VERSATILE modal - offer to use action for extra move
+      setVersatileActionPending(creatureInstance)
+      setShowVersatileActionModal(true)
       return
     }
 
@@ -1521,7 +1526,11 @@ function GameBoard({ onTurnInfoChange }) {
       phaseButtonText: getPhaseButtonText(),
       advancePhase: advancePhase,
       canCollectMorale: canCollectMorale,
-      handleCollectMorale: handleCollectMorale
+      handleCollectMorale: handleCollectMorale,
+      leadership: currentPlayerState?.leadership || 0,
+      leadershipUsage: currentPlayerState?.getCurrentLeadershipUsage?.() || 0,
+      morale: (typeof currentPlayerState?.morale === 'number' && !isNaN(currentPlayerState?.morale)) ? currentPlayerState.morale : 0,
+      startingMorale: currentPlayerState?.commander?.startingMorale || 1
     })
   }, [gameState, gameConfig, isAIThinking, selectedBoardCreature, renderCounter, onTurnInfoChange])
 
@@ -2264,67 +2273,21 @@ function GameBoard({ onTurnInfoChange }) {
           <Button variant="primary" onClick={() => {
             // Enable movement mode for the creature
             if (versatileActionPending) {
+              // Reset hasMovedThisTurn so they can move again
+              versatileActionPending.hasMovedThisTurn = false
+              // Mark that we're using versatile so completing move taps the creature
+              versatileActionPending.usingVersatileMove = true
+              // Set this creature as selected for movement
+              setSelectedBoardCreature(versatileActionPending)
               const moves = gameState.getValidMovementTiles(versatileActionPending)
               setValidMoveTiles(moves)
               setValidAttackTargets([]) // Clear attack targets since using action to move
               addToast(`VERSATILE: ${versatileActionPending.creature.name} can move again using their action!`)
-              // Mark that we're using versatile so completing move taps the creature
-              versatileActionPending.usingVersatileMove = true
             }
             setShowVersatileActionModal(false)
             setVersatileActionPending(null)
           }}>
             🏃 Move as Action
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* VERSATILE Ability Modal - Extra Move After Attack */}
-      <Modal
-        show={showVersatileModal}
-        onHide={() => {
-          setShowVersatileModal(false)
-          setVersatilePending(null)
-        }}
-        centered
-        backdrop="static"
-      >
-        <Modal.Header style={{ backgroundColor: '#0066cc', color: 'white' }}>
-          <Modal.Title>🏃 VERSATILE - Tactical Reposition!</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
-          {versatilePending && (
-            <div>
-              <p><strong>{versatilePending.creature.creature.name}</strong> has made an attack!</p>
-              <p style={{ color: '#5bc0de' }}>
-                Adventurers are versatile combatants. After attacking, you may move up to 2 tiles!
-              </p>
-              <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
-                This allows you to reposition after striking - perfect for hit-and-run tactics.
-              </p>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
-          <Button variant="secondary" onClick={() => {
-            setShowVersatileModal(false)
-            setVersatilePending(null)
-          }}>
-            Skip Movement
-          </Button>
-          <Button variant="primary" onClick={() => {
-            // Enable movement mode for the creature
-            if (versatilePending) {
-              setSelectedBoardCreature(versatilePending.creature)
-              // Calculate valid moves (limited to 2 tiles for post-attack movement)
-              const moves = gameState.getValidMovementTiles(versatilePending.creature, 2)
-              setValidMoveTiles(moves)
-              addToast(`VERSATILE: Select a tile to move ${versatilePending.creature.creature.name} (up to 2 tiles)`)
-            }
-            setShowVersatileModal(false)
-            setVersatilePending(null)
-          }}>
-            🏃 Move (up to 2 tiles)
           </Button>
         </Modal.Footer>
       </Modal>

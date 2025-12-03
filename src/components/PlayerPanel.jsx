@@ -60,48 +60,6 @@ function PlayerPanel({
         style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
       >
         <Card.Body style={{ padding: '3px 5px 5px 5px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {/* Leadership + Morale on same row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '8px', flexShrink: 0 }}>
-            {/* Leadership label */}
-            <strong style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Leadership</strong>
-            {/* Leadership bar */}
-            <div style={{ flex: 1, position: 'relative' }}>
-              <ProgressBar
-                now={leadershipPercentage}
-                variant={leadershipPercentage > 80 ? 'danger' : 'info'}
-                style={{ height: '20px', fontSize: '0.75rem' }}
-              />
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.75rem',
-                fontWeight: 'bold',
-                color: '#000',
-                pointerEvents: 'none'
-              }}>
-                {leadershipUsage}/{player.leadership}
-              </div>
-            </div>
-
-            {/* Morale label */}
-            <strong style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Morale</strong>
-            {/* Morale bar */}
-            <div style={{ flex: 1 }}>
-              <ProgressBar
-                now={moralePercentage}
-                variant={moralePercentage > 50 ? 'success' : moralePercentage > 25 ? 'warning' : 'danger'}
-                style={{ height: '20px', fontSize: '0.75rem' }}
-                label={`${safeMorale}`}
-              />
-            </div>
-          </div>
-
           {/* Two Column Layout for Cards */}
           <div style={{ display: 'flex', gap: '5px', flex: 1, minHeight: 0 }}>
             {/* Left Panel: Creature Cards */}
