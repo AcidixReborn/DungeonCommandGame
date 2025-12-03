@@ -1797,7 +1797,7 @@ function GameBoard({ onTurnInfoChange }) {
         {/* Right Panel - Player Panel */}
         <div style={{ width: '500px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {/* Player Panel - Takes full space (Turn Bar moved to navbar) */}
-          <div style={{ flex: 1, minHeight: 0 }}>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <PlayerPanel
               player={currentPlayer}
               playerId={currentPlayerId}

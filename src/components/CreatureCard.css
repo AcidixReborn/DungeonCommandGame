@@ -267,18 +267,8 @@
   image-rendering: -webkit-optimize-contrast;
 }
 
-/* Dynamic sizing based on hand size - use height to scale proportionally */
-.creature-card-compact-image.hand-size-small .creature-card-img {
-  height: 264px;  /* 3 or fewer cards - larger display */
-  width: auto;
-}
-
-.creature-card-compact-image.hand-size-medium .creature-card-img {
-  height: 222px;  /* 4 cards */
-  width: auto;
-}
-
-.creature-card-compact-image.hand-size-large .creature-card-img {
-  height: 192px;  /* 5+ cards - smaller to fit all */
+/* Fixed size for creature card images - scrolling handles overflow */
+.creature-card-compact-image .creature-card-img {
+  height: 264px;  /* Fixed height - scrolling handles any number of cards */
   width: auto;
 }

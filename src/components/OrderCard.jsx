@@ -94,6 +94,23 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
   }
 
   if (compact) {
+    // If order has an image, show image-only view
+    if (order.imageUrl) {
+      return (
+        <div
+          className={`order-card-compact order-card-compact-image ${isSelected ? 'selected' : ''}`}
+          onClick={onClick}
+        >
+          <img
+            src={order.imageUrl}
+            alt={order.name}
+            className="order-card-img"
+          />
+        </div>
+      )
+    }
+
+    // Fallback: No image - show text-based compact view
     return (
       <div
         className={`order-card-compact ${isSelected ? 'selected' : ''}`}

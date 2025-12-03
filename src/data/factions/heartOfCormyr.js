@@ -3,6 +3,8 @@ import cormyrCmd1 from '../../assets/commanders/Cormyr_Commander_Card_1.webp'
 import cormyrCmd2 from '../../assets/commanders/Cormyr_Commander_Card_2.webp'
 import dwarfClericImg from '../../assets/creatures/Corymr_DwarfCleric_Card_3.webp'
 import halfOrcThugImg from '../../assets/creatures/Corymr_Half-OrcThug_Card_10.webp'
+// PLACEHOLDER ORDER CARD IMAGE - REMOVE AFTER REAL CARDS ARE ADDED
+import orderCardPlaceholder from '../../assets/orders/Cormyr_ArcaneRitual_OrderCard_Placeholder.png'
 
 export const FACTION_NAME = 'Heart of Cormyr'
 
@@ -223,7 +225,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Attach this card to this creature. At the end of its activation, if this creature is in a Magic Circle, discard this Order card.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_2',
@@ -233,7 +235,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Adjacent ally gains +10 damage this turn',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_3',
@@ -243,7 +245,7 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 30 damage',
     faction: FACTION_NAME,
-    imageUrl: null,
+    imageUrl: orderCardPlaceholder, // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
     range: 5 // TEST: Extended range - can be used from 5 tiles away
   },
   {
@@ -254,7 +256,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #4',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_5',
@@ -264,7 +266,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #5',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_6',
@@ -274,7 +276,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Placeholder effect #6',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_7',
@@ -284,7 +286,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #7',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_8',
@@ -294,7 +296,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #8',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_9',
@@ -304,7 +306,7 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Placeholder effect #9',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_10',
@@ -314,7 +316,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Placeholder effect #10',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_11',
@@ -324,7 +326,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #11',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_12',
@@ -334,7 +336,7 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Placeholder effect #12',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_13',
@@ -344,7 +346,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #13',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_14',
@@ -354,7 +356,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Placeholder effect #14',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_15',
@@ -364,7 +366,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #15',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_16',
@@ -375,7 +377,7 @@ export const orderCards = [
     requiresCreatureType: 'Adventurer',
     effectDescription: 'REQUIRES ADVENTURER: Untap this creature.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_17',
@@ -385,7 +387,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #17',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_18',
@@ -395,7 +397,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Placeholder effect #18',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_19',
@@ -405,7 +407,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #19',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_20',
@@ -415,7 +417,7 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Placeholder effect #20',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_21',
@@ -425,7 +427,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #21',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_22',
@@ -435,7 +437,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Placeholder effect #22',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_23',
@@ -445,7 +447,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #23',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_24',
@@ -455,7 +457,7 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Placeholder effect #24',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_25',
@@ -465,7 +467,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #25',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_26',
@@ -475,7 +477,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Placeholder effect #26',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_27',
@@ -485,7 +487,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #27',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_28',
@@ -495,7 +497,7 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Placeholder effect #28',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_29',
@@ -505,7 +507,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #29',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_30',
@@ -515,7 +517,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Placeholder effect #30',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_31',
@@ -525,7 +527,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #31',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_32',
@@ -535,7 +537,7 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Placeholder effect #32',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_33',
@@ -545,7 +547,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #33',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_34',
@@ -555,7 +557,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Placeholder effect #34',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_35',
@@ -565,7 +567,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Placeholder effect #35',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   },
   {
     id: 'hoc_ord_36',
@@ -575,7 +577,7 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Placeholder effect #36',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orderCardPlaceholder // PLACEHOLDER FOR TESTING - REMOVE AFTER UI TEST
   }
 ]
 

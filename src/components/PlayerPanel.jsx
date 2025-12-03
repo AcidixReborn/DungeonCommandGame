@@ -57,8 +57,9 @@ function PlayerPanel({
         text="white"
         className="player-panel-vertical"
         border={isCurrentPlayer ? 'success' : 'secondary'}
+        style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
       >
-        <Card.Body style={{ height: '100%', padding: '3px 5px 5px 5px' }}>
+        <Card.Body style={{ padding: '3px 5px 5px 5px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Leadership + Morale on same row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '8px', flexShrink: 0 }}>
             {/* Leadership label */}
@@ -102,13 +103,13 @@ function PlayerPanel({
           </div>
 
           {/* Two Column Layout for Cards */}
-          <div style={{ display: 'flex', gap: '5px', height: 'calc(100% - 100px)' }}>
+          <div style={{ display: 'flex', gap: '5px', flex: 1, minHeight: 0 }}>
             {/* Left Panel: Creature Cards */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               {/* Creature Hand */}
               {isHuman && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                                    <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
+                  <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
                     {player.creatureHand.length === 0 ? (
                       <small className="text-muted">No creatures in hand</small>
                     ) : (
@@ -133,11 +134,11 @@ function PlayerPanel({
             </div>
 
             {/* Right Panel: Order Cards */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
               {/* Order Hand */}
               {isHuman && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <div className="d-flex justify-content-between align-items-center mb-2">
+                  <div className="d-flex justify-content-between align-items-center mb-2" style={{ flexShrink: 0 }}>
                     {/* SCROLLBOOK ability button */}
                     {canUseScrollbook && selectedOrder !== null && (
                       <Button
@@ -156,7 +157,17 @@ function PlayerPanel({
                       </Badge>
                     )}
                   </div>
-                  <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
+                  <div className="card-hand-vertical" style={{
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    alignContent: 'flex-start',
+                    gap: '4px'
+                  }}>
                     {player.orderHand.length === 0 ? (
                       <small className="text-muted">No order cards in hand</small>
                     ) : (

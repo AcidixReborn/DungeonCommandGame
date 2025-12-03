@@ -324,3 +324,49 @@
     1px 2px 0px rgba(189, 189, 189, 0.5),
     inset 1px 1px 0px rgba(255, 255, 255, 0.6);
 }
+
+/* ============================================
+   IMAGE-ONLY ORDER CARD DISPLAY
+   For cards with imageUrl - shows just the card image
+   ============================================ */
+
+/* Image-only variant - removes padding, shrink-wraps to image */
+.order-card-compact-image {
+  padding: 0;
+  overflow: hidden;
+  display: inline-block;
+  min-width: unset;
+}
+
+/* Order card image styling - fixed height for consistency */
+.order-card-compact-image .order-card-img {
+  height: 264px;  /* Fixed height - matches creature card 3-card scaling */
+  width: auto;
+  display: block;
+  border-radius: 4px;
+}
+
+/* Image card hover effect */
+.order-card-compact-image:hover {
+  border-color: #87ceeb;
+  border-bottom-color: #4a90c0;
+  border-right-color: #4a90c0;
+  box-shadow:
+    0 0 0 2px #87ceeb,
+    0 0 15px rgba(135, 206, 235, 0.6),
+    3px 4px 0px rgba(74, 144, 192, 0.5),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.2);
+  transform: translateY(-3px) scale(1.03);
+}
+
+/* Image card selected state */
+.order-card-compact-image.selected {
+  border-color: #87ceeb;
+  border-bottom-color: #4a90c0;
+  border-right-color: #4a90c0;
+  box-shadow:
+    0 0 0 2px #b0e0ff,
+    0 0 20px rgba(135, 206, 235, 0.8),
+    4px 5px 0px rgba(74, 144, 192, 0.6),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.2);
+}
