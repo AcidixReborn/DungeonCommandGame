@@ -169,3 +169,46 @@
 .card-hand-vertical::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
 }
+
+/* ============================================
+   PANEL COLLAPSE TOGGLE BUTTON
+   ============================================ */
+
+.panel-toggle-btn {
+  position: absolute;
+  left: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 60px;
+  background: #343a40;
+  border: 2px solid #66bb6a;
+  border-radius: 8px 0 0 8px;
+  color: #66bb6a;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  padding: 0;
+  outline: none;
+}
+
+/* When panel is collapsed, button is flush to the left edge */
+.panel-toggle-btn.collapsed {
+  left: -15px;
+  width: 30px;
+  height: 50px;
+  border-radius: 8px 0 0 8px;
+}
+
+.panel-toggle-btn:hover {
+  background: #495057;
+  border-color: #81c784;
+  color: #81c784;
+}
+
+.panel-toggle-btn:active {
+  background: #5a6268;
+}

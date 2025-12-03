@@ -64,6 +64,9 @@ function GameBoard({ onTurnInfoChange }) {
   // Toast notification system
   const [toastMessages, setToastMessages] = useState([]) // Array of {id, message, timestamp, round}
   const [isLogExpanded, setIsLogExpanded] = useState(false)
+
+  // Player panel collapse state
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
   const [turnLog, setTurnLog] = useState([]) // Full log since last turn
   const [nextToastId, setNextToastId] = useState(1)
 
@@ -1803,28 +1806,46 @@ function GameBoard({ onTurnInfoChange }) {
           </div>
         </div>
 
-        {/* Right Panel - Player Panel */}
-        <div style={{ width: '500px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Player Panel - Takes full space (Turn Bar moved to navbar) */}
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <PlayerPanel
-              player={currentPlayer}
-              playerId={currentPlayerId}
-              isCurrentPlayer={true}
-              isHuman={isPlayerHuman(currentPlayerId)}
-              selectedCreature={selectedCreatureIndex}
-              selectedOrder={selectedOrderIndex}
-              onCreatureSelect={(idx) => setSelectedCreatureIndex(idx)}
-              onOrderSelect={(idx) => setSelectedOrderIndex(idx)}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              currentPhase={gameState.currentPhase}
-              vertical={true}
-              canUseScrollbook={gameState.canUseScrollbook(currentPlayerId)}
-              onScrollbookUse={handleScrollbookUse}
-              canDeployCreatures={canDeployInCurrentPhase()}
-            />
-          </div>
+        {/* Right Panel - Player Panel with collapse toggle */}
+        <div style={{
+          width: isPanelCollapsed ? '5px' : '500px',
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          position: 'relative'
+        }}>
+          {/* Toggle button - always visible on left edge */}
+          <button
+            className={`panel-toggle-btn ${isPanelCollapsed ? 'collapsed' : ''}`}
+            onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+            title={isPanelCollapsed ? 'Expand panel' : 'Collapse panel'}
+          >
+            {isPanelCollapsed ? '◀' : '▶'}
+          </button>
+
+          {/* Player Panel - Only show when expanded */}
+          {!isPanelCollapsed && (
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <PlayerPanel
+                player={currentPlayer}
+                playerId={currentPlayerId}
+                isCurrentPlayer={true}
+                isHuman={isPlayerHuman(currentPlayerId)}
+                selectedCreature={selectedCreatureIndex}
+                selectedOrder={selectedOrderIndex}
+                onCreatureSelect={(idx) => setSelectedCreatureIndex(idx)}
+                onOrderSelect={(idx) => setSelectedOrderIndex(idx)}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                currentPhase={gameState.currentPhase}
+                vertical={true}
+                canUseScrollbook={gameState.canUseScrollbook(currentPlayerId)}
+                onScrollbookUse={handleScrollbookUse}
+                canDeployCreatures={canDeployInCurrentPhase()}
+              />
+            </div>
+          )}
         </div>
       </div>
 
