@@ -128,6 +128,16 @@ const stats = {
       blackHandOfBaneExtra: 0,     // Extra morale paid due to BLACK HAND OF BANE
       errors: []
     },
+    immediate_card: {
+      name: 'IMMEDIATE CARD',
+      type: 'UNIVERSAL',
+      timesUsed: 0,                // Times IMMEDIATE cards were used for defense
+      damagePrevented: 0,          // Total damage prevented
+      cardsUsed: 0,                // Total cards discarded
+      creaturesTapped: 0,          // Total creatures tapped
+      cardNames: {},               // Track which cards were used (name -> count)
+      errors: []
+    },
 
     // Tyranny of Goblins
     horde: {
@@ -279,6 +289,15 @@ function trackAbility(abilityId, detail = {}) {
         abilityStats.damageAvoided += (detail.damageAvoided || 0)
         if (detail.blackHandExtra) abilityStats.blackHandOfBaneExtra += detail.blackHandExtra
         break
+      case 'immediate_card':
+        abilityStats.timesUsed++
+        abilityStats.damagePrevented += (detail.damagePrevented || 0)
+        abilityStats.cardsUsed++
+        abilityStats.creaturesTapped++
+        if (detail.cardName) {
+          abilityStats.cardNames[detail.cardName] = (abilityStats.cardNames[detail.cardName] || 0) + 1
+        }
+        break
       case 'scrollbook':
         if (detail.used) {
           abilityStats.timesUsed++
@@ -429,6 +448,26 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
 
         if (CONFIG.VERBOSE_LOGGING) {
           console.log(`  [UNSTOPPABLE HORDES] ${creaturesUsed} Undead prevent ${totalDamageReduction} damage!`)
+        }
+      }
+    } else if (defenseDecision.type === 'immediate_card') {
+      // IMMEDIATE CARD: Prevent damage using an order card
+      const result = gameState.applyImmediateCardDefense
+        ? gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        : { success: false }
+
+      if (result.success) {
+        damageReduction = result.damagePrevented
+        defenseType = 'immediate_card'
+
+        // Track IMMEDIATE card usage
+        trackAbility('immediate_card', {
+          damagePrevented: result.damagePrevented,
+          cardName: defenseDecision.card?.name || 'Unknown'
+        })
+
+        if (CONFIG.VERBOSE_LOGGING) {
+          console.log(`  [IMMEDIATE CARD] ${defenseDecision.card?.name} prevents ${result.damagePrevented} damage! (${defenseDecision.creature.creature.name} tapped)`)
         }
       }
     }
@@ -880,6 +919,20 @@ function printResults() {
   console.log(`    Morale Lost:               ${String(stats.abilityStats.cower.moraleLost).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.moraleLost)}/game)`)
   console.log(`    Damage Avoided:            ${String(stats.abilityStats.cower.damageAvoided).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.damageAvoided)}/game)`)
   console.log(`    BLACK HAND Extra Cost:     ${String(stats.abilityStats.cower.blackHandOfBaneExtra).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.blackHandOfBaneExtra)}/game)`)
+
+  console.log(`  IMMEDIATE CARD (UNIVERSAL - Use order cards for defense):`)
+  console.log(`    Times Used:                ${String(stats.abilityStats.immediate_card.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.timesUsed)}/game)`)
+  console.log(`    Damage Prevented:          ${String(stats.abilityStats.immediate_card.damagePrevented).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.damagePrevented)}/game)`)
+  console.log(`    Cards Used:                ${String(stats.abilityStats.immediate_card.cardsUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.cardsUsed)}/game)`)
+  console.log(`    Creatures Tapped:          ${String(stats.abilityStats.immediate_card.creaturesTapped).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.creaturesTapped)}/game)`)
+  // Show most used card names
+  const cardNamesUsed = Object.entries(stats.abilityStats.immediate_card.cardNames)
+  if (cardNamesUsed.length > 0) {
+    console.log(`    Cards by Name:`)
+    cardNamesUsed.sort((a, b) => b[1] - a[1]).slice(0, 5).forEach(([name, count]) => {
+      console.log(`      ${name.padEnd(25)} ${String(count).padStart(4)}x`)
+    })
+  }
 
   // Tyranny of Goblins
   console.log('\n[TYRANNY OF GOBLINS]')

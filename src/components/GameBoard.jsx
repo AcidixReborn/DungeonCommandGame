@@ -636,7 +636,7 @@ function GameBoard({ onTurnInfoChange }) {
         ? attackerInstance.creature.meleeAttack?.damage || 0
         : attackerInstance.creature.rangedAttack?.damage || 0
 
-      // AI decides whether to use defensive abilities (COWER or UNSTOPPABLE HORDES)
+      // AI decides whether to use defensive abilities (COWER, UNSTOPPABLE HORDES, or IMMEDIATE cards)
       const defenseDecision = defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
       let defenseResult = null
 
@@ -676,9 +676,22 @@ function GameBoard({ onTurnInfoChange }) {
             creaturesUsed
           }
         }
+      } else if (defenseDecision.type === 'immediate_card') {
+        // Apply IMMEDIATE card defense
+        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        if (result.success) {
+          defenseResult = {
+            success: true,
+            type: 'immediate_card',
+            damagePrevented: result.damagePrevented,
+            moraleCost: result.moraleCost || 0,
+            cardUsed: defenseDecision.card.name,
+            creatureTapped: defenseDecision.creature.creature.name
+          }
+        }
       }
 
-      // Process AI reactions (IMMEDIATE cards)
+      // Process AI reactions (IMMEDIATE cards) - legacy handling
       if (reactionDecision.reactions.length > 0) {
         const defenderPlayer = gameState.players[defenderPlayerId]
 
@@ -710,6 +723,8 @@ function GameBoard({ onTurnInfoChange }) {
             message += `🛡️ AI used COWER: ${defenseResult.damagePrevented} damage avoided (cost ${defenseResult.moraleCost} morale)! `
           } else if (defenseResult.type === 'unstoppable_hordes') {
             message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
+          } else if (defenseResult.type === 'immediate_card') {
+            message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creatureTapped} tapped)! `
           }
         }
 
@@ -991,6 +1006,13 @@ function GameBoard({ onTurnInfoChange }) {
           if (defenseResult.tappedCreatures?.length > 0) {
             message += `(${defenseResult.tappedCreatures.join(', ')} tapped) `
           }
+        } else if (defenseResult.type === 'immediate_card') {
+          message += `⚡ IMMEDIATE: ${defenseResult.cardUsed} prevented ${defenseResult.damageReduction} damage! `
+          if (defenseResult.creatureTapped) {
+            message += `(${defenseResult.creatureTapped} tapped) `
+          }
+        } else if (defenseResult.type === 'stacked_defense') {
+          message += `⚡ STACKED DEFENSE: ${defenseResult.damageReduction} total damage prevented! `
         }
       }
 
@@ -1309,7 +1331,7 @@ function GameBoard({ onTurnInfoChange }) {
         ? attackerInstance.creature.meleeAttack?.damage || 0
         : attackerInstance.creature.rangedAttack?.damage || 0
 
-      // AI decides whether to use defensive abilities (COWER or UNSTOPPABLE HORDES)
+      // AI decides whether to use defensive abilities (COWER, UNSTOPPABLE HORDES, or IMMEDIATE cards)
       const defenseDecision = defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
       let defenseResult = null
 
@@ -1349,9 +1371,22 @@ function GameBoard({ onTurnInfoChange }) {
             creaturesUsed
           }
         }
+      } else if (defenseDecision.type === 'immediate_card') {
+        // Apply IMMEDIATE card defense
+        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        if (result.success) {
+          defenseResult = {
+            success: true,
+            type: 'immediate_card',
+            damagePrevented: result.damagePrevented,
+            moraleCost: result.moraleCost || 0,
+            cardUsed: defenseDecision.card.name,
+            creatureTapped: defenseDecision.creature.creature.name
+          }
+        }
       }
 
-      // Process AI reactions (IMMEDIATE cards)
+      // Process AI reactions (IMMEDIATE cards) - legacy handling
       if (reactionDecision.reactions.length > 0) {
         const defenderPlayer = gameState.players[defenderPlayerId]
 
@@ -1383,6 +1418,8 @@ function GameBoard({ onTurnInfoChange }) {
             message += `🛡️ AI used COWER: ${defenseResult.damagePrevented} damage avoided (cost ${defenseResult.moraleCost} morale)! `
           } else if (defenseResult.type === 'unstoppable_hordes') {
             message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
+          } else if (defenseResult.type === 'immediate_card') {
+            message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creatureTapped} tapped)! `
           }
         }
 

@@ -627,7 +627,7 @@ export class SimpleAI {
    * @param {CreatureInstance} defenderInstance - The creature being attacked
    * @param {number} incomingDamage - The amount of damage being dealt
    * @param {string} attackerOwner - Owner of the attacking creature
-   * @returns {Object} { type: 'cower' | 'unstoppable_hordes' | 'none', creatures: [...], hadOpportunity: boolean }
+   * @returns {Object} { type: 'cower' | 'unstoppable_hordes' | 'immediate_card' | 'none', creatures: [...], hadOpportunity: boolean }
    */
   decideDefense(defenderInstance, incomingDamage, attackerOwner) {
     // Check if getDefenseOptions exists
@@ -640,8 +640,9 @@ export class SimpleAI {
 
     const hasCowerOption = defenseOptions.cower?.canCower
     const hasUnstoppableOption = defenseOptions.unstoppableHordes?.canUse || defenseOptions.adjacentUndead?.length > 0
+    const hasImmediateOption = defenseOptions.immediateCards?.length > 0
 
-    if (!hasCowerOption && !hasUnstoppableOption) {
+    if (!hasCowerOption && !hasUnstoppableOption && !hasImmediateOption) {
       return { type: 'none', creatures: [], hadOpportunity: false }
     }
 
@@ -714,6 +715,18 @@ export class SimpleAI {
       // Make decision
       if (Math.random() * 100 < useUnstoppableChance) {
         return this.selectUnstoppableHordesCreatures(defenseOptions, incomingDamage)
+      }
+    }
+
+    // ========================================
+    // IMMEDIATE CARD DECISION
+    // Free defense (no morale cost) - prioritize over COWER
+    // Use cards strategically to prevent lethal damage or protect valuable creatures
+    // ========================================
+    if (hasImmediateOption) {
+      const immediateDecision = this.selectImmediateCardForDefense(defenseOptions, defenderInstance, incomingDamage)
+      if (immediateDecision) {
+        return immediateDecision
       }
     }
 
@@ -815,6 +828,122 @@ export class SimpleAI {
       creatures,
       defenderCanUse: defenseOptions.unstoppableHordes?.canUse || false,
       totalDamageReduction: totalPrevention,
+      hadOpportunity: true
+    }
+  }
+
+  /**
+   * Select an IMMEDIATE card to use for defense
+   * Prioritizes cards that prevent enough damage to matter
+   * Only uses cards on valuable creatures or to prevent death
+   *
+   * Big O Complexity: O(c * e) where c = immediate cards, e = eligible creatures per card
+   *
+   * @param {Object} defenseOptions - Defense options from gameState
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @param {number} incomingDamage - Amount of damage to prevent
+   * @returns {Object|null} { type: 'immediate_card', card, creature, ... } or null if shouldn't use
+   */
+  selectImmediateCardForDefense(defenseOptions, defenderInstance, incomingDamage) {
+    const immediateCards = defenseOptions.immediateCards || []
+    if (immediateCards.length === 0) return null
+
+    const player = this.gameState.players[this.playerId]
+    const defenderHP = defenderInstance.currentHP || defenderInstance.creature.hitPoints
+    const creatureLevel = defenderInstance.creature.level || 1
+    const creaturesInPlay = player.creaturesInPlay?.length || 0
+
+    // Will this attack kill the creature?
+    const wouldDie = incomingDamage >= defenderHP
+
+    // Decision factors for using IMMEDIATE cards
+    let useImmediateChance = 0
+
+    if (wouldDie) {
+      // Creature would die - higher chance to use card based on creature value
+      if (creatureLevel >= 5) {
+        useImmediateChance = 95 // Almost always use card to save high-value creature
+      } else if (creatureLevel >= 4) {
+        useImmediateChance = 85
+      } else if (creatureLevel >= 3) {
+        useImmediateChance = 70
+      } else if (creatureLevel >= 2) {
+        useImmediateChance = creaturesInPlay <= 3 ? 60 : 40
+      } else {
+        // Level 1 creature - still might save if desperate
+        useImmediateChance = creaturesInPlay <= 2 ? 50 : 25
+      }
+    } else {
+      // Creature won't die - only use cards on valuable creatures
+      if (creatureLevel >= 5) {
+        useImmediateChance = 50 // Keep high-level creatures healthy
+      } else if (creatureLevel >= 4) {
+        useImmediateChance = 35
+      } else if (creatureLevel >= 3) {
+        useImmediateChance = 20
+      } else {
+        // Don't waste cards preventing non-lethal damage on low-level creatures
+        useImmediateChance = 5
+      }
+    }
+
+    // Boost chance if running low on creatures
+    if (creaturesInPlay <= 2 && wouldDie) {
+      useImmediateChance += 15
+    }
+
+    // Ensure chance stays in valid range
+    useImmediateChance = Math.max(0, Math.min(100, useImmediateChance))
+
+    // Make decision
+    if (Math.random() * 100 >= useImmediateChance) {
+      return null // Decided not to use immediate card
+    }
+
+    // Find the best card to use - prefer cards that prevent the most damage
+    // but not overkill (don't use a 50-damage prevent card for 10 damage)
+    let bestCard = null
+    let bestCreature = null
+    let bestScore = -1
+
+    for (const cardInfo of immediateCards) {
+      const damagePrevented = cardInfo.damagePrevented || 0
+
+      // Skip cards with no damage prevention implemented
+      if (damagePrevented === 0) continue
+
+      // Score: prefer cards that prevent close to the incoming damage
+      // Penalize overkill but don't completely avoid it
+      let score = damagePrevented
+      if (damagePrevented > incomingDamage) {
+        // Overkill penalty - still useful but not as efficient
+        score = incomingDamage - (damagePrevented - incomingDamage) * 0.3
+      }
+
+      // Prefer cards that would fully prevent death
+      if (wouldDie && damagePrevented >= incomingDamage - defenderHP + 1) {
+        score += 20 // Bonus for preventing death
+      }
+
+      if (score > bestScore && cardInfo.eligibleCreatures?.length > 0) {
+        bestScore = score
+        bestCard = cardInfo
+        // Prefer defender to use the card if possible (keeps adjacent creatures untapped)
+        bestCreature = cardInfo.eligibleCreatures.find(c => c.instanceId === defenderInstance.instanceId)
+          || cardInfo.eligibleCreatures[0]
+      }
+    }
+
+    if (!bestCard || !bestCreature) {
+      return null
+    }
+
+    return {
+      type: 'immediate_card',
+      card: bestCard.card,
+      creature: bestCreature,
+      damagePrevented: bestCard.damagePrevented || 0,
+      cardName: bestCard.card.name,
       hadOpportunity: true
     }
   }
