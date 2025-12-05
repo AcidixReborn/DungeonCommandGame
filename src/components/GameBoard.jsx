@@ -1247,6 +1247,27 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // ============================================================================
+    // VALIDATION: Re-validate attack is still valid - O(E) where E = enemy creatures
+    // Positions may have changed since the attack intention was created
+    // This prevents melee attacks from non-adjacent positions and ranged attacks
+    // through forests/mountains after movement
+    // ============================================================================
+    const currentValidTargets = gameState.getValidAttackTargets(attackerInstance)
+    const isStillValidTarget = currentValidTargets.some(
+      t => t.creature.instanceId === defenderInstance.instanceId &&
+           t.attackType === targetInfo.attackType
+    )
+
+    if (!isStillValidTarget) {
+      console.log(`[AI Attack] Skipping attack - ${targetInfo.attackType} attack on ${defenderInstance.creature.name} is no longer valid from current position`)
+      setProcessingAIAction(false)
+      return
+    }
+    // ============================================================================
+    // END ATTACK RE-VALIDATION
+    // ============================================================================
+
     // Check if defender is a human player
     const defenderPlayerId = defenderInstance.owner
     const isDefenderHuman = isPlayerHuman(defenderPlayerId)

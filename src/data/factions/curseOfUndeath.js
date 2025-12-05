@@ -1,7 +1,20 @@
 // Curse of Undeath Faction Data
 import undeathCmd1 from '../../assets/commanders/Undeath_Commander_Card_1.webp'
 import undeathCmd2 from '../../assets/commanders/Undeath_Commander_Card_2.webp'
-import vampireStalkerImg from '../../assets/creatures/Undead_Vampire_Stalker_Card_8.webp'
+
+// O(1) - Static imports for creature card images
+import discipleOfKyussImg from '../../assets/creatures/Undead_DiscipleOfKyuss_Card_1.png'
+import dracolichImg from '../../assets/creatures/Undead_Dracolich_Card_2.png'
+import gravehoundImg from '../../assets/creatures/Undead_Gravehound_Card_3.png'
+import hypnoticSpiritImg from '../../assets/creatures/Undead_HypnoticSpirit_Card_4.png'
+import lichNecromancerImg from '../../assets/creatures/Undead_LichNecromaner_Card_5.png'
+import skeletalLancerImg from '../../assets/creatures/Undead_SkeletalLancer_Card_6.png'
+import skeletalTombGuardianImg from '../../assets/creatures/Undead_SkeletalTombGuardian_Card_7.png'
+import vampireStalkerImg from '../../assets/creatures/Undead_VampireStalker_Card_8.png'
+import warriorSkeleton9Img from '../../assets/creatures/Undead_WarriorSkeleton_Card_9.png'
+import warriorSkeleton10Img from '../../assets/creatures/Undead_WarriorSkeleton_Card_10.png'
+import zombie11Img from '../../assets/creatures/Undead_Zombie_Card_11.png'
+import zombie12Img from '../../assets/creatures/Undead_Zombie_Card_12.png'
 
 export const FACTION_NAME = 'Curse of Undeath'
 
@@ -53,174 +66,187 @@ export const commanders = [
   }
 ]
 
+// O(n) where n = 12 creatures - Array of creature definitions with accurate physical card stats
 export const creatures = [
+  // Card 1: Disciple of Kyuss - Level 4, HP 70, Speed 6, INT CHA, Ranged 20 (10), Melee 10
   {
     id: 'cou_cr_1',
-    name: 'Wraith',
-    level: 5,
-    type: ['Undead', 'Evil'],
-    speed: 8,
-    hitPoints: 80,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
-    meleeAttack: { damage: 50, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Incorporeal: Ignore difficult terrain'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'cou_cr_2',
-    name: 'Skeleton Archer',
-    level: 3,
-    type: ['Undead', 'Skeleton'],
-    speed: 6,
-    hitPoints: 50,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 30, range: 7 },
-    specialAbilities: ['Undead: Immune to morale effects', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // Added for testing
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'cou_cr_3',
-    name: 'Zombie',
-    level: 2,
-    type: ['Undead', 'Zombie'],
-    speed: 4,
-    hitPoints: 40,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Undead Fortitude: Takes 20% less damage'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'cou_cr_4',
-    name: 'Ghoul',
-    level: 2,
-    type: ['Undead', 'Ghoul'],
-    speed: 6,
-    hitPoints: 40,
-    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Paralyzing Touch: Can stun enemies'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'cou_cr_5',
-    name: 'Vampire #5',
-    level: 6,
-    type: ['Undead', 'Evil'],
-    speed: 7,
-    hitPoints: 110,
-    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
-    meleeAttack: { damage: 60, range: 1 }, // Normalized from 55
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #5'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'cou_cr_6',
-    name: 'Skeleton Warrior #6',
-    level: 3,
-    type: ['Undead', 'Skeleton'],
-    speed: 6,
-    hitPoints: 60, // Normalized from 55
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #6'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'cou_cr_7',
-    name: 'Wight #7',
+    name: 'Disciple of Kyuss',
     level: 4,
-    type: ['Undead', 'Evil'],
+    type: ['Evil', 'Beast', 'Humanoid', 'Undead'],
     speed: 6,
     hitPoints: 70,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 40, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #7'],
+    abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: { damage: 20, range: 10 },
+    specialAbilities: ['PLACEHOLDER: Each enemy creature takes 10 DAMAGE whenever it ends its activation adjacent to this creature.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: discipleOfKyussImg
   },
+  // Card 2: Dracolich - Level 6, HP 110, Speed 6, INT CHA, Ranged 20 (5), Melee 30
+  {
+    id: 'cou_cr_2',
+    name: 'Dracolich',
+    level: 6,
+    type: ['Evil', 'Dragon', 'Undead'],
+    speed: 6,
+    hitPoints: 110,
+    abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
+    meleeAttack: { damage: 30, range: 1 },
+    rangedAttack: { damage: 20, range: 5 },
+    specialAbilities: ['PLACEHOLDER: FLYING', 'PLACEHOLDER: LIGHTNING BREATH - As a standard action, make up to 3 ranged attacks. Each attack must target a different enemy creature.'],
+    faction: FACTION_NAME,
+    imageUrl: dracolichImg
+  },
+  // Card 3: Gravehound - Level 2, HP 40, Speed 8, DEX CON, Melee 10
+  {
+    id: 'cou_cr_3',
+    name: 'Gravehound',
+    level: 2,
+    type: ['Beast', 'Undead', 'Zombie'],
+    speed: 8,
+    hitPoints: 40,
+    abilities: { STR: false, DEX: true, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: null,
+    specialAbilities: [],
+    faction: FACTION_NAME,
+    imageUrl: gravehoundImg
+  },
+  // Card 4: Hypnotic Spirit - Level 3, HP 40, Speed 6, CHA, Melee 20
+  {
+    id: 'cou_cr_4',
+    name: 'Hypnotic Spirit',
+    level: 3,
+    type: ['Undead', 'Spirit'],
+    speed: 6,
+    hitPoints: 40,
+    abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: false, CHA: true },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['PLACEHOLDER: PHASING - This creature shifts and ignores walls while moving. It cannot end its movement in a wall space.', 'PLACEHOLDER: INSUBSTANTIAL - Prevent all damage to this creature from 1 source.'],
+    faction: FACTION_NAME,
+    imageUrl: hypnoticSpiritImg
+  },
+  // Card 5: Lich Necromancer - Level 5, HP 80, Speed 6, INT CHA, Ranged 30 (5), Melee 20
+  {
+    id: 'cou_cr_5',
+    name: 'Lich Necromancer',
+    level: 5,
+    type: ['Evil', 'Humanoid', 'Undead'],
+    speed: 6,
+    hitPoints: 80,
+    abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: { damage: 30, range: 5 },
+    specialAbilities: ['PLACEHOLDER: When deploying any Undead creature, you can place it in any unoccupied square adjacent to this creature.'],
+    faction: FACTION_NAME,
+    imageUrl: lichNecromancerImg
+  },
+  // Card 6: Skeletal Lancer - Level 4, HP 100, Speed 8, CON, Melee 20
+  {
+    id: 'cou_cr_6',
+    name: 'Skeletal Lancer',
+    level: 4,
+    type: ['Beast', 'Humanoid', 'Undead', 'Skeleton'],
+    speed: 8,
+    hitPoints: 100,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['PLACEHOLDER: RIDER - When this creature is destroyed, you can immediately deploy 1 Skeleton creature of Level 3 or lower in any square it occupied.'],
+    faction: FACTION_NAME,
+    imageUrl: skeletalLancerImg
+  },
+  // Card 7: Skeletal Tomb Guardian - Level 3, HP 60, Speed 6, CON, Melee 20
+  {
+    id: 'cou_cr_7',
+    name: 'Skeletal Tomb Guardian',
+    level: 3,
+    type: ['Humanoid', 'Undead', 'Skeleton'],
+    speed: 6,
+    hitPoints: 60,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['PLACEHOLDER: Whenever this creature makes a melee attack, it deals 20 DAMAGE to each other enemy creature adjacent to this creature.'],
+    faction: FACTION_NAME,
+    imageUrl: skeletalTombGuardianImg
+  },
+  // Card 8: Vampire Stalker - Level 4, HP 80, Speed 6, DEX CON CHA, Melee 30
   {
     id: 'cou_cr_8',
     name: 'Vampire Stalker',
     level: 4,
-    type: ['Undead', 'Evil', 'Humanoid', 'Vampire'],
+    type: ['Evil', 'Humanoid', 'Undead', 'Vampire'],
     speed: 6,
     hitPoints: 80,
     abilities: { STR: false, DEX: true, CON: true, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['LIFE DRAIN: Whenever a target takes damage from this creature\'s melee attack, this creature heals 10 DAMAGE.'],
+    specialAbilities: ['PLACEHOLDER: LIFE DRAIN - Whenever a target takes damage from this creature\'s melee attack, this creature heals 10 DAMAGE.'],
     faction: FACTION_NAME,
     imageUrl: vampireStalkerImg
   },
+  // Card 9: Warrior Skeleton - Level 2, HP 50, Speed 6, CON, Melee 20
   {
     id: 'cou_cr_9',
-    name: 'Ghast #9',
-    level: 3,
-    type: ['Undead', 'Ghoul'],
-    speed: 7,
+    name: 'Warrior Skeleton',
+    level: 2,
+    type: ['Humanoid', 'Undead', 'Skeleton'],
+    speed: 6,
     hitPoints: 50,
-    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #9'],
+    specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: warriorSkeleton9Img
   },
+  // Card 10: Warrior Skeleton - Level 2, HP 50, Speed 6, CON, Melee 20
   {
     id: 'cou_cr_10',
-    name: 'Specter #10',
+    name: 'Warrior Skeleton',
     level: 2,
-    type: ['Undead', 'Evil'],
-    speed: 8,
-    hitPoints: 40, // Normalized from 35
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
-    meleeAttack: { damage: 30, range: 1 }, // Normalized from 25
+    type: ['Humanoid', 'Undead', 'Skeleton'],
+    speed: 6,
+    hitPoints: 50,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #10'],
+    specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: warriorSkeleton10Img
   },
+  // Card 11: Zombie - Level 1, HP 40, Speed 4, CON, Melee 10
   {
     id: 'cou_cr_11',
-    name: 'Zombie Shambler #11',
+    name: 'Zombie',
     level: 1,
-    type: ['Undead', 'Zombie'],
-    speed: 3,
-    hitPoints: 30,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 }, // Normalized from 15
+    type: ['Humanoid', 'Undead', 'Zombie'],
+    speed: 4,
+    hitPoints: 40,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #11'],
+    specialAbilities: ['PLACEHOLDER: During your Deploy phase, you can pay 1 MORALE to deploy this creature from your graveyard.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: zombie11Img
   },
+  // Card 12: Zombie - Level 1, HP 40, Speed 4, CON, Melee 10
   {
     id: 'cou_cr_12',
-    name: 'Skeleton Minion #12',
+    name: 'Zombie',
     level: 1,
-    type: ['Undead', 'Skeleton'],
-    speed: 6,
-    hitPoints: 30, // Normalized from 25
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 }, // Normalized from 12
+    type: ['Humanoid', 'Undead', 'Zombie'],
+    speed: 4,
+    hitPoints: 40,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #12'],
+    specialAbilities: ['PLACEHOLDER: During your Deploy phase, you can pay 1 MORALE to deploy this creature from your graveyard.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: zombie12Img
   }
 ]
 

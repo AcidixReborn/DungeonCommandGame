@@ -67,9 +67,23 @@ export class SimpleAI {
 
     // O(C) iterations - each creature can do BOTH move AND action
     for (const creature of availableCreatures) {
+      // ============================================================================
+      // FIX: Skip creatures with null position (may have been destroyed)
+      // This prevents "Cannot read properties of null (reading 'x')" errors
+      // ============================================================================
+      if (!creature.position) {
+        continue
+      }
+
       // Track if this creature performed actions for stats
       let didAction = false
       let didMove = false
+      // ============================================================================
+      // FIX: Track if we already created an attack intention for this creature
+      // This prevents the double-attack bug where Step 1 and Step 3 both add
+      // attack intentions because hasAttackedThisTurn isn't set until execution
+      // ============================================================================
+      let hasAttackIntention = false
 
       // ============================================
       // STEP 1: Try to perform an ACTION first (collect morale or attack)
@@ -94,7 +108,8 @@ export class SimpleAI {
       }
 
       // Priority 1b - Try to attack if in range (and hasn't attacked yet) - O(E)
-      if (!creature.hasAttackedThisTurn) {
+      // FIX: Also check hasAttackIntention to prevent duplicate attack intentions
+      if (!creature.hasAttackedThisTurn && !hasAttackIntention) {
         const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
         if (attackTargets.length > 0) {
           const target = this.selectWeakestTarget(attackTargets)
@@ -105,6 +120,7 @@ export class SimpleAI {
             targetInfo: target
           })
           didAction = true
+          hasAttackIntention = true  // FIX: Mark that we created an attack intention
           // DON'T continue - creature can still move after attacking!
         }
       }
@@ -143,8 +159,9 @@ export class SimpleAI {
       // ============================================
       // STEP 3: Try to attack AFTER moving (if didn't attack before)
       // This allows move-then-attack pattern - O(E)
+      // FIX: Also check hasAttackIntention to prevent duplicate attack intentions
       // ============================================
-      if (!creature.hasAttackedThisTurn && didMove) {
+      if (!creature.hasAttackedThisTurn && didMove && !hasAttackIntention) {
         const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
         if (attackTargets.length > 0) {
           const target = this.selectWeakestTarget(attackTargets)
@@ -155,6 +172,7 @@ export class SimpleAI {
             targetInfo: target
           })
           didAction = true
+          hasAttackIntention = true  // FIX: Mark that we created an attack intention
         }
       }
     }
@@ -297,6 +315,11 @@ export class SimpleAI {
    * @returns {Object|null} Movement info or null if no valid move
    */
   tryMoveTowardsEnemies(creature) {
+    // Safety check: ensure creature has a valid position
+    if (!creature.position) {
+      return null
+    }
+
     const validMoves = this.gameState.getValidMovementTiles(creature)
 
     if (validMoves.length === 0) {
@@ -393,6 +416,11 @@ export class SimpleAI {
    * @returns {Object|null} Movement info or null if no valid move toward treasure
    */
   tryMoveTowardsTreasures(creature) {
+    // Safety check: ensure creature has a valid position
+    if (!creature.position) {
+      return null
+    }
+
     const validMoves = this.gameState.getValidMovementTiles(creature)
 
     if (validMoves.length === 0) {

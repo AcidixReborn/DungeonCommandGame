@@ -1,7 +1,20 @@
 // Blood of Gruumsh Faction Data
 import gruumshCmd1 from '../../assets/commanders/Gruumsh_Commander_Card_1.webp'
 import gruumshCmd2 from '../../assets/commanders/Gruumsh_Commander_Card_2.webp'
-import orcChieftainImg from '../../assets/creatures/Gruumsh_Orc_Chieftain_Card_6.webp'
+
+// O(1) - Static imports for creature card images
+import boarImg from '../../assets/creatures/Gruumsh_Boar_Card_1.png'
+import ogreImg from '../../assets/creatures/Gruumsh_Ogre_Card_2.png'
+import orcArcher3Img from '../../assets/creatures/Gruumsh_OrcArcher_Card_3.png'
+import orcArcher4Img from '../../assets/creatures/Gruumsh_OrcArcher_Card_4.png'
+import orcBarbarianImg from '../../assets/creatures/Gruumsh_OrcBarbarian_Card_5.png'
+import orcChieftainImg from '../../assets/creatures/Gruumsh_OrcChieftain_Card_6.png'
+import orcClericOfGruumshImg from '../../assets/creatures/Gruumsh_OrcClericOfGruumsh_Card_7.png'
+import orcDrudge8Img from '../../assets/creatures/Gruumsh_OrcDrudge_Card_8.png'
+import orcDrudge9Img from '../../assets/creatures/Gruumsh_OrcDrudge_Card_9.png'
+import orcDruidImg from '../../assets/creatures/Gruumsh_OrcDruid_Card_10.png'
+import owlbearImg from '../../assets/creatures/Gruumsh_Owlbear_Card_11.png'
+import wereboarImg from '../../assets/creatures/Gruumsh_Wereboar_Card_12.png'
 
 export const FACTION_NAME = 'Blood of Gruumsh'
 
@@ -53,76 +66,88 @@ export const commanders = [
 ]
 
 export const creatures = [
+  // Card #1 - Boar
   {
     id: 'bog_cr_1',
-    name: 'Orc Warlord',
-    level: 5,
-    type: ['Humanoid', 'Orc', 'Evil'],
-    speed: 6,
-    hitPoints: 100,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: true },
-    meleeAttack: { damage: 50, range: 1 },
+    name: 'Boar',
+    level: 3,
+    type: ['Beast', 'Boar'],
+    speed: 7,
+    hitPoints: 60,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Rally: Adjacent allies gain +10 damage'],
+    specialAbilities: [
+      'DEATH STRIKE: When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE. PLACEHOLDER'
+    ],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: boarImg
   },
+  // Card #2 - Ogre
   {
     id: 'bog_cr_2',
-    name: 'Orc Berserker',
-    level: 4,
-    type: ['Humanoid', 'Orc', 'Evil'],
-    speed: 7,
-    hitPoints: 80,
+    name: 'Ogre',
+    level: 6,
+    type: ['Humanoid', 'Ogre'],
+    speed: 6,
+    hitPoints: 100,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 50, range: 1 }, // Normalized from 45
+    meleeAttack: { damage: 50, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Rage: +20 damage when below half HP'],
+    specialAbilities: [
+      'When you deploy this creature, gain 1 MORALE. PLACEHOLDER'
+    ],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: ogreImg
   },
+  // Card #3 - Orc Archer
   {
     id: 'bog_cr_3',
-    name: 'Orc Shaman',
-    level: 3,
-    type: ['Humanoid', 'Orc', 'Evil'],
+    name: 'Orc Archer',
+    level: 2,
+    type: ['Humanoid', 'Orc'],
     speed: 6,
-    hitPoints: 60,
-    abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: true, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 30, range: 5 },
-    specialAbilities: ['Spiritual Weapon: Can attack at range', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // Added for testing
+    hitPoints: 30,
+    abilities: { STR: false, DEX: true, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: { damage: 20, range: 10 },
+    specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orcArcher3Img
   },
+  // Card #4 - Orc Archer
   {
     id: 'bog_cr_4',
-    name: 'Orc Warrior',
+    name: 'Orc Archer',
     level: 2,
-    type: ['Humanoid', 'Orc', 'Evil'],
+    type: ['Humanoid', 'Orc'],
     speed: 6,
-    hitPoints: 40,
+    hitPoints: 30,
+    abilities: { STR: false, DEX: true, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: { damage: 20, range: 10 },
+    specialAbilities: [],
+    faction: FACTION_NAME,
+    imageUrl: orcArcher4Img
+  },
+  // Card #5 - Orc Barbarian
+  {
+    id: 'bog_cr_5',
+    name: 'Orc Barbarian',
+    level: 3,
+    type: ['Humanoid', 'Orc'],
+    speed: 7,
+    hitPoints: 60,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Aggressive: Can charge'],
+    specialAbilities: [
+      'Whenever an adjacent enemy creature is destroyed, untap this creature. PLACEHOLDER'
+    ],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orcBarbarianImg
   },
-  {
-    id: 'bog_cr_5',
-    name: 'Orc Chieftain #5',
-    level: 5,
-    type: ['Humanoid', 'Orc', 'Evil'],
-    speed: 6,
-    hitPoints: 100, // Normalized from 95
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: true },
-    meleeAttack: { damage: 50, range: 1 }, // Normalized from 48
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #5'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
+  // Card #6 - Orc Chieftain
   {
     id: 'bog_cr_6',
     name: 'Orc Chieftain',
@@ -133,93 +158,107 @@ export const creatures = [
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['When you deploy this creature, you can reveal an Orc Creature card of Level 3 or lower from your hand. If you do, gain LEADERSHIP equal to the revealed creature\'s Level and immediately deploy that creature.'],
+    specialAbilities: [
+      'When you deploy this creature, you can reveal an Orc Creature card of Level 3 or lower from your hand. If you do, gain LEADERSHIP equal to the revealed creature\'s Level and immediately deploy that creature. PLACEHOLDER'
+    ],
     faction: FACTION_NAME,
     imageUrl: orcChieftainImg
   },
+  // Card #7 - Orc Cleric of Gruumsh
   {
     id: 'bog_cr_7',
-    name: 'Orc Archer #7',
-    level: 3,
-    type: ['Humanoid', 'Orc', 'Evil'],
+    name: 'Orc Cleric of Gruumsh',
+    level: 5,
+    type: ['Evil', 'Humanoid', 'Orc'],
     speed: 6,
-    hitPoints: 60, // Normalized from 55
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 40, range: 6 }, // Normalized from 35
-    specialAbilities: ['Placeholder Ability #7'],
+    hitPoints: 120,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
+    meleeAttack: { damage: 30, range: 1 },
+    rangedAttack: null,
+    specialAbilities: [
+      'When you deploy this creature, draw 1 Order card. PLACEHOLDER'
+    ],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orcClericOfGruumshImg
   },
+  // Card #8 - Orc Drudge
   {
     id: 'bog_cr_8',
-    name: 'Orc Raider #8',
-    level: 2,
-    type: ['Humanoid', 'Orc', 'Evil'],
-    speed: 7,
-    hitPoints: 50, // Normalized from 45
-    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 }, // Normalized from 25
+    name: 'Orc Drudge',
+    level: 1,
+    type: ['Humanoid', 'Orc'],
+    speed: 6,
+    hitPoints: 10,
+    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #8'],
+    specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orcDrudge8Img
   },
+  // Card #9 - Orc Drudge
   {
     id: 'bog_cr_9',
-    name: 'Orc Brute #9',
-    level: 3,
-    type: ['Humanoid', 'Orc', 'Evil'],
-    speed: 5,
-    hitPoints: 70,
+    name: 'Orc Drudge',
+    level: 1,
+    type: ['Humanoid', 'Orc'],
+    speed: 6,
+    hitPoints: 10,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 40, range: 1 },
+    meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #9'],
+    specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orcDrudge9Img
   },
+  // Card #10 - Orc Druid
   {
     id: 'bog_cr_10',
-    name: 'Orc Scout #10',
-    level: 2,
-    type: ['Humanoid', 'Orc', 'Evil'],
-    speed: 8,
-    hitPoints: 40, // Normalized from 38
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: true, CHA: false },
-    meleeAttack: { damage: 20, range: 1 }, // Normalized from 18
-    rangedAttack: { damage: 30, range: 5 }, // Normalized from 22
-    specialAbilities: ['Placeholder Ability #10'],
+    name: 'Orc Druid',
+    level: 3,
+    type: ['Humanoid', 'Orc'],
+    speed: 6,
+    hitPoints: 60,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: [
+      'When deploying any Beast or Elemental creature, you can place it in any unoccupied square adjacent to this creature. PLACEHOLDER'
+    ],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: orcDruidImg
   },
+  // Card #11 - Owlbear
   {
     id: 'bog_cr_11',
-    name: 'Orc Grunt #11',
-    level: 1,
-    type: ['Humanoid', 'Orc', 'Evil'],
+    name: 'Owlbear',
+    level: 4,
+    type: ['Beast'],
     speed: 6,
-    hitPoints: 40, // Normalized from 35
+    hitPoints: 100,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 }, // Normalized from 18
+    meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #11'],
+    specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: owlbearImg
   },
+  // Card #12 - Wereboar
   {
     id: 'bog_cr_12',
-    name: 'Orc Skirmisher #12',
-    level: 1,
-    type: ['Humanoid', 'Orc', 'Evil'],
-    speed: 7,
-    hitPoints: 30, // Normalized from 28
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 }, // Normalized from 15
+    name: 'Wereboar',
+    level: 4,
+    type: ['Beast', 'Humanoid', 'Boar', 'Orc'],
+    speed: 6,
+    hitPoints: 80,
+    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #12'],
+    specialAbilities: [
+      'DEATH STRIKE: When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE. PLACEHOLDER'
+    ],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: wereboarImg
   }
 ]
 

@@ -1943,6 +1943,11 @@ export class GameState {
 
   // Execute an attack from one creature to another
   executeAttack(attackerInstance, defenderInstance, attackType = 'melee') {
+    // Safety check: ensure both creatures have valid positions
+    if (!attackerInstance?.position || !defenderInstance?.position) {
+      return { success: false, message: 'Cannot attack: invalid creature position' }
+    }
+
     // Cannot attack if tapped
     if (attackerInstance.isTapped) {
       return { success: false, message: 'Cannot attack: creature is tapped' }
@@ -1952,6 +1957,58 @@ export class GameState {
     if (attackerInstance.hasAttackedThisTurn) {
       return { success: false, message: 'Cannot attack: creature has already attacked this turn' }
     }
+
+    // ============================================================================
+    // ATTACK VALIDATION - O(1) for melee, O(n) for ranged where n = tiles in line
+    // Validates distance, adjacency (melee), and line-of-sight (ranged)
+    // This is a safety net in case UI/AI validation was bypassed or stale
+    // ============================================================================
+
+    // Validate melee attack: must be adjacent (distance <= meleeRange, default 1)
+    if (attackType === 'melee') {
+      const distance = this.getDistance(attackerInstance.position, defenderInstance.position)
+      const meleeRange = attackerInstance.creature.meleeAttack?.range || 1
+      if (distance > meleeRange) {
+        console.log(`[executeAttack] BLOCKED: Melee attack invalid - distance ${distance} > meleeRange ${meleeRange}`)
+        return { success: false, message: 'Cannot attack: target is not in melee range' }
+      }
+    }
+
+    // Validate ranged attack: check distance, forest restrictions, and line-of-sight
+    if (attackType === 'ranged') {
+      const distance = this.getDistance(attackerInstance.position, defenderInstance.position)
+      const rangedRange = attackerInstance.creature.rangedAttack?.range || 0
+
+      // Check distance is within range
+      if (distance > rangedRange) {
+        console.log(`[executeAttack] BLOCKED: Ranged attack invalid - distance ${distance} > rangedRange ${rangedRange}`)
+        return { success: false, message: 'Cannot attack: target is out of range' }
+      }
+
+      // Check forest restrictions - cannot shoot FROM forest
+      const attackerTile = this.getTile(attackerInstance.position.x, attackerInstance.position.y)
+      if (attackerTile?.terrain === TerrainTypes.FOREST) {
+        console.log(`[executeAttack] BLOCKED: Cannot make ranged attack from forest`)
+        return { success: false, message: 'Cannot make ranged attack from forest' }
+      }
+
+      // Check forest restrictions - cannot shoot AT target in forest
+      const targetTile = this.getTile(defenderInstance.position.x, defenderInstance.position.y)
+      if (targetTile?.terrain === TerrainTypes.FOREST) {
+        console.log(`[executeAttack] BLOCKED: Cannot make ranged attack at target in forest`)
+        return { success: false, message: 'Cannot make ranged attack at target in forest' }
+      }
+
+      // Check line of sight - O(n) where n = tiles between attacker and target
+      if (!this.hasLineOfSight(attackerInstance, defenderInstance, attackerInstance.owner)) {
+        console.log(`[executeAttack] BLOCKED: No line of sight to target`)
+        return { success: false, message: 'Cannot attack: no line of sight to target' }
+      }
+    }
+
+    // ============================================================================
+    // END ATTACK VALIDATION
+    // ============================================================================
 
     let damage = 0
 
@@ -1999,6 +2056,11 @@ export class GameState {
    * @returns {Object} Attack result
    */
   executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null) {
+    // Safety check: ensure both creatures have valid positions
+    if (!attackerInstance?.position || !defenderInstance?.position) {
+      return { success: false, message: 'Cannot attack: invalid creature position' }
+    }
+
     // Cannot attack if tapped
     if (attackerInstance.isTapped) {
       return { success: false, message: 'Cannot attack: creature is tapped' }
@@ -2008,6 +2070,58 @@ export class GameState {
     if (attackerInstance.hasAttackedThisTurn) {
       return { success: false, message: 'Cannot attack: creature has already attacked this turn' }
     }
+
+    // ============================================================================
+    // ATTACK VALIDATION - O(1) for melee, O(n) for ranged where n = tiles in line
+    // Validates distance, adjacency (melee), and line-of-sight (ranged)
+    // This is a safety net in case UI/AI validation was bypassed or stale
+    // ============================================================================
+
+    // Validate melee attack: must be adjacent (distance <= meleeRange, default 1)
+    if (attackType === 'melee') {
+      const distance = this.getDistance(attackerInstance.position, defenderInstance.position)
+      const meleeRange = attackerInstance.creature.meleeAttack?.range || 1
+      if (distance > meleeRange) {
+        console.log(`[executeAttackWithDefense] BLOCKED: Melee attack invalid - distance ${distance} > meleeRange ${meleeRange}`)
+        return { success: false, message: 'Cannot attack: target is not in melee range' }
+      }
+    }
+
+    // Validate ranged attack: check distance, forest restrictions, and line-of-sight
+    if (attackType === 'ranged') {
+      const distance = this.getDistance(attackerInstance.position, defenderInstance.position)
+      const rangedRange = attackerInstance.creature.rangedAttack?.range || 0
+
+      // Check distance is within range
+      if (distance > rangedRange) {
+        console.log(`[executeAttackWithDefense] BLOCKED: Ranged attack invalid - distance ${distance} > rangedRange ${rangedRange}`)
+        return { success: false, message: 'Cannot attack: target is out of range' }
+      }
+
+      // Check forest restrictions - cannot shoot FROM forest
+      const attackerTile = this.getTile(attackerInstance.position.x, attackerInstance.position.y)
+      if (attackerTile?.terrain === TerrainTypes.FOREST) {
+        console.log(`[executeAttackWithDefense] BLOCKED: Cannot make ranged attack from forest`)
+        return { success: false, message: 'Cannot make ranged attack from forest' }
+      }
+
+      // Check forest restrictions - cannot shoot AT target in forest
+      const targetTile = this.getTile(defenderInstance.position.x, defenderInstance.position.y)
+      if (targetTile?.terrain === TerrainTypes.FOREST) {
+        console.log(`[executeAttackWithDefense] BLOCKED: Cannot make ranged attack at target in forest`)
+        return { success: false, message: 'Cannot make ranged attack at target in forest' }
+      }
+
+      // Check line of sight - O(n) where n = tiles between attacker and target
+      if (!this.hasLineOfSight(attackerInstance, defenderInstance, attackerInstance.owner)) {
+        console.log(`[executeAttackWithDefense] BLOCKED: No line of sight to target`)
+        return { success: false, message: 'Cannot attack: no line of sight to target' }
+      }
+    }
+
+    // ============================================================================
+    // END ATTACK VALIDATION
+    // ============================================================================
 
     let damage = 0
 
@@ -2068,6 +2182,11 @@ export class GameState {
    * @returns {Object} { success, message, moraleCollected, treasureDepleted, treasureValue }
    */
   collectMorale(creatureInstance) {
+    // Safety check: ensure creature has a valid position
+    if (!creatureInstance?.position) {
+      return { success: false, message: 'Cannot collect morale: invalid creature position' }
+    }
+
     // Validate creature is not tapped
     if (creatureInstance.isTapped) {
       return { success: false, message: 'Cannot collect morale: creature is tapped' }

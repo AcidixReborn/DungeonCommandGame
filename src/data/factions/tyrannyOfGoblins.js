@@ -1,6 +1,23 @@
 // Tyranny of Goblins Faction Data
+// ============================================================================
+// IMPORTS
+// ============================================================================
 import goblinsCmd1 from '../../assets/commanders/Goblins_Commander_Card_1.webp'
 import goblinsCmd2 from '../../assets/commanders/Goblins_Commander_Card_2.webp'
+
+// Creature Card Images - O(1) import time, loaded once at module initialization
+import bugbearBerserkerImg from '../../assets/creatures/Goblin_BugBear_Card_1.png'
+import feralTrollImg from '../../assets/creatures/Goblin_FeralTroll_Card_2.png'
+import goblinArcherImg from '../../assets/creatures/Goblin_GoblinArcher_Card_3.png'
+import goblinChampionImg from '../../assets/creatures/Goblin_GoblinChampion_Card_4.png'
+import goblinCutter1Img from '../../assets/creatures/Goblin_GoblinCutter_Card_5.png'
+import goblinCutter2Img from '../../assets/creatures/Goblin_GoblinCutter_Card_6.png'
+import goblinWolfRiderImg from '../../assets/creatures/Goblin_GoblinWolfRider_Card_7.png'
+import hobgoblinSoldier1Img from '../../assets/creatures/Goblin_HobgoblinSoldier_Card_8.png'
+import hobgoblinSoldier2Img from '../../assets/creatures/Goblin_HobgoblinSoldier_Card_9.png'
+import hobgoblinSorcererImg from '../../assets/creatures/Goblin_HobgoblinSorcerer_Card_10.png'
+import hornedDevilImg from '../../assets/creatures/Goblin_HordnedDevil_Card_11.png'
+import wolfImg from '../../assets/creatures/Goblin_Wolf_Card_12.png'
 
 export const FACTION_NAME = 'Tyranny of Goblins'
 
@@ -49,174 +66,194 @@ export const commanders = [
   }
 ]
 
+// ============================================================================
+// CREATURES ARRAY - Updated with accurate stats from physical cards
+// Stats extracted from card images - O(n) where n = 12 creatures
+// ============================================================================
 export const creatures = [
+  // Card 1: Bugbear Berserker - Level 4, HP 90, Speed 7, Melee 20
   {
     id: 'tog_cr_1',
-    name: 'Horned Devil',
-    level: 6,
-    type: ['Devil', 'Evil'],
+    name: 'Bugbear Berserker',
+    level: 4,
+    type: ['Humanoid', 'Bugbear'],
+    speed: 7,
+    hitPoints: 90,
+    abilities: { STR: true, DEX: true, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['PLACEHOLDER: Whenever an adjacent enemy creature is destroyed, untap this creature.'],
+    faction: FACTION_NAME,
+    imageUrl: bugbearBerserkerImg
+  },
+  // Card 2: Feral Troll - Level 5, HP 120, Speed 6, Melee 30
+  {
+    id: 'tog_cr_2',
+    name: 'Feral Troll',
+    level: 5,
+    type: ['Humanoid', 'Troll'],
     speed: 6,
     hitPoints: 120,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 60, range: 1 },
+    meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Infernal Charge: Extra damage when charging'],
+    specialAbilities: ['PLACEHOLDER: REGENERATE 10 - At the start of its controllers turn, this creature heals 10 damage.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: feralTrollImg
   },
-  {
-    id: 'tog_cr_2',
-    name: 'Troll',
-    level: 5,
-    type: ['Giant', 'Troll'],
-    speed: 6,
-    hitPoints: 100,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 50, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Regeneration: Heals 10 HP at start of turn'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
+  // Card 3: Goblin Archer - Level 1, HP 10, Speed 6, Melee 0, Ranged 20 (range 5)
   {
     id: 'tog_cr_3',
-    name: 'Hobgoblin',
-    level: 3,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
+    name: 'Goblin Archer',
+    level: 1,
+    type: ['Humanoid', 'Goblin'],
     speed: 6,
-    hitPoints: 60,
-    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Tactical: +10 damage when adjacent to ally'],
+    hitPoints: 10,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: null, // No melee attack (0 damage on card)
+    rangedAttack: { damage: 20, range: 5 },
+    specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: goblinArcherImg
   },
+  // Card 4: Goblin Champion - Level 3, HP 50, Speed 6, Melee 20
   {
     id: 'tog_cr_4',
-    name: 'Goblin',
-    level: 1,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
-    speed: 7,
-    hitPoints: 20,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 10, range: 1 },
+    name: 'Goblin Champion',
+    level: 3,
+    type: ['Humanoid', 'Goblin'],
+    speed: 6,
+    hitPoints: 50,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
+    meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Quick: Can move twice'],
+    specialAbilities: ['PLACEHOLDER: FLANKING - This creatures melee attacks deal +10 damage while at least 1 allied creature is adjacent to the target.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: goblinChampionImg
   },
+  // Card 5: Goblin Cutter (1 of 2) - Level 1, HP 10, Speed 6, Melee 10
   {
     id: 'tog_cr_5',
-    name: 'Bugbear #5',
-    level: 4,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
-    speed: 6,
-    hitPoints: 80,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 40, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #5'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_cr_6',
-    name: 'Goblin Shaman #6',
-    level: 3,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
-    speed: 6,
-    hitPoints: 50,
-    abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: true, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 40, range: 5 },
-    specialAbilities: ['Placeholder Ability #6'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_cr_7',
-    name: 'Goblin Archer #7',
-    level: 2,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
-    speed: 7,
-    hitPoints: 40,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 30, range: 6 },
-    specialAbilities: ['Placeholder Ability #7', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // Added for testing
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_cr_8',
-    name: 'Goblin Warrior #8',
-    level: 2,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
-    speed: 6,
-    hitPoints: 40,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #8'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_cr_9',
-    name: 'Hobgoblin Soldier #9',
-    level: 2,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
-    speed: 6,
-    hitPoints: 50,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #9'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_cr_10',
-    name: 'Goblin Scout #10',
+    name: 'Goblin Cutter',
     level: 1,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
-    speed: 8,
-    hitPoints: 30, // Normalized from 25
+    type: ['Humanoid', 'Goblin'],
+    speed: 6,
+    hitPoints: 10,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
-    rangedAttack: { damage: 20, range: 4 }, // Normalized from 15
-    specialAbilities: ['Placeholder Ability #10'],
+    rangedAttack: null,
+    specialAbilities: ['PLACEHOLDER: This creatures melee attacks deal +10 damage against tapped creatures.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: goblinCutter1Img
   },
+  // Card 6: Goblin Cutter (2 of 2) - Level 1, HP 10, Speed 6, Melee 10
+  {
+    id: 'tog_cr_6',
+    name: 'Goblin Cutter',
+    level: 1,
+    type: ['Humanoid', 'Goblin'],
+    speed: 6,
+    hitPoints: 10,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['PLACEHOLDER: This creatures melee attacks deal +10 damage against tapped creatures.'],
+    faction: FACTION_NAME,
+    imageUrl: goblinCutter2Img
+  },
+  // Card 7: Goblin Wolf Rider - Level 4, HP 80, Speed 8, Melee 20
+  {
+    id: 'tog_cr_7',
+    name: 'Goblin Wolf Rider',
+    level: 4,
+    type: ['Beast', 'Humanoid', 'Goblin', 'Wolf'],
+    speed: 8,
+    hitPoints: 80,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['PLACEHOLDER: RIDER - When this creature is destroyed, you can immediately deploy 1 Goblin or Wolf creature of Level 3 or lower in the square it occupied.'],
+    faction: FACTION_NAME,
+    imageUrl: goblinWolfRiderImg
+  },
+  // Card 8: Hobgoblin Soldier (1 of 2) - Level 3, HP 70, Speed 6, Melee 20
+  {
+    id: 'tog_cr_8',
+    name: 'Hobgoblin Soldier',
+    level: 3,
+    type: ['Humanoid', 'Hobgoblin'],
+    speed: 6,
+    hitPoints: 70,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: [],
+    faction: FACTION_NAME,
+    imageUrl: hobgoblinSoldier1Img
+  },
+  // Card 9: Hobgoblin Soldier (2 of 2) - Level 3, HP 70, Speed 6, Melee 20
+  {
+    id: 'tog_cr_9',
+    name: 'Hobgoblin Soldier',
+    level: 3,
+    type: ['Humanoid', 'Hobgoblin'],
+    speed: 6,
+    hitPoints: 70,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: [],
+    faction: FACTION_NAME,
+    imageUrl: hobgoblinSoldier2Img
+  },
+  // Card 10: Hobgoblin Sorcerer - Level 3, HP 40, Speed 6, Melee 10, Ranged 20 (range 10)
+  {
+    id: 'tog_cr_10',
+    name: 'Hobgoblin Sorcerer',
+    level: 3,
+    type: ['Humanoid', 'Hobgoblin'],
+    speed: 6,
+    hitPoints: 40,
+    abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: { damage: 20, range: 10 },
+    specialAbilities: ['PLACEHOLDER: While this creature is in a Magic Circle square, all Goblins, Hobgoblins, and Bugbears you control gain - Prevent 10 damage to this creature from 1 source.'],
+    faction: FACTION_NAME,
+    imageUrl: hobgoblinSorcererImg
+  },
+  // Card 11: Horned Devil - Level 6, HP 140, Speed 6, Melee 40
   {
     id: 'tog_cr_11',
-    name: 'Goblin Cutthroat #11',
-    level: 1,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
-    speed: 7,
-    hitPoints: 30, // Normalized from 22
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 }, // Normalized from 12
+    name: 'Horned Devil',
+    level: 6,
+    type: ['Evil', 'Humanoid', 'Devil'],
+    speed: 6,
+    hitPoints: 140,
+    abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: true },
+    meleeAttack: { damage: 40, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #11'],
+    specialAbilities: [
+      'PLACEHOLDER: FLYING',
+      'PLACEHOLDER: REACH 2 - Creatures 2 spaces away count as adjacent to this creature.',
+      'PLACEHOLDER: As a standard action, make a melee attack. If the target takes damage from this attack, tap it.'
+    ],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: hornedDevilImg
   },
+  // Card 12: Wolf - Level 2, HP 40, Speed 8, Melee 10
   {
     id: 'tog_cr_12',
-    name: 'Goblin Skirmisher #12',
-    level: 1,
-    type: ['Humanoid', 'Goblinoid', 'Evil'],
-    speed: 7,
-    hitPoints: 20, // Normalized from 18
+    name: 'Wolf',
+    level: 2,
+    type: ['Beast', 'Wolf'],
+    speed: 8,
+    hitPoints: 40,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 10, range: 1 }, // Normalized from 8
+    meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #12'],
+    specialAbilities: ['PLACEHOLDER: Whenever a target creature takes damage from this creatures melee attack, tap the target.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: wolfImg
   }
 ]
 

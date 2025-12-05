@@ -1,9 +1,20 @@
 // Sting of Lolth Faction Data
 import lolthCmd1 from '../../assets/commanders/Lolth_Commander_Card_1.webp'
 import lolthCmd2 from '../../assets/commanders/Lolth_Commander_Card_2.webp'
-import drowPriestessImg from '../../assets/creatures/Lolth_Priestess_Card_8.webp'
-import drowWizardImg from '../../assets/creatures/Lolth_DrowWizard_Card_9.webp'
-import umberHulkImg from '../../assets/creatures/Lolth_UmberHulk_Card_12.webp'
+
+// O(1) - Static imports for creature card images
+import demonwebSpider1Img from '../../assets/creatures/Drow_DemonwebSpider_Card_1.png'
+import demonwebSpider2Img from '../../assets/creatures/Drow_DemonwebSpider_Card_2.png'
+import driderImg from '../../assets/creatures/Drow_Drider_Card_3.png'
+import drowAssassinImg from '../../assets/creatures/Drow_DrowAssassin_Card_4.png'
+import drowBlademasterImg from '../../assets/creatures/Drow_DrowBladeMaster_Card_5.png'
+import drowHouseGuard6Img from '../../assets/creatures/Drow_DrowHouseGuard_6.png'
+import drowHouseGuard7Img from '../../assets/creatures/Drow_DrowHouseGuard_Card_7.png'
+import drowPriestessImg from '../../assets/creatures/Drow_DrowPriestess_Card_8.png'
+import drowWizardImg from '../../assets/creatures/Drow_DrowWizard_Card_9.png'
+import giantSpiderImg from '../../assets/creatures/Drow_GiantSpider_Card_10.png'
+import shadowMastiffImg from '../../assets/creatures/Drow_ShadowMastiff_Card_11.png'
+import umberHulkImg from '../../assets/creatures/Drow_UmberHulk_Card_12.png'
 
 export const FACTION_NAME = 'Sting of Lolth'
 
@@ -55,26 +66,111 @@ export const commanders = [
   }
 ]
 
+// O(n) where n = 12 creatures - Array of creature definitions with accurate physical card stats
 export const creatures = [
   {
     id: 'sol_cr_1',
-    name: 'Drow Assassin',
-    level: 5,
-    type: ['Humanoid', 'Drow', 'Evil'],
+    name: 'Demonweb Spider',
+    level: 1,
+    type: ['Beast', 'Spider'],
     speed: 7,
-    hitPoints: 90,
+    hitPoints: 20,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 50, range: 1 },
+    meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Sneak Attack: +20 damage when attacking from behind'],
+    specialAbilities: ['SCUTTLE: This creature shifts when it moves.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: demonwebSpider1Img
   },
   {
     id: 'sol_cr_2',
+    name: 'Demonweb Spider',
+    level: 1,
+    type: ['Beast', 'Spider'],
+    speed: 7,
+    hitPoints: 20,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['SCUTTLE: This creature shifts when it moves.'],
+    faction: FACTION_NAME,
+    imageUrl: demonwebSpider2Img
+  },
+  {
+    id: 'sol_cr_3',
+    name: 'Drider',
+    level: 4,
+    type: ['Aberrant', 'Drow', 'Spider'],
+    speed: 10,
+    hitPoints: 100,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['SCUTTLE: This creature shifts when it moves.'],
+    faction: FACTION_NAME,
+    imageUrl: driderImg
+  },
+  {
+    id: 'sol_cr_4',
+    name: 'Drow Assassin',
+    level: 4,
+    type: ['Evil', 'Humanoid', 'Drow'],
+    speed: 6,
+    hitPoints: 80,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: { damage: 20, range: 5 },
+    specialAbilities: ['HIDDEN BLADE: (Placeholder - ability effect to be implemented)'],
+    faction: FACTION_NAME,
+    imageUrl: drowAssassinImg
+  },
+  {
+    id: 'sol_cr_5',
+    name: 'Drow Blademaster',
+    level: 3,
+    type: ['Humanoid', 'Drow', 'Adventurer'],
+    speed: 6,
+    hitPoints: 60,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: null,
+    specialAbilities: ['FLASHING BLADES: (Placeholder - ability effect to be implemented)'],
+    faction: FACTION_NAME,
+    imageUrl: drowBlademasterImg
+  },
+  {
+    id: 'sol_cr_6',
+    name: 'Drow House Guard',
+    level: 2,
+    type: ['Humanoid', 'Drow'],
+    speed: 6,
+    hitPoints: 40,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: { damage: 10, range: 5 },
+    specialAbilities: [],
+    faction: FACTION_NAME,
+    imageUrl: drowHouseGuard6Img
+  },
+  {
+    id: 'sol_cr_7',
+    name: 'Drow House Guard',
+    level: 2,
+    type: ['Humanoid', 'Drow'],
+    speed: 6,
+    hitPoints: 40,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
+    rangedAttack: { damage: 10, range: 5 },
+    specialAbilities: [],
+    faction: FACTION_NAME,
+    imageUrl: drowHouseGuard7Img
+  },
+  {
+    id: 'sol_cr_8',
     name: 'Drow Priestess',
     level: 3,
-    type: ['Humanoid', 'Drow', 'Evil'],
+    type: ['Evil', 'Humanoid', 'Drow'],
     speed: 6,
     hitPoints: 60,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: true, CHA: false },
@@ -85,94 +181,10 @@ export const creatures = [
     imageUrl: drowPriestessImg
   },
   {
-    id: 'sol_cr_3',
-    name: 'Drow Wizard',
-    level: 4,
-    type: ['Humanoid', 'Drow', 'Evil'],
-    speed: 6,
-    hitPoints: 70,
-    abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 40, range: 6 },
-    specialAbilities: ['Spellcaster: Can cast ranged spells', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // Added for testing
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'sol_cr_4',
-    name: 'Giant Spider',
-    level: 3,
-    type: ['Beast', 'Spider'],
-    speed: 7,
-    hitPoints: 60,
-    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Web: Can slow enemies'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'sol_cr_5',
-    name: 'Drow Fighter #5',
-    level: 3,
-    type: ['Humanoid', 'Drow', 'Evil'],
-    speed: 6,
-    hitPoints: 60,
-    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 40, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #5'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'sol_cr_6',
-    name: 'Drow Rogue #6',
-    level: 3,
-    type: ['Humanoid', 'Drow', 'Evil'],
-    speed: 7,
-    hitPoints: 60,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #6'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'sol_cr_7',
-    name: 'Spider Swarm #7',
-    level: 2,
-    type: ['Beast', 'Spider'],
-    speed: 6,
-    hitPoints: 40,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #7'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'sol_cr_8',
-    name: 'Drow Warrior #8',
-    level: 2,
-    type: ['Humanoid', 'Drow', 'Evil'],
-    speed: 6,
-    hitPoints: 50,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #8'],
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
     id: 'sol_cr_9',
     name: 'Drow Wizard',
     level: 2,
-    type: ['Humanoid', 'Drow', 'Evil', 'Adventurer'],
+    type: ['Humanoid', 'Drow', 'Adventurer'],
     speed: 6,
     hitPoints: 30,
     abilities: { STR: false, DEX: true, CON: false, INT: true, WIS: false, CHA: false },
@@ -184,31 +196,31 @@ export const creatures = [
   },
   {
     id: 'sol_cr_10',
-    name: 'Phase Spider #10',
-    level: 2,
+    name: 'Giant Spider',
+    level: 3,
     type: ['Beast', 'Spider'],
-    speed: 8,
-    hitPoints: 40,
+    speed: 7,
+    hitPoints: 60,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #10'],
+    specialAbilities: ['SCUTTLE: This creature shifts when it moves.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: giantSpiderImg
   },
   {
     id: 'sol_cr_11',
-    name: 'Drow Guard #11',
-    level: 1,
-    type: ['Humanoid', 'Drow', 'Evil'],
-    speed: 6,
-    hitPoints: 30,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    name: 'Shadow Mastiff',
+    level: 4,
+    type: ['Beast'],
+    speed: 8,
+    hitPoints: 80,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #11'],
+    specialAbilities: ['SHADOW STALKER: When deploying this creature, you can place it in any unoccupied square adjacent to a wall.'],
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: shadowMastiffImg
   },
   {
     id: 'sol_cr_12',
@@ -220,7 +232,7 @@ export const creatures = [
     abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['BURROW', 'CONFUSION GAZE: ⚔ As a standard action, choose 1 enemy creature within 5 squares and slide that creature 3 squares, then make a melee attack that deals ⚔ DAMAGE.'],
+    specialAbilities: ['BURROW', 'CONFUSION GAZE: As a standard action, choose 1 enemy creature within 5 squares and slide that creature 3 squares, then make a melee attack that deals melee DAMAGE.'],
     faction: FACTION_NAME,
     imageUrl: umberHulkImg
   }

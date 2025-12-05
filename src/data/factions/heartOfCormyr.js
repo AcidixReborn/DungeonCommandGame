@@ -1,8 +1,20 @@
 // Heart of Cormyr Faction Data
 import cormyrCmd1 from '../../assets/commanders/Cormyr_Commander_Card_1.webp'
 import cormyrCmd2 from '../../assets/commanders/Cormyr_Commander_Card_2.webp'
-import dwarfClericImg from '../../assets/creatures/Corymr_DwarfCleric_Card_3.webp'
-import halfOrcThugImg from '../../assets/creatures/Corymr_Half-OrcThug_Card_10.webp'
+
+// O(1) - Static imports for creature card images
+import copperDragonImg from '../../assets/creatures/Cormyr_CopperDragon_Card_1.png'
+import dragonKnightImg from '../../assets/creatures/Cormyr_DragonKnight_Card_2.png'
+import dwarfClericImg from '../../assets/creatures/Cormyr_DwarfCleric_Card_3.png'
+import dwarvenDefender4Img from '../../assets/creatures/Cormyr_DwarvenDefender_Card_4.png'
+import dwarvenDefender5Img from '../../assets/creatures/Cormyr_DwarvenDefender_Card_5.png'
+import earthGuardianImg from '../../assets/creatures/Cormyr_EarthGuardian_Card_6.png'
+import elfArcher7Img from '../../assets/creatures/Cormyr_ElfArcher_Card_7.png'
+import elfArcher8Img from '../../assets/creatures/Cormyr_ElfArcher_Card_8.png'
+import halflingSneakImg from '../../assets/creatures/Cormyr_HalflingSneak_Card_9.png'
+import halfOrcThugImg from '../../assets/creatures/Cormyr_HalfOrcThug_Card_10.png'
+import humanRangerImg from '../../assets/creatures/Cormyr_HumanRanger_Card_11.png'
+import warWizardImg from '../../assets/creatures/Cormyr_WarWizard_Card_12.png'
 
 export const FACTION_NAME = 'Heart of Cormyr'
 
@@ -54,124 +66,156 @@ export const commanders = [
 ]
 
 export const creatures = [
+  // Card #1 - Copper Dragon
   {
     id: 'hoc_cr_1',
-    name: 'Knight',
-    level: 5,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
-    speed: 6,
-    hitPoints: 100,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 50, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Shield: Reduce damage by 10'],
-    faction: FACTION_NAME
+    name: 'Copper Dragon',
+    level: 6,
+    type: ['Good', 'Dragon'],
+    speed: 7,
+    hitPoints: 120,
+    abilities: { STR: true, DEX: false, CON: false, INT: true, WIS: false, CHA: false },
+    meleeAttack: { damage: 30, range: 1 },
+    rangedAttack: { damage: 20, range: 5 },
+    specialAbilities: [
+      'FLYING: This creature can fly. PLACEHOLDER',
+      'ACID BREATH 20: Whenever this creature makes a ranged attack, it deals 20 DAMAGE to each creature adjacent to the target. PLACEHOLDER'
+    ],
+    faction: FACTION_NAME,
+    imageUrl: copperDragonImg
   },
+  // Card #2 - Dragon Knight
   {
     id: 'hoc_cr_2',
-    name: 'Cleric',
-    level: 4,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
-    speed: 6,
-    hitPoints: 80,
-    abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: true, CHA: true },
-    meleeAttack: { damage: 30, range: 1 },
+    name: 'Dragon Knight',
+    level: 5,
+    type: ['Good', 'Humanoid', 'Human', 'Adventurer'],
+    speed: 5,
+    hitPoints: 120,
+    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 40, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Heal: Can restore HP to allies'],
-    faction: FACTION_NAME
+    specialAbilities: [],
+    faction: FACTION_NAME,
+    imageUrl: dragonKnightImg
   },
+  // Card #3 - Dwarf Cleric
   {
     id: 'hoc_cr_3',
     name: 'Dwarf Cleric',
     level: 3,
-    type: ['Humanoid', 'Dwarf', 'Good', 'Adventurer'],
+    type: ['Good', 'Humanoid', 'Dwarf', 'Adventurer'],
     speed: 5,
     hitPoints: 60,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['HEALING TOUCH: ⚔ - 1 creature or 1 adjacent ally heals 10 DAMAGE or removes 1 attached Order card.'],
+    specialAbilities: [
+      'HEALING TOUCH: ⚔ This creature or 1 adjacent ally heals 10 DAMAGE or removes 1 attached Order card. PLACEHOLDER'
+    ],
     faction: FACTION_NAME,
     imageUrl: dwarfClericImg
   },
+  // Card #4 - Dwarven Defender
   {
     id: 'hoc_cr_4',
-    name: 'Defender',
-    level: 3,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
-    speed: 6,
-    hitPoints: 60,
+    name: 'Dwarven Defender',
+    level: 2,
+    type: ['Humanoid', 'Dwarf'],
+    speed: 5,
+    hitPoints: 40,
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
+    meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Guard: Can protect adjacent allies'],
-    faction: FACTION_NAME
+    specialAbilities: [
+      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature). PLACEHOLDER'
+    ],
+    faction: FACTION_NAME,
+    imageUrl: dwarvenDefender4Img
   },
+  // Card #5 - Dwarven Defender
   {
     id: 'hoc_cr_5',
-    name: 'Paladin #5',
-    level: 4,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
-    speed: 6,
-    hitPoints: 90,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
-    meleeAttack: { damage: 50, range: 1 },
+    name: 'Dwarven Defender',
+    level: 2,
+    type: ['Humanoid', 'Dwarf'],
+    speed: 5,
+    hitPoints: 40,
+    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #5'],
-    faction: FACTION_NAME
+    specialAbilities: [
+      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature). PLACEHOLDER'
+    ],
+    faction: FACTION_NAME,
+    imageUrl: dwarvenDefender5Img
   },
+  // Card #6 - Earth Guardian
   {
     id: 'hoc_cr_6',
-    name: 'Wizard #6',
-    level: 3,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
+    name: 'Earth Guardian',
+    level: 4,
+    type: ['Elemental', 'Earth'],
     speed: 6,
-    hitPoints: 60,
-    abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 50, range: 7 },
-    specialAbilities: ['Placeholder Ability #6', 'Flying: Ignores difficult terrain, can fly over mountains but cannot stop on them'], // Added for testing
-    faction: FACTION_NAME
+    hitPoints: 90,
+    abilities: { STR: true, DEX: false, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 30, range: 1 },
+    rangedAttack: null,
+    specialAbilities: [
+      'BURROW: This creature can burrow. PLACEHOLDER',
+      'SLAM: Whenever an adjacent creature takes damage from this creature\'s attack, slide the damaged creature 3 squares. PLACEHOLDER'
+    ],
+    faction: FACTION_NAME,
+    imageUrl: earthGuardianImg
   },
+  // Card #7 - Elf Archer
   {
     id: 'hoc_cr_7',
-    name: 'Archer #7',
-    level: 3,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
+    name: 'Elf Archer',
+    level: 1,
+    type: ['Humanoid', 'Elf'],
     speed: 7,
-    hitPoints: 60,
+    hitPoints: 10,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: { damage: 40, range: 9 },
-    specialAbilities: ['Placeholder Ability #7'],
-    faction: FACTION_NAME
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: { damage: 10, range: 10 },
+    specialAbilities: [],
+    faction: FACTION_NAME,
+    imageUrl: elfArcher7Img
   },
+  // Card #8 - Elf Archer
   {
     id: 'hoc_cr_8',
-    name: 'Fighter #8',
-    level: 2,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
-    speed: 6,
-    hitPoints: 50,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #8'],
-    faction: FACTION_NAME
+    name: 'Elf Archer',
+    level: 1,
+    type: ['Humanoid', 'Elf'],
+    speed: 7,
+    hitPoints: 10,
+    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: { damage: 10, range: 10 },
+    specialAbilities: [],
+    faction: FACTION_NAME,
+    imageUrl: elfArcher8Img
   },
+  // Card #9 - Halfling Sneak
   {
     id: 'hoc_cr_9',
-    name: 'Rogue #9',
-    level: 2,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
-    speed: 7,
-    hitPoints: 50,
+    name: 'Halfling Sneak',
+    level: 1,
+    type: ['Humanoid', 'Halfling', 'Adventurer'],
+    speed: 6,
+    hitPoints: 20,
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 30, range: 1 },
+    meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #9'],
-    faction: FACTION_NAME
+    specialAbilities: [
+      'FLANKING: This creature\'s melee attacks deal +10 DAMAGE while at least 1 ally is adjacent to the target. PLACEHOLDER'
+    ],
+    faction: FACTION_NAME,
+    imageUrl: halflingSneakImg
   },
+  // Card #10 - Half-Orc Thug
   {
     id: 'hoc_cr_10',
     name: 'Half-Orc Thug',
@@ -182,35 +226,45 @@ export const creatures = [
     abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 20, range: 5 },
-    specialAbilities: ['EXPLOSIVE BOLTS 10: Whenever this creature makes a ranged attack, it deals 10 DAMAGE to each creature adjacent to the target.'],
+    specialAbilities: [
+      'EXPLOSIVE BOLTS 10: Whenever this creature makes a ranged attack, it deals 10 DAMAGE to each creature adjacent to the target. PLACEHOLDER'
+    ],
     faction: FACTION_NAME,
     imageUrl: halfOrcThugImg
   },
+  // Card #11 - Human Ranger
   {
     id: 'hoc_cr_11',
-    name: 'Soldier #11',
-    level: 1,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
-    speed: 6,
+    name: 'Human Ranger',
+    level: 2,
+    type: ['Humanoid', 'Human', 'Adventurer'],
+    speed: 7,
     hitPoints: 40,
-    abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
+    abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #11'],
-    faction: FACTION_NAME
+    specialAbilities: [
+      'FLASHING BLADES: Whenever a target takes damage from this creature\'s melee attack, this creature can deal 10 DAMAGE to 1 adjacent creature. PLACEHOLDER'
+    ],
+    faction: FACTION_NAME,
+    imageUrl: humanRangerImg
   },
+  // Card #12 - War Wizard
   {
     id: 'hoc_cr_12',
-    name: 'Militia #12',
-    level: 1,
-    type: ['Humanoid', 'Human', 'Good', 'Adventurer'],
+    name: 'War Wizard',
+    level: 4,
+    type: ['Humanoid', 'Human', 'Adventurer'],
     speed: 6,
-    hitPoints: 30,
-    abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
-    meleeAttack: { damage: 20, range: 1 },
-    rangedAttack: null,
-    specialAbilities: ['Placeholder Ability #12'],
-    faction: FACTION_NAME
+    hitPoints: 60,
+    abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: false },
+    meleeAttack: { damage: 10, range: 1 },
+    rangedAttack: { damage: 30, range: 10 },
+    specialAbilities: [
+      'ARCANE PORTAL: When deploying this creature, you can place it in any unoccupied Magic Circle square. PLACEHOLDER'
+    ],
+    faction: FACTION_NAME,
+    imageUrl: warWizardImg
   }
 ]
 
