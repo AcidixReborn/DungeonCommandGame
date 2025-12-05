@@ -686,7 +686,9 @@ function GameBoard({ onTurnInfoChange }) {
             damagePrevented: result.damagePrevented,
             moraleCost: result.moraleCost || 0,
             cardUsed: defenseDecision.card.name,
-            creatureTapped: defenseDecision.creature.creature.name
+            creatureTapped: defenseDecision.creature.creature.name,
+            moraleGain: result.moraleGain || 0,
+            untapAfterUse: result.untapAfterUse || false
           }
         }
       }
@@ -724,7 +726,10 @@ function GameBoard({ onTurnInfoChange }) {
           } else if (defenseResult.type === 'unstoppable_hordes') {
             message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
           } else if (defenseResult.type === 'immediate_card') {
-            message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creatureTapped} tapped)! `
+            let extraEffects = ''
+            if (defenseResult.moraleGain > 0) extraEffects += ` +${defenseResult.moraleGain} morale!`
+            if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
+            message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented${defenseResult.untapAfterUse ? '' : ` (${defenseResult.creatureTapped} tapped)`}!${extraEffects} `
           }
         }
 
@@ -918,6 +923,8 @@ function GameBoard({ onTurnInfoChange }) {
           moraleCost: 0,
           cardUsed: result.cardUsed?.name || defense.card.name,
           creatureTapped: defense.creature.creature.name,
+          moraleGain: result.moraleGain || 0,
+          untapAfterUse: result.untapAfterUse || false,
           success: true
         })
       } else {
@@ -1008,8 +1015,14 @@ function GameBoard({ onTurnInfoChange }) {
           }
         } else if (defenseResult.type === 'immediate_card') {
           message += `⚡ IMMEDIATE: ${defenseResult.cardUsed} prevented ${defenseResult.damageReduction} damage! `
-          if (defenseResult.creatureTapped) {
+          if (defenseResult.creatureTapped && !defenseResult.untapAfterUse) {
             message += `(${defenseResult.creatureTapped} tapped) `
+          }
+          if (defenseResult.moraleGain > 0) {
+            message += `(+${defenseResult.moraleGain} morale!) `
+          }
+          if (defenseResult.untapAfterUse) {
+            message += `(${defenseResult.creatureTapped} untapped!) `
           }
         } else if (defenseResult.type === 'stacked_defense') {
           message += `⚡ STACKED DEFENSE: ${defenseResult.damageReduction} total damage prevented! `
@@ -1381,7 +1394,9 @@ function GameBoard({ onTurnInfoChange }) {
             damagePrevented: result.damagePrevented,
             moraleCost: result.moraleCost || 0,
             cardUsed: defenseDecision.card.name,
-            creatureTapped: defenseDecision.creature.creature.name
+            creatureTapped: defenseDecision.creature.creature.name,
+            moraleGain: result.moraleGain || 0,
+            untapAfterUse: result.untapAfterUse || false
           }
         }
       }
@@ -1419,7 +1434,10 @@ function GameBoard({ onTurnInfoChange }) {
           } else if (defenseResult.type === 'unstoppable_hordes') {
             message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
           } else if (defenseResult.type === 'immediate_card') {
-            message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creatureTapped} tapped)! `
+            let extraEffects = ''
+            if (defenseResult.moraleGain > 0) extraEffects += ` +${defenseResult.moraleGain} morale!`
+            if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
+            message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented${defenseResult.untapAfterUse ? '' : ` (${defenseResult.creatureTapped} tapped)`}!${extraEffects} `
           }
         }
 

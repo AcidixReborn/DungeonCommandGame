@@ -264,6 +264,7 @@ function PlayerPanel({
                       attacker={attackerCreature}
                       defender={defenderCreature}
                       attackInfo={attackInfo}
+                      defenderPlayerState={defenderPlayerState}
                       onConfirm={onConfirmAttack}
                       onCancel={onCancelAttack}
                     />

@@ -20,6 +20,7 @@ function AttackConfirmPanel({
   attacker,
   defender,
   attackInfo,
+  defenderPlayerState,
   onConfirm,
   onCancel
 }) {
@@ -33,8 +34,9 @@ function AttackConfirmPanel({
   return (
     <div className="combat-panel attack-confirm-panel">
       {/* Header */}
-      <div className="combat-panel-header attack-header">
-        <h5>⚔️ Confirm Attack</h5>
+      <div className="combat-panel-header attack-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h5 style={{ margin: 0 }}>⚔️ Confirm Attack</h5>
+        {defenderPlayerState && <Badge bg="info">Target Morale: {defenderPlayerState.morale}</Badge>}
       </div>
 
       {/* Combat Creatures Display */}

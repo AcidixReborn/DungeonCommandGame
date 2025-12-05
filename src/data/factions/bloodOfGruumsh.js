@@ -2,6 +2,44 @@
 import gruumshCmd1 from '../../assets/commanders/Gruumsh_Commander_Card_1.webp'
 import gruumshCmd2 from '../../assets/commanders/Gruumsh_Commander_Card_2.webp'
 
+// O(1) - Static imports for order card images
+import beastmasterImg from '../../assets/orders/gruumsh/Gruumsh_Beastmaster_Order_1.png'
+import boneChillingRallyCryImg from '../../assets/orders/gruumsh/Gruumsh_BoneChillingRallyCry_Order_2.png'
+import changeOfPlansImg from '../../assets/orders/gruumsh/Gruumsh_ChangeOfPlans_Order_3.png'
+import charge4Img from '../../assets/orders/gruumsh/Gruumsh_Charge_Order_4.png'
+import charge5Img from '../../assets/orders/gruumsh/Gruumsh_Charge_Order_5.png'
+import cureSeriousWounds6Img from '../../assets/orders/gruumsh/Gruumsh_CureSeriousWounds_Order_6.png'
+import cureSeriousWounds7Img from '../../assets/orders/gruumsh/Gruumsh_CureSeriousWounds_Order_7.png'
+import defiantStance8Img from '../../assets/orders/gruumsh/Gruumsh_DefiantStance_Order_8.png'
+import defiantStance9Img from '../../assets/orders/gruumsh/Gruumsh_DefiantStance_Order_9.png'
+import deflect10Img from '../../assets/orders/gruumsh/Gruumsh_Deflect_Order_10.png'
+import deflect11Img from '../../assets/orders/gruumsh/Gruumsh_Deflect_Order_11.png'
+import furiousBellow12Img from '../../assets/orders/gruumsh/Gruumsh_FuriousBellow_Order_12.png'
+import furiousBellow13Img from '../../assets/orders/gruumsh/Gruumsh_FuriousBellow_Order_13.png'
+import furyOfGruumsh14Img from '../../assets/orders/gruumsh/Gruumsh_FuryOfGruumsh_Order_14.png'
+import furyOfGruumsh15Img from '../../assets/orders/gruumsh/Gruumsh_FuryOfGruumsh_Order_15.png'
+import hackingFrenzy16Img from '../../assets/orders/gruumsh/Gruumsh_HackingFrenzy_Order_16.png'
+import hackingFrenzy17Img from '../../assets/orders/gruumsh/Gruumsh_HackingFrenzy_Order_17.png'
+import hurlRock18Img from '../../assets/orders/gruumsh/Gruumsh_HurlRock_Order_18.png'
+import hurlRock19Img from '../../assets/orders/gruumsh/Gruumsh_HurlRock_Order_19.png'
+import overseersWhipImg from '../../assets/orders/gruumsh/Gruumsh_OverseersWhip_Order_20.png'
+import savageDemise21Img from '../../assets/orders/gruumsh/Gruumsh_SavageDemise_Order_21.png'
+import savageDemise22Img from '../../assets/orders/gruumsh/Gruumsh_SavageDemise_Order_22.png'
+import scentOfBloodImg from '../../assets/orders/gruumsh/Gruumsh_ScentOfBlood_Order_23.png'
+import slice24Img from '../../assets/orders/gruumsh/Gruumsh_Slice_Order_24.png'
+import slice25Img from '../../assets/orders/gruumsh/Gruumsh_Slice_Order_25.png'
+import stompImg from '../../assets/orders/gruumsh/Gruumsh_Stomp_Order_26.png'
+import tacticalBlock27Img from '../../assets/orders/gruumsh/Gruumsh_TacticalBlock_Order_27.png'
+import tacticalBlock28Img from '../../assets/orders/gruumsh/Gruumsh_TacticalBlock_Order_28.png'
+import tideOfIron29Img from '../../assets/orders/gruumsh/Gruumsh_TideOfIron_Order_29.png'
+import tideOfIron30Img from '../../assets/orders/gruumsh/Gruumsh_TideOfIron_Order_30.png'
+import turnUndeadImg from '../../assets/orders/gruumsh/Gruumsh_TurnUndead_Order_31.png'
+import unexpectedResistance32Img from '../../assets/orders/gruumsh/Gruumsh_UnexpectedResistance_Order_32.png'
+import unexpectedResistance33Img from '../../assets/orders/gruumsh/Gruumsh_UnexpectedResistance_Order_33.png'
+import victoriousSurge34Img from '../../assets/orders/gruumsh/Gruumsh_VictoriousSurge_Order_34.png'
+import victoriousSurge35Img from '../../assets/orders/gruumsh/Gruumsh_VictoriousSurge_Order_35.png'
+import vorpalSwordImg from '../../assets/orders/gruumsh/Gruumsh_VorpalSword_Order_36.png'
+
 // O(1) - Static imports for creature card images
 import boarImg from '../../assets/creatures/Gruumsh_Boar_Card_1.png'
 import ogreImg from '../../assets/creatures/Gruumsh_Ogre_Card_2.png'
@@ -263,365 +301,414 @@ export const creatures = [
 ]
 
 export const orderCards = [
+  // Card #1 - Beastmaster
   {
     id: 'bog_ord_1',
-    name: 'Order Card #1',
-    level: 1,
-    abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #1',
+    name: 'Beastmaster',
+    level: 3,
+    abilityRequired: 'WIS',
+    actionType: 'MINOR',
+    effectDescription: 'Attach this card to this creature. Beast creatures you control deal +10 damage with melee attacks. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: beastmasterImg
   },
+  // Card #2 - Bone-Chilling Rally Cry
   {
     id: 'bog_ord_2',
-    name: 'Order Card #2',
-    level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #2',
+    name: 'Bone-Chilling Rally Cry',
+    level: 3,
+    abilityRequired: 'STR',
+    actionType: 'STANDARD',
+    effectDescription: 'Lose 1 Morale. Gain 2 Leadership. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: boneChillingRallyCryImg
   },
+  // Card #3 - Change of Plans
   {
     id: 'bog_ord_3',
-    name: 'Order Card #3',
+    name: 'Change of Plans',
     level: 1,
-    abilityRequired: 'CON',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #3',
+    abilityRequired: 'WIS',
+    actionType: 'MINOR',
+    effectDescription: 'Draw 2 Order cards, then discard 1 Order card. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: changeOfPlansImg
   },
+  // Card #4 - Charge
   {
     id: 'bog_ord_4',
-    name: 'Order Card #4',
+    name: 'Charge',
     level: 1,
-    abilityRequired: 'WIS',
+    abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #4',
+    effectDescription: 'This creature moves its Speed. Make a melee attack that deals +10 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: charge4Img
   },
+  // Card #5 - Charge
   {
     id: 'bog_ord_5',
-    name: 'Order Card #5',
-    level: 2,
+    name: 'Charge',
+    level: 1,
     abilityRequired: 'STR',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #5',
+    actionType: 'STANDARD',
+    effectDescription: 'This creature moves its Speed. Make a melee attack that deals +10 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: charge5Img
   },
+  // Card #6 - Cure Serious Wounds
   {
     id: 'bog_ord_6',
-    name: 'Order Card #6',
-    level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #6',
+    name: 'Cure Serious Wounds',
+    level: 3,
+    abilityRequired: 'WIS',
+    actionType: 'MINOR',
+    effectDescription: 'This creature or 1 adjacent ally heals 40 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: cureSeriousWounds6Img
   },
+  // Card #7 - Cure Serious Wounds
   {
     id: 'bog_ord_7',
-    name: 'Order Card #7',
-    level: 1,
-    abilityRequired: 'INT',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #7',
+    name: 'Cure Serious Wounds',
+    level: 3,
+    abilityRequired: 'WIS',
+    actionType: 'MINOR',
+    effectDescription: 'This creature or 1 adjacent ally heals 40 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: cureSeriousWounds7Img
   },
+  // Card #8 - Defiant Stance (IMPLEMENTED - prevents 20 damage, gains 1 morale)
   {
     id: 'bog_ord_8',
-    name: 'Order Card #8',
+    name: 'Defiant Stance',
     level: 2,
-    abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #8',
+    abilityRequired: 'CON',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 20 damage to this creature from 1 source. Gain 1 Morale.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: defiantStance8Img,
+    damagePrevented: 20,
+    moraleGain: 1
   },
+  // Card #9 - Defiant Stance (IMPLEMENTED - prevents 20 damage, gains 1 morale)
   {
     id: 'bog_ord_9',
-    name: 'Order Card #9',
-    level: 1,
+    name: 'Defiant Stance',
+    level: 2,
     abilityRequired: 'CON',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #9',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 20 damage to this creature from 1 source. Gain 1 Morale.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: defiantStance9Img,
+    damagePrevented: 20,
+    moraleGain: 1
   },
+  // Card #10 - Deflect (IMPLEMENTED - prevents 30 damage)
   {
     id: 'bog_ord_10',
-    name: 'Order Card #10',
-    level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #10',
+    name: 'Deflect',
+    level: 2,
+    abilityRequired: 'STR',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 30 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: deflect10Img,
+    damagePrevented: 30
   },
+  // Card #11 - Deflect (IMPLEMENTED - prevents 30 damage)
   {
     id: 'bog_ord_11',
-    name: 'Order Card #11',
+    name: 'Deflect',
     level: 2,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #11',
+    effectDescription: 'Prevent 30 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: deflect11Img,
+    damagePrevented: 30
   },
+  // Card #12 - Furious Bellow
   {
     id: 'bog_ord_12',
-    name: 'Order Card #12',
-    level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #12',
+    name: 'Furious Bellow',
+    level: 3,
+    abilityRequired: 'CON',
+    actionType: 'MINOR',
+    effectDescription: 'Tap each enemy creature adjacent to this creature, and slide each of those creatures 2 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: furiousBellow12Img
   },
+  // Card #13 - Furious Bellow
   {
     id: 'bog_ord_13',
-    name: 'Order Card #13',
-    level: 1,
-    abilityRequired: 'INT',
+    name: 'Furious Bellow',
+    level: 3,
+    abilityRequired: 'CON',
     actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #13',
+    effectDescription: 'Tap each enemy creature adjacent to this creature, and slide each of those creatures 2 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: furiousBellow13Img
   },
+  // Card #14 - Fury of Gruumsh (REQUIRES ORC)
   {
     id: 'bog_ord_14',
-    name: 'Order Card #14',
-    level: 2,
-    abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #14',
+    name: 'Fury of Gruumsh',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'REQUIRES ORC. Attach this card to this creature. This creature\'s melee attacks deal +20 damage. At the end of its activation, this creature takes 20 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: furyOfGruumsh14Img,
+    requiresCreatureType: 'Orc'
   },
+  // Card #15 - Fury of Gruumsh (REQUIRES ORC)
   {
     id: 'bog_ord_15',
-    name: 'Order Card #15',
+    name: 'Fury of Gruumsh',
     level: 1,
-    abilityRequired: 'CON',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #15',
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'REQUIRES ORC. Attach this card to this creature. This creature\'s melee attacks deal +20 damage. At the end of its activation, this creature takes 20 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: furyOfGruumsh15Img,
+    requiresCreatureType: 'Orc'
   },
+  // Card #16 - Hacking Frenzy
   {
     id: 'bog_ord_16',
-    name: 'Order Card #16',
-    level: 1,
-    abilityRequired: 'WIS',
+    name: 'Hacking Frenzy',
+    level: 3,
+    abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #16',
+    effectDescription: 'Make a melee attack that deals +40 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: hackingFrenzy16Img
   },
+  // Card #17 - Hacking Frenzy
   {
     id: 'bog_ord_17',
-    name: 'Order Card #17',
-    level: 2,
+    name: 'Hacking Frenzy',
+    level: 3,
     abilityRequired: 'STR',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #17',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals +40 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: hackingFrenzy17Img
   },
+  // Card #18 - Hurl Rock
   {
     id: 'bog_ord_18',
-    name: 'Order Card #18',
+    name: 'Hurl Rock',
     level: 1,
-    abilityRequired: 'CHA',
+    abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #18',
+    effectDescription: 'Choose 1 creature within 5 squares. Deal this creature\'s base damage to that creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: hurlRock18Img
   },
+  // Card #19 - Hurl Rock
   {
     id: 'bog_ord_19',
-    name: 'Order Card #19',
+    name: 'Hurl Rock',
     level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #19',
+    abilityRequired: 'STR',
+    actionType: 'STANDARD',
+    effectDescription: 'Choose 1 creature within 5 squares. Deal this creature\'s base damage to that creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: hurlRock19Img
   },
+  // Card #20 - Overseer's Whip
   {
     id: 'bog_ord_20',
-    name: 'Order Card #20',
-    level: 2,
-    abilityRequired: 'INT',
+    name: 'Overseer\'s Whip',
+    level: 3,
+    abilityRequired: 'WIS',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #20',
+    effectDescription: 'Attach this card to this creature. Add 2 to the Speed of each creature you control. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: overseersWhipImg
   },
+  // Card #21 - Savage Demise (IMMEDIATE but not damage prevention)
   {
     id: 'bog_ord_21',
-    name: 'Order Card #21',
+    name: 'Savage Demise',
     level: 1,
     abilityRequired: 'CON',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #21',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Make a melee attack that deals this creature\'s base damage against 1 tapped creature. Destroy this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: savageDemise21Img
   },
+  // Card #22 - Savage Demise (IMMEDIATE but not damage prevention)
   {
     id: 'bog_ord_22',
-    name: 'Order Card #22',
+    name: 'Savage Demise',
     level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #22',
+    abilityRequired: 'CON',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Make a melee attack that deals this creature\'s base damage against 1 tapped creature. Destroy this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: savageDemise22Img
   },
+  // Card #23 - Scent of Blood
   {
     id: 'bog_ord_23',
-    name: 'Order Card #23',
-    level: 2,
-    abilityRequired: 'STR',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #23',
+    name: 'Scent of Blood',
+    level: 1,
+    abilityRequired: 'CON',
+    actionType: 'MINOR',
+    effectDescription: 'This creature heals 10 damage for each enemy creature adjacent to it. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: scentOfBloodImg
   },
+  // Card #24 - Slice
   {
     id: 'bog_ord_24',
-    name: 'Order Card #24',
-    level: 1,
-    abilityRequired: 'DEX',
+    name: 'Slice',
+    level: 2,
+    abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #24',
+    effectDescription: 'Make a melee attack that deals +10 damage. Draw 1 Order card. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: slice24Img
   },
+  // Card #25 - Slice
   {
     id: 'bog_ord_25',
-    name: 'Order Card #25',
-    level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #25',
+    name: 'Slice',
+    level: 2,
+    abilityRequired: 'STR',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals +10 damage. Draw 1 Order card. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: slice25Img
   },
+  // Card #26 - Stomp
   {
     id: 'bog_ord_26',
-    name: 'Order Card #26',
-    level: 2,
-    abilityRequired: 'INT',
+    name: 'Stomp',
+    level: 4,
+    abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #26',
+    effectDescription: 'Shift 3 squares. Deal 30 damage to each enemy creature adjacent to this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: stompImg
   },
+  // Card #27 - Tactical Block (IMPLEMENTED - prevents 30 damage, untaps creature)
   {
     id: 'bog_ord_27',
-    name: 'Order Card #27',
-    level: 1,
+    name: 'Tactical Block',
+    level: 3,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #27',
+    effectDescription: 'Prevent 30 damage to this creature from 1 source. Untap this creature.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: tacticalBlock27Img,
+    damagePrevented: 30,
+    untapAfterUse: true
   },
+  // Card #28 - Tactical Block (IMPLEMENTED - prevents 30 damage, untaps creature)
   {
     id: 'bog_ord_28',
-    name: 'Order Card #28',
-    level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #28',
+    name: 'Tactical Block',
+    level: 3,
+    abilityRequired: 'CON',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 30 damage to this creature from 1 source. Untap this creature.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: tacticalBlock28Img,
+    damagePrevented: 30,
+    untapAfterUse: true
   },
+  // Card #29 - Tide of Iron
   {
     id: 'bog_ord_29',
-    name: 'Order Card #29',
-    level: 2,
+    name: 'Tide of Iron',
+    level: 1,
     abilityRequired: 'STR',
     actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #29',
+    effectDescription: 'Slide 1 adjacent creature 2 squares. Shift 2 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: tideOfIron29Img
   },
+  // Card #30 - Tide of Iron
   {
     id: 'bog_ord_30',
-    name: 'Order Card #30',
-    level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #30',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'bog_ord_31',
-    name: 'Order Card #31',
-    level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #31',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'bog_ord_32',
-    name: 'Order Card #32',
-    level: 2,
-    abilityRequired: 'INT',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #32',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'bog_ord_33',
-    name: 'Order Card #33',
-    level: 1,
-    abilityRequired: 'CON',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #33',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'bog_ord_34',
-    name: 'Order Card #34',
-    level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #34',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'bog_ord_35',
-    name: 'Order Card #35',
-    level: 2,
-    abilityRequired: 'DEX',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #35',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'bog_ord_36',
-    name: 'Order Card #36',
+    name: 'Tide of Iron',
     level: 1,
     abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #36',
+    actionType: 'MINOR',
+    effectDescription: 'Slide 1 adjacent creature 2 squares. Shift 2 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: tideOfIron30Img
+  },
+  // Card #31 - Turn Undead
+  {
+    id: 'bog_ord_31',
+    name: 'Turn Undead',
+    level: 3,
+    abilityRequired: 'WIS',
+    actionType: 'STANDARD',
+    effectDescription: 'Deal 20 damage to each Undead creature within 5 squares. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: turnUndeadImg
+  },
+  // Card #32 - Unexpected Resistance (IMMEDIATE - low prevention + complex effect)
+  {
+    id: 'bog_ord_32',
+    name: 'Unexpected Resistance',
+    level: 3,
+    abilityRequired: 'STR',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature\'s controller loses 1 Morale. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: unexpectedResistance32Img
+  },
+  // Card #33 - Unexpected Resistance (IMMEDIATE - low prevention + complex effect)
+  {
+    id: 'bog_ord_33',
+    name: 'Unexpected Resistance',
+    level: 3,
+    abilityRequired: 'STR',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature\'s controller loses 1 Morale. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: unexpectedResistance33Img
+  },
+  // Card #34 - Victorious Surge
+  {
+    id: 'bog_ord_34',
+    name: 'Victorious Surge',
+    level: 3,
+    abilityRequired: 'CON',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals +20 damage. This creature heals 20 damage. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: victoriousSurge34Img
+  },
+  // Card #35 - Victorious Surge
+  {
+    id: 'bog_ord_35',
+    name: 'Victorious Surge',
+    level: 3,
+    abilityRequired: 'CON',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals +20 damage. This creature heals 20 damage. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: victoriousSurge35Img
+  },
+  // Card #36 - Vorpal Sword (REQUIRES HUMANOID)
+  {
+    id: 'bog_ord_36',
+    name: 'Vorpal Sword',
+    level: 4,
+    abilityRequired: 'ANY',
+    actionType: 'STANDARD',
+    effectDescription: 'REQUIRES HUMANOID. Attach this card to this creature. If the target of this creature\'s melee attack takes at least 50 damage from that attack, destroy the target. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: vorpalSwordImg,
+    requiresCreatureType: 'Humanoid'
   }
 ]
 

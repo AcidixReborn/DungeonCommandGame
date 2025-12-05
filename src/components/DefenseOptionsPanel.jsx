@@ -199,8 +199,9 @@ function DefenseOptionsPanel({
   return (
     <div className="combat-panel defense-options-panel">
       {/* Header */}
-      <div className="combat-panel-header defense-header">
-        <h5>🛡️ Defend Against Attack</h5>
+      <div className="combat-panel-header defense-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h5 style={{ margin: 0 }}>🛡️ Defend Against Attack</h5>
+        <Badge bg="info">Morale: {defenderPlayerState.morale}</Badge>
       </div>
 
       {/* Combat Creatures Display - O(1) render */}
@@ -434,7 +435,12 @@ function DefenseOptionsPanel({
                           <strong>{cardInfo.card.name}</strong>
                           <Badge bg="info" className="ms-1" style={{ fontSize: '0.65rem' }}>Lv{cardInfo.card.level}</Badge>
                           <br />
-                          <small>Prevents {cardInfo.damagePrevented} damage</small>
+                          <small>
+                            {cardInfo.moraleCost > 0
+                              ? `Lose ${cardInfo.moraleCost} Morale to prevent ${cardInfo.damagePrevented} damage`
+                              : `Prevents ${cardInfo.damagePrevented} damage`
+                            }
+                          </small>
                         </div>
                         {selectedImmediateCard?.card.id === cardInfo.card.id && (
                           <Badge bg="light" text="dark">✓</Badge>

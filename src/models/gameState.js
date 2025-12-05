@@ -1332,10 +1332,13 @@ export class GameState {
     // Get all eligible creatures (defender + adjacent friendly untapped creatures)
     const eligibleCreatures = this.getCreaturesForImmediateCard(defenderInstance)
 
-    // Find IMMEDIATE cards in hand
+    // Find IMMEDIATE cards in hand that can be used for defense
+    // Only include cards that actually prevent damage (damagePrevented > 0)
+    // IMMEDIATE cards without damage prevention (like Savage Demise) are offensive, not defensive
     const immediateCards = []
     for (const card of player.orderHand) {
-      if (card.isImmediate && card.isImmediate()) {
+      const preventsDamage = card.damagePrevented != null && card.damagePrevented > 0
+      if (card.isImmediate && card.isImmediate() && preventsDamage) {
         // Find which creatures can use this card
         const creaturesForCard = eligibleCreatures.filter(creature => {
           // Check if creature meets card requirements
@@ -1463,11 +1466,25 @@ export class GameState {
     // Get card's damage prevention amount (null/undefined = not implemented, defaults to 0)
     const damagePrevented = card.damagePrevented != null ? card.damagePrevented : 0
 
+    // Handle morale gain effect (e.g., Defiant Stance gains 1 Morale)
+    const moraleGain = card.moraleGain || 0
+    if (moraleGain > 0) {
+      player.morale += moraleGain
+    }
+
+    // Handle untap after use effect (e.g., Tactical Block untaps the creature)
+    const untapAfterUse = card.untapAfterUse || false
+    if (untapAfterUse) {
+      usingCreature.untap()
+    }
+
     return {
       success: true,
       damagePrevented: damagePrevented,
       cardUsed: card,
-      moraleCost: moraleCost
+      moraleCost: moraleCost,
+      moraleGain: moraleGain,
+      untapAfterUse: untapAfterUse
     }
   }
 
