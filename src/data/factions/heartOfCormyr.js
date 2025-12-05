@@ -2,6 +2,44 @@
 import cormyrCmd1 from '../../assets/commanders/Cormyr_Commander_Card_1.webp'
 import cormyrCmd2 from '../../assets/commanders/Cormyr_Commander_Card_2.webp'
 
+// O(1) - Static imports for order card images
+import arcaneRitualImg from '../../assets/orders/cormyr/Cormyr_ArcaneRitual_Order_1.png'
+import battleReadyImg from '../../assets/orders/cormyr/Cormyr_BattleReady_Order_2.png'
+import behindEnemyLinesImg from '../../assets/orders/cormyr/Cormyr_BehindEnemyLines_Order_3.png'
+import blastOfForceImg from '../../assets/orders/cormyr/Cormyr_BlastOfForce_Order_4.png'
+import cleaveImg from '../../assets/orders/cormyr/Cormyr_Cleave_Order_5.png'
+import daringAttack6Img from '../../assets/orders/cormyr/Cormyr_DaringAttack_Order_6.png'
+import daringAttack7Img from '../../assets/orders/cormyr/Cormyr_DaringAttack_Order_7.png'
+import defendAlly8Img from '../../assets/orders/cormyr/Cormyr_DefendAlly_Order_8.png'
+import defendAlly9Img from '../../assets/orders/cormyr/Cormyr_DefendAlly_Order_9.png'
+import disruptingAttack10Img from '../../assets/orders/cormyr/Cormyr_DisruptingAttack_Order_10.png'
+import disruptingAttack11Img from '../../assets/orders/cormyr/Cormyr_DisruptingAttack_Order_11.png'
+import fireballImg from '../../assets/orders/cormyr/Cormyr_Fireball_Order_12.png'
+import forcefulStrikeImg from '../../assets/orders/cormyr/Cormyr_ForcefulStrike_Order_13.png'
+import healingPotionImg from '../../assets/orders/cormyr/Cormyr_HealingPotion_Order_14.png'
+import heroicSurge15Img from '../../assets/orders/cormyr/Cormyr_HeroicSurge_Order_15.png'
+import heroicSurge16Img from '../../assets/orders/cormyr/Cormyr_HeroicSurge_Order_16.png'
+import intercept17Img from '../../assets/orders/cormyr/Cormyr_Intercept_Order_17.png'
+import intercept18Img from '../../assets/orders/cormyr/Cormyr_Intercept_Order_18.png'
+import intoTheFray19Img from '../../assets/orders/cormyr/Cormyr_IntoTheFray_Order_19.png'
+import intoTheFray20Img from '../../assets/orders/cormyr/Cormyr_IntoTheFray_Order_20.png'
+import invigoratingSmashImg from '../../assets/orders/cormyr/Cormyr_InvigoratingSmash_Order_21.png'
+import killingStrikeImg from '../../assets/orders/cormyr/Cormyr_KillingStrike_Order_22.png'
+import levelUpImg from '../../assets/orders/cormyr/Cormyr_LevelUp_Order_23.png'
+import openPortalImg from '../../assets/orders/cormyr/Cormyr_OpenPortal_Order_24.png'
+import powerAttack25Img from '../../assets/orders/cormyr/Cormyr_PowerAttack_Order_25.png'
+import powerAttack26Img from '../../assets/orders/cormyr/Cormyr_PowerAttack_Order_26.png'
+import quickShot27Img from '../../assets/orders/cormyr/Cormyr_QuickShot_Order_27.png'
+import quickShot28Img from '../../assets/orders/cormyr/Cormyr_QuickShot_Order_28.png'
+import recoilImg from '../../assets/orders/cormyr/Cormyr_Recoil_Order_29.png'
+import savingThrowImg from '../../assets/orders/cormyr/Cormyr_SavingThrow_Order_30.png'
+import seizeTheOpportunity31Img from '../../assets/orders/cormyr/Cormyr_SeizeTheOpportunity_Order_31.png'
+import seizeTheOpportunity32Img from '../../assets/orders/cormyr/Cormyr_SeizeTheOpportunity_Order_32.png'
+import shield33Img from '../../assets/orders/cormyr/Cormyr_Shield_Order_33.png'
+import shield34Img from '../../assets/orders/cormyr/Cormyr_Shield_Order_34.png'
+import shoveAside35Img from '../../assets/orders/cormyr/Cormyr_ShoveAside_Order_35.png'
+import shoveAside36Img from '../../assets/orders/cormyr/Cormyr_ShoveAside_Order_36.png'
+
 // O(1) - Static imports for creature card images
 import copperDragonImg from '../../assets/creatures/Cormyr_CopperDragon_Card_1.png'
 import dragonKnightImg from '../../assets/creatures/Cormyr_DragonKnight_Card_2.png'
@@ -269,367 +307,407 @@ export const creatures = [
 ]
 
 export const orderCards = [
+  // Card #1 - Arcane Ritual
   {
     id: 'hoc_ord_1',
     name: 'Arcane Ritual',
     level: 2,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. At the end of its activation, if this creature is in a Magic Circle, discard this Order card.',
+    effectDescription: 'Attach this card to this creature. At the end of its activation, if this creature is in a Magic Circle square, draw 1 Order card. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: arcaneRitualImg
   },
+  // Card #2 - Battle Ready
   {
     id: 'hoc_ord_2',
-    name: 'Divine Favor',
-    level: 2,
-    abilityRequired: 'WIS',
-    actionType: 'MINOR',
-    effectDescription: 'Adjacent ally gains +10 damage this turn',
+    name: 'Battle Ready',
+    level: 4,
+    abilityRequired: 'STR',
+    actionType: 'STANDARD',
+    effectDescription: 'Attach this card to this creature. Remove this card to prevent 40 DAMAGE to this creature from 1 source. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: battleReadyImg
   },
+  // Card #3 - Behind Enemy Lines
   {
     id: 'hoc_ord_3',
-    name: 'Shield Block',
+    name: 'Behind Enemy Lines',
     level: 1,
-    abilityRequired: 'CON',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 30 damage',
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'Immediately deploy 1 Adventurer creature in an opponent\'s start zone. Attach this card to that creature. If this creature is in its controller\'s start zone, remove this card to gain 4 MORALE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null,
-    range: 5 // TEST: Extended range - can be used from 5 tiles away
+    imageUrl: behindEnemyLinesImg
   },
+  // Card #4 - Blast of Force
   {
     id: 'hoc_ord_4',
-    name: 'Order Card #4',
-    level: 1,
-    abilityRequired: 'STR',
+    name: 'Blast of Force',
+    level: 2,
+    abilityRequired: 'INT',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #4',
+    effectDescription: 'Make a melee attack that deals 30 DAMAGE. Slide the target 8 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: blastOfForceImg
   },
+  // Card #5 - Cleave
   {
     id: 'hoc_ord_5',
-    name: 'Order Card #5',
-    level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #5',
+    name: 'Cleave',
+    level: 2,
+    abilityRequired: 'STR',
+    actionType: 'MINOR',
+    effectDescription: 'Attach this card to this creature. Whenever this creature destroys an enemy creature with its melee attack, it can deal 20 DAMAGE to 1 adjacent creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: cleaveImg
   },
+  // Card #6 - Daring Attack
   {
     id: 'hoc_ord_6',
-    name: 'Order Card #6',
-    level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #6',
+    name: 'Daring Attack',
+    level: 3,
+    abilityRequired: 'STR',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals 30 DAMAGE. If the target takes damage from this attack, untap this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: daringAttack6Img
   },
+  // Card #7 - Daring Attack
   {
     id: 'hoc_ord_7',
-    name: 'Order Card #7',
-    level: 2,
+    name: 'Daring Attack',
+    level: 3,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #7',
+    effectDescription: 'Make a melee attack that deals 30 DAMAGE. If the target takes damage from this attack, untap this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: daringAttack7Img
   },
+  // Card #8 - Defend Ally (IMMEDIATE but targets adjacent ally - placeholder)
   {
     id: 'hoc_ord_8',
-    name: 'Order Card #8',
-    level: 2,
-    abilityRequired: 'INT',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #8',
+    name: 'Defend Ally',
+    level: 1,
+    abilityRequired: 'STR',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 30 DAMAGE to 1 adjacent creature from 1 source. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: defendAlly8Img
   },
+  // Card #9 - Defend Ally (IMMEDIATE but targets adjacent ally - placeholder)
   {
     id: 'hoc_ord_9',
-    name: 'Order Card #9',
+    name: 'Defend Ally',
     level: 1,
-    abilityRequired: 'CHA',
+    abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #9',
+    effectDescription: 'Prevent 30 DAMAGE to 1 adjacent creature from 1 source. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: defendAlly9Img
   },
+  // Card #10 - Disrupting Attack
   {
     id: 'hoc_ord_10',
-    name: 'Order Card #10',
-    level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #10',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'hoc_ord_11',
-    name: 'Order Card #11',
+    name: 'Disrupting Attack',
     level: 2,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #11',
+    effectDescription: 'Make a melee attack that deals +10 DAMAGE. If the target takes damage from this attack, tap it and the target\'s controller discards 1 Order card. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: disruptingAttack10Img
   },
+  // Card #11 - Disrupting Attack
+  {
+    id: 'hoc_ord_11',
+    name: 'Disrupting Attack',
+    level: 2,
+    abilityRequired: 'STR',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals +10 DAMAGE. If the target takes damage from this attack, tap it and the target\'s controller discards 1 Order card. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: disruptingAttack11Img
+  },
+  // Card #12 - Fireball
   {
     id: 'hoc_ord_12',
-    name: 'Order Card #12',
-    level: 1,
-    abilityRequired: 'CON',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #12',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'hoc_ord_13',
-    name: 'Order Card #13',
-    level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #13',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'hoc_ord_14',
-    name: 'Order Card #14',
-    level: 2,
-    abilityRequired: 'DEX',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #14',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'hoc_ord_15',
-    name: 'Order Card #15',
-    level: 1,
+    name: 'Fireball',
+    level: 3,
     abilityRequired: 'INT',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #15',
+    effectDescription: 'Choose 1 square within 5 squares. Deal 30 DAMAGE to each creature within 2 squares of it. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: fireballImg
   },
+  // Card #13 - Forceful Strike
+  {
+    id: 'hoc_ord_13',
+    name: 'Forceful Strike',
+    level: 3,
+    abilityRequired: 'STR',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals +30 DAMAGE. Slide each adjacent enemy creature 2 squares. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: forcefulStrikeImg
+  },
+  // Card #14 - Healing Potion (REQUIRES HUMANOID)
+  {
+    id: 'hoc_ord_14',
+    name: 'Healing Potion',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'REQUIRES HUMANOID. This creature heals 20 DAMAGE or removes 1 attached Order card. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: healingPotionImg,
+    requiresCreatureType: 'Humanoid'
+  },
+  // Card #15 - Heroic Surge (REQUIRES ADVENTURER)
+  {
+    id: 'hoc_ord_15',
+    name: 'Heroic Surge',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'REQUIRES ADVENTURER. Untap this creature. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: heroicSurge15Img,
+    requiresCreatureType: 'Adventurer'
+  },
+  // Card #16 - Heroic Surge (REQUIRES ADVENTURER)
   {
     id: 'hoc_ord_16',
     name: 'Heroic Surge',
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    requiresCreatureType: 'Adventurer',
-    effectDescription: 'REQUIRES ADVENTURER: Untap this creature.',
+    effectDescription: 'REQUIRES ADVENTURER. Untap this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: heroicSurge16Img,
+    requiresCreatureType: 'Adventurer'
   },
+  // Card #17 - Intercept (IMPLEMENTED - prevents 20 damage)
   {
     id: 'hoc_ord_17',
-    name: 'Order Card #17',
-    level: 2,
-    abilityRequired: 'CHA',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #17',
+    name: 'Intercept',
+    level: 1,
+    abilityRequired: 'STR',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: intercept17Img,
+    damagePrevented: 20
   },
+  // Card #18 - Intercept (IMPLEMENTED - prevents 20 damage)
   {
     id: 'hoc_ord_18',
-    name: 'Order Card #18',
+    name: 'Intercept',
     level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #18',
+    abilityRequired: 'STR',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: intercept18Img,
+    damagePrevented: 20
   },
+  // Card #19 - Into the Fray
   {
     id: 'hoc_ord_19',
-    name: 'Order Card #19',
+    name: 'Into the Fray',
     level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #19',
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'This creature moves its Speed. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: intoTheFray19Img
   },
+  // Card #20 - Into the Fray
   {
     id: 'hoc_ord_20',
-    name: 'Order Card #20',
-    level: 2,
-    abilityRequired: 'CON',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #20',
+    name: 'Into the Fray',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'This creature moves its Speed. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: intoTheFray20Img
   },
+  // Card #21 - Invigorating Smash
   {
     id: 'hoc_ord_21',
-    name: 'Order Card #21',
-    level: 1,
+    name: 'Invigorating Smash',
+    level: 4,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #21',
+    effectDescription: 'Make a melee attack that deals 50 DAMAGE. This creature heals 20 DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: invigoratingSmashImg
   },
+  // Card #22 - Killing Strike
   {
     id: 'hoc_ord_22',
-    name: 'Order Card #22',
-    level: 1,
-    abilityRequired: 'INT',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #22',
+    name: 'Killing Strike',
+    level: 5,
+    abilityRequired: 'STR',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals 100 DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: killingStrikeImg
   },
+  // Card #23 - Level Up (REQUIRES HUMANOID)
   {
     id: 'hoc_ord_23',
-    name: 'Order Card #23',
-    level: 2,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #23',
+    name: 'Level Up',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'REQUIRES HUMANOID. Attach this card to this creature. +20 HP; +1 Level. Gain the Adventurer keyword. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: levelUpImg,
+    requiresCreatureType: 'Humanoid'
   },
+  // Card #24 - Open Portal
   {
     id: 'hoc_ord_24',
-    name: 'Order Card #24',
-    level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #24',
+    name: 'Open Portal',
+    level: 4,
+    abilityRequired: 'INT',
+    actionType: 'MINOR',
+    effectDescription: 'Attach this card to this creature. When deploying, if this creature is in a Magic Circle square, you can deploy your creatures in unoccupied squares in that Magic Circle. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: openPortalImg
   },
+  // Card #25 - Power Attack
   {
     id: 'hoc_ord_25',
-    name: 'Order Card #25',
+    name: 'Power Attack',
     level: 1,
-    abilityRequired: 'CHA',
+    abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #25',
+    effectDescription: 'Make a melee attack that deals +20 DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: powerAttack25Img
   },
+  // Card #26 - Power Attack
   {
     id: 'hoc_ord_26',
-    name: 'Order Card #26',
-    level: 2,
+    name: 'Power Attack',
+    level: 1,
     abilityRequired: 'STR',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #26',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals +20 DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: powerAttack26Img
   },
+  // Card #27 - Quick Shot (REQUIRES RANGED)
   {
     id: 'hoc_ord_27',
-    name: 'Order Card #27',
+    name: 'Quick Shot',
     level: 1,
-    abilityRequired: 'CON',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #27',
+    abilityRequired: 'DEX',
+    actionType: 'MINOR',
+    effectDescription: 'REQUIRES RANGED. Make a ranged attack that deals base ranged DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: quickShot27Img
   },
+  // Card #28 - Quick Shot (REQUIRES RANGED)
   {
     id: 'hoc_ord_28',
-    name: 'Order Card #28',
+    name: 'Quick Shot',
     level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #28',
+    abilityRequired: 'DEX',
+    actionType: 'MINOR',
+    effectDescription: 'REQUIRES RANGED. Make a ranged attack that deals base ranged DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: quickShot28Img
   },
+  // Card #29 - Recoil (IMMEDIATE but has side effect - placeholder)
   {
     id: 'hoc_ord_29',
-    name: 'Order Card #29',
-    level: 2,
-    abilityRequired: 'INT',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #29',
+    name: 'Recoil',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 30 DAMAGE to this creature from 1 source. Choose 1 opponent. That opponent draws 1 Order card. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: recoilImg
   },
+  // Card #30 - Saving Throw
   {
     id: 'hoc_ord_30',
-    name: 'Order Card #30',
+    name: 'Saving Throw',
     level: 1,
-    abilityRequired: 'DEX',
+    abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #30',
+    effectDescription: 'Remove 1 attached card from this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: savingThrowImg
   },
+  // Card #31 - Seize the Opportunity (IMMEDIATE but complex - placeholder)
   {
     id: 'hoc_ord_31',
-    name: 'Order Card #31',
-    level: 1,
+    name: 'Seize the Opportunity',
+    level: 2,
     abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #31',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: seizeTheOpportunity31Img
   },
+  // Card #32 - Seize the Opportunity (IMMEDIATE but complex - placeholder)
   {
     id: 'hoc_ord_32',
-    name: 'Order Card #32',
+    name: 'Seize the Opportunity',
     level: 2,
-    abilityRequired: 'CHA',
+    abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #32',
+    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: seizeTheOpportunity32Img
   },
+  // Card #33 - Shield (IMMEDIATE but targets self or ally within 5 - placeholder)
   {
     id: 'hoc_ord_33',
-    name: 'Order Card #33',
-    level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #33',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'hoc_ord_34',
-    name: 'Order Card #34',
-    level: 1,
-    abilityRequired: 'CON',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #34',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'hoc_ord_35',
-    name: 'Order Card #35',
+    name: 'Shield',
     level: 2,
     abilityRequired: 'INT',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #35',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: shield33Img
   },
+  // Card #34 - Shield (IMMEDIATE but targets self or ally within 5 - placeholder)
+  {
+    id: 'hoc_ord_34',
+    name: 'Shield',
+    level: 2,
+    abilityRequired: 'INT',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: shield34Img
+  },
+  // Card #35 - Shove Aside
+  {
+    id: 'hoc_ord_35',
+    name: 'Shove Aside',
+    level: 1,
+    abilityRequired: 'STR',
+    actionType: 'MINOR',
+    effectDescription: 'Slide 1 adjacent creature 3 squares. PLACEHOLDER',
+    faction: FACTION_NAME,
+    imageUrl: shoveAside35Img
+  },
+  // Card #36 - Shove Aside
   {
     id: 'hoc_ord_36',
-    name: 'Order Card #36',
+    name: 'Shove Aside',
     level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #36',
+    abilityRequired: 'STR',
+    actionType: 'MINOR',
+    effectDescription: 'Slide 1 adjacent creature 3 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: shoveAside36Img
   }
 ]
 
