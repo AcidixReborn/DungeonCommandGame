@@ -45,6 +45,11 @@
   z-index: 10;
 }
 
+/* Tile showing creature preview - elevate above all other tiles */
+.board-tile.showing-preview {
+  z-index: 9999 !important;
+}
+
 /* Vibrant green cartoon style for valid moves */
 .board-tile.valid-move {
   background-color: rgba(118, 255, 3, 0.15) !important;
@@ -689,7 +694,7 @@
 
 .creature-hover-preview {
   position: absolute;
-  z-index: 1000;
+  z-index: 10000;
   pointer-events: none;
   background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
   border: 3px solid #5a5a5a;

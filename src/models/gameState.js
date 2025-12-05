@@ -1941,6 +1941,102 @@ export class GameState {
     return tiles
   }
 
+  /**
+   * Get all tiles within ranged attack range for a creature, with line-of-sight info
+   * Used for the ranged attack preview overlay
+   *
+   * @param {CreatureInstance} creatureInstance - The creature to check range for
+   * @returns {Array} Array of {x, y, hasLOS, blockReason} for tiles in range
+   */
+  getRangedAttackRangeTiles(creatureInstance) {
+    if (!creatureInstance?.position) return []
+    if (!creatureInstance.creature.rangedAttack) return []
+
+    const rangeTiles = []
+    const pos = creatureInstance.position
+    const range = creatureInstance.creature.rangedAttack.range
+    const attackerOwner = creatureInstance.owner
+
+    // Check if attacker is on forest (can't use ranged from forest)
+    const attackerTile = this.getTile(pos.x, pos.y)
+    const attackerOnForest = attackerTile?.terrain === TerrainTypes.FOREST
+
+    // O(1) - Calculate bounding box for range (avoids iterating entire board)
+    // OPTIMIZATION: Instead of O(W×H) = O(320), we iterate O((2R+1)^2) = O(121) for range 5
+    const minX = Math.max(0, pos.x - range)
+    const maxX = Math.min(this.boardWidth - 1, pos.x + range)
+    const minY = Math.max(0, pos.y - range)
+    const maxY = Math.min(this.boardHeight - 1, pos.y + range)
+
+    // O((2R+1)^2) - Only iterate tiles within range bounds
+    for (let x = minX; x <= maxX; x++) {
+      for (let y = minY; y <= maxY; y++) {
+        // Skip own position
+        if (x === pos.x && y === pos.y) continue
+
+        const distance = this.getDistance(pos, { x, y })
+
+        // Skip if out of range
+        if (distance > range) continue
+
+        // Skip adjacent tiles (melee zone, can't use ranged)
+        if (distance <= 1) continue
+
+        const tile = this.getTile(x, y)
+        let hasLOS = true
+        let blockReason = null
+
+        // Check blocking reasons
+        if (attackerOnForest) {
+          hasLOS = false
+          blockReason = 'attacker_in_forest'
+        } else if (tile?.terrain === TerrainTypes.FOREST) {
+          hasLOS = false
+          blockReason = 'target_forest'
+        } else if (tile?.terrain === TerrainTypes.MOUNTAIN) {
+          hasLOS = false
+          blockReason = 'target_mountain'
+        } else {
+          // Check line of sight using existing logic
+          const lineTiles = this.getLineTiles(pos, { x, y })
+          for (const linePos of lineTiles) {
+            // Skip start and end positions
+            if ((linePos.x === pos.x && linePos.y === pos.y) || (linePos.x === x && linePos.y === y)) {
+              continue
+            }
+
+            const lineTile = this.getTile(linePos.x, linePos.y)
+
+            // Forest blocks LOS
+            if (lineTile?.terrain === TerrainTypes.FOREST) {
+              hasLOS = false
+              blockReason = 'forest_blocking'
+              break
+            }
+
+            // Mountain blocks LOS
+            if (lineTile?.terrain === TerrainTypes.MOUNTAIN) {
+              hasLOS = false
+              blockReason = 'mountain_blocking'
+              break
+            }
+
+            // Enemy creature blocks LOS
+            if (lineTile?.occupant && lineTile.occupant.owner !== attackerOwner) {
+              hasLOS = false
+              blockReason = 'enemy_blocking'
+              break
+            }
+          }
+        }
+
+        rangeTiles.push({ x, y, hasLOS, blockReason })
+      }
+    }
+
+    return rangeTiles
+  }
+
   // Execute an attack from one creature to another
   executeAttack(attackerInstance, defenderInstance, attackType = 'melee') {
     // Safety check: ensure both creatures have valid positions

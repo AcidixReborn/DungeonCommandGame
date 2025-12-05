@@ -93,7 +93,11 @@ function PlayerPanel({
   allPlayers = null,
   onFactionHighlight = null,
   // AI turn handling props - O(1) prop access
-  currentPlayerId = null
+  currentPlayerId = null,
+  // View mode toggle props - O(1) prop access
+  creatureViewMode = 'movement',
+  onCreatureViewModeToggle = null,
+  selectedBoardCreature = null
 }) {
   // ============================================
   // STATE: Active view for vertical nav bar - O(1) state access
@@ -345,6 +349,17 @@ function PlayerPanel({
               >
                 <GiCardPlay size={20} />
               </button>
+              {/* View Mode Toggle - Only visible when ranged creature is selected on board */}
+              {selectedBoardCreature?.creature?.rangedAttack && onCreatureViewModeToggle && (
+                <button
+                  className={`player-panel-nav-btn view-mode-toggle ${creatureViewMode}`}
+                  onClick={onCreatureViewModeToggle}
+                  disabled={!isHuman}
+                  title={creatureViewMode === 'movement' ? 'Show Ranged Attack Range' : 'Show Movement Range'}
+                >
+                  {creatureViewMode === 'movement' ? '🏹' : '👟'}
+                </button>
+              )}
               {/* Combat Nav Button - Only visible when combat is active - O(1) conditional render */}
               {combatMode && (
                 <button

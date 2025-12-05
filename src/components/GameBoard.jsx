@@ -136,6 +136,8 @@ function GameBoard({ onTurnInfoChange }) {
   const [validMoveTiles, setValidMoveTiles] = useState([])
   const [validAttackTargets, setValidAttackTargets] = useState([])
   const [lineOfSightPath, setLineOfSightPath] = useState([]) // Visual path for ranged attacks
+  const [rangedRangeTiles, setRangedRangeTiles] = useState([]) // All tiles in ranged attack range
+  const [creatureViewMode, setCreatureViewMode] = useState('movement') // 'movement' | 'ranged'
   const [draggingCreatureIndex, setDraggingCreatureIndex] = useState(null)
   const [dragOverTile, setDragOverTile] = useState(null)
   const [isAIThinking, setIsAIThinking] = useState(false)
@@ -487,6 +489,17 @@ function GameBoard({ onTurnInfoChange }) {
       }
     })
     setLineOfSightPath(losPath)
+
+    // Calculate ranged attack range tiles (for ranged view mode toggle)
+    if (creatureInstance.creature.rangedAttack) {
+      const rangeTiles = gameState.getRangedAttackRangeTiles(creatureInstance)
+      setRangedRangeTiles(rangeTiles)
+    } else {
+      setRangedRangeTiles([])
+    }
+
+    // Reset to movement view when selecting a new creature
+    setCreatureViewMode('movement')
 
     addToast(
       `Selected ${creatureInstance.creature.name}. ` +
@@ -1975,7 +1988,8 @@ function GameBoard({ onTurnInfoChange }) {
 
                   // Check if this tile is a valid move (handle new pathfinding format)
                   const validMove = validMoveTiles.find(vm => vm.tile.x === x && vm.tile.y === y)
-                  const isValidMove = validMove !== undefined
+                  // Only show movement overlay when in movement mode
+                  const isValidMove = creatureViewMode === 'movement' && validMove !== undefined
 
                   // Check if this creature is a valid attack target and get attack type
                   const attackTargetInfo = validAttackTargets.find(
@@ -1988,8 +2002,12 @@ function GameBoard({ onTurnInfoChange }) {
                   const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
                                               selectedBoardCreature?.position?.y === y
 
-                  // Check if this tile is in the line-of-sight path
-                  const isLineOfSight = lineOfSightPath.some(pos => pos.x === x && pos.y === y)
+                  // Check if this tile is in the line-of-sight path (original behavior)
+                  // OR if we're in ranged view mode, show ranged range tiles with LOS
+                  const rangedRangeInfo = rangedRangeTiles.find(r => r.x === x && r.y === y)
+                  const isLineOfSight = creatureViewMode === 'movement'
+                    ? lineOfSightPath.some(pos => pos.x === x && pos.y === y)
+                    : (rangedRangeInfo?.hasLOS === true)
 
                   // ============================================
                   // COMBAT HIGHLIGHT: Determine if creature should be highlighted
@@ -2101,6 +2119,10 @@ function GameBoard({ onTurnInfoChange }) {
                 onFactionHighlight={setFactionHighlight}
                 // AI TURN HANDLING - Pass current player ID for auto-switch
                 currentPlayerId={currentPlayerId}
+                // VIEW MODE TOGGLE - For switching between movement and ranged preview
+                creatureViewMode={creatureViewMode}
+                onCreatureViewModeToggle={() => setCreatureViewMode(mode => mode === 'movement' ? 'ranged' : 'movement')}
+                selectedBoardCreature={selectedBoardCreature}
               />
             </div>
           )}

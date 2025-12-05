@@ -305,7 +305,8 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         ${isLineOfSight ? 'line-of-sight' : ''}
         ${isDragTarget ? 'drag-target' : ''}
         ${combatHighlight === 'attacker' ? 'combat-highlight-attacker' : ''}
-        ${combatHighlight === 'defender' ? 'combat-highlight-defender' : ''}`}
+        ${combatHighlight === 'defender' ? 'combat-highlight-defender' : ''}
+        ${creature && showPreview ? 'showing-preview' : ''}`}
       style={getStartingZoneStyle()}
       onClick={() => onClick && onClick(tile)}
       onContextMenu={handleContextMenu}
