@@ -1346,8 +1346,10 @@ export class GameState {
           immediateCards.push({
             card,
             eligibleCreatures: creaturesForCard,
-            damagePrevented: 10, // All IMMEDIATE cards prevent 10 damage when used defensively
-            moraleCost: 0 // No morale cost for immediate cards (card is discarded)
+            // Read damagePrevented from card (null/undefined = not implemented, defaults to 0)
+            damagePrevented: card.damagePrevented != null ? card.damagePrevented : 0,
+            // Read moraleCost from card (default 0, only set if card ability explicitly requires it)
+            moraleCost: card.moraleCost != null ? card.moraleCost : 0
           })
         }
       }
@@ -1410,34 +1412,43 @@ export class GameState {
    * Apply an IMMEDIATE card for defense
    * - Discards the card from hand
    * - Taps the creature that used the card
-   * - Returns damage prevention amount (10)
+   * - Returns damage prevention amount (from card's damagePrevented property)
+   * - Deducts morale cost if card has one (from card's moraleCost property)
    *
    * Big O Complexity: O(h) where h = hand size for card removal
    *
    * @param {OrderCard} card - The immediate card to use
    * @param {CreatureInstance} usingCreature - The creature using the card
-   * @returns {Object} { success: boolean, damagePrevented: number, cardUsed: card }
+   * @returns {Object} { success: boolean, damagePrevented: number, cardUsed: card, moraleCost: number }
    */
   applyImmediateCardDefense(card, usingCreature) {
     if (!card || !usingCreature || !usingCreature.owner) {
-      return { success: false, damagePrevented: 0, cardUsed: null }
+      return { success: false, damagePrevented: 0, cardUsed: null, moraleCost: 0 }
     }
 
     // Verify creature is untapped
     if (usingCreature.isTapped) {
-      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'creature_tapped' }
+      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'creature_tapped', moraleCost: 0 }
     }
 
     // Verify card is in player's hand
     const player = this.players[usingCreature.owner]
     const cardIndex = player.orderHand.findIndex(c => c.id === card.id)
     if (cardIndex === -1) {
-      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'card_not_in_hand' }
+      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'card_not_in_hand', moraleCost: 0 }
     }
 
     // Verify creature can use the card
     if (!card.canBeUsedBy(usingCreature.creature)) {
-      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'creature_cannot_use' }
+      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'creature_cannot_use', moraleCost: 0 }
+    }
+
+    // Get card's morale cost (default 0 if not defined)
+    const moraleCost = card.moraleCost !== undefined ? card.moraleCost : 0
+
+    // Deduct morale cost from the defending player if card requires it
+    if (moraleCost > 0) {
+      player.loseMorale(moraleCost)
     }
 
     // Remove card from hand (discard it)
@@ -1449,10 +1460,14 @@ export class GameState {
     // Tap the creature
     usingCreature.tap()
 
+    // Get card's damage prevention amount (null/undefined = not implemented, defaults to 0)
+    const damagePrevented = card.damagePrevented != null ? card.damagePrevented : 0
+
     return {
       success: true,
-      damagePrevented: 10, // All IMMEDIATE cards prevent 10 damage
-      cardUsed: card
+      damagePrevented: damagePrevented,
+      cardUsed: card,
+      moraleCost: moraleCost
     }
   }
 
@@ -1962,7 +1977,7 @@ export class GameState {
     const attackerOnForest = attackerTile?.terrain === TerrainTypes.FOREST
 
     // O(1) - Calculate bounding box for range (avoids iterating entire board)
-    // OPTIMIZATION: Instead of O(W×H) = O(320), we iterate O((2R+1)^2) = O(121) for range 5
+    // OPTIMIZATION: Instead of O(Wï¿½H) = O(320), we iterate O((2R+1)^2) = O(121) for range 5
     const minX = Math.max(0, pos.x - range)
     const maxX = Math.min(this.boardWidth - 1, pos.x + range)
     const minY = Math.max(0, pos.y - range)

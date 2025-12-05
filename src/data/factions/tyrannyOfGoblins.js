@@ -7,6 +7,44 @@ import goblinsCmd2 from '../../assets/commanders/Goblins_Commander_Card_2.webp'
 
 // Creature Card Images - O(1) import time, loaded once at module initialization
 import bugbearBerserkerImg from '../../assets/creatures/Goblin_BugBear_Card_1.png'
+
+// Order Card Images - O(36) = O(1) import time, loaded once at module initialization
+import acrobaticsOrder1Img from '../../assets/orders/goblins/Goblin_Acrobatics_Order_1.png'
+import acrobaticsOrder2Img from '../../assets/orders/goblins/Goblin_Acrobatics_Order_2.png'
+import arcaneScrollOrder3Img from '../../assets/orders/goblins/Goblin_ArcaneScroll_Order_3.png'
+import deathSentenceOrder4Img from '../../assets/orders/goblins/Goblin_DeathSentence_Order_4.png'
+import deathSentenceOrder5Img from '../../assets/orders/goblins/Goblin_DeathSentence_Order_5.png'
+import feralVitalityOrder6Img from '../../assets/orders/goblins/Goblin_FeralVitality_Order_6.png'
+import forwardTheHordeOrder7Img from '../../assets/orders/goblins/Goblin_ForwardTheHorde_Order_7.png'
+import forwardTheHordeOrder8Img from '../../assets/orders/goblins/Goblin_ForwardTheHorde_Order_8.png'
+import goblinWarCryOrder9Img from '../../assets/orders/goblins/Goblin_GoblinWarCry_Order_9.png'
+import goblinWarCryOrder10Img from '../../assets/orders/goblins/Goblin_GoblinWarCry_Order_10.png'
+import grovelOrder11Img from '../../assets/orders/goblins/Goblin_Grovel_Order_11.png'
+import grovelOrder12Img from '../../assets/orders/goblins/Goblin_Grovel_Order_12.png'
+import leapAwayOrder13Img from '../../assets/orders/goblins/Goblin_LeapAway_Order_13.png'
+import lopingStrideOrder14Img from '../../assets/orders/goblins/Goblin_LopingStride_Order_14.png'
+import lopingStrideOrder15Img from '../../assets/orders/goblins/Goblin_LopingStride_Order_15.png'
+import mageHandOrder16Img from '../../assets/orders/goblins/Goblin_MageHand_Order_16.png'
+import mirrorImageOrder17Img from '../../assets/orders/goblins/Goblin_MirrorImage_Order_17.png'
+import mortalWoundOrder18Img from '../../assets/orders/goblins/Goblin_MortalWound_Order_18.png'
+import narrowEscapeOrder19Img from '../../assets/orders/goblins/Goblin_NarrowEscape_Order_19.png'
+import narrowEscapeOrder20Img from '../../assets/orders/goblins/Goblin_NarrowEscape_Order_20.png'
+import nimbleStrikeOrder21Img from '../../assets/orders/goblins/Goblin_NimbleStrike_Order_21.png'
+import patchUpOrder22Img from '../../assets/orders/goblins/Goblin_PatchUp_Order_22.png'
+import patchUpOrder23Img from '../../assets/orders/goblins/Goblin_PatchUp_Order_23.png'
+import portalStoneOrder24Img from '../../assets/orders/goblins/Goblin_PortalStone_Order_24.png'
+import rallyOrder25Img from '../../assets/orders/goblins/Goblin_Rally_Order_25.png'
+import rayOfFrostOrder26Img from '../../assets/orders/goblins/Goblin_RayOfFrost_Order_26.png'
+import recklessAttackOrder27Img from '../../assets/orders/goblins/Goblin_RecklessAttack_Order_27.png'
+import recklessAttackOrder28Img from '../../assets/orders/goblins/Goblin_RecklessAttack_Order_28.png'
+import reinforcementsOrder29Img from '../../assets/orders/goblins/Goblin_Reinforcements_Order_29.png'
+import shatteredWeaponOrder30Img from '../../assets/orders/goblins/Goblin_ShatteredWeapon_Order_30.png'
+import shatteredWeaponOrder31Img from '../../assets/orders/goblins/Goblin_ShatteredWeapon_Order_31.png'
+import strengthInNumbersOrder32Img from '../../assets/orders/goblins/Goblin_StrengthInNumbers_Order_32.png'
+import strengthInNumbersOrder33Img from '../../assets/orders/goblins/Goblin_StrengthInNumbers_Order_33.png'
+import toughAsNailsOrder34Img from '../../assets/orders/goblins/Goblin_ToughAsNails_Order_34.png'
+import undauntedSurgeOrder35Img from '../../assets/orders/goblins/Goblin_UndauntedSurge_Order_35.png'
+import undauntedSurgeOrder36Img from '../../assets/orders/goblins/Goblin_UndauntedSurge_Order_36.png'
 import feralTrollImg from '../../assets/creatures/Goblin_FeralTroll_Card_2.png'
 import goblinArcherImg from '../../assets/creatures/Goblin_GoblinArcher_Card_3.png'
 import goblinChampionImg from '../../assets/creatures/Goblin_GoblinChampion_Card_4.png'
@@ -257,366 +295,418 @@ export const creatures = [
   }
 ]
 
+// ============================================================================
+// ORDER CARDS ARRAY - Updated with accurate data from physical cards
+// Stats extracted from card images - O(n) where n = 36 order cards
+// Cards 11, 12 (Grovel) and 19, 20 (Narrow Escape) have implemented abilities
+// ============================================================================
 export const orderCards = [
+  // Card 1: Acrobatics - Level 1, DEX, MINOR
   {
     id: 'tog_ord_1',
-    name: 'Order Card #1',
+    name: 'Acrobatics',
     level: 1,
-    abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #1',
+    abilityRequired: 'DEX',
+    actionType: 'MINOR',
+    effectDescription: 'Attach this card to this creature. This creature gains Scuttle (This creature shifts when it moves) and ignores difficult terrain.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: acrobaticsOrder1Img
   },
+  // Card 2: Acrobatics - Level 1, DEX, MINOR
   {
     id: 'tog_ord_2',
-    name: 'Order Card #2',
+    name: 'Acrobatics',
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #2',
+    effectDescription: 'Attach this card to this creature. This creature gains Scuttle (This creature shifts when it moves) and ignores difficult terrain.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: acrobaticsOrder2Img
   },
+  // Card 3: Arcane Scroll - Level 1, ANY, MINOR
   {
     id: 'tog_ord_3',
-    name: 'Order Card #3',
+    name: 'Arcane Scroll',
     level: 1,
-    abilityRequired: 'CON',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #3',
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'REQUIRES HUMANOID. Attach this card to this creature. Discard this card to give this creature the INT ability for the rest of the turn.',
+    requiresCreatureType: 'Humanoid',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: arcaneScrollOrder3Img
   },
+  // Card 4: Death Sentence - Level 3, CHA, MINOR
   {
     id: 'tog_ord_4',
-    name: 'Order Card #4',
-    level: 1,
-    abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #4',
+    name: 'Death Sentence',
+    level: 3,
+    abilityRequired: 'CHA',
+    actionType: 'MINOR',
+    effectDescription: '1 creature you control within 5 squares makes a melee attack.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: deathSentenceOrder4Img
   },
+  // Card 5: Death Sentence - Level 3, CHA, MINOR
   {
     id: 'tog_ord_5',
-    name: 'Order Card #5',
-    level: 2,
-    abilityRequired: 'DEX',
+    name: 'Death Sentence',
+    level: 3,
+    abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #5',
+    effectDescription: '1 creature you control within 5 squares makes a melee attack.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: deathSentenceOrder5Img
   },
+  // Card 6: Feral Vitality - Level 2, CON, STANDARD
   {
     id: 'tog_ord_6',
-    name: 'Order Card #6',
-    level: 1,
-    abilityRequired: 'WIS',
+    name: 'Feral Vitality',
+    level: 2,
+    abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #6',
+    effectDescription: 'Make a melee attack that deals +20 damage. This creature heals 10 damage.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: feralVitalityOrder6Img
   },
+  // Card 7: Forward the Horde - Level 1, CHA, MINOR
   {
     id: 'tog_ord_7',
-    name: 'Order Card #7',
+    name: 'Forward the Horde',
     level: 1,
-    abilityRequired: 'INT',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #7',
+    abilityRequired: 'CHA',
+    actionType: 'MINOR',
+    effectDescription: 'Shift 3 squares. One allied creature shifts 3 squares.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: forwardTheHordeOrder7Img
   },
+  // Card 8: Forward the Horde - Level 1, CHA, MINOR
   {
     id: 'tog_ord_8',
-    name: 'Order Card #8',
-    level: 2,
+    name: 'Forward the Horde',
+    level: 1,
     abilityRequired: 'CHA',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #8',
+    actionType: 'MINOR',
+    effectDescription: 'Shift 3 squares. One allied creature shifts 3 squares.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: forwardTheHordeOrder8Img
   },
+  // Card 9: Goblin War Cry - Level 3, CHA, MINOR
   {
     id: 'tog_ord_9',
-    name: 'Order Card #9',
-    level: 1,
-    abilityRequired: 'STR',
+    name: 'Goblin War Cry',
+    level: 3,
+    abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #9',
+    effectDescription: 'Goblin, Hobgoblin, and Bugbear creatures you control deal +10 damage with melee and ranged attacks until the end of this turn.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: goblinWarCryOrder9Img
   },
+  // Card 10: Goblin War Cry - Level 3, CHA, MINOR
   {
     id: 'tog_ord_10',
-    name: 'Order Card #10',
-    level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #10',
+    name: 'Goblin War Cry',
+    level: 3,
+    abilityRequired: 'CHA',
+    actionType: 'MINOR',
+    effectDescription: 'Goblin, Hobgoblin, and Bugbear creatures you control deal +10 damage with melee and ranged attacks until the end of this turn.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: goblinWarCryOrder10Img
   },
+  // Card 11: Grovel - Level 1, ANY, IMMEDIATE - ABILITY IMPLEMENTED
   {
     id: 'tog_ord_11',
-    name: 'Order Card #11',
-    level: 2,
-    abilityRequired: 'CON',
+    name: 'Grovel',
+    level: 1,
+    abilityRequired: 'ANY',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #11',
+    effectDescription: 'Lose 1 Morale to prevent 30 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: grovelOrder11Img,
+    damagePrevented: 30,
+    moraleCost: 1
   },
+  // Card 12: Grovel - Level 1, ANY, IMMEDIATE - ABILITY IMPLEMENTED
   {
     id: 'tog_ord_12',
-    name: 'Order Card #12',
+    name: 'Grovel',
     level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #12',
+    abilityRequired: 'ANY',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Lose 1 Morale to prevent 30 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: grovelOrder12Img,
+    damagePrevented: 30,
+    moraleCost: 1
   },
+  // Card 13: Leap Away - Level 1, DEX, IMMEDIATE (Placeholder - complex attach mechanic)
   {
     id: 'tog_ord_13',
-    name: 'Order Card #13',
+    name: 'Leap Away',
     level: 1,
-    abilityRequired: 'INT',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #13',
+    abilityRequired: 'DEX',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 40 damage to this creature from 1 source. Attach this card to this creature. This creature cannot move or shift. (S): Remove this card as a standard action.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: leapAwayOrder13Img
   },
+  // Card 14: Loping Stride - Level 1, DEX, MINOR
   {
     id: 'tog_ord_14',
-    name: 'Order Card #14',
-    level: 2,
+    name: 'Loping Stride',
+    level: 1,
     abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #14',
+    actionType: 'MINOR',
+    effectDescription: 'Attach this card to this creature. Add 2 to this creature\'s base Speed.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: lopingStrideOrder14Img
   },
+  // Card 15: Loping Stride - Level 1, DEX, MINOR
   {
     id: 'tog_ord_15',
-    name: 'Order Card #15',
+    name: 'Loping Stride',
     level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #15',
+    abilityRequired: 'DEX',
+    actionType: 'MINOR',
+    effectDescription: 'Attach this card to this creature. Add 2 to this creature\'s base Speed.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: lopingStrideOrder15Img
   },
+  // Card 16: Mage Hand - Level 1, INT, MINOR
   {
     id: 'tog_ord_16',
-    name: 'Order Card #16',
+    name: 'Mage Hand',
     level: 1,
-    abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #16',
+    abilityRequired: 'INT',
+    actionType: 'MINOR',
+    effectDescription: 'Choose a Treasure square within 5 squares. Reveal any Treasure Chest marker on that square, then take 1 Treasure token from that square. OR Tap 1 creature within 5 squares.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: mageHandOrder16Img
   },
+  // Card 17: Mirror Image - Level 1, INT, STANDARD
   {
     id: 'tog_ord_17',
-    name: 'Order Card #17',
-    level: 2,
-    abilityRequired: 'CON',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #17',
+    name: 'Mirror Image',
+    level: 1,
+    abilityRequired: 'INT',
+    actionType: 'STANDARD',
+    effectDescription: 'Attach this card to this creature. Remove this card to prevent all damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: mirrorImageOrder17Img
   },
+  // Card 18: Mortal Wound - Level 4, CON, IMMEDIATE (Placeholder - complex destroy mechanic)
   {
     id: 'tog_ord_18',
-    name: 'Order Card #18',
-    level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #18',
+    name: 'Mortal Wound',
+    level: 4,
+    abilityRequired: 'CON',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent all damage to this creature from 1 source. Attach this card to this creature. Destroy this creature at the start of your Deploy phase.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: mortalWoundOrder18Img
   },
+  // Card 19: Narrow Escape - Level 1, DEX, IMMEDIATE - ABILITY IMPLEMENTED
   {
     id: 'tog_ord_19',
-    name: 'Order Card #19',
+    name: 'Narrow Escape',
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #19',
+    effectDescription: 'Prevent 20 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: narrowEscapeOrder19Img,
+    damagePrevented: 20,
+    moraleCost: 0
   },
+  // Card 20: Narrow Escape - Level 1, DEX, IMMEDIATE - ABILITY IMPLEMENTED
   {
     id: 'tog_ord_20',
-    name: 'Order Card #20',
-    level: 2,
-    abilityRequired: 'INT',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #20',
+    name: 'Narrow Escape',
+    level: 1,
+    abilityRequired: 'DEX',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 20 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: narrowEscapeOrder20Img,
+    damagePrevented: 20,
+    moraleCost: 0
   },
+  // Card 21: Nimble Strike - Level 1, DEX, STANDARD
   {
     id: 'tog_ord_21',
-    name: 'Order Card #21',
+    name: 'Nimble Strike',
     level: 1,
-    abilityRequired: 'STR',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #21',
+    abilityRequired: 'DEX',
+    actionType: 'STANDARD',
+    effectDescription: 'Shift 3 squares. Make a melee or ranged attack that deals +10 damage.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: nimbleStrikeOrder21Img
   },
+  // Card 22: Patch Up - Level 1, CON, IMMEDIATE (Placeholder - complex OR choice)
   {
     id: 'tog_ord_22',
-    name: 'Order Card #22',
+    name: 'Patch Up',
     level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #22',
+    abilityRequired: 'CON',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'This creature heals 20 damage. OR Prevent 20 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: patchUpOrder22Img
   },
+  // Card 23: Patch Up - Level 1, CON, IMMEDIATE (Placeholder - complex OR choice)
   {
     id: 'tog_ord_23',
-    name: 'Order Card #23',
-    level: 2,
-    abilityRequired: 'WIS',
+    name: 'Patch Up',
+    level: 1,
+    abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #23',
+    effectDescription: 'This creature heals 20 damage. OR Prevent 20 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: patchUpOrder23Img
   },
+  // Card 24: Portal Stone - Level 1, ANY, MINOR
   {
     id: 'tog_ord_24',
-    name: 'Order Card #24',
+    name: 'Portal Stone',
     level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #24',
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'Take 1 Treasure token from the square this creature is in to place this creature in any Magic Circle square.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: portalStoneOrder24Img
   },
+  // Card 25: Rally - Level 1, CHA, MINOR
   {
     id: 'tog_ord_25',
-    name: 'Order Card #25',
+    name: 'Rally',
     level: 1,
-    abilityRequired: 'CON',
+    abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #25',
+    effectDescription: 'Choose 1 allied creature within 5 squares. Remove all attached Order cards from that creature.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: rallyOrder25Img
   },
+  // Card 26: Ray of Frost - Level 2, INT, STANDARD
   {
     id: 'tog_ord_26',
-    name: 'Order Card #26',
+    name: 'Ray of Frost',
     level: 2,
     abilityRequired: 'INT',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #26',
+    effectDescription: 'Deal 30 damage to 1 creature within 5 squares. If the target takes damage from this attack, tap it.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: rayOfFrostOrder26Img
   },
+  // Card 27: Reckless Attack - Level 1, CON, STANDARD
   {
     id: 'tog_ord_27',
-    name: 'Order Card #27',
-    level: 1,
-    abilityRequired: 'STR',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #27',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_ord_28',
-    name: 'Order Card #28',
-    level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #28',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_ord_29',
-    name: 'Order Card #29',
-    level: 2,
-    abilityRequired: 'WIS',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #29',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_ord_30',
-    name: 'Order Card #30',
-    level: 1,
-    abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #30',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_ord_31',
-    name: 'Order Card #31',
+    name: 'Reckless Attack',
     level: 1,
     abilityRequired: 'CON',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #31',
+    actionType: 'STANDARD',
+    effectDescription: 'This creature takes 10 damage to make a melee attack that deals +30 damage.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: recklessAttackOrder27Img
   },
+  // Card 28: Reckless Attack - Level 1, CON, STANDARD
+  {
+    id: 'tog_ord_28',
+    name: 'Reckless Attack',
+    level: 1,
+    abilityRequired: 'CON',
+    actionType: 'STANDARD',
+    effectDescription: 'This creature takes 10 damage to make a melee attack that deals +30 damage.',
+    faction: FACTION_NAME,
+    imageUrl: recklessAttackOrder28Img
+  },
+  // Card 29: Reinforcements - Level 3, ANY, MINOR
+  {
+    id: 'tog_ord_29',
+    name: 'Reinforcements',
+    level: 3,
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'Discard any number of Creature cards from your hand, then reshuffle all Creature cards from your graveyard into your Creature deck and draw Creature cards up to your Creature hand size.',
+    faction: FACTION_NAME,
+    imageUrl: reinforcementsOrder29Img
+  },
+  // Card 30: Shattered Weapon - Level 1, ANY, STANDARD
+  {
+    id: 'tog_ord_30',
+    name: 'Shattered Weapon',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'STANDARD',
+    effectDescription: 'REQUIRES HUMANOID. Make a melee attack that deals +30 damage. Attach this card to this creature. This creature\'s melee attacks deal -10 damage.',
+    requiresCreatureType: 'Humanoid',
+    faction: FACTION_NAME,
+    imageUrl: shatteredWeaponOrder30Img
+  },
+  // Card 31: Shattered Weapon - Level 1, ANY, STANDARD
+  {
+    id: 'tog_ord_31',
+    name: 'Shattered Weapon',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'STANDARD',
+    effectDescription: 'REQUIRES HUMANOID. Make a melee attack that deals +30 damage. Attach this card to this creature. This creature\'s melee attacks deal -10 damage.',
+    requiresCreatureType: 'Humanoid',
+    faction: FACTION_NAME,
+    imageUrl: shatteredWeaponOrder31Img
+  },
+  // Card 32: Strength in Numbers - Level 3, CHA, STANDARD
   {
     id: 'tog_ord_32',
-    name: 'Order Card #32',
-    level: 2,
-    abilityRequired: 'INT',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #32',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_ord_33',
-    name: 'Order Card #33',
-    level: 1,
-    abilityRequired: 'STR',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #33',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_ord_34',
-    name: 'Order Card #34',
-    level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #34',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_ord_35',
-    name: 'Order Card #35',
-    level: 2,
-    abilityRequired: 'DEX',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #35',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'tog_ord_36',
-    name: 'Order Card #36',
-    level: 1,
+    name: 'Strength in Numbers',
+    level: 3,
     abilityRequired: 'CHA',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #36',
+    effectDescription: 'Gain 1 Leadership.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: strengthInNumbersOrder32Img
+  },
+  // Card 33: Strength in Numbers - Level 3, CHA, STANDARD
+  {
+    id: 'tog_ord_33',
+    name: 'Strength in Numbers',
+    level: 3,
+    abilityRequired: 'CHA',
+    actionType: 'STANDARD',
+    effectDescription: 'Gain 1 Leadership.',
+    faction: FACTION_NAME,
+    imageUrl: strengthInNumbersOrder33Img
+  },
+  // Card 34: Tough as Nails - Level 2, CON, IMMEDIATE
+  {
+    id: 'tog_ord_34',
+    name: 'Tough as Nails',
+    level: 2,
+    abilityRequired: 'CON',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Remove all cards attached to this creature. Attach this card to this creature. This creature gains Block 10 (Prevent 10 damage whenever a source deals damage to this creature).',
+    faction: FACTION_NAME,
+    imageUrl: toughAsNailsOrder34Img
+  },
+  // Card 35: Undaunted Surge - Level 3, CON, MINOR
+  {
+    id: 'tog_ord_35',
+    name: 'Undaunted Surge',
+    level: 3,
+    abilityRequired: 'CON',
+    actionType: 'MINOR',
+    effectDescription: 'Remove all cards attached to this creature. Attach this card to this creature. This creature\'s melee attacks deal +10 damage.',
+    faction: FACTION_NAME,
+    imageUrl: undauntedSurgeOrder35Img
+  },
+  // Card 36: Undaunted Surge - Level 3, CON, MINOR
+  {
+    id: 'tog_ord_36',
+    name: 'Undaunted Surge',
+    level: 3,
+    abilityRequired: 'CON',
+    actionType: 'MINOR',
+    effectDescription: 'Remove all cards attached to this creature. Attach this card to this creature. This creature\'s melee attacks deal +10 damage.',
+    faction: FACTION_NAME,
+    imageUrl: undauntedSurgeOrder36Img
   }
 ]
 

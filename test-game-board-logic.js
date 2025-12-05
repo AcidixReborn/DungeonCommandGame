@@ -302,18 +302,15 @@ function createCreatureDeck(faction) {
 
 /**
  * Create an order deck for a faction
- * O(O) where O = number of unique orders per faction (typically 4-6)
+ * Each faction has exactly 36 unique order cards (no duplicates)
+ * O(O) where O = number of unique orders per faction (36)
  *
  * @param {string} faction - Faction name
  * @returns {Array<OrderCard>} Array of order cards
  */
 function createOrderDeck(faction) {
-  const deck = []
-  // Create multiple copies of each order for deck variety
-  for (let i = 0; i < 12; i++) {
-    deck.push(...sampleOrderCards[faction].map(o => new OrderCard(o)))
-  }
-  return deck
+  // Create single copy of each order card (36 total per faction)
+  return sampleOrderCards[faction].map(o => new OrderCard(o))
 }
 
 /**

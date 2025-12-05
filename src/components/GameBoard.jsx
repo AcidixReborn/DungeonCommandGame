@@ -304,16 +304,12 @@ function GameBoard({ onTurnInfoChange }) {
     console.log('[startNewGame] Received config:', config)
     setGameConfig(config)
 
-    // Create 12 creature cards (3 copies of each unique creature)
+    // Create 12 unique creature cards (one of each)
     const createCreatureDeck = (faction) => {
-      const deck = []
-      for (let i = 0; i < 3; i++) {
-        deck.push(...sampleCreatures[faction].map(c => new Creature(c)))
-      }
-      return deck
+      return sampleCreatures[faction].map(c => new Creature(c))
     }
 
-    // Create 32 order cards (one of each unique order card #1-#32)
+    // Create 36 order cards (one of each unique order card #1-#36)
     const createOrderDeck = (faction) => {
       const deck = sampleOrderCards[faction].map(o => new OrderCard(o))
       return deck

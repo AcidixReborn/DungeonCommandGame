@@ -221,7 +221,7 @@ function createCreatureDeck(faction) {
 
 /**
  * Create an order deck for a faction
- * Each faction has 32 unique order cards (numbered #1-#32)
+ * Each faction has 36 unique order cards (numbered #1-#36)
  * Only one copy of each card exists in the deck
  */
 function createOrderDeck(faction) {
