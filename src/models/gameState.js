@@ -583,6 +583,24 @@ export class GameState {
     }
   }
 
+  // ============================================================================
+  // SCUTTLE - Spider Creature Ability (Demonweb Spider, Drider, Giant Spider)
+  // This creature can move through other creatures for 1 speed cost per creature
+  // Cannot stop on a creature - only pass through
+  // ============================================================================
+
+  /**
+   * Check if creature has SCUTTLE ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has SCUTTLE
+   */
+  hasScuttle(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('SCUTTLE')
+    )
+  }
+
 
   // ============================================================================
   // COMMANDER ABILITY DELEGATION METHODS
@@ -789,6 +807,36 @@ export class GameState {
     const startPos = creatureInstance.position
     const flying = this.hasFlying(creatureInstance)
 
+    // SCUTTLE: Create callback if creature has the ability
+    // Allows moving through any creature (enemy or ally) for 1 speed cost
+    // AI difficulty affects whether SCUTTLE is enabled:
+    // - Easy: SCUTTLE disabled (AI doesn't benefit from passive)
+    // - Medium: 50% chance SCUTTLE is enabled
+    // - Hard: SCUTTLE always enabled
+    const hasScuttleAbility = this.hasScuttle(creatureInstance)
+    let canPassThrough = null
+
+    if (hasScuttleAbility) {
+      const owner = creatureInstance.owner
+      const player = this.players[owner]
+      const aiDifficulty = player?.aiDifficulty || 'medium'
+
+      let scuttleEnabled = true
+      if (aiDifficulty === 'easy') {
+        scuttleEnabled = false  // Easy AI never uses SCUTTLE
+      } else if (aiDifficulty === 'medium') {
+        scuttleEnabled = Math.random() < 0.5  // Medium AI uses 50% of the time
+      }
+      // Hard AI always uses SCUTTLE (scuttleEnabled stays true)
+
+      if (scuttleEnabled) {
+        canPassThrough = () => {
+          // SCUTTLE can pass through ANY creature (enemy or ally)
+          return true
+        }
+      }
+    }
+
     // Use pathfinding algorithm with creature context for ability checks
     const validMovement = pathfindingGetValidMovement(
       startPos,
@@ -796,7 +844,8 @@ export class GameState {
       (terrain, isFlying) => this.getTerrainMovementCost(terrain, isFlying, creatureInstance),
       (tile, isFlying) => this.isTerrainPassable(tile, isFlying),
       (x, y) => this.getTile(x, y),
-      flying
+      flying,
+      canPassThrough
     )
 
     // Return array of objects with tile, path, and cost
