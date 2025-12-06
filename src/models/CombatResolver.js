@@ -139,9 +139,13 @@ export class CombatResolver {
       this.gameState.hasFlashingBlades &&
       this.gameState.hasFlashingBlades(attackerInstance)
 
+    // Check if creature has HIDDEN BLADE (melee OR ranged) - defer tapping until ability resolves
+    const hasHiddenBlade = this.gameState.hasHiddenBlade &&
+      this.gameState.hasHiddenBlade(attackerInstance)
+
     // Tap the creature if it has both moved AND attacked
-    // UNLESS it has FLASHING BLADES (will be tapped after ability resolves)
-    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades) {
+    // UNLESS it has FLASHING BLADES or HIDDEN BLADE (will be tapped after ability resolves)
+    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade) {
       attackerInstance.tap()
     }
 
@@ -153,7 +157,8 @@ export class CombatResolver {
       ...result,
       attackType,
       damage,
-      pendingFlashingBlades: hasFlashingBlades
+      pendingFlashingBlades: hasFlashingBlades,
+      pendingHiddenBlade: hasHiddenBlade
     }
   }
 
@@ -191,9 +196,13 @@ export class CombatResolver {
       this.gameState.hasFlashingBlades &&
       this.gameState.hasFlashingBlades(attackerInstance)
 
+    // Check if creature has HIDDEN BLADE (melee OR ranged) - defer tapping until ability resolves
+    const hasHiddenBlade = this.gameState.hasHiddenBlade &&
+      this.gameState.hasHiddenBlade(attackerInstance)
+
     // Tap the creature if it has both moved AND attacked
-    // UNLESS it has FLASHING BLADES (will be tapped after ability resolves)
-    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades) {
+    // UNLESS it has FLASHING BLADES or HIDDEN BLADE (will be tapped after ability resolves)
+    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade) {
       attackerInstance.tap()
     }
 
@@ -208,7 +217,8 @@ export class CombatResolver {
       originalDamage,
       damageReduced: damageReduction,
       defenseUsed: defenseType,
-      pendingFlashingBlades: hasFlashingBlades
+      pendingFlashingBlades: hasFlashingBlades,
+      pendingHiddenBlade: hasHiddenBlade
     }
   }
 

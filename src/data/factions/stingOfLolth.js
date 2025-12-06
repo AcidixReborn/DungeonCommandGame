@@ -158,7 +158,7 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 20, range: 5 },
-    specialAbilities: ['HIDDEN BLADE: (Placeholder - ability effect to be implemented)'],
+    specialAbilities: ['HIDDEN BLADE: After this creature attacks, it may deal 10 damage to an adjacent tapped enemy creature.'],
     faction: FACTION_NAME,
     imageUrl: drowAssassinImg
   },

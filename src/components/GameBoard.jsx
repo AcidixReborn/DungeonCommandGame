@@ -152,6 +152,11 @@ function GameBoard({ onTurnInfoChange }) {
   const [flashingBladesPending, setFlashingBladesPending] = useState(null) // { attacker, originalTarget, validTargets }
   const [flashingBladesTargetMode, setFlashingBladesTargetMode] = useState(false) // True when highlighting targets for selection
 
+  // HIDDEN BLADE ability state (10 damage to adjacent tapped enemy after any attack)
+  const [showHiddenBladeModal, setShowHiddenBladeModal] = useState(false)
+  const [hiddenBladePending, setHiddenBladePending] = useState(null) // { attacker, validTargets }
+  const [hiddenBladeTargetMode, setHiddenBladeTargetMode] = useState(false) // True when highlighting targets for selection
+
   /**
    * Faction color mapping from faction IDs to hex colors
    */
@@ -949,7 +954,7 @@ function GameBoard({ onTurnInfoChange }) {
   const executeAttackAfterDefense = (defenseResult) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade } = pendingAttack
 
     let result
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
@@ -957,6 +962,16 @@ function GameBoard({ onTurnInfoChange }) {
       // Apply defense reduction to the 10 splash damage
       const damageReduction = defenseResult.damageReduction || 0
       result = gameState.applyFlashingBladesWithDefense(defenderInstance, attackerInstance.owner, damageReduction)
+
+      // Now tap the attacker (deferred from original attack)
+      if (attackerInstance.hasMovedThisTurn) {
+        attackerInstance.tap()
+      }
+    } else if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
+      // HIDDEN BLADE attack - use special handling
+      // Apply defense reduction to the 10 damage
+      const damageReduction = defenseResult.damageReduction || 0
+      result = gameState.applyHiddenBladeWithDefense(defenderInstance, attackerInstance.owner, damageReduction)
 
       // Now tap the attacker (deferred from original attack)
       if (attackerInstance.hasMovedThisTurn) {
@@ -1006,6 +1021,8 @@ function GameBoard({ onTurnInfoChange }) {
 
       if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
         message += `⚔️ FLASHING BLADES: ${attackerInstance.creature.name} deals ${result.damage} splash damage to ${defenderInstance.creature.name}!`
+      } else if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
+        message += `🗡️ HIDDEN BLADE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else {
         message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
                    `with ${targetInfo.attackType} for ${result.damage} damage!`
@@ -1037,11 +1054,21 @@ function GameBoard({ onTurnInfoChange }) {
         addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
       }
 
-      // Check for FLASHING BLADES trigger after defense (only for normal attacks, not splash)
-      if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades') {
+      // Check for FLASHING BLADES trigger after defense (only for normal melee attacks, not splash/ability attacks)
+      if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades' &&
+          !isHiddenBlade && targetInfo.attackType !== 'hidden_blade') {
         if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
           // Modal shown - don't clear state yet, wait for modal response
           // BUT we DO need to trigger a re-render to show destroyed creature being removed
+          setRenderCounter(prev => prev + 1)
+          return
+        }
+
+        // Check for HIDDEN BLADE trigger after defense (for any attack type - melee OR ranged)
+        // HIDDEN BLADE checks for adjacent TAPPED enemies, so it must be checked AFTER defense
+        // (using defense cards taps the defender)
+        if (checkHiddenBladeTrigger(attackerInstance, result)) {
+          // Modal shown - don't clear state yet, wait for modal response
           setRenderCounter(prev => prev + 1)
           return
         }
@@ -1053,6 +1080,11 @@ function GameBoard({ onTurnInfoChange }) {
     // Clear FLASHING BLADES pending state if this was a splash attack
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
       setFlashingBladesPending(null)
+    }
+
+    // Clear HIDDEN BLADE pending state if this was a hidden blade attack
+    if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
+      setHiddenBladePending(null)
     }
 
     setSelectedBoardCreature(null)
@@ -1069,12 +1101,19 @@ function GameBoard({ onTurnInfoChange }) {
   const executeAttackAfterReactions = (reactions) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade } = pendingAttack
 
     let result
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
       // FLASHING BLADES splash attack - use special handling
       result = gameState.applyFlashingBlades(defenderInstance, attackerInstance.owner)
+      // Now tap the attacker (deferred from original attack)
+      if (attackerInstance.hasMovedThisTurn) {
+        attackerInstance.tap()
+      }
+    } else if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
+      // HIDDEN BLADE attack - use special handling
+      result = gameState.applyHiddenBlade(defenderInstance, attackerInstance.owner)
       // Now tap the attacker (deferred from original attack)
       if (attackerInstance.hasMovedThisTurn) {
         attackerInstance.tap()
@@ -1094,6 +1133,8 @@ function GameBoard({ onTurnInfoChange }) {
 
       if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
         message += `⚔️ FLASHING BLADES: ${attackerInstance.creature.name} deals ${result.damage} splash damage to ${defenderInstance.creature.name}!`
+      } else if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
+        message += `🗡️ HIDDEN BLADE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else {
         message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
                    `with ${targetInfo.attackType} for ${result.damage} damage!`
@@ -1127,11 +1168,19 @@ function GameBoard({ onTurnInfoChange }) {
         addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
       }
 
-      // Check for FLASHING BLADES trigger after reactions (only for normal attacks, not splash)
-      if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades') {
+      // Check for FLASHING BLADES trigger after reactions (only for normal attacks, not splash/ability attacks)
+      if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades' &&
+          !isHiddenBlade && targetInfo.attackType !== 'hidden_blade') {
         if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
           // Modal shown - don't clear state yet, wait for modal response
           // BUT we DO need to trigger a re-render to show destroyed creature being removed
+          setRenderCounter(prev => prev + 1)
+          return
+        }
+
+        // Check for HIDDEN BLADE trigger after reactions (for any attack type - melee OR ranged)
+        if (checkHiddenBladeTrigger(attackerInstance, result)) {
+          // Modal shown - don't clear state yet, wait for modal response
           setRenderCounter(prev => prev + 1)
           return
         }
@@ -1143,6 +1192,11 @@ function GameBoard({ onTurnInfoChange }) {
     // Clear FLASHING BLADES pending state if this was a splash attack
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
       setFlashingBladesPending(null)
+    }
+
+    // Clear HIDDEN BLADE pending state if this was a hidden blade attack
+    if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
+      setHiddenBladePending(null)
     }
 
     setSelectedBoardCreature(null)
@@ -1394,7 +1448,166 @@ function GameBoard({ onTurnInfoChange }) {
     return true
   }
 
+  // ============================================
+  // HIDDEN BLADE ability handlers
+  // ============================================
 
+  // User chose to use HIDDEN BLADE - enter target selection mode
+  const handleHiddenBladeUse = () => {
+    if (!hiddenBladePending) return
+
+    // Close the modal and enter target selection mode
+    setShowHiddenBladeModal(false)
+    setHiddenBladeTargetMode(true)
+
+    // Clear normal attack state to prevent interference
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+    setPendingRightClickAttack(null)
+  }
+
+  // User chose to skip HIDDEN BLADE
+  const handleHiddenBladeSkip = () => {
+    addToast(`${hiddenBladePending?.attacker.creature.name} chose not to use HIDDEN BLADE.`)
+
+    // Consume action - tap if creature has moved (deferred from original attack)
+    if (hiddenBladePending?.attacker?.hasMovedThisTurn) {
+      hiddenBladePending.attacker.tap()
+    }
+
+    // Clear state
+    setHiddenBladePending(null)
+    setShowHiddenBladeModal(false)
+    setHiddenBladeTargetMode(false)
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+    setRenderCounter(prev => prev + 1)
+  }
+
+  // User right-clicked on a valid HIDDEN BLADE target - initiate attack
+  const handleHiddenBladeTargetSelected = (targetInstance) => {
+    if (!hiddenBladePending || !targetInstance) return
+
+    // Set up a pending attack for the damage
+    const attackerInstance = hiddenBladePending.attacker
+
+    // Create a special hidden blade attack target info
+    const targetInfo = {
+      creature: targetInstance,
+      attackType: 'hidden_blade',
+      damage: 10
+    }
+
+    // Store the pending attack and show the attack panel
+    setPendingAttack({
+      attackerInstance,
+      defenderInstance: targetInstance,
+      targetInfo,
+      isHiddenBlade: true
+    })
+
+    // Exit target selection mode
+    setHiddenBladeTargetMode(false)
+
+    // Show the combat panel for attack confirmation
+    setCombatPanelMode('attack')
+    setCombatHighlightCreatures({
+      attacker: attackerInstance.instanceId,
+      defender: targetInstance.instanceId
+    })
+  }
+
+  // User confirmed HIDDEN BLADE attack from the attack panel
+  const handleHiddenBladeConfirmAttack = () => {
+    if (!pendingAttack || !pendingAttack.isHiddenBlade) return
+
+    const { attackerInstance, defenderInstance } = pendingAttack
+
+    // Check if defender is human (needs defense options) or AI
+    const defenderPlayerId = defenderInstance.owner
+    const isDefenderHuman = isPlayerHuman(defenderPlayerId)
+
+    if (isDefenderHuman) {
+      // Show defense panel for the human defender
+      setCombatPanelMode('defense')
+    } else {
+      // AI defender - check if AI wants to defend
+      const defenderPlayer = gameState.players[defenderPlayerId]
+      const difficulty = defenderPlayer?.aiDifficulty || 'easy'
+      const defenderAI = new SimpleAI(gameState, defenderPlayerId, null, difficulty)
+
+      // AI decides whether to use defensive abilities against 10 damage
+      const defenseDecision = defenderAI.decideDefense(defenderInstance, 10, attackerInstance.owner)
+      let defenseResult = null
+
+      if (defenseDecision.type === 'cower') {
+        defenseResult = gameState.applyCower(defenderInstance, 10, attackerInstance.owner)
+        if (defenseResult.success) {
+          defenseResult.type = 'cower'
+          defenseResult.damagePrevented = defenseResult.damageAvoided
+          defenseResult.damageReduction = defenseResult.damageAvoided
+        }
+      } else if (defenseDecision.type === 'immediate_card') {
+        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        if (result.success) {
+          defenseResult = {
+            success: true,
+            type: 'immediate_card',
+            damagePrevented: result.damagePrevented,
+            damageReduction: result.damagePrevented,
+            cardUsed: defenseDecision.card.name
+          }
+        }
+      }
+
+      // Execute the HIDDEN BLADE attack
+      closeCombatPanel()
+      executeAttackAfterDefense({
+        type: defenseResult?.type || 'none',
+        damageReduction: defenseResult?.damageReduction || 0,
+        success: !!defenseResult?.success
+      })
+    }
+  }
+
+  /**
+   * Check and trigger HIDDEN BLADE ability after any attack
+   * Called after attack resolves and defense phase completes
+   * IMPORTANT: This checks for TAPPED targets, so it must be called AFTER defense
+   * (using defense cards taps the defender)
+   * @returns {boolean} True if HIDDEN BLADE was triggered (modal shown)
+   */
+  const checkHiddenBladeTrigger = (attackerInstance, attackResult) => {
+    // Only trigger if attack dealt damage
+    if (!attackResult.success || attackResult.damage <= 0) return false
+
+    // Check if attacker has HIDDEN BLADE
+    if (!gameState.hasHiddenBlade(attackerInstance)) return false
+
+    // Only show modal for human player (AI is handled separately)
+    if (!isCurrentPlayerHumanCheck()) return false
+
+    // Get valid targets - adjacent TAPPED enemies (checked AFTER attack/defense resolves)
+    const validTargets = gameState.getHiddenBladeTargets(attackerInstance)
+    if (validTargets.length === 0) {
+      // No valid targets - tap the creature if it had moved (was deferred for HIDDEN BLADE)
+      if (attackerInstance.hasMovedThisTurn && !attackerInstance.isTapped) {
+        attackerInstance.tap()
+      }
+      return false
+    }
+
+    // Set up the pending ability and show modal
+    setHiddenBladePending({
+      attacker: attackerInstance,
+      validTargets
+    })
+    setShowHiddenBladeModal(true)
+
+    return true
+  }
 
   // SCROLLBOOK ability - discard selected order card to draw a new one
   const handleScrollbookUse = (cardIndex) => {
@@ -1702,6 +1915,57 @@ function GameBoard({ onTurnInfoChange }) {
             attackerInstance.tap()
           }
         }
+
+        // AI HIDDEN BLADE check - after ANY attack (melee or ranged) deals damage
+        // Note: The creature's tapping is deferred if it has HIDDEN BLADE
+        // HIDDEN BLADE targets must be TAPPED adjacent enemies
+        if (result.damage > 0 && gameState.hasHiddenBlade(attackerInstance)) {
+          const hiddenBladeTargets = gameState.getHiddenBladeTargets(attackerInstance)
+          if (hiddenBladeTargets.length > 0) {
+            // Get AI difficulty to determine if ability should be used
+            const playerNum = attackerInstance.owner.replace('PLAYER', '')
+            const playerKey = `player${playerNum}`
+            const difficulty = gameConfig[playerKey]?.difficulty || 'medium'
+
+            // Easy: never use, Medium: 50%, Hard: always use
+            let shouldUseAbility = false
+            if (difficulty === 'hard') {
+              shouldUseAbility = true
+            } else if (difficulty === 'medium') {
+              shouldUseAbility = Math.random() < 0.5
+            }
+            // Easy difficulty: shouldUseAbility stays false
+
+            if (shouldUseAbility) {
+              // Select best target (lowest HP or highest level)
+              const bestTarget = hiddenBladeTargets.reduce((best, current) => {
+                // Prioritize low HP targets that can be killed
+                if (current.currentHP <= 10 && best.currentHP > 10) return current
+                if (best.currentHP <= 10 && current.currentHP > 10) return best
+                // Otherwise, prioritize higher level targets
+                const bestValue = best.creature.level || 1
+                const currentValue = current.creature.level || 1
+                return currentValue > bestValue ? current : best
+              }, hiddenBladeTargets[0])
+
+              // Apply HIDDEN BLADE damage
+              const hiddenResult = gameState.applyHiddenBlade(bestTarget, attackerInstance.owner)
+
+              let hiddenMessage = `🗡️ HIDDEN BLADE: ${attackerInstance.creature.name} strikes ${bestTarget.creature.name} for 10 damage!`
+              if (hiddenResult.destroyed) {
+                hiddenMessage += ` ${bestTarget.creature.name} was destroyed!`
+                hiddenMessage += ` Morale changes: Attacker +${hiddenResult.moraleChange.attacker}, Defender ${hiddenResult.moraleChange.defender}`
+              } else {
+                hiddenMessage += ` ${bestTarget.creature.name} has ${hiddenResult.remainingHP} HP remaining.`
+              }
+              addToast(hiddenMessage)
+            }
+          }
+          // Now tap the creature (deferred from attack due to HIDDEN BLADE)
+          if (attackerInstance.hasMovedThisTurn && !attackerInstance.isTapped) {
+            attackerInstance.tap()
+          }
+        }
       } else {
         addToast(result.message || 'Attack failed!')
       }
@@ -1834,6 +2098,16 @@ function GameBoard({ onTurnInfoChange }) {
       }
     }
 
+    // Handle HIDDEN BLADE target selection
+    if (hiddenBladeTargetMode && hiddenBladePending) {
+      const targetCreature = hiddenBladePending.validTargets.find(
+        t => t.position?.x === tile.x && t.position?.y === tile.y
+      )
+      if (targetCreature) {
+        handleHiddenBladeTargetSelected(targetCreature)
+        return
+      }
+    }
 
     // Must have a creature selected (via left-click) to use right-click actions
     if (!selectedBoardCreature) return
@@ -1950,6 +2224,19 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // ============================================
+    // HIDDEN BLADE LOCK: Block phase advancement during ability - O(1)
+    // User must complete or skip the HIDDEN BLADE ability
+    // ============================================
+    if (showHiddenBladeModal) {
+      addLog('system', '⚠️ You must choose whether to use HIDDEN BLADE before advancing the phase.', 'warning')
+      return
+    }
+    if (hiddenBladeTargetMode) {
+      addLog('system', '⚠️ You must select a target for HIDDEN BLADE before advancing the phase.', 'warning')
+      return
+    }
+
     switch (gameState.currentPhase) {
       case GamePhases.REFRESH:
         // If HORDE refresh was already executed, just advance (don't redo refresh actions)
@@ -2028,10 +2315,11 @@ function GameBoard({ onTurnInfoChange }) {
 
     // ============================================
     // COMBAT LOCK: Disable phase button when combat is pending - O(1)
-    // Also blocks during FLASHING BLADES modal or target selection
+    // Also blocks during FLASHING BLADES or HIDDEN BLADE modal or target selection
     // ============================================
     const isFlashingBladesActive = showFlashingBladesModal || flashingBladesTargetMode
-    const canAdvancePhaseValue = !combatPanelMode && !isFlashingBladesActive && (gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase())
+    const isHiddenBladeActive = showHiddenBladeModal || hiddenBladeTargetMode
+    const canAdvancePhaseValue = !combatPanelMode && !isFlashingBladesActive && !isHiddenBladeActive && (gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase())
 
     onTurnInfoChange({
       turnNumber: gameState.turnNumber,
@@ -2319,6 +2607,12 @@ function GameBoard({ onTurnInfoChange }) {
                       t => t.position?.x === x && t.position?.y === y
                     )
 
+                  // Check if this creature is a HIDDEN BLADE target
+                  const isHiddenBladeTarget = hiddenBladeTargetMode &&
+                    hiddenBladePending?.validTargets.some(
+                      t => t.position?.x === x && t.position?.y === y
+                    )
+
                   // Check if this is the selected creature
                   const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
                                               selectedBoardCreature?.position?.y === y
@@ -2349,7 +2643,7 @@ function GameBoard({ onTurnInfoChange }) {
                       isSelected={isSelectedCreature}
                       isValidMove={isValidMove}
                       movementInfo={validMove} // Pass movement info for cost display
-                      isAttackTarget={isAttackTarget || isFlashingBladesTarget}
+                      isAttackTarget={isAttackTarget || isFlashingBladesTarget || isHiddenBladeTarget}
                       attackType={attackType}
                       isLineOfSight={isLineOfSight}
                       onClick={handleTileClick}
@@ -2435,8 +2729,13 @@ function GameBoard({ onTurnInfoChange }) {
                 }
                 gameState={gameState}
                 isFlashingBlades={pendingAttack?.isFlashingBlades || false}
-                onConfirmAttack={pendingAttack?.isFlashingBlades ? handleFlashingBladesConfirmAttack : confirmRightClickAttack}
-                onCancelAttack={pendingAttack?.isFlashingBlades ? null : cancelRightClickAttack}
+                isHiddenBlade={pendingAttack?.isHiddenBlade || false}
+                onConfirmAttack={
+                  pendingAttack?.isFlashingBlades ? handleFlashingBladesConfirmAttack :
+                  pendingAttack?.isHiddenBlade ? handleHiddenBladeConfirmAttack :
+                  confirmRightClickAttack
+                }
+                onCancelAttack={pendingAttack?.isFlashingBlades || pendingAttack?.isHiddenBlade ? null : cancelRightClickAttack}
                 onDefenseSelected={handleDefenseSelected}
                 onSkipDefense={handleReactionsSkipped}
                 // FACTION ICONS PROPS - O(1) prop passing
@@ -2737,6 +3036,43 @@ function GameBoard({ onTurnInfoChange }) {
             ⚔️ Use Ability
           </Button>
           <Button variant="secondary" size="lg" onClick={handleFlashingBladesSkip}>
+            Skip
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* HIDDEN BLADE Ability Modal - Choose to strike adjacent tapped enemy */}
+      <Modal
+        show={showHiddenBladeModal}
+        onHide={handleHiddenBladeSkip}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header style={{ backgroundColor: '#2d1f3d', color: 'white' }}>
+          <Modal.Title>🗡️ HIDDEN BLADE - Strike from the Shadows!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {hiddenBladePending && (
+            <div>
+              <p>
+                <strong>{hiddenBladePending.attacker.creature.name}</strong> can strike a{' '}
+                <span style={{ color: '#ffc107', fontWeight: 'bold' }}>tapped</span> adjacent enemy for{' '}
+                <span style={{ color: '#dc3545', fontWeight: 'bold' }}>10 damage</span>!
+              </p>
+              <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
+                Valid targets: {hiddenBladePending.validTargets.map(t => t.creature.name).join(', ')}
+              </p>
+              <p style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '10px' }}>
+                Click "Use Ability" then right-click on a highlighted target to attack.
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
+          <Button variant="danger" size="lg" onClick={handleHiddenBladeUse}>
+            🗡️ Use Ability
+          </Button>
+          <Button variant="secondary" size="lg" onClick={handleHiddenBladeSkip}>
             Skip
           </Button>
         </Modal.Footer>

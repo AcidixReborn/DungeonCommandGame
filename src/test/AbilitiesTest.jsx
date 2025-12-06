@@ -53,6 +53,20 @@ function AbilitiesTest() {
       medium: { offered: 0, triggered: 0, declined: 0 },
       hard: { offered: 0, triggered: 0, declined: 0 }
     },
+    hidden_blade: {
+      name: 'HIDDEN BLADE',
+      creature: 'Drow Assassin',
+      faction: 'Sting of Lolth',
+      // Overall totals
+      timesOffered: 0,
+      timesTriggered: 0,
+      timesDeclined: 0,
+      damageDealt: 0,
+      // Per-difficulty breakdown
+      easy: { offered: 0, triggered: 0, declined: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0 }
+    },
     scuttle: {
       name: 'SCUTTLE',
       creature: 'Demonweb Spider, Drider, Giant Spider',
@@ -228,6 +242,52 @@ function AbilitiesTest() {
             } else {
               creatureAbilityStats.flashing_blades.timesDeclined++
               creatureAbilityStats.flashing_blades[difficulty].declined++
+            }
+          }
+        }
+
+        // Check for HIDDEN BLADE ability (Drow Assassin) - works on melee OR ranged
+        if (creatureAbilityStats && gameState.hasHiddenBlade && gameState.hasHiddenBlade(attackerInstance)) {
+          const hiddenBladeTargets = gameState.getHiddenBladeTargets
+            ? gameState.getHiddenBladeTargets(attackerInstance)
+            : []
+
+          if (hiddenBladeTargets.length > 0) {
+            // Simulate AI difficulty behavior:
+            // - 33% chance: Easy AI (never uses)
+            // - 34% chance: Medium AI (50% usage)
+            // - 33% chance: Hard AI (always uses)
+            const difficultyRoll = Math.random()
+            let difficulty = 'easy'
+            let useHiddenBlade = false
+
+            if (difficultyRoll < 0.33) {
+              // Easy AI - never uses creature abilities
+              difficulty = 'easy'
+              useHiddenBlade = false
+            } else if (difficultyRoll < 0.67) {
+              // Medium AI - 50% chance to use
+              difficulty = 'medium'
+              useHiddenBlade = Math.random() < 0.5
+            } else {
+              // Hard AI - always uses
+              difficulty = 'hard'
+              useHiddenBlade = true
+            }
+
+            // Track overall stats
+            creatureAbilityStats.hidden_blade.timesOffered++
+            // Track per-difficulty stats
+            creatureAbilityStats.hidden_blade[difficulty].offered++
+
+            if (useHiddenBlade) {
+              const hiddenBladeDamage = 10
+              creatureAbilityStats.hidden_blade.timesTriggered++
+              creatureAbilityStats.hidden_blade.damageDealt += hiddenBladeDamage
+              creatureAbilityStats.hidden_blade[difficulty].triggered++
+            } else {
+              creatureAbilityStats.hidden_blade.timesDeclined++
+              creatureAbilityStats.hidden_blade[difficulty].declined++
             }
           }
         }
@@ -730,10 +790,11 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 2 }
+    if (!creatureAbilityStats) return { working: 0, total: 3 }
     let working = 0
-    const total = 2 // FLASHING BLADES and SCUTTLE
+    const total = 3 // FLASHING BLADES, HIDDEN BLADE, and SCUTTLE
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
+    if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
     return { working, total }
   }
@@ -1028,6 +1089,91 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         Expected rates: Easy = 0% (never), Medium = ~50% (random), Hard = 100% (always)
+                      </small>
+                    </Col>
+                  </Row>
+
+                  {/* HIDDEN BLADE Stats */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-warning">Sting of Lolth - HIDDEN BLADE <Badge bg="warning">ACTIVE</Badge> <small className="text-muted">(Drow Assassin)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.hidden_blade?.timesOffered || 0}</Badge></td>
+                            <td><strong>Damage Dealt</strong></td>
+                            <td>{results.creatureAbilityStats?.hidden_blade?.damageDealt || 0}</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.hidden_blade?.timesTriggered || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.hidden_blade?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.hidden_blade.timesTriggered / results.creatureAbilityStats.hidden_blade.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.hidden_blade?.timesDeclined || 0}</Badge></td>
+                            <td colSpan={2}></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.hidden_blade?.[diff] || { offered: 0, triggered: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        HIDDEN BLADE triggers after any attack (melee or ranged) against adjacent tapped enemies. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

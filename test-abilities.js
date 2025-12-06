@@ -34,6 +34,7 @@ const CONFIG = {
   // Expected ability usage rates by difficulty (for validation)
   EXPECTED_RATES: {
     flashing_blades: { easy: 0, medium: 0.5, hard: 1.0 },
+    hidden_blade: { easy: 0, medium: 0.5, hard: 1.0 },
     versatile: { easy: 0, medium: 0.5, hard: 1.0 }
   }
 }
@@ -207,6 +208,7 @@ const stats = {
     // ===== STING OF LOLTH =====
     lolth: {
       scuttle: { name: 'SCUTTLE', timesTriggered: 0, extraTilesMoved: 0, creatures: ['Demonweb Spider', 'Giant Spider', 'Drider'] },
+      hidden_blade: { name: 'HIDDEN BLADE', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, damageDealt: 0, creatures: ['Drow Assassin'] },
       shadow_stalker: { name: 'SHADOW STALKER', timesTriggered: 0, deployments: 0, creatures: ['Shadow Mastiff'] },
       summon_spider: { name: 'SUMMON SPIDER', timesTriggered: 0, spidersDeployed: 0, creatures: ['Drow Priestess'] },
       confusion_gaze: { name: 'CONFUSION GAZE', timesTriggered: 0, enemiesSlid: 0, damageDealt: 0, creatures: ['Umber Hulk'] },
@@ -341,6 +343,12 @@ function trackCreatureAbility(factionKey, abilityKey, detail = {}) {
       if (detail.triggered) ability.timesTriggered++
       if (detail.declined) ability.timesDeclined++
       if (detail.splashDamage) ability.splashDamageDealt += detail.splashDamage
+      break
+    case 'hidden_blade':
+      if (detail.offered) ability.timesOffered++
+      if (detail.triggered) ability.timesTriggered++
+      if (detail.declined) ability.timesDeclined++
+      if (detail.damage) ability.damageDealt += detail.damage
       break
     default:
       if (detail.triggered) ability.timesTriggered++
@@ -641,6 +649,62 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
             }
           } else {
             trackCreatureAbility('cormyr', 'flashing_blades', { declined: true })
+          }
+        }
+      }
+
+      // Check for HIDDEN BLADE ability (Drow Assassin) - works on melee OR ranged
+      if (gameState.hasHiddenBlade && gameState.hasHiddenBlade(attackerInstance)) {
+        const hiddenBladeTargets = gameState.getHiddenBladeTargets
+          ? gameState.getHiddenBladeTargets(attackerInstance)
+          : []
+
+        if (hiddenBladeTargets.length > 0) {
+          // Track that HIDDEN BLADE was offered
+          trackCreatureAbility('lolth', 'hidden_blade', { offered: true })
+
+          // AI decision to use HIDDEN BLADE based on difficulty
+          const attackerOwner = attackerInstance.owner
+          const attackerPlayer = gameState.players[attackerOwner]
+          const attackerDifficulty = attackerPlayer?.aiDifficulty || 'easy'
+
+          let useHiddenBlade = false
+          switch (attackerDifficulty) {
+            case 'easy':
+              useHiddenBlade = false  // Easy AI never uses creature abilities
+              break
+            case 'medium':
+              useHiddenBlade = Math.random() < 0.5  // Medium AI uses 50% of the time
+              break
+            case 'hard':
+              useHiddenBlade = true  // Hard AI always uses creature abilities
+              break
+          }
+
+          if (useHiddenBlade) {
+            // Pick best target (lowest HP or highest level)
+            const target = hiddenBladeTargets.reduce((best, current) => {
+              if (current.currentHP <= 10 && best.currentHP > 10) return current
+              if (best.currentHP <= 10 && current.currentHP > 10) return best
+              return (current.creature.level || 1) > (best.creature.level || 1) ? current : best
+            }, hiddenBladeTargets[0])
+
+            const hiddenBladeDamage = 10
+
+            // Track HIDDEN BLADE usage
+            trackCreatureAbility('lolth', 'hidden_blade', {
+              triggered: true,
+              damage: hiddenBladeDamage
+            })
+
+            // Track difficulty-specific usage
+            stats.difficultyStats[attackerDifficulty].creatureAbilitiesUsed++
+
+            if (CONFIG.VERBOSE_LOGGING) {
+              console.log(`  [HIDDEN BLADE] ${attackerInstance.creature.name} strikes ${target.creature.name} for ${hiddenBladeDamage} damage!`)
+            }
+          } else {
+            trackCreatureAbility('lolth', 'hidden_blade', { declined: true })
           }
         }
       }
@@ -1225,6 +1289,18 @@ function printResults() {
                 const usageRate = ((abilityData.timesTriggered / abilityData.timesOffered) * 100).toFixed(1)
                 console.log(`      Usage Rate (when offered): ${usageRate}%`)
               }
+            } else if (abilityKey === 'hidden_blade') {
+              // Special handling for HIDDEN BLADE with extended stats
+              console.log(`    ${abilityData.name} (${abilityData.creatures.join(', ')}):`)
+              console.log(`      Times Offered:           ${String(abilityData.timesOffered).padStart(6)}    (${avgPerGame(abilityData.timesOffered)}/game)`)
+              console.log(`      Times Triggered:         ${String(abilityData.timesTriggered).padStart(6)}    (${avgPerGame(abilityData.timesTriggered)}/game)`)
+              console.log(`      Times Declined:          ${String(abilityData.timesDeclined).padStart(6)}    (${avgPerGame(abilityData.timesDeclined)}/game)`)
+              console.log(`      Damage Dealt:            ${String(abilityData.damageDealt).padStart(6)}    (${avgPerGame(abilityData.damageDealt)}/game)`)
+              // Calculate usage rate when offered
+              if (abilityData.timesOffered > 0) {
+                const usageRate = ((abilityData.timesTriggered / abilityData.timesOffered) * 100).toFixed(1)
+                console.log(`      Usage Rate (when offered): ${usageRate}%`)
+              }
             } else {
               console.log(`    ${abilityData.name}: ${abilityData.timesTriggered} triggers (${avgPerGame(abilityData.timesTriggered)}/game)`)
             }
@@ -1404,7 +1480,7 @@ function validateAbilityUsageRates(difficulty) {
     const actualRate = flashingBlades.timesTriggered / flashingBlades.timesOffered
     const expectedRate = CONFIG.EXPECTED_RATES.flashing_blades[difficulty]
 
-    // Allow some variance (±20% for medium, exact for easy/hard)
+    // Allow some variance (±25% for medium, exact for easy/hard)
     let tolerance = 0
     if (difficulty === 'medium') {
       tolerance = 0.25  // 25% tolerance for random 50% chance
@@ -1412,6 +1488,23 @@ function validateAbilityUsageRates(difficulty) {
 
     if (Math.abs(actualRate - expectedRate) > tolerance) {
       issues.push(`FLASHING BLADES: Expected ~${(expectedRate * 100).toFixed(0)}% usage, got ${(actualRate * 100).toFixed(1)}%`)
+    }
+  }
+
+  // Validate HIDDEN BLADE usage rate
+  const hiddenBlade = stats.creatureAbilityStats.lolth.hidden_blade
+  if (hiddenBlade.timesOffered > 0) {
+    const actualRate = hiddenBlade.timesTriggered / hiddenBlade.timesOffered
+    const expectedRate = CONFIG.EXPECTED_RATES.hidden_blade[difficulty]
+
+    // Allow some variance (±25% for medium, exact for easy/hard)
+    let tolerance = 0
+    if (difficulty === 'medium') {
+      tolerance = 0.25  // 25% tolerance for random 50% chance
+    }
+
+    if (Math.abs(actualRate - expectedRate) > tolerance) {
+      issues.push(`HIDDEN BLADE: Expected ~${(expectedRate * 100).toFixed(0)}% usage, got ${(actualRate * 100).toFixed(1)}%`)
     }
   }
 
@@ -1446,6 +1539,7 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
       gamesCompleted: stats.gamesCompleted,
       gamesErrored: stats.gamesErrored,
       flashingBlades: { ...stats.creatureAbilityStats.cormyr.flashing_blades },
+      hiddenBlade: { ...stats.creatureAbilityStats.lolth.hidden_blade },
       difficultyStats: { ...stats.difficultyStats[difficulty] }
     }
 
@@ -1472,11 +1566,28 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
     console.log(`  ${difficulty.toUpperCase().padEnd(8)}          ${String(fb.timesOffered).padStart(6)}    ${String(fb.timesTriggered).padStart(6)}     ${String(fb.timesDeclined).padStart(6)}    ${rate}%`)
   }
 
-  console.log('\n[EXPECTED VS ACTUAL RATES]')
+  console.log('\n[HIDDEN BLADE USAGE BY DIFFICULTY]')
+  console.log('                        OFFERED   TRIGGERED   DECLINED   RATE')
+  for (const difficulty of difficulties) {
+    const hb = difficultyResults[difficulty].hiddenBlade
+    const rate = hb.timesOffered > 0 ? ((hb.timesTriggered / hb.timesOffered) * 100).toFixed(1) : '0.0'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)}          ${String(hb.timesOffered).padStart(6)}    ${String(hb.timesTriggered).padStart(6)}     ${String(hb.timesDeclined).padStart(6)}    ${rate}%`)
+  }
+
+  console.log('\n[EXPECTED VS ACTUAL RATES - FLASHING BLADES]')
   for (const difficulty of difficulties) {
     const fb = difficultyResults[difficulty].flashingBlades
     const actualRate = fb.timesOffered > 0 ? (fb.timesTriggered / fb.timesOffered) : 0
     const expectedRate = CONFIG.EXPECTED_RATES.flashing_blades[difficulty]
+    const status = Math.abs(actualRate - expectedRate) <= 0.25 ? '✓' : '✗'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)} Expected: ${(expectedRate * 100).toFixed(0)}%   Actual: ${(actualRate * 100).toFixed(1)}%  ${status}`)
+  }
+
+  console.log('\n[EXPECTED VS ACTUAL RATES - HIDDEN BLADE]')
+  for (const difficulty of difficulties) {
+    const hb = difficultyResults[difficulty].hiddenBlade
+    const actualRate = hb.timesOffered > 0 ? (hb.timesTriggered / hb.timesOffered) : 0
+    const expectedRate = CONFIG.EXPECTED_RATES.hidden_blade[difficulty]
     const status = Math.abs(actualRate - expectedRate) <= 0.25 ? '✓' : '✗'
     console.log(`  ${difficulty.toUpperCase().padEnd(8)} Expected: ${(expectedRate * 100).toFixed(0)}%   Actual: ${(actualRate * 100).toFixed(1)}%  ${status}`)
   }

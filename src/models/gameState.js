@@ -584,6 +584,185 @@ export class GameState {
   }
 
   // ============================================================================
+  // HIDDEN BLADE - Drow Assassin Creature Ability
+  // After ANY attack (melee or ranged) deals damage, can deal 10 damage to an
+  // adjacent TAPPED enemy creature. Check happens AFTER attack resolves so
+  // defense card usage counts (defender becomes tapped after using defense).
+  // ============================================================================
+
+  /**
+   * Check if creature has HIDDEN BLADE ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has HIDDEN BLADE
+   */
+  hasHiddenBlade(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('HIDDEN BLADE')
+    )
+  }
+
+  /**
+   * Get valid targets for HIDDEN BLADE damage
+   * Returns adjacent enemy creatures that are TAPPED
+   * Unlike FLASHING BLADES, this CAN include the original target if it became tapped
+   * @param {CreatureInstance} attackerInstance - The Drow Assassin
+   * @returns {Array} Array of valid target CreatureInstances (must be tapped)
+   */
+  getHiddenBladeTargets(attackerInstance) {
+    if (!this.hasHiddenBlade(attackerInstance)) return []
+    if (!attackerInstance.position) return []
+
+    const targets = []
+    // Use 8-directional adjacency
+    const adjacent = this.getAdjacentTiles8Dir(attackerInstance.position.x, attackerInstance.position.y)
+
+    for (const tile of adjacent) {
+      const occupant = tile.occupant
+      if (occupant &&
+          occupant.owner !== attackerInstance.owner &&
+          occupant.isTapped &&  // KEY: Must be tapped
+          occupant.currentHP > 0) {
+        targets.push(occupant)
+      }
+    }
+
+    return targets
+  }
+
+  /**
+   * Apply HIDDEN BLADE damage (10 damage)
+   * Handles morale changes and creature destruction
+   * @param {CreatureInstance} targetInstance - The creature receiving damage
+   * @param {string} attackerOwner - Owner of the Drow Assassin (for morale)
+   * @returns {Object} { success, damage, destroyed, moraleChange }
+   */
+  applyHiddenBlade(targetInstance, attackerOwner) {
+    const HIDDEN_BLADE_DAMAGE = 10
+
+    if (!targetInstance) {
+      return { success: false, message: 'Invalid target' }
+    }
+
+    const defenderOwner = targetInstance.owner
+
+    // Apply damage using takeDamage
+    const wasDestroyed = targetInstance.takeDamage(HIDDEN_BLADE_DAMAGE)
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Defender loses morale equal to creature's level
+      defenderPlayer.loseMorale(targetInstance.creature.level)
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level
+      }
+    }
+
+    return {
+      success: true,
+      damage: HIDDEN_BLADE_DAMAGE,
+      destroyed: wasDestroyed,
+      moraleChange,
+      remainingHP: Math.max(0, targetInstance.currentHP)
+    }
+  }
+
+  /**
+   * Apply HIDDEN BLADE damage with defense reduction
+   * @param {CreatureInstance} targetInstance - The creature receiving damage
+   * @param {string} attackerOwner - Owner of the Drow Assassin (for morale)
+   * @param {number} damageReduction - Amount of damage prevented by defense
+   * @returns {Object} { success, damage, destroyed, moraleChange }
+   */
+  applyHiddenBladeWithDefense(targetInstance, attackerOwner, damageReduction = 0) {
+    const BASE_HIDDEN_BLADE_DAMAGE = 10
+    const actualDamage = Math.max(0, BASE_HIDDEN_BLADE_DAMAGE - damageReduction)
+
+    if (!targetInstance) {
+      return { success: false, message: 'Invalid target' }
+    }
+
+    // If all damage was prevented, no effect
+    if (actualDamage <= 0) {
+      return {
+        success: true,
+        damage: 0,
+        destroyed: false,
+        moraleChange: { attacker: 0, defender: 0 },
+        remainingHP: targetInstance.currentHP,
+        damageReduced: damageReduction
+      }
+    }
+
+    const defenderOwner = targetInstance.owner
+
+    // Apply damage using takeDamage
+    const wasDestroyed = targetInstance.takeDamage(actualDamage)
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Defender loses morale equal to creature's level
+      defenderPlayer.loseMorale(targetInstance.creature.level)
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level
+      }
+    }
+
+    return {
+      success: true,
+      damage: actualDamage,
+      destroyed: wasDestroyed,
+      moraleChange,
+      remainingHP: Math.max(0, targetInstance.currentHP),
+      damageReduced: damageReduction
+    }
+  }
+
+  // ============================================================================
   // SCUTTLE - Spider Creature Ability (Demonweb Spider, Drider, Giant Spider)
   // This creature can move through other creatures for 1 speed cost per creature
   // Cannot stop on a creature - only pass through
