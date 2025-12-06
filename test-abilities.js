@@ -37,7 +37,8 @@ const CONFIG = {
     hidden_blade: { easy: 0, medium: 0.5, hard: 1.0 },
     shadow_stalker: { easy: 0, medium: 0.5, hard: 1.0 },
     versatile: { easy: 0, medium: 0.5, hard: 1.0 },
-    burrow: { easy: 0, medium: 0.5, hard: 1.0 }
+    burrow: { easy: 0, medium: 0.5, hard: 1.0 },
+    confusion_gaze: { easy: 0, medium: 0.5, hard: 1.0 }
   }
 }
 
@@ -213,7 +214,7 @@ const stats = {
       hidden_blade: { name: 'HIDDEN BLADE', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, damageDealt: 0, creatures: ['Drow Assassin'] },
       shadow_stalker: { name: 'SHADOW STALKER', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, deployments: 0, creatures: ['Shadow Mastiff'] },
       summon_spider: { name: 'SUMMON SPIDER', timesTriggered: 0, spidersDeployed: 0, creatures: ['Drow Priestess'] },
-      confusion_gaze: { name: 'CONFUSION GAZE', timesTriggered: 0, enemiesSlid: 0, damageDealt: 0, creatures: ['Umber Hulk'] },
+      confusion_gaze: { name: 'CONFUSION GAZE', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, enemiesSlid: 0, damageDealt: 0, creatures: ['Umber Hulk'] },
       burrow_lolth: { name: 'BURROW', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, mountainTilesMoved: 0, creatures: ['Umber Hulk'] }
     },
 
@@ -366,6 +367,15 @@ function trackCreatureAbility(factionKey, abilityKey, detail = {}) {
       if (detail.triggered) ability.timesTriggered++
       if (detail.declined) ability.timesDeclined++
       if (detail.mountainTiles) ability.mountainTilesMoved += detail.mountainTiles
+      break
+    case 'confusion_gaze':
+      if (detail.offered) ability.timesOffered++
+      if (detail.triggered) {
+        ability.timesTriggered++
+        ability.enemiesSlid++
+      }
+      if (detail.declined) ability.timesDeclined++
+      if (detail.damage) ability.damageDealt += detail.damage
       break
     default:
       if (detail.triggered) ability.timesTriggered++
@@ -722,6 +732,57 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
             }
           } else {
             trackCreatureAbility('lolth', 'hidden_blade', { declined: true })
+          }
+        }
+      }
+
+      // Check for CONFUSION GAZE ability (Umber Hulk)
+      if (gameState.hasConfusionGaze && gameState.hasConfusionGaze(attackerInstance)) {
+        const confusionGazeTargets = gameState.getConfusionGazeTargets
+          ? gameState.getConfusionGazeTargets(attackerInstance)
+          : []
+
+        if (confusionGazeTargets.length > 0) {
+          // Track that CONFUSION GAZE was offered
+          trackCreatureAbility('lolth', 'confusion_gaze', { offered: true })
+
+          // AI decision to use CONFUSION GAZE based on difficulty
+          const attackerOwner = attackerInstance.owner
+          const attackerPlayer = gameState.players[attackerOwner]
+          const attackerDifficulty = attackerPlayer?.aiDifficulty || 'easy'
+
+          let useConfusionGaze = false
+          switch (attackerDifficulty) {
+            case 'easy':
+              useConfusionGaze = false  // Easy AI never uses creature abilities
+              break
+            case 'medium':
+              useConfusionGaze = Math.random() < 0.5  // Medium AI uses 50% of the time
+              break
+            case 'hard':
+              useConfusionGaze = true  // Hard AI always uses creature abilities
+              break
+          }
+
+          if (useConfusionGaze) {
+            // Pick a random target from available targets
+            const target = confusionGazeTargets[Math.floor(Math.random() * confusionGazeTargets.length)]
+            const confusionGazeDamage = attackerInstance.creature.meleeAttack?.damage || 30
+
+            // Track CONFUSION GAZE usage
+            trackCreatureAbility('lolth', 'confusion_gaze', {
+              triggered: true,
+              damage: confusionGazeDamage
+            })
+
+            // Track difficulty-specific usage
+            stats.difficultyStats[attackerDifficulty].creatureAbilitiesUsed++
+
+            if (CONFIG.VERBOSE_LOGGING) {
+              console.log(`  [CONFUSION GAZE] ${attackerInstance.creature.name} slides and strikes ${target.creature.name} for ${confusionGazeDamage} damage!`)
+            }
+          } else {
+            trackCreatureAbility('lolth', 'confusion_gaze', { declined: true })
           }
         }
       }
@@ -1369,6 +1430,19 @@ function printResults() {
                 const usageRate = ((abilityData.timesTriggered / abilityData.timesOffered) * 100).toFixed(1)
                 console.log(`      Usage Rate (when offered): ${usageRate}%`)
               }
+            } else if (abilityKey === 'confusion_gaze') {
+              // Special handling for CONFUSION GAZE with extended stats
+              console.log(`    ${abilityData.name} (${abilityData.creatures.join(', ')}):`)
+              console.log(`      Times Offered:           ${String(abilityData.timesOffered).padStart(6)}    (${avgPerGame(abilityData.timesOffered)}/game)`)
+              console.log(`      Times Triggered:         ${String(abilityData.timesTriggered).padStart(6)}    (${avgPerGame(abilityData.timesTriggered)}/game)`)
+              console.log(`      Times Declined:          ${String(abilityData.timesDeclined).padStart(6)}    (${avgPerGame(abilityData.timesDeclined)}/game)`)
+              console.log(`      Enemies Slid:            ${String(abilityData.enemiesSlid).padStart(6)}    (${avgPerGame(abilityData.enemiesSlid)}/game)`)
+              console.log(`      Damage Dealt:            ${String(abilityData.damageDealt).padStart(6)}    (${avgPerGame(abilityData.damageDealt)}/game)`)
+              // Calculate usage rate when offered
+              if (abilityData.timesOffered > 0) {
+                const usageRate = ((abilityData.timesTriggered / abilityData.timesOffered) * 100).toFixed(1)
+                console.log(`      Usage Rate (when offered): ${usageRate}%`)
+              }
             } else {
               console.log(`    ${abilityData.name}: ${abilityData.timesTriggered} triggers (${avgPerGame(abilityData.timesTriggered)}/game)`)
             }
@@ -1593,6 +1667,23 @@ function validateAbilityUsageRates(difficulty) {
     }
   }
 
+  // Validate CONFUSION GAZE usage rate
+  const confusionGaze = stats.creatureAbilityStats.lolth.confusion_gaze
+  if (confusionGaze.timesOffered > 0) {
+    const actualRate = confusionGaze.timesTriggered / confusionGaze.timesOffered
+    const expectedRate = CONFIG.EXPECTED_RATES.confusion_gaze[difficulty]
+
+    // Allow some variance (±25% for medium, exact for easy/hard)
+    let tolerance = 0
+    if (difficulty === 'medium') {
+      tolerance = 0.25  // 25% tolerance for random 50% chance
+    }
+
+    if (Math.abs(actualRate - expectedRate) > tolerance) {
+      issues.push(`CONFUSION GAZE: Expected ~${(expectedRate * 100).toFixed(0)}% usage, got ${(actualRate * 100).toFixed(1)}%`)
+    }
+  }
+
   return issues
 }
 
@@ -1626,6 +1717,7 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
       flashingBlades: { ...stats.creatureAbilityStats.cormyr.flashing_blades },
       hiddenBlade: { ...stats.creatureAbilityStats.lolth.hidden_blade },
       shadowStalker: { ...stats.creatureAbilityStats.lolth.shadow_stalker },
+      confusionGaze: { ...stats.creatureAbilityStats.lolth.confusion_gaze },
       difficultyStats: { ...stats.difficultyStats[difficulty] }
     }
 
@@ -1668,6 +1760,14 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
     console.log(`  ${difficulty.toUpperCase().padEnd(8)}          ${String(ss.timesOffered).padStart(6)}    ${String(ss.timesTriggered).padStart(6)}     ${String(ss.timesDeclined).padStart(6)}    ${rate}%`)
   }
 
+  console.log('\n[CONFUSION GAZE USAGE BY DIFFICULTY]')
+  console.log('                        OFFERED   TRIGGERED   DECLINED   RATE')
+  for (const difficulty of difficulties) {
+    const cg = difficultyResults[difficulty].confusionGaze
+    const rate = cg.timesOffered > 0 ? ((cg.timesTriggered / cg.timesOffered) * 100).toFixed(1) : '0.0'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)}          ${String(cg.timesOffered).padStart(6)}    ${String(cg.timesTriggered).padStart(6)}     ${String(cg.timesDeclined).padStart(6)}    ${rate}%`)
+  }
+
   console.log('\n[EXPECTED VS ACTUAL RATES - FLASHING BLADES]')
   for (const difficulty of difficulties) {
     const fb = difficultyResults[difficulty].flashingBlades
@@ -1691,6 +1791,15 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
     const ss = difficultyResults[difficulty].shadowStalker
     const actualRate = ss.timesOffered > 0 ? (ss.timesTriggered / ss.timesOffered) : 0
     const expectedRate = CONFIG.EXPECTED_RATES.shadow_stalker[difficulty]
+    const status = Math.abs(actualRate - expectedRate) <= 0.25 ? '✓' : '✗'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)} Expected: ${(expectedRate * 100).toFixed(0)}%   Actual: ${(actualRate * 100).toFixed(1)}%  ${status}`)
+  }
+
+  console.log('\n[EXPECTED VS ACTUAL RATES - CONFUSION GAZE]')
+  for (const difficulty of difficulties) {
+    const cg = difficultyResults[difficulty].confusionGaze
+    const actualRate = cg.timesOffered > 0 ? (cg.timesTriggered / cg.timesOffered) : 0
+    const expectedRate = CONFIG.EXPECTED_RATES.confusion_gaze[difficulty]
     const status = Math.abs(actualRate - expectedRate) <= 0.25 ? '✓' : '✗'
     console.log(`  ${difficulty.toUpperCase().padEnd(8)} Expected: ${(expectedRate * 100).toFixed(0)}%   Actual: ${(actualRate * 100).toFixed(1)}%  ${status}`)
   }

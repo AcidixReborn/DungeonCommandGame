@@ -121,6 +121,21 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, mountainTiles: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, mountainTiles: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, mountainTiles: 0 }
+    },
+    confusion_gaze: {
+      name: 'CONFUSION GAZE',
+      creature: 'Umber Hulk',
+      faction: 'Sting of Lolth',
+      // Overall totals
+      timesOffered: 0,  // Times ability could have been used (Umber Hulk attacking with valid targets)
+      timesTriggered: 0,  // Times ability was used
+      timesDeclined: 0,  // Times ability was not used
+      enemiesSlid: 0,  // Total enemies slid
+      damageDealt: 0,  // Total damage dealt via CONFUSION GAZE
+      // Per-difficulty breakdown
+      easy: { offered: 0, triggered: 0, declined: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0 }
     }
   })
 
@@ -329,6 +344,53 @@ function AbilitiesTest() {
             } else {
               creatureAbilityStats.hidden_blade.timesDeclined++
               creatureAbilityStats.hidden_blade[difficulty].declined++
+            }
+          }
+        }
+
+        // Check for CONFUSION GAZE ability (Umber Hulk)
+        if (creatureAbilityStats && gameState.hasConfusionGaze && gameState.hasConfusionGaze(attackerInstance)) {
+          const confusionGazeTargets = gameState.getConfusionGazeTargets
+            ? gameState.getConfusionGazeTargets(attackerInstance)
+            : []
+
+          if (confusionGazeTargets.length > 0) {
+            // Simulate AI difficulty behavior:
+            // - 33% chance: Easy AI (never uses)
+            // - 34% chance: Medium AI (50% usage)
+            // - 33% chance: Hard AI (always uses)
+            const difficultyRoll = Math.random()
+            let difficulty = 'easy'
+            let useConfusionGaze = false
+
+            if (difficultyRoll < 0.33) {
+              // Easy AI - never uses creature abilities
+              difficulty = 'easy'
+              useConfusionGaze = false
+            } else if (difficultyRoll < 0.67) {
+              // Medium AI - 50% chance to use
+              difficulty = 'medium'
+              useConfusionGaze = Math.random() < 0.5
+            } else {
+              // Hard AI - always uses
+              difficulty = 'hard'
+              useConfusionGaze = true
+            }
+
+            // Track overall stats
+            creatureAbilityStats.confusion_gaze.timesOffered++
+            // Track per-difficulty stats
+            creatureAbilityStats.confusion_gaze[difficulty].offered++
+
+            if (useConfusionGaze) {
+              const confusionGazeDamage = attackerInstance.creature.meleeAttack?.damage || 30
+              creatureAbilityStats.confusion_gaze.timesTriggered++
+              creatureAbilityStats.confusion_gaze.enemiesSlid++
+              creatureAbilityStats.confusion_gaze.damageDealt += confusionGazeDamage
+              creatureAbilityStats.confusion_gaze[difficulty].triggered++
+            } else {
+              creatureAbilityStats.confusion_gaze.timesDeclined++
+              creatureAbilityStats.confusion_gaze[difficulty].declined++
             }
           }
         }
@@ -926,15 +988,16 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 6 }
+    if (!creatureAbilityStats) return { working: 0, total: 7 }
     let working = 0
-    const total = 6 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr)
+    const total = 7 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
     if (creatureAbilityStats.shadow_stalker?.timesTriggered > 0) working++
     if (creatureAbilityStats.burrow_lolth?.timesTriggered > 0) working++
     if (creatureAbilityStats.burrow_cormyr?.timesTriggered > 0) working++
+    if (creatureAbilityStats.confusion_gaze?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -1658,6 +1721,92 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         BURROW allows movement through mountain tiles (cannot stop on them) and ignores terrain movement costs. Still takes water damage. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+
+                  {/* CONFUSION GAZE Stats */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-warning">Sting of Lolth - CONFUSION GAZE <Badge bg="warning">ACTIVE</Badge> <small className="text-muted">(Umber Hulk)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals (Standard Action Ability)</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.confusion_gaze?.timesOffered || 0}</Badge></td>
+                            <td><strong>Enemies Slid</strong></td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.confusion_gaze?.enemiesSlid || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.confusion_gaze?.timesTriggered || 0}</Badge></td>
+                            <td><strong>Damage Dealt</strong></td>
+                            <td>{results.creatureAbilityStats?.confusion_gaze?.damageDealt || 0}</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.confusion_gaze?.timesDeclined || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.confusion_gaze?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.confusion_gaze.timesTriggered / results.creatureAbilityStats.confusion_gaze.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.confusion_gaze?.[diff] || { offered: 0, triggered: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        CONFUSION GAZE: Slide an enemy within 5 squares up to 3 tiles, then make a melee attack (30 damage). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

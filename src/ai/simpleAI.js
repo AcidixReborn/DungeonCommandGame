@@ -186,6 +186,40 @@ export class SimpleAI {
       // Priority 1b - Try to attack if in range (and hasn't attacked yet) - O(E)
       // FIX: Also check hasAttackIntention to prevent duplicate attack intentions
       if (!creature.hasAttackedThisTurn && !hasAttackIntention) {
+        // ============================================
+        // CONFUSION GAZE CHECK: Try to use ability before normal attack
+        // Easy: Never use (0%), Medium: 50% chance, Hard: Always use (100%)
+        // ============================================
+        if (this.canUseCreatureAbilities() && this.gameState.hasConfusionGaze(creature)) {
+          const useChance = this.difficulty === 'hard' ? 1.0 : 0.5
+          if (Math.random() < useChance) {
+            const gazeTargets = this.gameState.getConfusionGazeTargets(creature)
+            if (gazeTargets.length > 0) {
+              // Select weakest target for CONFUSION GAZE
+              const target = gazeTargets.reduce((weakest, current) =>
+                current.currentHP < weakest.currentHP ? current : weakest
+              , gazeTargets[0])
+
+              // Get valid slide destinations
+              const slideTiles = this.gameState.getValidSlideTiles(target, 3)
+              if (slideTiles.length > 0) {
+                // Random slide destination for AI
+                const slideDestination = slideTiles[Math.floor(Math.random() * slideTiles.length)]
+
+                actions.push({
+                  type: 'confusion_gaze',
+                  attackerInstance: creature,
+                  target: target,
+                  slideDestination: slideDestination
+                })
+                didAction = true
+                hasAttackIntention = true  // Counts as attack action
+                continue  // Don't fall through to normal attack
+              }
+            }
+          }
+        }
+
         const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
         if (attackTargets.length > 0) {
           const target = this.selectWeakestTarget(attackTargets)

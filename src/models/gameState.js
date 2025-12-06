@@ -847,6 +847,316 @@ export class GameState {
   }
 
   // ============================================================================
+  // CONFUSION GAZE - Umber Hulk Ability (Sting of Lolth)
+  // As a standard action, choose 1 enemy creature within 5 squares (with LOS)
+  // and slide that creature up to 3 squares, then make a melee attack (30 damage)
+  // ============================================================================
+
+  /**
+   * Check if creature has CONFUSION GAZE ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has CONFUSION GAZE
+   */
+  hasConfusionGaze(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('CONFUSION GAZE')
+    )
+  }
+
+  /**
+   * Get valid CONFUSION GAZE targets (enemies within 5 squares with LOS)
+   * Uses same LOS rules as ranged attacks
+   * @param {CreatureInstance} attackerInstance - The Umber Hulk
+   * @returns {Array} Array of valid target CreatureInstances
+   */
+  getConfusionGazeTargets(attackerInstance) {
+    if (!this.hasConfusionGaze(attackerInstance)) return []
+    if (!attackerInstance.position) return []
+
+    const validTargets = []
+    const attackerPos = attackerInstance.position
+    const attackerOwner = attackerInstance.owner
+
+    // Get all enemy creatures
+    for (const player of Object.values(this.players)) {
+      if (player.id === attackerOwner) continue
+
+      for (const enemy of player.creaturesInPlay) {
+        if (!enemy.position) continue
+        if (enemy.currentHP <= 0) continue
+
+        // Check range (5 squares using Chebyshev distance)
+        const distance = this.getDistance(attackerPos, enemy.position)
+        if (distance > 5) continue
+
+        // Check LOS (reuse CombatResolver logic)
+        if (!this.combatResolver.hasLineOfSight(attackerInstance, enemy, attackerOwner)) continue
+
+        validTargets.push(enemy)
+      }
+    }
+
+    return validTargets
+  }
+
+  /**
+   * Get valid slide destinations for CONFUSION GAZE
+   * Uses BFS to find all reachable tiles within maxDistance
+   * - Can pass through creatures (cost 1) but cannot stop on them
+   * - Cannot pass through or stop on mountains
+   * - Cannot slide off board
+   * Big O: O(D^2) where D = maxDistance (explores tiles in expanding ring)
+   * @param {CreatureInstance} targetInstance - The creature being slid
+   * @param {number} maxDistance - Maximum slide distance (default 3)
+   * @returns {Array} Array of {x, y, tile} valid destinations
+   */
+  getValidSlideTiles(targetInstance, maxDistance = 3) {
+    if (!targetInstance?.position) return []
+
+    const validTiles = []
+    const startPos = targetInstance.position
+
+    // BFS to find all reachable tiles within maxDistance
+    const visited = new Set()
+    const queue = [{ pos: startPos, cost: 0 }]
+    visited.add(`${startPos.x},${startPos.y}`)
+
+    while (queue.length > 0) {
+      const { pos, cost } = queue.shift()
+
+      // Get 8-directional neighbors
+      const directions = [
+        { dx: 0, dy: -1 }, { dx: 1, dy: -1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 },
+        { dx: 0, dy: 1 }, { dx: -1, dy: 1 }, { dx: -1, dy: 0 }, { dx: -1, dy: -1 }
+      ]
+
+      for (const dir of directions) {
+        const newX = pos.x + dir.dx
+        const newY = pos.y + dir.dy
+        const key = `${newX},${newY}`
+
+        if (visited.has(key)) continue
+        visited.add(key)
+
+        const tile = this.getTile(newX, newY)
+        if (!tile) continue // Off board
+
+        // Mountains block completely (cannot pass through or stop)
+        if (tile.terrain === 'MOUNTAIN') continue
+
+        const newCost = cost + 1
+        if (newCost > maxDistance) continue
+
+        // Can pass through occupied tiles but cannot stop on them
+        if (!tile.occupant) {
+          validTiles.push({ x: newX, y: newY, tile })
+        }
+
+        // Continue BFS even through occupied tiles (can pass through)
+        queue.push({ pos: { x: newX, y: newY }, cost: newCost })
+      }
+    }
+
+    return validTiles
+  }
+
+  /**
+   * Execute the slide portion of CONFUSION GAZE
+   * Moves the target creature to the destination tile
+   * @param {CreatureInstance} targetInstance - The creature being slid
+   * @param {Object} destination - The destination {x, y}
+   * @returns {Object} { oldPos, newPos }
+   */
+  executeConfusionGazeSlide(targetInstance, destination) {
+    const oldPos = { ...targetInstance.position }
+    const oldTile = this.getTile(oldPos.x, oldPos.y)
+    const newTile = this.getTile(destination.x, destination.y)
+
+    // Clear old tile
+    if (oldTile) {
+      oldTile.occupant = null
+    }
+
+    // Move creature to new tile
+    if (newTile) {
+      newTile.occupant = targetInstance
+    }
+    targetInstance.position = { x: destination.x, y: destination.y }
+
+    return { oldPos, newPos: { x: destination.x, y: destination.y } }
+  }
+
+  /**
+   * Get valid attack targets after CONFUSION GAZE slide
+   * Returns:
+   * - Adjacent enemies to Umber Hulk (melee option)
+   * - The slid creature (ranged option, if not adjacent)
+   * @param {CreatureInstance} attackerInstance - The Umber Hulk
+   * @param {CreatureInstance} slidTarget - The creature that was slid
+   * @returns {Array} Array of { target, attackType } objects
+   */
+  getConfusionGazeAttackTargets(attackerInstance, slidTarget) {
+    if (!attackerInstance?.position) return []
+
+    const attackTargets = []
+
+    // Get adjacent enemies for melee option
+    const adjacent = this.getAdjacentTiles8Dir(attackerInstance.position.x, attackerInstance.position.y)
+
+    for (const tile of adjacent) {
+      if (tile.occupant &&
+          tile.occupant.owner !== attackerInstance.owner &&
+          tile.occupant.currentHP > 0) {
+        attackTargets.push({ target: tile.occupant, attackType: 'melee' })
+      }
+    }
+
+    // Check if slid creature is already in the adjacent list
+    const isAdjacent = attackTargets.some(t => t.target.instanceId === slidTarget.instanceId)
+
+    // Add slid creature as ranged option (if not already adjacent)
+    if (!isAdjacent && slidTarget.currentHP > 0) {
+      attackTargets.push({ target: slidTarget, attackType: 'ranged' })
+    }
+
+    return attackTargets
+  }
+
+  /**
+   * Apply CONFUSION GAZE damage (uses attacker's melee damage)
+   * @param {CreatureInstance} attackerInstance - The Umber Hulk (for damage value)
+   * @param {CreatureInstance} targetInstance - The creature receiving damage
+   * @returns {Object} { success, damage, destroyed, moraleChange, remainingHP }
+   */
+  applyConfusionGaze(attackerInstance, targetInstance) {
+    const CONFUSION_GAZE_DAMAGE = attackerInstance.creature.meleeAttack?.damage || 30
+
+    if (!targetInstance) {
+      return { success: false, message: 'Invalid target' }
+    }
+
+    const attackerOwner = attackerInstance.owner
+    const defenderOwner = targetInstance.owner
+
+    // Apply damage using takeDamage
+    const wasDestroyed = targetInstance.takeDamage(CONFUSION_GAZE_DAMAGE)
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Defender loses morale equal to creature's level
+      defenderPlayer.loseMorale(targetInstance.creature.level)
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level
+      }
+    }
+
+    return {
+      success: true,
+      damage: CONFUSION_GAZE_DAMAGE,
+      destroyed: wasDestroyed,
+      moraleChange,
+      remainingHP: Math.max(0, targetInstance.currentHP)
+    }
+  }
+
+  /**
+   * Apply CONFUSION GAZE damage with defense reduction
+   * @param {CreatureInstance} attackerInstance - The Umber Hulk (for damage value)
+   * @param {CreatureInstance} targetInstance - The creature receiving damage
+   * @param {number} damageReduction - Amount of damage prevented by defense
+   * @returns {Object} { success, damage, destroyed, moraleChange, remainingHP }
+   */
+  applyConfusionGazeWithDefense(attackerInstance, targetInstance, damageReduction = 0) {
+    const BASE_DAMAGE = attackerInstance.creature.meleeAttack?.damage || 30
+    const actualDamage = Math.max(0, BASE_DAMAGE - damageReduction)
+
+    if (!targetInstance) {
+      return { success: false, message: 'Invalid target' }
+    }
+
+    // If all damage was prevented, no effect
+    if (actualDamage <= 0) {
+      return {
+        success: true,
+        damage: 0,
+        destroyed: false,
+        moraleChange: { attacker: 0, defender: 0 },
+        remainingHP: targetInstance.currentHP,
+        damageReduced: damageReduction
+      }
+    }
+
+    const attackerOwner = attackerInstance.owner
+    const defenderOwner = targetInstance.owner
+
+    // Apply damage using takeDamage
+    const wasDestroyed = targetInstance.takeDamage(actualDamage)
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Defender loses morale equal to creature's level
+      defenderPlayer.loseMorale(targetInstance.creature.level)
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level
+      }
+    }
+
+    return {
+      success: true,
+      damage: actualDamage,
+      destroyed: wasDestroyed,
+      moraleChange,
+      remainingHP: Math.max(0, targetInstance.currentHP),
+      damageReduced: damageReduction
+    }
+  }
+
+  // ============================================================================
   // COMMANDER ABILITY DELEGATION METHODS
   // These methods delegate to CommanderAbilityManager for backward compatibility
   // ============================================================================

@@ -157,6 +157,12 @@ function GameBoard({ onTurnInfoChange }) {
   const [hiddenBladePending, setHiddenBladePending] = useState(null) // { attacker, validTargets }
   const [hiddenBladeTargetMode, setHiddenBladeTargetMode] = useState(false) // True when highlighting targets for selection
 
+  // CONFUSION GAZE ability state (slide enemy then attack)
+  const [showConfusionGazeModal, setShowConfusionGazeModal] = useState(false)
+  const [confusionGazeMode, setConfusionGazeMode] = useState(null) // null | 'slide' | 'attack'
+  const [confusionGazePending, setConfusionGazePending] = useState(null)
+  // { attacker, target, validSlideTiles, slideDestination, attackTargets }
+
   /**
    * Faction color mapping from faction IDs to hex colors
    */
@@ -906,7 +912,7 @@ function GameBoard({ onTurnInfoChange }) {
   const executeAttackAfterDefense = (defenseResult) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze } = pendingAttack
 
     let result
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
@@ -926,6 +932,15 @@ function GameBoard({ onTurnInfoChange }) {
       result = gameState.applyHiddenBladeWithDefense(defenderInstance, attackerInstance.owner, damageReduction)
 
       // Now tap the attacker (deferred from original attack)
+      if (attackerInstance.hasMovedThisTurn) {
+        attackerInstance.tap()
+      }
+    } else if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
+      // CONFUSION GAZE attack - use the dedicated method with defense reduction
+      const damageReduction = defenseResult.damageReduction || 0
+      result = gameState.applyConfusionGazeWithDefense(attackerInstance, defenderInstance, damageReduction)
+      // Mark attacker as attacked and tap if moved
+      attackerInstance.hasAttackedThisTurn = true
       if (attackerInstance.hasMovedThisTurn) {
         attackerInstance.tap()
       }
@@ -975,6 +990,8 @@ function GameBoard({ onTurnInfoChange }) {
         message += `⚔️ FLASHING BLADES: ${attackerInstance.creature.name} deals ${result.damage} splash damage to ${defenderInstance.creature.name}!`
       } else if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
         message += `🗡️ HIDDEN BLADE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
+      } else if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
+        message += `😵 CONFUSION GAZE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else {
         message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
                    `with ${targetInfo.attackType} for ${result.damage} damage!`
@@ -1008,7 +1025,8 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Check for FLASHING BLADES trigger after defense (only for normal melee attacks, not splash/ability attacks)
       if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades' &&
-          !isHiddenBlade && targetInfo.attackType !== 'hidden_blade') {
+          !isHiddenBlade && targetInfo.attackType !== 'hidden_blade' &&
+          !isConfusionGaze && targetInfo.attackType !== 'confusion_gaze') {
         if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
           // Modal shown - don't clear state yet, wait for modal response
           // BUT we DO need to trigger a re-render to show destroyed creature being removed
@@ -1039,6 +1057,12 @@ function GameBoard({ onTurnInfoChange }) {
       setHiddenBladePending(null)
     }
 
+    // Clear CONFUSION GAZE pending state if this was a confusion gaze attack
+    if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
+      setConfusionGazePending(null)
+      setConfusionGazeMode(null)
+    }
+
     setSelectedBoardCreature(null)
     setValidMoveTiles([])
     setValidAttackTargets([])
@@ -1053,7 +1077,7 @@ function GameBoard({ onTurnInfoChange }) {
   const executeAttackAfterReactions = (reactions) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze } = pendingAttack
 
     let result
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
@@ -1067,6 +1091,14 @@ function GameBoard({ onTurnInfoChange }) {
       // HIDDEN BLADE attack - use special handling
       result = gameState.applyHiddenBlade(defenderInstance, attackerInstance.owner)
       // Now tap the attacker (deferred from original attack)
+      if (attackerInstance.hasMovedThisTurn) {
+        attackerInstance.tap()
+      }
+    } else if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
+      // CONFUSION GAZE attack - use the dedicated method (no defense reduction since reactions don't prevent damage)
+      result = gameState.applyConfusionGaze(attackerInstance, defenderInstance)
+      // Mark attacker as attacked and tap if moved
+      attackerInstance.hasAttackedThisTurn = true
       if (attackerInstance.hasMovedThisTurn) {
         attackerInstance.tap()
       }
@@ -1087,6 +1119,8 @@ function GameBoard({ onTurnInfoChange }) {
         message += `⚔️ FLASHING BLADES: ${attackerInstance.creature.name} deals ${result.damage} splash damage to ${defenderInstance.creature.name}!`
       } else if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
         message += `🗡️ HIDDEN BLADE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
+      } else if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
+        message += `😵 CONFUSION GAZE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else {
         message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
                    `with ${targetInfo.attackType} for ${result.damage} damage!`
@@ -1122,7 +1156,8 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Check for FLASHING BLADES trigger after reactions (only for normal attacks, not splash/ability attacks)
       if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades' &&
-          !isHiddenBlade && targetInfo.attackType !== 'hidden_blade') {
+          !isHiddenBlade && targetInfo.attackType !== 'hidden_blade' &&
+          !isConfusionGaze && targetInfo.attackType !== 'confusion_gaze') {
         if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
           // Modal shown - don't clear state yet, wait for modal response
           // BUT we DO need to trigger a re-render to show destroyed creature being removed
@@ -1149,6 +1184,12 @@ function GameBoard({ onTurnInfoChange }) {
     // Clear HIDDEN BLADE pending state if this was a hidden blade attack
     if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
       setHiddenBladePending(null)
+    }
+
+    // Clear CONFUSION GAZE pending state if this was a confusion gaze attack
+    if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
+      setConfusionGazePending(null)
+      setConfusionGazeMode(null)
     }
 
     setSelectedBoardCreature(null)
@@ -1559,6 +1600,235 @@ function GameBoard({ onTurnInfoChange }) {
     setShowHiddenBladeModal(true)
 
     return true
+  }
+
+  // ============================================================================
+  // CONFUSION GAZE - Umber Hulk Ability (Sting of Lolth)
+  // As a standard action, choose 1 enemy creature within 5 squares (with LOS)
+  // and slide that creature up to 3 squares, then make a melee attack (30 damage)
+  // ============================================================================
+
+  /**
+   * Check if right-click target is valid for CONFUSION GAZE
+   * Called when Umber Hulk is selected and player right-clicks an enemy
+   * @returns {boolean} True if CONFUSION GAZE modal was shown
+   */
+  const checkConfusionGazeOnRightClick = (selectedCreature, targetCreature) => {
+    // Must have CONFUSION GAZE ability
+    if (!gameState.hasConfusionGaze(selectedCreature)) return false
+    // Must not have attacked yet
+    if (selectedCreature.hasAttackedThisTurn) return false
+    // Must not be tapped
+    if (selectedCreature.isTapped) return false
+
+    // Check if target is valid for CONFUSION GAZE (within 5 with LOS)
+    const validTargets = gameState.getConfusionGazeTargets(selectedCreature)
+    const isValidTarget = validTargets.some(t => t.instanceId === targetCreature.instanceId)
+
+    if (isValidTarget) {
+      // Show modal asking if player wants to use CONFUSION GAZE
+      setConfusionGazePending({
+        attacker: selectedCreature,
+        target: targetCreature,
+        validSlideTiles: [],
+        slideDestination: null,
+        attackTargets: []
+      })
+      setShowConfusionGazeModal(true)
+      return true // Handled - don't show normal attack
+    }
+    return false // Not a valid CONFUSION GAZE target
+  }
+
+  // Handler when player confirms CONFUSION GAZE in modal
+  const handleConfusionGazeConfirm = () => {
+    if (!confusionGazePending) return
+
+    setShowConfusionGazeModal(false)
+    const { target } = confusionGazePending
+
+    // Calculate valid slide destinations
+    const validSlideTiles = gameState.getValidSlideTiles(target, 3)
+
+    if (validSlideTiles.length === 0) {
+      addToast('No valid slide destinations available!')
+      setConfusionGazePending(null)
+      return
+    }
+
+    setConfusionGazeMode('slide')
+    setConfusionGazePending(prev => ({
+      ...prev,
+      validSlideTiles
+    }))
+
+    // Clear other selection states
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+  }
+
+  // Handler when player declines CONFUSION GAZE
+  const handleConfusionGazeDecline = () => {
+    setShowConfusionGazeModal(false)
+    setConfusionGazePending(null)
+    // Player can still do normal attack if target is in melee/ranged range
+  }
+
+  // Handler when slide destination is selected (during slide mode)
+  const handleConfusionGazeSlideSelected = (tile) => {
+    if (!confusionGazePending || confusionGazeMode !== 'slide') return
+
+    const { attacker, target, validSlideTiles } = confusionGazePending
+
+    // Check if this tile is a valid slide destination
+    const isValidSlide = validSlideTiles.some(t => t.x === tile.x && t.y === tile.y)
+    if (!isValidSlide) return
+
+    // Execute the slide
+    const slideResult = gameState.executeConfusionGazeSlide(target, { x: tile.x, y: tile.y })
+    addToast(`😵 Slid ${target.creature.name} from (${slideResult.oldPos.x}, ${slideResult.oldPos.y}) to (${slideResult.newPos.x}, ${slideResult.newPos.y})`)
+
+    // IMPORTANT: Force re-render to show the slid creature in new position
+    setRenderCounter(prev => prev + 1)
+
+    // Determine attack targets
+    const attackTargets = gameState.getConfusionGazeAttackTargets(attacker, target)
+
+    if (attackTargets.length === 0) {
+      // This shouldn't happen - slid creature should always be attackable
+      handleConfusionGazeComplete()
+      return
+    }
+
+    // Update state with slide destination and attack targets
+    setConfusionGazePending(prev => ({
+      ...prev,
+      slideDestination: { x: tile.x, y: tile.y },
+      attackTargets
+    }))
+
+    // If only one target, auto-select it (with small delay to allow render)
+    if (attackTargets.length === 1) {
+      setConfusionGazeMode('attack') // Keep mode for state tracking
+      // Use setTimeout to allow render to complete before showing attack panel
+      setTimeout(() => {
+        handleConfusionGazeAttackSelected(attackTargets[0].target)
+      }, 100)
+      return
+    }
+
+    // Multiple targets - show attack selection mode
+    setConfusionGazeMode('attack')
+  }
+
+  // Handler when attack target is selected (during attack mode)
+  const handleConfusionGazeAttackSelected = (attackTarget) => {
+    if (!confusionGazePending) return
+
+    const { attacker } = confusionGazePending
+    const damage = attacker.creature.meleeAttack?.damage || 30
+
+    // Set up pending attack for confirmation
+    setPendingAttack({
+      attackerInstance: attacker,
+      defenderInstance: attackTarget,
+      targetInfo: { attackType: 'confusion_gaze', damage },
+      isConfusionGaze: true
+    })
+
+    // Keep confusionGazePending so we can access attacker info later for tap logic
+    // Clear confusion gaze MODE only (attack panel takes over for UI)
+    setConfusionGazeMode(null)
+
+    // Show attack confirmation panel
+    setCombatPanelMode('attack')
+    setCombatHighlightCreatures({
+      attacker: attacker.instanceId,
+      defender: attackTarget.instanceId
+    })
+  }
+
+  // Handler when CONFUSION GAZE attack is confirmed from combat panel
+  const handleConfusionGazeConfirmAttack = () => {
+    if (!pendingAttack || !pendingAttack.isConfusionGaze) return
+
+    const { attackerInstance, defenderInstance } = pendingAttack
+    const damage = attackerInstance.creature.meleeAttack?.damage || 30
+
+    // Check if defender is human (needs defense options) or AI
+    const defenderPlayerId = defenderInstance.owner
+    const isDefenderHuman = isPlayerHuman(defenderPlayerId)
+
+    if (isDefenderHuman) {
+      // Show defense panel for the human defender
+      setCombatPanelMode('defense')
+    } else {
+      // AI defender - check if AI wants to defend
+      const defenderPlayer = gameState.players[defenderPlayerId]
+      const difficulty = defenderPlayer?.aiDifficulty || 'easy'
+      const defenderAI = new SimpleAI(gameState, defenderPlayerId, null, difficulty)
+
+      // AI decides whether to use defensive abilities
+      const defenseDecision = defenderAI.decideDefense(defenderInstance, damage, attackerInstance.owner)
+      let defenseResult = null
+
+      if (defenseDecision.type === 'cower') {
+        defenseResult = gameState.applyCower(defenderInstance, damage, attackerInstance.owner)
+        if (defenseResult.success) {
+          defenseResult.type = 'cower'
+          defenseResult.damagePrevented = defenseResult.damageAvoided
+          defenseResult.damageReduction = defenseResult.damageAvoided
+        }
+      } else if (defenseDecision.type === 'immediate_card') {
+        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        if (result.success) {
+          defenseResult = {
+            success: true,
+            type: 'immediate_card',
+            damagePrevented: result.damagePrevented,
+            damageReduction: result.damagePrevented,
+            cardUsed: defenseDecision.card.name
+          }
+        }
+      }
+
+      // Execute the attack
+      closeCombatPanel()
+      executeAttackAfterDefense({
+        type: defenseResult?.type || 'none',
+        damageReduction: defenseResult?.damageReduction || 0,
+        success: !!defenseResult?.success
+      })
+    }
+  }
+
+  // Clean up after CONFUSION GAZE completes
+  const handleConfusionGazeComplete = () => {
+    if (confusionGazePending) {
+      const { attacker } = confusionGazePending
+
+      // Mark as attacked
+      attacker.hasAttackedThisTurn = true
+
+      // Tap if already moved
+      if (attacker.hasMovedThisTurn) {
+        attacker.tap()
+      }
+    }
+
+    // Clear all confusion gaze state
+    setConfusionGazeMode(null)
+    setConfusionGazePending(null)
+    setRenderCounter(prev => prev + 1)
+  }
+
+  // Cancel CONFUSION GAZE during slide selection
+  const handleConfusionGazeCancel = () => {
+    setConfusionGazeMode(null)
+    setConfusionGazePending(null)
+    setShowConfusionGazeModal(false)
+    setRenderCounter(prev => prev + 1)
   }
 
   // SCROLLBOOK ability - discard selected order card to draw a new one
@@ -2147,6 +2417,23 @@ function GameBoard({ onTurnInfoChange }) {
       }
     }
 
+    // Handle CONFUSION GAZE slide selection (right-click on valid slide tile)
+    if (confusionGazeMode === 'slide' && confusionGazePending) {
+      handleConfusionGazeSlideSelected(tile)
+      return
+    }
+
+    // Handle CONFUSION GAZE attack selection (right-click on valid attack target)
+    if (confusionGazeMode === 'attack' && confusionGazePending) {
+      const attackOption = confusionGazePending.attackTargets.find(
+        t => t.target.position?.x === tile.x && t.target.position?.y === tile.y
+      )
+      if (attackOption) {
+        handleConfusionGazeAttackSelected(attackOption.target)
+        return
+      }
+    }
+
     // Must have a creature selected (via left-click) to use right-click actions
     if (!selectedBoardCreature) return
 
@@ -2166,6 +2453,34 @@ function GameBoard({ onTurnInfoChange }) {
 
     // CASE 2: Creature selected - check for attack
     if (tile.occupant && tile.occupant.owner !== selectedBoardCreature.owner) {
+      // ============================================
+      // CONFUSION GAZE CHECK: Before normal attack, check if Umber Hulk can use CONFUSION GAZE
+      // This triggers when right-clicking an enemy within 5 tiles with LOS
+      // ============================================
+      if (gameState.hasConfusionGaze(selectedBoardCreature) &&
+          !selectedBoardCreature.hasAttackedThisTurn &&
+          !selectedBoardCreature.isTapped) {
+        // Check if target is valid for CONFUSION GAZE (within 5 tiles with LOS)
+        const validGazeTargets = gameState.getConfusionGazeTargets(selectedBoardCreature)
+        const isValidGazeTarget = validGazeTargets.some(
+          t => t.instanceId === tile.occupant.instanceId
+        )
+
+        if (isValidGazeTarget) {
+          // Show modal asking if player wants to use CONFUSION GAZE
+          setConfusionGazePending({
+            attacker: selectedBoardCreature,
+            target: tile.occupant,
+            validSlideTiles: [],
+            slideDestination: null,
+            attackTargets: []
+          })
+          setShowConfusionGazeModal(true)
+          return // Don't proceed to normal attack - let modal handle it
+        }
+      }
+
+      // Normal attack flow
       const attackInfo = validAttackTargets.find(
         target => target.creature.instanceId === tile.occupant.instanceId
       )
@@ -2272,6 +2587,22 @@ function GameBoard({ onTurnInfoChange }) {
     }
     if (hiddenBladeTargetMode) {
       addLog('system', '⚠️ You must select a target for HIDDEN BLADE before advancing the phase.', 'warning')
+      return
+    }
+
+    // ============================================
+    // CONFUSION GAZE LOCK: Block phase advancement during ability - O(1)
+    // User must complete the CONFUSION GAZE ability (mandatory attack)
+    // ============================================
+    if (showConfusionGazeModal) {
+      addLog('system', '⚠️ You must choose whether to use CONFUSION GAZE before advancing the phase.', 'warning')
+      return
+    }
+    if (confusionGazeMode) {
+      const modeMsg = confusionGazeMode === 'slide'
+        ? 'You must select a slide destination for CONFUSION GAZE before advancing the phase.'
+        : 'You must select an attack target to complete CONFUSION GAZE before advancing the phase.'
+      addLog('system', `⚠️ ${modeMsg}`, 'warning')
       return
     }
 
@@ -2441,9 +2772,52 @@ function GameBoard({ onTurnInfoChange }) {
       const ai = new SimpleAI(gameState, currentPlayerId)
       const result = ai.executeTurn()
 
-      // Check if there are attack intentions in the result
+      // Check if there are attack intentions or confusion gaze actions in the result
       const actions = result.actions || []
       const attackIntentions = actions.filter(action => action.type === 'attack_intention')
+      const confusionGazeActions = actions.filter(action => action.type === 'confusion_gaze')
+
+      // ============================================
+      // CONFUSION GAZE AI EXECUTION
+      // Process confusion gaze actions immediately (slide + attack)
+      // ============================================
+      for (const gazeAction of confusionGazeActions) {
+        const { attackerInstance, target, slideDestination } = gazeAction
+
+        // Execute the slide
+        const slideResult = gameState.executeConfusionGazeSlide(target, slideDestination)
+        addToast(`😵 AI: ${attackerInstance.creature.name} uses CONFUSION GAZE! Slides ${target.creature.name} to (${slideResult.newPos.x}, ${slideResult.newPos.y})`)
+
+        // Execute the attack using the dedicated method
+        const attackResult = gameState.applyConfusionGaze(attackerInstance, target)
+
+        // Mark attacker as attacked and tap if moved
+        attackerInstance.hasAttackedThisTurn = true
+        if (attackerInstance.hasMovedThisTurn) {
+          attackerInstance.tap()
+        }
+
+        let attackMessage = `😵 CONFUSION GAZE: ${attackerInstance.creature.name} strikes ${target.creature.name} for ${attackResult.damage} damage!`
+        if (attackResult.destroyed) {
+          attackMessage += ` ${target.creature.name} was destroyed!`
+          if (attackResult.moraleChange) {
+            attackMessage += ` Morale changes: Attacker +${attackResult.moraleChange.attacker}, Defender ${attackResult.moraleChange.defender}`
+          }
+        } else {
+          attackMessage += ` ${target.creature.name} has ${attackResult.remainingHP} HP remaining.`
+        }
+        addToast(attackMessage)
+
+        // Check for elimination
+        gameState.checkGameOver()
+        const eliminationResult = gameState.checkAndEliminatePlayer(target.owner)
+        if (eliminationResult.eliminated) {
+          const reason = eliminationResult.reason === 'morale'
+            ? 'Morale reduced to 0!'
+            : 'All creatures destroyed!'
+          addToast(`🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`)
+        }
+      }
 
       // ============================================
       // HORDE PROTECTION FIX FOR AI
@@ -2651,6 +3025,19 @@ function GameBoard({ onTurnInfoChange }) {
                       t => t.position?.x === x && t.position?.y === y
                     )
 
+                  // ============================================
+                  // CONFUSION GAZE HIGHLIGHTS: Show valid slide destinations or attack targets
+                  // ============================================
+                  const isConfusionGazeSlide = confusionGazeMode === 'slide' &&
+                    confusionGazePending?.validSlideTiles?.some(
+                      t => t.x === x && t.y === y
+                    )
+
+                  const isConfusionGazeAttack = confusionGazeMode === 'attack' &&
+                    confusionGazePending?.attackTargets?.some(
+                      t => t.target.position?.x === x && t.target.position?.y === y
+                    )
+
                   // Check if this is the selected creature
                   const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
                                               selectedBoardCreature?.position?.y === y
@@ -2712,6 +3099,8 @@ function GameBoard({ onTurnInfoChange }) {
                       combatHighlight={combatHighlight}
                       factionHighlight={factionHighlight}
                       isShadowStalkerHighlight={isShadowStalkerHighlight}
+                      isConfusionGazeSlide={isConfusionGazeSlide}
+                      isConfusionGazeAttack={isConfusionGazeAttack}
                     />
                   )
                 })}
@@ -2787,9 +3176,10 @@ function GameBoard({ onTurnInfoChange }) {
                 onConfirmAttack={
                   pendingAttack?.isFlashingBlades ? handleFlashingBladesConfirmAttack :
                   pendingAttack?.isHiddenBlade ? handleHiddenBladeConfirmAttack :
+                  pendingAttack?.isConfusionGaze ? handleConfusionGazeConfirmAttack :
                   confirmRightClickAttack
                 }
-                onCancelAttack={pendingAttack?.isFlashingBlades || pendingAttack?.isHiddenBlade ? null : cancelRightClickAttack}
+                onCancelAttack={pendingAttack?.isFlashingBlades || pendingAttack?.isHiddenBlade || pendingAttack?.isConfusionGaze ? null : cancelRightClickAttack}
                 onDefenseSelected={handleDefenseSelected}
                 onSkipDefense={handleReactionsSkipped}
                 // FACTION ICONS PROPS - O(1) prop passing
@@ -3128,6 +3518,43 @@ function GameBoard({ onTurnInfoChange }) {
           </Button>
           <Button variant="secondary" size="lg" onClick={handleHiddenBladeSkip}>
             Skip
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* CONFUSION GAZE Ability Modal - Choose to use gaze attack */}
+      <Modal
+        show={showConfusionGazeModal}
+        onHide={handleConfusionGazeDecline}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header style={{ backgroundColor: '#4a0080', color: 'white' }}>
+          <Modal.Title>😵 CONFUSION GAZE</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {confusionGazePending && (
+            <div>
+              <p>
+                Use <strong>CONFUSION GAZE</strong> on{' '}
+                <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>{confusionGazePending.target.creature.name}</span>?
+              </p>
+              <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
+                Slide the target up to <strong>3 squares</strong>, then make a{' '}
+                <span style={{ color: '#dc3545', fontWeight: 'bold' }}>30 damage</span> attack.
+              </p>
+              <p style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '10px' }}>
+                Note: You MUST complete an attack after the slide.
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
+          <Button variant="warning" size="lg" onClick={handleConfusionGazeConfirm}>
+            😵 Use CONFUSION GAZE
+          </Button>
+          <Button variant="secondary" size="lg" onClick={handleConfusionGazeDecline}>
+            Normal Attack
           </Button>
         </Modal.Footer>
       </Modal>
