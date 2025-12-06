@@ -2156,9 +2156,9 @@ function GameBoard({ onTurnInfoChange }) {
                 }
                 accumulatedDamageReduction={pendingAttack?.accumulatedDamageReduction || 0}
                 defenderPlayerState={
-                  pendingAttack
-                    ? gameState.players[pendingAttack.defenderInstance?.owner]
-                    : null
+                  combatPanelMode === 'attack'
+                    ? (pendingRightClickAttack ? gameState.players[pendingRightClickAttack.target?.owner] : null)
+                    : (pendingAttack ? gameState.players[pendingAttack.defenderInstance?.owner] : null)
                 }
                 gameState={gameState}
                 onConfirmAttack={confirmRightClickAttack}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, Badge, ProgressBar, Row, Col } from 'react-bootstrap'
 import { GiDragonHead, GiCardPlay, GiCrossedSwords, GiSpiderWeb, GiKnightBanner, GiGoblinHead, GiSkullCrossedBones, GiOrcHead } from 'react-icons/gi'
 import CreatureCard from './CreatureCard'
@@ -106,6 +106,12 @@ function PlayerPanel({
   const [activeView, setActiveView] = useState('creatures')
 
   // ============================================
+  // REF: Track if we've auto-switched to combat view for current combat session
+  // Allows initial auto-switch but lets user freely navigate to other views afterward
+  // ============================================
+  const hasAutoSwitchedToCombat = useRef(false)
+
+  // ============================================
   // STATE: Selected faction for faction view - O(1) state access
   // Stores playerId of selected faction, or null if none selected
   // ============================================
@@ -128,17 +134,26 @@ function PlayerPanel({
 
   // ============================================
   // EFFECT: Auto-switch to combat view when combat mode is active - O(1)
-  // Combat mode takes priority over phase-based switching
+  // Only auto-switches ONCE when combat starts, allowing user to freely navigate
+  // to other views (creatures, orders, faction) during combat for verification
   // When combat ends, switch back to orders view (combat happens in ACTIVATE phase)
   // ============================================
   useEffect(() => {
     if (combatMode) {
-      setActiveView('combat')
-    } else if (activeView === 'combat') {
-      // Combat ended - switch back to orders view
-      setActiveView('orders')
+      // Only auto-switch to combat view ONCE when combat starts
+      // User can then manually switch to other views and back
+      if (!hasAutoSwitchedToCombat.current) {
+        setActiveView('combat')
+        hasAutoSwitchedToCombat.current = true
+      }
+    } else {
+      // Combat ended - reset the flag and switch back to orders view
+      hasAutoSwitchedToCombat.current = false
+      if (activeView === 'combat') {
+        setActiveView('orders')
+      }
     }
-  }, [combatMode])
+  }, [combatMode, activeView])
 
   // ============================================
   // EFFECT: Clear faction highlight when switching away from faction view - O(1)

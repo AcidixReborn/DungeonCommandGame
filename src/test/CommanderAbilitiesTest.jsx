@@ -153,12 +153,15 @@ function CommanderAbilitiesTest() {
         if (attackResult.destroyed) {
           results.creaturesDestroyed++
 
-          // Check for BLOODTHIRSTY ability
+          // Check for BLOODTHIRSTY ability (must be Curse of Undeath faction)
           if (gameState.hasCommanderAbility(attackerOwner, 'bloodthirsty')) {
             const player = gameState.players[attackerOwner]
-            player.leadership = (player.leadership || 0) + 1
-            abilityStats.bloodthirsty.timesTriggered++
-            abilityStats.bloodthirsty.leadershipGained++
+            // Faction check: Must be Curse of Undeath
+            if (player.commander && player.commander.faction === 'Curse of Undeath') {
+              player.leadership = (player.leadership || 0) + 1
+              abilityStats.bloodthirsty.timesTriggered++
+              abilityStats.bloodthirsty.leadershipGained++
+            }
           }
         }
 
@@ -208,7 +211,9 @@ function CommanderAbilitiesTest() {
             result.movementActions++
 
             // Track GRUUMSH COMMANDS IT - check if destination is difficult terrain
-            if (gameState.hasCommanderAbility(currentPlayerId, 'gruumsh_commands_it')) {
+            // Faction check: Must be Blood of Gruumsh
+            if (gameState.hasCommanderAbility(currentPlayerId, 'gruumsh_commands_it') &&
+                player.commander && player.commander.faction === 'Blood of Gruumsh') {
               if (action.to) {
                 const tile = gameState.getTile(action.to.x, action.to.y)
                 const terrain = tile?.terrain
@@ -221,7 +226,9 @@ function CommanderAbilitiesTest() {
             }
 
             // Track WALLS OF WEB - for Drow/Spider creatures
-            if (gameState.hasCommanderAbility(currentPlayerId, 'walls_of_web')) {
+            // Faction check: Must be Sting of Lolth
+            if (gameState.hasCommanderAbility(currentPlayerId, 'walls_of_web') &&
+                player.commander && player.commander.faction === 'Sting of Lolth') {
               const creatures = player.creaturesInPlay || []
               const movedCreature = creatures.find(c =>
                 c.position && action.to &&
@@ -230,7 +237,9 @@ function CommanderAbilitiesTest() {
               )
               if (movedCreature) {
                 const types = movedCreature.creature.type || []
-                if (types.includes('Drow') || types.includes('Spider')) {
+                // Must also be Sting of Lolth creature
+                if ((types.includes('Drow') || types.includes('Spider')) &&
+                    movedCreature.creature.faction === 'Sting of Lolth') {
                   abilityStats.walls_of_web.timesApplied++
                   abilityStats.walls_of_web.extraTilesMoved += 2
                 }
@@ -240,7 +249,9 @@ function CommanderAbilitiesTest() {
 
           case 'collect_morale':
             // Track SELLSWORD for Drow treasure collection
-            if (gameState.hasCommanderAbility(currentPlayerId, 'sellsword')) {
+            // Faction check: Must be Sting of Lolth
+            if (gameState.hasCommanderAbility(currentPlayerId, 'sellsword') &&
+                player.commander && player.commander.faction === 'Sting of Lolth') {
               const creatures = player.creaturesInPlay || []
               const collector = creatures.find(c =>
                 c.position &&
@@ -249,7 +260,8 @@ function CommanderAbilitiesTest() {
               )
               if (collector) {
                 const types = collector.creature.type || []
-                if (types.includes('Drow')) {
+                // Must also be Sting of Lolth creature
+                if (types.includes('Drow') && collector.creature.faction === 'Sting of Lolth') {
                   abilityStats.sellsword.timesTriggered++
                   const chooseMorale = Math.random() < 0.5
                   if (chooseMorale) {
@@ -277,9 +289,17 @@ function CommanderAbilitiesTest() {
       }
 
       // Track VERSATILE ability for Adventurers after movement
-      if (gameState.currentPhase === GamePhases.ACTIVATE && gameState.hasCommanderAbility(currentPlayerId, 'versatile')) {
+      // Faction check: Must be Heart of Cormyr
+      if (gameState.currentPhase === GamePhases.ACTIVATE &&
+          gameState.hasCommanderAbility(currentPlayerId, 'versatile') &&
+          player.commander && player.commander.faction === 'Heart of Cormyr') {
         const creatures = player.creaturesInPlay || []
-        const adventurers = creatures.filter(c => c.creature.type?.includes('Adventurer') && !c.isTapped)
+        // Must be Heart of Cormyr creature AND Adventurer type
+        const adventurers = creatures.filter(c =>
+          c.creature.type?.includes('Adventurer') &&
+          c.creature.faction === 'Heart of Cormyr' &&
+          !c.isTapped
+        )
 
         for (const adventurer of adventurers) {
           if (result.movementActions > 0) {
@@ -296,7 +316,9 @@ function CommanderAbilitiesTest() {
       }
 
       // Track SCROLLBOOK ability availability
-      if (gameState.hasCommanderAbility(currentPlayerId, 'scrollbook')) {
+      // Faction check: Must be Heart of Cormyr
+      if (gameState.hasCommanderAbility(currentPlayerId, 'scrollbook') &&
+          player.commander && player.commander.faction === 'Heart of Cormyr') {
         const orderHand = player.orderHand || []
         if (orderHand.length > 0 && !player.hasUsedAbilityThisTurn('scrollbook')) {
           abilityStats.scrollbook.timesAvailable++

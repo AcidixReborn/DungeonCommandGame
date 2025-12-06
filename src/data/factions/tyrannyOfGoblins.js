@@ -6,7 +6,7 @@ import goblinsCmd1 from '../../assets/commanders/Goblins_Commander_Card_1.webp'
 import goblinsCmd2 from '../../assets/commanders/Goblins_Commander_Card_2.webp'
 
 // Creature Card Images - O(1) import time, loaded once at module initialization
-import bugbearBerserkerImg from '../../assets/creatures/Goblin_BugBear_Card_1.png'
+import bugbearBerserkerImg from '../../assets/creatures/goblins/Goblin_BugBear_Card_1.png'
 
 // Order Card Images - O(36) = O(1) import time, loaded once at module initialization
 import acrobaticsOrder1Img from '../../assets/orders/goblins/Goblin_Acrobatics_Order_1.png'
@@ -45,17 +45,17 @@ import strengthInNumbersOrder33Img from '../../assets/orders/goblins/Goblin_Stre
 import toughAsNailsOrder34Img from '../../assets/orders/goblins/Goblin_ToughAsNails_Order_34.png'
 import undauntedSurgeOrder35Img from '../../assets/orders/goblins/Goblin_UndauntedSurge_Order_35.png'
 import undauntedSurgeOrder36Img from '../../assets/orders/goblins/Goblin_UndauntedSurge_Order_36.png'
-import feralTrollImg from '../../assets/creatures/Goblin_FeralTroll_Card_2.png'
-import goblinArcherImg from '../../assets/creatures/Goblin_GoblinArcher_Card_3.png'
-import goblinChampionImg from '../../assets/creatures/Goblin_GoblinChampion_Card_4.png'
-import goblinCutter1Img from '../../assets/creatures/Goblin_GoblinCutter_Card_5.png'
-import goblinCutter2Img from '../../assets/creatures/Goblin_GoblinCutter_Card_6.png'
-import goblinWolfRiderImg from '../../assets/creatures/Goblin_GoblinWolfRider_Card_7.png'
-import hobgoblinSoldier1Img from '../../assets/creatures/Goblin_HobgoblinSoldier_Card_8.png'
-import hobgoblinSoldier2Img from '../../assets/creatures/Goblin_HobgoblinSoldier_Card_9.png'
-import hobgoblinSorcererImg from '../../assets/creatures/Goblin_HobgoblinSorcerer_Card_10.png'
-import hornedDevilImg from '../../assets/creatures/Goblin_HordnedDevil_Card_11.png'
-import wolfImg from '../../assets/creatures/Goblin_Wolf_Card_12.png'
+import feralTrollImg from '../../assets/creatures/goblins/Goblin_FeralTroll_Card_2.png'
+import goblinArcherImg from '../../assets/creatures/goblins/Goblin_GoblinArcher_Card_3.png'
+import goblinChampionImg from '../../assets/creatures/goblins/Goblin_GoblinChampion_Card_4.png'
+import goblinCutter1Img from '../../assets/creatures/goblins/Goblin_GoblinCutter_Card_5.png'
+import goblinCutter2Img from '../../assets/creatures/goblins/Goblin_GoblinCutter_Card_6.png'
+import goblinWolfRiderImg from '../../assets/creatures/goblins/Goblin_GoblinWolfRider_Card_7.png'
+import hobgoblinSoldier1Img from '../../assets/creatures/goblins/Goblin_HobgoblinSoldier_Card_8.png'
+import hobgoblinSoldier2Img from '../../assets/creatures/goblins/Goblin_HobgoblinSoldier_Card_9.png'
+import hobgoblinSorcererImg from '../../assets/creatures/goblins/Goblin_HobgoblinSorcerer_Card_10.png'
+import hornedDevilImg from '../../assets/creatures/goblins/Goblin_HordnedDevil_Card_11.png'
+import wolfImg from '../../assets/creatures/goblins/Goblin_Wolf_Card_12.png'
 
 export const FACTION_NAME = 'Tyranny of Goblins'
 

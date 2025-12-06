@@ -971,6 +971,8 @@ export class GameState {
    */
   ignoresDifficultTerrain(creatureInstance) {
     if (!creatureInstance || !creatureInstance.owner) return false
+    // Must belong to Blood of Gruumsh faction
+    if (creatureInstance.creature.faction !== 'Blood of Gruumsh') return false
     return this.hasCommanderAbility(creatureInstance.owner, 'gruumsh_commands_it') // O(a)
   }
 
@@ -993,6 +995,8 @@ export class GameState {
 
     // Check for WALLS OF WEB (+2 speed to Spider/Drow)
     if (player.commander.hasAbility('walls_of_web')) {
+      // Must belong to Sting of Lolth faction
+      if (creatureInstance.creature.faction !== 'Sting of Lolth') return 0
       const creatureTypes = creatureInstance.creature.type || []
       if (creatureTypes.includes('Spider') || creatureTypes.includes('Drow')) {
         bonus += 2
@@ -1012,7 +1016,11 @@ export class GameState {
    * @returns {boolean} True if can deploy in Refresh phase
    */
   canDeployInRefreshPhase(playerId) {
-    return this.hasCommanderAbility(playerId, 'horde')
+    if (!this.hasCommanderAbility(playerId, 'horde')) return false
+    // Must be Tyranny of Goblins faction
+    const player = this.players[playerId]
+    if (!player || !player.commander || player.commander.faction !== 'Tyranny of Goblins') return false
+    return true
   }
 
   /**
@@ -1030,6 +1038,9 @@ export class GameState {
 
     // Must have the VERSATILE ability
     if (!this.hasCommanderAbility(creatureInstance.owner, 'versatile')) return false
+
+    // Must belong to Heart of Cormyr faction
+    if (creatureInstance.creature.faction !== 'Heart of Cormyr') return false
 
     // Must be Adventurer type
     const creatureTypes = creatureInstance.creature.type || []
@@ -1057,6 +1068,9 @@ export class GameState {
 
     // Must have the SELLSWORD ability
     if (!this.hasCommanderAbility(creatureInstance.owner, 'sellsword')) return false
+
+    // Must belong to Sting of Lolth faction
+    if (creatureInstance.creature.faction !== 'Sting of Lolth') return false
 
     // Must be Drow type
     const creatureTypes = creatureInstance.creature.type || []
@@ -1164,6 +1178,11 @@ export class GameState {
 
     // Must have the UNSTOPPABLE HORDES ability
     if (!this.hasCommanderAbility(creatureInstance.owner, 'unstoppable_hordes')) {
+      return { canUse: false, moraleCost: 0, damagePrevented: 0 }
+    }
+
+    // Must belong to Curse of Undeath faction
+    if (creatureInstance.creature.faction !== 'Curse of Undeath') {
       return { canUse: false, moraleCost: 0, damagePrevented: 0 }
     }
 
@@ -1516,8 +1535,11 @@ export class GameState {
     // Must have the ORC SCOUT ability
     if (!this.hasCommanderAbility(playerId, 'orc_scout')) return false
 
-    // Check if ability has already been used
+    // Must be Blood of Gruumsh faction
     const player = this.players[playerId]
+    if (!player || !player.commander || player.commander.faction !== 'Blood of Gruumsh') return false
+
+    // Check if ability has already been used
     if (player.commanderAbilityState?.orcScoutUsed) return false
 
     return true
@@ -1570,10 +1592,11 @@ export class GameState {
    */
   getBlackHandOfBaneExtraCost(attackerOwner) {
     // Check if the attacker's owner has BLACK HAND OF BANE
-    if (this.hasCommanderAbility(attackerOwner, 'black_hand_of_bane')) {
-      return 1 // Enemy cowers cost 1 extra morale
-    }
-    return 0
+    if (!this.hasCommanderAbility(attackerOwner, 'black_hand_of_bane')) return 0
+    // Must be Tyranny of Goblins faction
+    const player = this.players[attackerOwner]
+    if (!player || !player.commander || player.commander.faction !== 'Tyranny of Goblins') return 0
+    return 1 // Enemy cowers cost 1 extra morale
   }
 
   /**
@@ -1592,6 +1615,9 @@ export class GameState {
 
     const player = this.players[playerId]
     if (!player || player.orderHand.length === 0) return false
+
+    // Must be Heart of Cormyr faction
+    if (!player.commander || player.commander.faction !== 'Heart of Cormyr') return false
 
     // Check if already used this turn
     if (player.commanderAbilityState?.scrollbookUsedThisTurn) return false
@@ -2554,8 +2580,11 @@ export class GameState {
       // Big O: O(a) where a = commander abilities (1-2), effectively O(1)
       let leadershipGained = 0
       if (this.hasCommanderAbility(attackerOwner, 'bloodthirsty')) {
-        attackerPlayer.leadership = (attackerPlayer.leadership || 0) + 1
-        leadershipGained = 1
+        // Must be Curse of Undeath faction
+        if (attackerPlayer.commander && attackerPlayer.commander.faction === 'Curse of Undeath') {
+          attackerPlayer.leadership = (attackerPlayer.leadership || 0) + 1
+          leadershipGained = 1
+        }
       }
 
       return {
