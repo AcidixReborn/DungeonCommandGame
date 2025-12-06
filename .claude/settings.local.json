@@ -31,7 +31,9 @@
       "Bash(npm run:*)",
       "Bash(mkdir:*)",
       "Bash(powershell -Command:*)",
-      "Bash(timeout 90 npx vite-node:*)"
+      "Bash(timeout 90 npx vite-node:*)",
+      "Bash(cd:*)",
+      "Bash(timeout 120 npx vite-node:*)"
     ],
     "deny": [],
     "ask": []

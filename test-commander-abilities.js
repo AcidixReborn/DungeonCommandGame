@@ -1016,7 +1016,11 @@ function printResults() {
   console.log(divider)
 
   const abilityIssues = []
-  const abilitySuccesses = []
+  const commanderAbilitySuccesses = []
+  const universalMechanicSuccesses = []
+
+  // Universal mechanics (not commander abilities)
+  const universalMechanics = ['cower', 'immediate_card']
 
   // Check ability statistics
   Object.entries(stats.abilityStats).forEach(([id, data]) => {
@@ -1024,15 +1028,26 @@ function printResults() {
       abilityIssues.push(`${data.name}: ${data.errors.length} errors`)
     }
     if (data.timesTriggered > 0 || data.timesUsed > 0 || data.timesApplied > 0) {
-      abilitySuccesses.push(`${data.name}: Working`)
+      if (universalMechanics.includes(id)) {
+        universalMechanicSuccesses.push(`${data.name}: Working`)
+      } else {
+        commanderAbilitySuccesses.push(`${data.name}: Working`)
+      }
     }
   })
 
   if (stats.errors.length === 0 && abilityIssues.length === 0) {
     console.log('ALL TESTS PASSED!')
-    abilitySuccesses.forEach(success => {
-      console.log(`  ${success}`)
+    console.log(`\n  Commander Abilities (${commanderAbilitySuccesses.length}/10):`)
+    commanderAbilitySuccesses.forEach(success => {
+      console.log(`    ${success}`)
     })
+    if (universalMechanicSuccesses.length > 0) {
+      console.log(`\n  Universal Game Mechanics (${universalMechanicSuccesses.length}/2):`)
+      universalMechanicSuccesses.forEach(success => {
+        console.log(`    ${success}`)
+      })
+    }
   } else {
     console.log('ISSUES FOUND:')
     if (stats.errors.length > 0) {
@@ -1041,9 +1056,15 @@ function printResults() {
     abilityIssues.forEach(issue => {
       console.log(`  ${issue}`)
     })
-    if (abilitySuccesses.length > 0) {
-      console.log('\nWorking abilities:')
-      abilitySuccesses.forEach(success => {
+    if (commanderAbilitySuccesses.length > 0) {
+      console.log(`\nWorking Commander Abilities (${commanderAbilitySuccesses.length}/10):`)
+      commanderAbilitySuccesses.forEach(success => {
+        console.log(`  ${success}`)
+      })
+    }
+    if (universalMechanicSuccesses.length > 0) {
+      console.log(`\nWorking Universal Mechanics (${universalMechanicSuccesses.length}/2):`)
+      universalMechanicSuccesses.forEach(success => {
         console.log(`  ${success}`)
       })
     }
