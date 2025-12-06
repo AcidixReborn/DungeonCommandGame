@@ -36,7 +36,8 @@ const CONFIG = {
     flashing_blades: { easy: 0, medium: 0.5, hard: 1.0 },
     hidden_blade: { easy: 0, medium: 0.5, hard: 1.0 },
     shadow_stalker: { easy: 0, medium: 0.5, hard: 1.0 },
-    versatile: { easy: 0, medium: 0.5, hard: 1.0 }
+    versatile: { easy: 0, medium: 0.5, hard: 1.0 },
+    burrow: { easy: 0, medium: 0.5, hard: 1.0 }
   }
 }
 
@@ -213,7 +214,7 @@ const stats = {
       shadow_stalker: { name: 'SHADOW STALKER', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, deployments: 0, creatures: ['Shadow Mastiff'] },
       summon_spider: { name: 'SUMMON SPIDER', timesTriggered: 0, spidersDeployed: 0, creatures: ['Drow Priestess'] },
       confusion_gaze: { name: 'CONFUSION GAZE', timesTriggered: 0, enemiesSlid: 0, damageDealt: 0, creatures: ['Umber Hulk'] },
-      burrow_lolth: { name: 'BURROW', timesTriggered: 0, mountainTilesMoved: 0, creatures: ['Umber Hulk'] }
+      burrow_lolth: { name: 'BURROW', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, mountainTilesMoved: 0, creatures: ['Umber Hulk'] }
     },
 
     // ===== HEART OF CORMYR =====
@@ -226,7 +227,7 @@ const stats = {
       arcane_portal: { name: 'ARCANE PORTAL', timesTriggered: 0, portalDeployments: 0, creatures: ['War Wizard'] },
       flying_cormyr: { name: 'FLYING', timesTriggered: 0, terrainIgnored: 0, creatures: ['Copper Dragon'] },
       acid_breath: { name: 'ACID BREATH', timesTriggered: 0, splashDamageDealt: 0, creatures: ['Copper Dragon'] },
-      burrow_cormyr: { name: 'BURROW', timesTriggered: 0, mountainTilesMoved: 0, creatures: ['Earth Guardian'] },
+      burrow_cormyr: { name: 'BURROW', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, mountainTilesMoved: 0, creatures: ['Earth Guardian'] },
       slam: { name: 'SLAM', timesTriggered: 0, enemiesSlid: 0, creatures: ['Earth Guardian'] }
     },
 
@@ -358,6 +359,13 @@ function trackCreatureAbility(factionKey, abilityKey, detail = {}) {
         ability.deployments++
       }
       if (detail.declined) ability.timesDeclined++
+      break
+    case 'burrow_lolth':
+    case 'burrow_cormyr':
+      if (detail.offered) ability.timesOffered++
+      if (detail.triggered) ability.timesTriggered++
+      if (detail.declined) ability.timesDeclined++
+      if (detail.mountainTiles) ability.mountainTilesMoved += detail.mountainTiles
       break
     default:
       if (detail.triggered) ability.timesTriggered++
@@ -829,6 +837,46 @@ function executeAITurn(gameState, currentPlayerId) {
               const types = movedCreature.creature.type || []
               if (types.includes('Drow') || types.includes('Spider')) {
                 trackAbility('walls_of_web', { extraTiles: 2 })
+              }
+            }
+          }
+
+          // Track BURROW ability - Umber Hulk (Lolth) or Earth Guardian (Cormyr)
+          if (gameState.hasBurrow) {
+            const creatures = player.creaturesInPlay || []
+            const movedCreature = creatures.find(c =>
+              c.position && action.to &&
+              c.position.x === action.to.x &&
+              c.position.y === action.to.y
+            )
+            if (movedCreature && gameState.hasBurrow(movedCreature)) {
+              const faction = movedCreature.creature.faction
+              const isLolth = faction === 'Sting of Lolth'
+              const abilityKey = isLolth ? 'burrow_lolth' : 'burrow_cormyr'
+              const factionKey = isLolth ? 'lolth' : 'cormyr'
+
+              // Track that BURROW was offered (creature with ability moved)
+              trackCreatureAbility(factionKey, abilityKey, { offered: true })
+
+              // Check if path went through any mountains (means BURROW was used)
+              const path = action.path || []
+              const mountainTilesInPath = path.filter(pos => {
+                const tile = gameState.getTile(pos.x, pos.y)
+                return tile && (tile.terrain === 'MOUNTAIN' || tile.terrain === TerrainTypes.MOUNTAIN)
+              }).length
+
+              if (mountainTilesInPath > 0) {
+                trackCreatureAbility(factionKey, abilityKey, {
+                  triggered: true,
+                  mountainTiles: mountainTilesInPath
+                })
+
+                if (CONFIG.VERBOSE_LOGGING) {
+                  console.log(`  [BURROW] ${movedCreature.creature.name} burrowed through ${mountainTilesInPath} mountain tile(s)!`)
+                }
+              } else {
+                // Moved but didn't go through mountains - ability was offered but not needed/used
+                trackCreatureAbility(factionKey, abilityKey, { declined: true })
               }
             }
           }

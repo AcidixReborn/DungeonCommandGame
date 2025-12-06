@@ -288,7 +288,9 @@ function GameBoard({ onTurnInfoChange }) {
         commander: new Commander(config[playerKey].commander),
         creatures: createCreatureDeck(config[playerKey].faction),
         orders: createOrderDeck(config[playerKey].faction),
-        faction: config[playerKey].faction
+        faction: config[playerKey].faction,
+        isHuman: config[playerKey].isHuman,
+        aiDifficulty: config[playerKey].aiDifficulty
       })
     }
 

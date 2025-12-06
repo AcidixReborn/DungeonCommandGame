@@ -406,6 +406,20 @@ export class GameState {
     )
   }
 
+  /**
+   * Check if creature has BURROW ability
+   * BURROW allows movement through MOUNTAIN tiles (cost=1) but cannot stop on them
+   * Unlike FLYING, burrowing creatures still take water damage
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has BURROW
+   */
+  hasBurrow(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('BURROW')
+    )
+  }
+
   // ============================================================================
   // FLASHING BLADES - Drow Blademaster Creature Ability
   // After melee attack deals damage, can deal 10 splash damage to adjacent enemy
@@ -1002,10 +1016,11 @@ export class GameState {
    * Check if tile is passable - delegates to Board
    * @param {Object} tile - Tile to check
    * @param {boolean} flying - Whether creature is flying
+   * @param {boolean} burrowing - Whether creature has BURROW ability enabled
    * @returns {boolean} True if passable
    */
-  isTerrainPassable(tile, flying = false) {
-    return this.board.isTerrainPassable(tile, flying)
+  isTerrainPassable(tile, flying = false, burrowing = false) {
+    return this.board.isTerrainPassable(tile, flying, burrowing)
   }
 
   /**
@@ -1014,14 +1029,15 @@ export class GameState {
    * @param {string} terrain - Terrain type
    * @param {boolean} flying - Whether creature is flying
    * @param {CreatureInstance} creatureInstance - Optional creature for ability checks
+   * @param {boolean} burrowing - Whether creature has BURROW ability enabled
    * @returns {number} Movement cost (999 = impassable)
    */
-  getTerrainMovementCost(terrain, flying = false, creatureInstance = null) {
+  getTerrainMovementCost(terrain, flying = false, creatureInstance = null, burrowing = false) {
     // Check for GRUUMSH COMMANDS IT ability (ignore difficult terrain)
     const ignoresDifficult = creatureInstance ? this.ignoresDifficultTerrain(creatureInstance) : false
 
     // Delegate to Board with the ability check result
-    return this.board.getTerrainMovementCost(terrain, flying, ignoresDifficult)
+    return this.board.getTerrainMovementCost(terrain, flying, ignoresDifficult, burrowing)
   }
 
   // Get all valid movement tiles using A* pathfinding
@@ -1037,8 +1053,39 @@ export class GameState {
     const startPos = creatureInstance.position
     const flying = this.hasFlying(creatureInstance)
 
+    // BURROW: Check if creature has ability AND apply AI difficulty logic
+    // Human players ALWAYS have BURROW enabled
+    // AI difficulty affects whether BURROW is enabled:
+    // - Easy: BURROW disabled (treats mountains as impassable)
+    // - Medium: 50% chance BURROW is enabled
+    // - Hard: BURROW always enabled
+    const hasBurrowAbility = this.hasBurrow(creatureInstance)
+    let burrowEnabled = false
+
+    if (hasBurrowAbility) {
+      const owner = creatureInstance.owner
+      const player = this.players[owner]
+
+      // Human players always get BURROW enabled
+      if (player?.isHuman) {
+        burrowEnabled = true
+      } else {
+        // AI players use difficulty-based logic
+        const aiDifficulty = player?.aiDifficulty || 'medium'
+
+        if (aiDifficulty === 'easy') {
+          burrowEnabled = false  // Easy AI never uses BURROW
+        } else if (aiDifficulty === 'medium') {
+          burrowEnabled = Math.random() < 0.5  // Medium AI uses 50% of the time
+        } else {
+          burrowEnabled = true  // Hard AI always uses BURROW
+        }
+      }
+    }
+
     // SCUTTLE: Create callback if creature has the ability
     // Allows moving through any creature (enemy or ally) for 1 speed cost
+    // Human players ALWAYS have SCUTTLE enabled
     // AI difficulty affects whether SCUTTLE is enabled:
     // - Easy: SCUTTLE disabled (AI doesn't benefit from passive)
     // - Medium: 50% chance SCUTTLE is enabled
@@ -1049,15 +1096,22 @@ export class GameState {
     if (hasScuttleAbility) {
       const owner = creatureInstance.owner
       const player = this.players[owner]
-      const aiDifficulty = player?.aiDifficulty || 'medium'
 
       let scuttleEnabled = true
-      if (aiDifficulty === 'easy') {
-        scuttleEnabled = false  // Easy AI never uses SCUTTLE
-      } else if (aiDifficulty === 'medium') {
-        scuttleEnabled = Math.random() < 0.5  // Medium AI uses 50% of the time
+
+      // Human players always get SCUTTLE enabled
+      // AI players (!isHuman) use difficulty-based logic
+      if (!player?.isHuman) {
+        // AI players use difficulty-based logic
+        const aiDifficulty = player?.aiDifficulty || 'medium'
+
+        if (aiDifficulty === 'easy') {
+          scuttleEnabled = false  // Easy AI never uses SCUTTLE
+        } else if (aiDifficulty === 'medium') {
+          scuttleEnabled = Math.random() < 0.5  // Medium AI uses 50% of the time
+        }
+        // Hard AI always uses SCUTTLE (scuttleEnabled stays true)
       }
-      // Hard AI always uses SCUTTLE (scuttleEnabled stays true)
 
       if (scuttleEnabled) {
         canPassThrough = () => {
@@ -1067,15 +1121,29 @@ export class GameState {
       }
     }
 
+    // FLYING/BURROW: Create callback to check if creature can STOP on a tile
+    // Flying and burrowing creatures can pass through mountains but cannot stop on them
+    let canStopOn = null
+    if (flying || burrowEnabled) {
+      canStopOn = (tile) => {
+        // Cannot stop on mountain tiles
+        if (tile.terrain === 'MOUNTAIN' || tile.terrain === TerrainTypes.MOUNTAIN) {
+          return false
+        }
+        return true
+      }
+    }
+
     // Use pathfinding algorithm with creature context for ability checks
     const validMovement = pathfindingGetValidMovement(
       startPos,
       speed,
-      (terrain, isFlying) => this.getTerrainMovementCost(terrain, isFlying, creatureInstance),
-      (tile, isFlying) => this.isTerrainPassable(tile, isFlying),
+      (terrain, isFlying) => this.getTerrainMovementCost(terrain, isFlying, creatureInstance, burrowEnabled),
+      (tile, isFlying) => this.isTerrainPassable(tile, isFlying, burrowEnabled),
       (x, y) => this.getTile(x, y),
       flying,
-      canPassThrough
+      canPassThrough,
+      canStopOn
     )
 
     // Return array of objects with tile, path, and cost

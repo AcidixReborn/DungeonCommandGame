@@ -190,9 +190,10 @@ function reconstructPath(goalNode) {
  * @param {Function} getTile - Function to get tile at position
  * @param {boolean} flying - Whether creature is flying
  * @param {Function|null} canPassThrough - Optional callback (tile, occupant) => boolean for SCUTTLE ability
+ * @param {Function|null} canStopOn - Optional callback (tile) => boolean for tiles that can be passed but not stopped on (e.g., mountains for flying/burrowing)
  * @returns {Array} - Array of {tile, path, cost} objects
  */
-export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPassable, getTile, flying = false, canPassThrough = null) {
+export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPassable, getTile, flying = false, canPassThrough = null, canStopOn = null) {
   const validTiles = []
   // Track best cost to reach each tile (allows updating if better path found)
   const bestCost = new Map()
@@ -200,6 +201,8 @@ export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPass
   const bestPath = new Map()
   // Track tiles that are occupied (for SCUTTLE - can pass through but not stop on)
   const occupiedTiles = new Set()
+  // Track tiles that can be passed through but not stopped on (for FLYING/BURROW - mountains)
+  const noStopTiles = new Set()
 
   // Priority queue using binary heap - O(log n) insert/extract
   // Compare by node.g (cost from start)
@@ -245,6 +248,12 @@ export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPass
       // Check if passable (terrain check)
       if (!isPassable(tile, flying)) continue
 
+      // Check if this tile can be stopped on (FLYING/BURROW: can pass through mountains but not stop)
+      if (canStopOn && !canStopOn(tile)) {
+        // Can pass through but cannot stop here
+        noStopTiles.add(key)
+      }
+
       // Calculate cost to reach this tile
       // SCUTTLE: Moving through a creature costs 1 speed (ignores terrain cost for that tile)
       const isOccupied = tile.occupant !== null
@@ -268,10 +277,11 @@ export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPass
     }
   }
 
-  // Convert bestCost/bestPath maps to result array (excluding start position and occupied tiles)
+  // Convert bestCost/bestPath maps to result array (excluding start position, occupied tiles, and no-stop tiles)
   for (const [key, cost] of bestCost.entries()) {
     if (key === startKey) continue // Don't include starting position
     if (occupiedTiles.has(key)) continue // SCUTTLE: Don't include tiles with creatures (can pass through but not stop)
+    if (noStopTiles.has(key)) continue // FLYING/BURROW: Don't include mountains (can pass through but not stop)
 
     const [x, y] = key.split(',').map(Number)
     const tile = getTile(x, y)

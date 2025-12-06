@@ -490,6 +490,7 @@ export class SimpleAI {
 
       // STEP 1 TERRAIN: Get movement details for testing
       const isFlying = this.gameState.hasFlying(creature)
+      const isBurrowing = this.gameState.hasBurrow ? this.gameState.hasBurrow(creature) : false
       const terrainTypes = [] // Track terrain types in path
 
       // Collect terrain types (simplified - just check destination)
@@ -498,7 +499,7 @@ export class SimpleAI {
       }
 
       // Try to get actual movement cost (default to 1 if not available)
-      const moveCost = this.gameState.getTerrainMovementCost(bestMove.terrain, isFlying)
+      const moveCost = this.gameState.getTerrainMovementCost(bestMove.terrain, isFlying, creature, isBurrowing)
 
       return {
         from,
@@ -583,6 +584,7 @@ export class SimpleAI {
 
       // Get movement details for testing
       const isFlying = this.gameState.hasFlying(creature)
+      const isBurrowing = this.gameState.hasBurrow ? this.gameState.hasBurrow(creature) : false
       const terrainTypes = []
 
       // Collect terrain types (simplified - just check destination)
@@ -591,7 +593,7 @@ export class SimpleAI {
       }
 
       // Get actual movement cost
-      const moveCost = this.gameState.getTerrainMovementCost(bestMove.terrain, isFlying)
+      const moveCost = this.gameState.getTerrainMovementCost(bestMove.terrain, isFlying, creature, isBurrowing)
 
       return {
         from,

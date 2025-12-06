@@ -229,15 +229,16 @@ export class Board {
    * Check if terrain is passable
    * @param {Object} tile - Tile to check
    * @param {boolean} flying - Whether creature is flying
+   * @param {boolean} burrowing - Whether creature has BURROW ability
    * @returns {boolean} True if passable
    */
-  isTerrainPassable(tile, flying = false) {
+  isTerrainPassable(tile, flying = false, burrowing = false) {
     if (!tile) return false
 
-    // Mountains block non-flying creatures entirely
-    // Flying creatures can pass over mountains but cannot stop on them
+    // Mountains block non-flying/non-burrowing creatures entirely
+    // Flying/Burrowing creatures can pass over/through mountains but cannot stop on them
     if (tile.terrain === TerrainTypes.MOUNTAIN || tile.terrain === 'MOUNTAIN') {
-      return flying
+      return flying || burrowing
     }
 
     return true
@@ -248,19 +249,24 @@ export class Board {
    * @param {string} terrain - Terrain type
    * @param {boolean} flying - Whether creature is flying
    * @param {boolean} ignoresDifficult - Whether creature ignores difficult terrain
+   * @param {boolean} burrowing - Whether creature has BURROW ability
    * @returns {number} Movement cost (999 = impassable)
    */
-  getTerrainMovementCost(terrain, flying = false, ignoresDifficult = false) {
+  getTerrainMovementCost(terrain, flying = false, ignoresDifficult = false, burrowing = false) {
     // Flying creatures ignore difficult terrain
+    // IMPORTANT: Mountains cost 1 to PASS THROUGH, but creatures cannot STOP on them
+    // The "cannot stop" logic is handled in pathfinding's final destination filtering (canStopOn callback)
     if (flying) {
-      switch (terrain) {
-        case TerrainTypes.MOUNTAIN:
-          return 999 // Still impassable (cannot stop on mountains)
-        case TerrainTypes.WATER:
-          return 1 // Flying creatures fly over water easily
-        default:
-          return 1 // All other terrain costs 1 for flying creatures
-      }
+      // All terrain (including mountains) costs 1 for flying creatures
+      return 1
+    }
+
+    // Burrowing creatures ignore terrain costs (like flying) but still take water damage
+    // IMPORTANT: Mountains cost 1 to PASS THROUGH, but creatures cannot STOP on them
+    // The "cannot stop" logic is handled in pathfinding's final destination filtering (canStopOn callback)
+    if (burrowing) {
+      // All terrain (including mountains) costs 1 for burrowing creatures
+      return 1
     }
 
     // Check for terrain-ignoring abilities (e.g., GRUUMSH COMMANDS IT)
