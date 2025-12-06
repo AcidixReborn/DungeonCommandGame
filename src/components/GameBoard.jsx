@@ -579,7 +579,9 @@ function GameBoard({ onTurnInfoChange }) {
       })
     } else {
       // Defender is AI - use AI logic to decide on reactions and defensive abilities
-      const defenderAI = new SimpleAI(gameState, defenderPlayerId)
+      const defenderPlayer = gameState.players[defenderPlayerId]
+      const difficulty = defenderPlayer?.aiDifficulty || 'easy'
+      const defenderAI = new SimpleAI(gameState, defenderPlayerId, null, difficulty)
       const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
 
       // Calculate incoming damage for defensive decisions
@@ -1280,7 +1282,9 @@ function GameBoard({ onTurnInfoChange }) {
       // Panel handlers will call executeAttackAfterReactions which continues processing
     } else {
       // Defender is AI - use AI logic to decide on reactions and defensive abilities
-      const defenderAI = new SimpleAI(gameState, defenderPlayerId)
+      const defenderPlayer = gameState.players[defenderPlayerId]
+      const difficulty = defenderPlayer?.aiDifficulty || 'easy'
+      const defenderAI = new SimpleAI(gameState, defenderPlayerId, null, difficulty)
       const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
 
       // Calculate incoming damage for defensive decisions

@@ -52,6 +52,14 @@ function FactionSelector({ onStartGame }) {
     player4: 'ai',
     player5: 'ai'
   })
+  // AI difficulty levels: 'easy', 'medium', 'hard'
+  const [aiDifficulties, setAiDifficulties] = useState({
+    player1: 'easy',
+    player2: 'easy',
+    player3: 'easy',
+    player4: 'easy',
+    player5: 'easy'
+  })
   const [error, setError] = useState('')
 
   const handleNumPlayersChange = (num) => {
@@ -90,6 +98,13 @@ function FactionSelector({ onStartGame }) {
     })
   }
 
+  const handleAiDifficultyChange = (player, difficulty) => {
+    setAiDifficulties({
+      ...aiDifficulties,
+      [player]: difficulty
+    })
+  }
+
   const handleStartGame = () => {
     console.log('handleStartGame called')
     console.log('numPlayers:', numPlayers)
@@ -108,9 +123,13 @@ function FactionSelector({ onStartGame }) {
     // Build config for active players only
     const config = {}
     for (let i = 1; i <= numPlayers; i++) {
-      config[`player${i}`] = {
-        faction: selectedFactions[`player${i}`],
-        isHuman: playerTypes[`player${i}`] === 'human'
+      const playerKey = `player${i}`
+      const isHuman = playerTypes[playerKey] === 'human'
+      config[playerKey] = {
+        faction: selectedFactions[playerKey],
+        isHuman: isHuman,
+        // Only include AI difficulty for AI players
+        aiDifficulty: isHuman ? null : aiDifficulties[playerKey]
       }
     }
 
@@ -168,6 +187,27 @@ function FactionSelector({ onStartGame }) {
                 onChange={() => handlePlayerTypeChange(playerKey, 'ai')}
               />
             </Form.Group>
+            {/* AI Difficulty Selector - only shown for AI players */}
+            {playerTypes[playerKey] === 'ai' && (
+              <Form.Group className="mt-1" style={{ fontSize: numPlayers === 5 ? '0.8rem' : '0.9rem' }}>
+                <Form.Label className="me-2" style={{ marginBottom: 0 }}>Difficulty:</Form.Label>
+                <Form.Select
+                  size="sm"
+                  value={aiDifficulties[playerKey]}
+                  onChange={(e) => handleAiDifficultyChange(playerKey, e.target.value)}
+                  style={{
+                    display: 'inline-block',
+                    width: 'auto',
+                    fontSize: numPlayers === 5 ? '0.75rem' : '0.85rem',
+                    padding: '2px 8px'
+                  }}
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </Form.Select>
+              </Form.Group>
+            )}
           </Card.Header>
           <Card.Body style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
             {availableFactions.map(([factionKey, info]) => (

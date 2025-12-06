@@ -35,12 +35,23 @@ export class AITurnManager {
   }
 
   /**
+   * Get AI difficulty for a player
+   * @param {string} playerId - Player ID
+   * @returns {string} AI difficulty ('easy', 'medium', 'hard')
+   */
+  getAIDifficulty(playerId) {
+    const player = this.gameState.players[playerId]
+    return player?.aiDifficulty || 'easy'
+  }
+
+  /**
    * Execute AI turn for current phase
    * @returns {Object} { actions, message, attackIntentions }
    */
   executeAITurn() {
     const currentPlayerId = this.gameState.currentPlayer
-    const ai = new SimpleAI(this.gameState, currentPlayerId)
+    const difficulty = this.getAIDifficulty(currentPlayerId)
+    const ai = new SimpleAI(this.gameState, currentPlayerId, null, difficulty)
     const result = ai.executeTurn()
 
     // Extract attack intentions for queuing
@@ -126,7 +137,8 @@ export class AITurnManager {
    */
   executeAIDefense(defenderInstance, targetInfo, attackerInstance) {
     const defenderPlayerId = defenderInstance.owner
-    const defenderAI = new SimpleAI(this.gameState, defenderPlayerId)
+    const difficulty = this.getAIDifficulty(defenderPlayerId)
+    const defenderAI = new SimpleAI(this.gameState, defenderPlayerId, null, difficulty)
     const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
 
     // Calculate incoming damage

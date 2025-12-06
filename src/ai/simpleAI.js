@@ -3,14 +3,90 @@ import { CreatureInstance } from '../models/creatures.js'
 // ActionTypes import removed - not used
 
 /**
+ * AI Difficulty Levels:
+ * - 'easy': Basic movement/attack only. No creature abilities, no IMMEDIATE cards.
+ * - 'medium': Adds creature ability usage. No IMMEDIATE cards.
+ * - 'hard': Full AI with creature abilities + IMMEDIATE card usage.
+ *
+ * @typedef {'easy' | 'medium' | 'hard'} AIDifficulty
+ */
+
+/**
  * Simple AI for Dungeon Command
  * Makes basic tactical decisions for computer-controlled players
+ *
+ * Big O Complexity per turn:
+ * - O(C × (T + E)) where C = creatures, T = treasures, E = enemies
  */
 export class SimpleAI {
-  constructor(gameState, playerId, trackStats = null) {
+  /**
+   * @param {Object} gameState - The game state object
+   * @param {string} playerId - The player ID this AI controls
+   * @param {Object|null} trackStats - Optional stats tracking object
+   * @param {AIDifficulty} difficulty - AI difficulty level ('easy', 'medium', 'hard')
+   */
+  constructor(gameState, playerId, trackStats = null, difficulty = 'easy') {
     this.gameState = gameState
     this.playerId = playerId
     this.trackStats = trackStats // Optional stats tracking object
+    this.difficulty = difficulty // AI difficulty level
+
+    // Medium difficulty personality for graveyard deploy decisions
+    // Randomly assigned per AI instance (conservative = less aggressive graveyard usage)
+    this.isConservative = difficulty === 'medium' ? Math.random() < 0.5 : false
+  }
+
+  // ============================================================================
+  // DIFFICULTY HELPER METHODS
+  // O(1) - Simple boolean checks based on difficulty level
+  // ============================================================================
+
+  /**
+   * Check if AI can use creature special abilities
+   * @returns {boolean} True if creature abilities are enabled
+   */
+  canUseCreatureAbilities() {
+    // Easy: No creature abilities
+    // Medium/Hard: Creature abilities enabled
+    return this.difficulty !== 'easy'
+  }
+
+  /**
+   * Check if AI can use IMMEDIATE order cards for defense
+   * @returns {boolean} True if IMMEDIATE cards are enabled
+   */
+  canUseImmediateCards() {
+    // Easy/Medium: No IMMEDIATE cards
+    // Hard: IMMEDIATE cards enabled
+    return this.difficulty === 'hard'
+  }
+
+  /**
+   * Check if automatic creature abilities (like SCUTTLE) should trigger
+   * These are abilities that happen automatically, not by choice
+   * @returns {boolean} True if automatic abilities should trigger
+   */
+  shouldTriggerAutomaticAbilities() {
+    // Easy: Automatic abilities disabled
+    // Medium/Hard: Automatic abilities enabled
+    return this.difficulty !== 'easy'
+  }
+
+  /**
+   * Get the current difficulty level
+   * @returns {AIDifficulty} Current difficulty
+   */
+  getDifficulty() {
+    return this.difficulty
+  }
+
+  /**
+   * Check if AI should use strategic decision-making for optional abilities
+   * (Used for things like graveyard deploy where timing matters)
+   * @returns {boolean} True if strategic decisions enabled (hard mode)
+   */
+  usesStrategicDecisions() {
+    return this.difficulty === 'hard'
   }
 
   /**
@@ -502,10 +578,17 @@ export class SimpleAI {
    * Decide whether to use Immediate (IMD) cards when being attacked
    * Returns object with reactions and opportunity info
    *
+   * DIFFICULTY GATE: Only Hard difficulty can use IMMEDIATE cards
+   *
    * @param {CreatureInstance} defenderInstance - The creature being attacked
    * @returns {Object} { reactions: Array, hadOpportunity: boolean }
    */
   decideImmediateReactions(defenderInstance) {
+    // DIFFICULTY CHECK: Only Hard difficulty uses IMMEDIATE cards
+    if (!this.canUseImmediateCards()) {
+      return { reactions: [], hadOpportunity: false }
+    }
+
     const player = this.gameState.players[this.playerId]
     const reactions = []
 
@@ -722,8 +805,9 @@ export class SimpleAI {
     // IMMEDIATE CARD DECISION
     // Free defense (no morale cost) - prioritize over COWER
     // Use cards strategically to prevent lethal damage or protect valuable creatures
+    // DIFFICULTY GATE: Only Hard difficulty uses IMMEDIATE cards
     // ========================================
-    if (hasImmediateOption) {
+    if (hasImmediateOption && this.canUseImmediateCards()) {
       const immediateDecision = this.selectImmediateCardForDefense(defenseOptions, defenderInstance, incomingDamage)
       if (immediateDecision) {
         return immediateDecision

@@ -39,11 +39,23 @@ export { TerrainTypes }
  * Manages resources, cards, creatures, and gameplay stats
  */
 export class PlayerState {
-  constructor(commander, creatures, orders, faction) {
+  /**
+   * @param {Object} commander - Commander data
+   * @param {Array} creatures - Creature cards
+   * @param {Array} orders - Order cards
+   * @param {string} faction - Faction name
+   * @param {boolean} isHuman - True if human player, false if AI
+   * @param {string|null} aiDifficulty - AI difficulty ('easy', 'medium', 'hard') or null for humans
+   */
+  constructor(commander, creatures, orders, faction, isHuman = true, aiDifficulty = null) {
     this.commander = commander
     this.faction = faction
     this.morale = commander.startingMorale
     this.leadership = commander.startingLeadership
+
+    // Player type
+    this.isHuman = isHuman
+    this.aiDifficulty = aiDifficulty // 'easy' | 'medium' | 'hard' | null
 
     // Decks
     this.creatureDeck = [...creatures]
@@ -238,7 +250,15 @@ export class GameState {
     this.activePlayers = []
 
     playerSetups.forEach(setup => {
-      this.players[setup.playerId] = new PlayerState(setup.commander, setup.creatures, setup.orders, setup.faction)
+      // Pass isHuman and aiDifficulty to PlayerState for AI behavior configuration
+      this.players[setup.playerId] = new PlayerState(
+        setup.commander,
+        setup.creatures,
+        setup.orders,
+        setup.faction,
+        setup.isHuman !== false, // Default to human if not specified
+        setup.aiDifficulty || 'easy' // Default AI difficulty to 'easy'
+      )
       this.activePlayers.push(setup.playerId)
     })
 
