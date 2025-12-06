@@ -134,8 +134,14 @@ export class CombatResolver {
     // Mark as attacked
     attackerInstance.hasAttackedThisTurn = true
 
+    // Check if creature has FLASHING BLADES (melee only) - defer tapping until ability resolves
+    const hasFlashingBlades = attackType === 'melee' &&
+      this.gameState.hasFlashingBlades &&
+      this.gameState.hasFlashingBlades(attackerInstance)
+
     // Tap the creature if it has both moved AND attacked
-    if (attackerInstance.hasMovedThisTurn) {
+    // UNLESS it has FLASHING BLADES (will be tapped after ability resolves)
+    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades) {
       attackerInstance.tap()
     }
 
@@ -146,7 +152,8 @@ export class CombatResolver {
       success: true,
       ...result,
       attackType,
-      damage
+      damage,
+      pendingFlashingBlades: hasFlashingBlades
     }
   }
 
@@ -179,8 +186,14 @@ export class CombatResolver {
     // Mark as attacked
     attackerInstance.hasAttackedThisTurn = true
 
+    // Check if creature has FLASHING BLADES (melee only) - defer tapping until ability resolves
+    const hasFlashingBlades = attackType === 'melee' &&
+      this.gameState.hasFlashingBlades &&
+      this.gameState.hasFlashingBlades(attackerInstance)
+
     // Tap the creature if it has both moved AND attacked
-    if (attackerInstance.hasMovedThisTurn) {
+    // UNLESS it has FLASHING BLADES (will be tapped after ability resolves)
+    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades) {
       attackerInstance.tap()
     }
 
@@ -194,7 +207,8 @@ export class CombatResolver {
       damage,
       originalDamage,
       damageReduced: damageReduction,
-      defenseUsed: defenseType
+      defenseUsed: defenseType,
+      pendingFlashingBlades: hasFlashingBlades
     }
   }
 

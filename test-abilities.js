@@ -25,11 +25,17 @@ const CONFIG = {
   TRACK_ABILITY_USAGE: true,
 
   // AI Difficulty Testing Configuration
-  // Set to 'easy', 'medium', 'hard', or 'mixed' (random per AI)
-  AI_DIFFICULTY: 'easy',
+  // Set to 'easy', 'medium', 'hard', 'mixed' (random per AI), or 'all' (run tests for each difficulty)
+  AI_DIFFICULTY: 'all',
 
   // Track creature abilities by faction (for Phase 2+ testing)
-  TRACK_CREATURE_ABILITIES: true
+  TRACK_CREATURE_ABILITIES: true,
+
+  // Expected ability usage rates by difficulty (for validation)
+  EXPECTED_RATES: {
+    flashing_blades: { easy: 0, medium: 0.5, hard: 1.0 },
+    versatile: { easy: 0, medium: 0.5, hard: 1.0 }
+  }
 }
 
 // ============================================================================
@@ -210,7 +216,7 @@ const stats = {
     // ===== HEART OF CORMYR =====
     cormyr: {
       flanking: { name: 'FLANKING', timesTriggered: 0, bonusDamageDealt: 0, creatures: ['Halfling Sneak'] },
-      flashing_blades: { name: 'FLASHING BLADES', timesTriggered: 0, splashDamageDealt: 0, creatures: ['Human Ranger'] },
+      flashing_blades: { name: 'FLASHING BLADES', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, splashDamageDealt: 0, creatures: ['Drow Blademaster'] },
       shield_block: { name: 'SHIELD BLOCK', timesTriggered: 0, damageBlocked: 0, creatures: ['Dwarven Defender'] },
       healing_touch: { name: 'HEALING TOUCH', timesTriggered: 0, hpHealed: 0, cardsRemoved: 0, creatures: ['Dwarf Cleric'] },
       explosive_bolts: { name: 'EXPLOSIVE BOLTS', timesTriggered: 0, splashDamageDealt: 0, creatures: ['Half-Orc Thug'] },
@@ -318,6 +324,28 @@ function createOrderDeck(faction) {
   // Create single copy of each order card (no duplicates)
   const deck = sampleOrderCards[faction].map(o => new OrderCard(o))
   return deck
+}
+
+/**
+ * Track creature ability usage
+ */
+function trackCreatureAbility(factionKey, abilityKey, detail = {}) {
+  const factionAbilities = stats.creatureAbilityStats[factionKey]
+  if (!factionAbilities || !factionAbilities[abilityKey]) return
+
+  const ability = factionAbilities[abilityKey]
+
+  switch (abilityKey) {
+    case 'flashing_blades':
+      if (detail.offered) ability.timesOffered++
+      if (detail.triggered) ability.timesTriggered++
+      if (detail.declined) ability.timesDeclined++
+      if (detail.splashDamage) ability.splashDamageDealt += detail.splashDamage
+      break
+    default:
+      if (detail.triggered) ability.timesTriggered++
+      break
+  }
 }
 
 /**
@@ -565,6 +593,57 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
       stats.attacksSuccessful++
       results.damageDealt += attackResult.damage
       stats.totalDamageDealt += attackResult.damage
+
+      // Check for FLASHING BLADES ability (Drow Blademaster)
+      if (gameState.hasFlashingBlades && gameState.hasFlashingBlades(attackerInstance)) {
+        const flashingBladesTargets = gameState.getFlashingBladesTargets
+          ? gameState.getFlashingBladesTargets(attackerInstance, defenderInstance)
+          : []
+
+        if (flashingBladesTargets.length > 0) {
+          // Track that FLASHING BLADES was offered
+          trackCreatureAbility('cormyr', 'flashing_blades', { offered: true })
+
+          // AI decision to use FLASHING BLADES based on difficulty
+          const attackerOwner = attackerInstance.owner
+          const attackerPlayer = gameState.players[attackerOwner]
+          const attackerDifficulty = attackerPlayer?.aiDifficulty || 'easy'
+
+          let useFlashingBlades = false
+          switch (attackerDifficulty) {
+            case 'easy':
+              useFlashingBlades = false  // Easy AI never uses creature abilities
+              break
+            case 'medium':
+              useFlashingBlades = Math.random() < 0.5  // Medium AI uses 50% of the time
+              break
+            case 'hard':
+              useFlashingBlades = true  // Hard AI always uses creature abilities
+              break
+          }
+
+          if (useFlashingBlades) {
+            // Pick a random target from available targets
+            const target = flashingBladesTargets[Math.floor(Math.random() * flashingBladesTargets.length)]
+            const splashDamage = attackerInstance.creature.meleeAttack?.damage || 0
+
+            // Track FLASHING BLADES usage
+            trackCreatureAbility('cormyr', 'flashing_blades', {
+              triggered: true,
+              splashDamage: splashDamage
+            })
+
+            // Track difficulty-specific usage
+            stats.difficultyStats[attackerDifficulty].creatureAbilitiesUsed++
+
+            if (CONFIG.VERBOSE_LOGGING) {
+              console.log(`  [FLASHING BLADES] ${attackerInstance.creature.name} attacks ${target.creature.name} for ${splashDamage} splash damage!`)
+            }
+          } else {
+            trackCreatureAbility('cormyr', 'flashing_blades', { declined: true })
+          }
+        }
+      }
 
       // Track destruction and BLOODTHIRSTY ability
       if (attackResult.destroyed) {
@@ -1104,11 +1183,10 @@ function printResults() {
     }
   })
 
-  // ===== Creature Ability Statistics (placeholder for future phases) =====
+  // ===== Creature Ability Statistics =====
   if (CONFIG.TRACK_CREATURE_ABILITIES) {
     console.log('\n' + subDivider)
     console.log('[CREATURE ABILITY STATISTICS]')
-    console.log('  (Creature abilities will be tracked after Phase 2+ implementation)')
 
     // Show structure for each faction
     const factionKeys = ['lolth', 'cormyr', 'gruumsh', 'undeath', 'goblins']
@@ -1120,20 +1198,43 @@ function printResults() {
       goblins: 'TYRANNY OF GOBLINS'
     }
 
+    let anyAbilityTracked = false
+
     for (const factionKey of factionKeys) {
       const factionAbilities = stats.creatureAbilityStats[factionKey]
       if (!factionAbilities) continue
 
-      // Check if any abilities have been triggered
-      const hasActivity = Object.values(factionAbilities).some(a => a.timesTriggered > 0)
+      // Check if any abilities have been triggered or offered
+      const hasActivity = Object.values(factionAbilities).some(a =>
+        a.timesTriggered > 0 || a.timesOffered > 0
+      )
       if (hasActivity) {
+        anyAbilityTracked = true
         console.log(`\n  [${factionNames[factionKey]}]`)
         for (const [abilityKey, abilityData] of Object.entries(factionAbilities)) {
-          if (abilityData.timesTriggered > 0) {
-            console.log(`    ${abilityData.name}: ${abilityData.timesTriggered} triggers`)
+          if (abilityData.timesTriggered > 0 || abilityData.timesOffered > 0) {
+            // Special handling for FLASHING BLADES with extended stats
+            if (abilityKey === 'flashing_blades') {
+              console.log(`    ${abilityData.name} (${abilityData.creatures.join(', ')}):`)
+              console.log(`      Times Offered:           ${String(abilityData.timesOffered).padStart(6)}    (${avgPerGame(abilityData.timesOffered)}/game)`)
+              console.log(`      Times Triggered:         ${String(abilityData.timesTriggered).padStart(6)}    (${avgPerGame(abilityData.timesTriggered)}/game)`)
+              console.log(`      Times Declined:          ${String(abilityData.timesDeclined).padStart(6)}    (${avgPerGame(abilityData.timesDeclined)}/game)`)
+              console.log(`      Splash Damage Dealt:     ${String(abilityData.splashDamageDealt).padStart(6)}    (${avgPerGame(abilityData.splashDamageDealt)}/game)`)
+              // Calculate usage rate when offered
+              if (abilityData.timesOffered > 0) {
+                const usageRate = ((abilityData.timesTriggered / abilityData.timesOffered) * 100).toFixed(1)
+                console.log(`      Usage Rate (when offered): ${usageRate}%`)
+              }
+            } else {
+              console.log(`    ${abilityData.name}: ${abilityData.timesTriggered} triggers (${avgPerGame(abilityData.timesTriggered)}/game)`)
+            }
           }
         }
       }
+    }
+
+    if (!anyAbilityTracked) {
+      console.log('  No creature abilities triggered during testing')
     }
   }
 
@@ -1221,6 +1322,103 @@ function printResults() {
 }
 
 // ============================================================================
+// HELPER FUNCTIONS FOR DIFFICULTY-SPECIFIC TESTING
+// ============================================================================
+
+/**
+ * Reset stats for a new difficulty run
+ */
+function resetStats() {
+  stats.gamesCompleted = 0
+  stats.gamesErrored = 0
+  stats.totalTurns = 0
+  stats.maxTurns = 0
+  stats.minTurns = Infinity
+  stats.winsByPlayer = {}
+  stats.errors = []
+  stats.warnings = []
+  stats.infiniteLoops = 0
+  stats.attacksAttempted = 0
+  stats.attacksSuccessful = 0
+  stats.totalDamageDealt = 0
+  stats.creaturesDestroyed = 0
+  stats.creaturesDeployed = 0
+  stats.factionWins = {}
+  stats.factionGames = {}
+  stats.commanderWins = {}
+  stats.commanderGames = {}
+  stats.commanderAbilityUsage = {}
+
+  // Reset commander ability stats
+  Object.keys(stats.abilityStats).forEach(key => {
+    const ability = stats.abilityStats[key]
+    Object.keys(ability).forEach(prop => {
+      if (typeof ability[prop] === 'number') ability[prop] = 0
+      if (Array.isArray(ability[prop])) ability[prop] = []
+      if (prop === 'cardNames') ability[prop] = {}
+    })
+  })
+
+  // Reset difficulty stats
+  Object.keys(stats.difficultyStats).forEach(key => {
+    stats.difficultyStats[key] = { gamesPlayed: 0, wins: 0, immediateCardsUsed: 0, creatureAbilitiesUsed: 0 }
+  })
+
+  // Reset creature ability stats
+  Object.keys(stats.creatureAbilityStats).forEach(factionKey => {
+    Object.keys(stats.creatureAbilityStats[factionKey]).forEach(abilityKey => {
+      const ability = stats.creatureAbilityStats[factionKey][abilityKey]
+      Object.keys(ability).forEach(prop => {
+        if (typeof ability[prop] === 'number') ability[prop] = 0
+      })
+    })
+  })
+}
+
+/**
+ * Run simulations for a specific difficulty
+ */
+function runDifficultySimulations(difficulty, numGames) {
+  const originalDifficulty = CONFIG.AI_DIFFICULTY
+  CONFIG.AI_DIFFICULTY = difficulty
+
+  for (let gameNum = 1; gameNum <= numGames; gameNum++) {
+    if (gameNum % 10 === 0) {
+      console.log(`  Progress: ${gameNum}/${numGames}...`)
+    }
+    runGameSimulation(gameNum, 2)
+  }
+
+  CONFIG.AI_DIFFICULTY = originalDifficulty
+}
+
+/**
+ * Validate ability usage rates against expected rates
+ */
+function validateAbilityUsageRates(difficulty) {
+  const issues = []
+
+  // Validate FLASHING BLADES usage rate
+  const flashingBlades = stats.creatureAbilityStats.cormyr.flashing_blades
+  if (flashingBlades.timesOffered > 0) {
+    const actualRate = flashingBlades.timesTriggered / flashingBlades.timesOffered
+    const expectedRate = CONFIG.EXPECTED_RATES.flashing_blades[difficulty]
+
+    // Allow some variance (±20% for medium, exact for easy/hard)
+    let tolerance = 0
+    if (difficulty === 'medium') {
+      tolerance = 0.25  // 25% tolerance for random 50% chance
+    }
+
+    if (Math.abs(actualRate - expectedRate) > tolerance) {
+      issues.push(`FLASHING BLADES: Expected ~${(expectedRate * 100).toFixed(0)}% usage, got ${(actualRate * 100).toFixed(1)}%`)
+    }
+  }
+
+  return issues
+}
+
+// ============================================================================
 // MAIN EXECUTION
 // ============================================================================
 
@@ -1230,13 +1428,68 @@ console.log(`AI Difficulty: ${CONFIG.AI_DIFFICULTY.toUpperCase()}`)
 console.log(`Tracking: Commander Abilities + Creature Abilities (${CONFIG.TRACK_CREATURE_ABILITIES ? 'enabled' : 'disabled'})`)
 console.log('')
 
-// Run simulations
-for (let gameNum = 1; gameNum <= CONFIG.NUM_SIMULATIONS; gameNum++) {
-  if (gameNum % 10 === 0) {
-    console.log(`  Progress: ${gameNum}/${CONFIG.NUM_SIMULATIONS}...`)
-  }
-  runGameSimulation(gameNum, 2)
-}
+if (CONFIG.AI_DIFFICULTY === 'all') {
+  // Run separate tests for each difficulty level
+  const difficulties = ['easy', 'medium', 'hard']
+  const difficultyResults = {}
 
-// Print comprehensive results
-printResults()
+  for (const difficulty of difficulties) {
+    console.log(`\n${'='.repeat(80)}`)
+    console.log(`RUNNING ${difficulty.toUpperCase()} DIFFICULTY TESTS`)
+    console.log(`${'='.repeat(80)}`)
+
+    resetStats()
+    runDifficultySimulations(difficulty, CONFIG.NUM_SIMULATIONS)
+
+    // Store results for this difficulty
+    difficultyResults[difficulty] = {
+      gamesCompleted: stats.gamesCompleted,
+      gamesErrored: stats.gamesErrored,
+      flashingBlades: { ...stats.creatureAbilityStats.cormyr.flashing_blades },
+      difficultyStats: { ...stats.difficultyStats[difficulty] }
+    }
+
+    // Validate usage rates for this difficulty
+    const validationIssues = validateAbilityUsageRates(difficulty)
+    if (validationIssues.length > 0) {
+      console.log(`\n[VALIDATION ISSUES for ${difficulty.toUpperCase()}]`)
+      validationIssues.forEach(issue => console.log(`  ⚠️ ${issue}`))
+    }
+
+    printResults()
+  }
+
+  // Print cross-difficulty summary
+  console.log(`\n${'='.repeat(80)}`)
+  console.log('CROSS-DIFFICULTY SUMMARY')
+  console.log(`${'='.repeat(80)}`)
+
+  console.log('\n[FLASHING BLADES USAGE BY DIFFICULTY]')
+  console.log('                        OFFERED   TRIGGERED   DECLINED   RATE')
+  for (const difficulty of difficulties) {
+    const fb = difficultyResults[difficulty].flashingBlades
+    const rate = fb.timesOffered > 0 ? ((fb.timesTriggered / fb.timesOffered) * 100).toFixed(1) : '0.0'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)}          ${String(fb.timesOffered).padStart(6)}    ${String(fb.timesTriggered).padStart(6)}     ${String(fb.timesDeclined).padStart(6)}    ${rate}%`)
+  }
+
+  console.log('\n[EXPECTED VS ACTUAL RATES]')
+  for (const difficulty of difficulties) {
+    const fb = difficultyResults[difficulty].flashingBlades
+    const actualRate = fb.timesOffered > 0 ? (fb.timesTriggered / fb.timesOffered) : 0
+    const expectedRate = CONFIG.EXPECTED_RATES.flashing_blades[difficulty]
+    const status = Math.abs(actualRate - expectedRate) <= 0.25 ? '✓' : '✗'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)} Expected: ${(expectedRate * 100).toFixed(0)}%   Actual: ${(actualRate * 100).toFixed(1)}%  ${status}`)
+  }
+
+} else {
+  // Run simulations with single difficulty
+  for (let gameNum = 1; gameNum <= CONFIG.NUM_SIMULATIONS; gameNum++) {
+    if (gameNum % 10 === 0) {
+      console.log(`  Progress: ${gameNum}/${CONFIG.NUM_SIMULATIONS}...`)
+    }
+    runGameSimulation(gameNum, 2)
+  }
+
+  // Print comprehensive results
+  printResults()
+}

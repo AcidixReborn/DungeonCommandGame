@@ -27,15 +27,20 @@ function AttackConfirmPanel({
   if (!attacker || !defender || !attackInfo) return null
 
   // O(1) - Calculate damage based on attack type
-  const damage = attackInfo.attackType === 'melee'
-    ? attacker.creature.meleeAttack?.damage || 0
-    : attacker.creature.rangedAttack?.damage || 0
+  // FLASHING BLADES splash damage is always 10
+  const damage = attackInfo.attackType === 'flashing_blades'
+    ? 10
+    : attackInfo.attackType === 'melee'
+      ? attacker.creature.meleeAttack?.damage || 0
+      : attacker.creature.rangedAttack?.damage || 0
+
+  const isFlashingBlades = attackInfo.attackType === 'flashing_blades'
 
   return (
     <div className="combat-panel attack-confirm-panel">
       {/* Header */}
       <div className="combat-panel-header attack-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h5 style={{ margin: 0 }}>⚔️ Confirm Attack</h5>
+        <h5 style={{ margin: 0 }}>{isFlashingBlades ? '⚔️ FLASHING BLADES' : '⚔️ Confirm Attack'}</h5>
         {defenderPlayerState && <Badge bg="info">Target Morale: {defenderPlayerState.morale}</Badge>}
       </div>
 
@@ -69,8 +74,8 @@ function AttackConfirmPanel({
       <div className="combat-info">
         <div className="combat-info-row">
           <span>Attack Type:</span>
-          <Badge bg={attackInfo.attackType === 'ranged' ? 'info' : 'danger'}>
-            {attackInfo.attackType === 'ranged' ? '🏹 Ranged' : '⚔️ Melee'}
+          <Badge bg={isFlashingBlades ? 'warning' : attackInfo.attackType === 'ranged' ? 'info' : 'danger'}>
+            {isFlashingBlades ? '⚔️ Splash' : attackInfo.attackType === 'ranged' ? '🏹 Ranged' : '⚔️ Melee'}
           </Badge>
         </div>
         <div className="combat-info-row">
@@ -87,11 +92,13 @@ function AttackConfirmPanel({
 
       {/* Action Buttons */}
       <div className="combat-actions">
-        <Button variant="secondary" size="sm" onClick={onCancel}>
-          Cancel
-        </Button>
+        {!isFlashingBlades && (
+          <Button variant="secondary" size="sm" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
         <Button variant="danger" size="sm" onClick={onConfirm}>
-          ⚔️ Attack!
+          {isFlashingBlades ? '⚔️ Deal Splash Damage!' : '⚔️ Attack!'}
         </Button>
       </div>
     </div>

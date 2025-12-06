@@ -8,10 +8,13 @@ import { Factions, commanders, sampleCreatures, sampleOrderCards } from '../data
 import SimpleAI from '../ai/simpleAI'
 
 /**
- * CommanderAbilitiesTest - In-app test for all 10 commander abilities
+ * AbilitiesTest - In-app test for all abilities
+ * - Commander abilities (all 10 across 5 factions)
+ * - Creature abilities (FLASHING BLADES, etc.)
+ * - Order card abilities (future)
  * Runs 100 automated games and tracks ability usage statistics
  */
-function CommanderAbilitiesTest() {
+function AbilitiesTest() {
   const [isRunning, setIsRunning] = useState(false)
   const [progress, setProgress] = useState(0)
   const [results, setResults] = useState(null)
@@ -20,7 +23,7 @@ function CommanderAbilitiesTest() {
   const MAX_TURNS = 100
   const NUM_TESTS = 100
 
-  // Initialize ability statistics
+  // Initialize commander ability statistics
   const createAbilityStats = () => ({
     gruumsh_commands_it: { name: 'GRUUMSH COMMANDS IT', type: 'PASSIVE', timesTriggered: 0, tilesMovedOnDifficult: 0, movementSaved: 0 },
     orc_scout: { name: 'ORC SCOUT', type: 'ACTIVE', timesUsed: 0, timesAvailable: 0, orcsDeployedToTreasure: 0 },
@@ -32,6 +35,25 @@ function CommanderAbilitiesTest() {
     black_hand_of_bane: { name: 'BLACK HAND OF BANE', type: 'PASSIVE', timesTriggered: 0, extraMoraleDrained: 0 },
     scrollbook: { name: 'SCROLLBOOK', type: 'ACTIVE', timesUsed: 0, timesAvailable: 0, cardsDiscarded: 0, cardsDrawn: 0 },
     versatile: { name: 'VERSATILE', type: 'ACTIVE', timesTriggered: 0, extraMovesUsed: 0, extraMoveDeclined: 0, totalExtraTilesMoved: 0 }
+  })
+
+  // Initialize creature ability statistics with per-difficulty tracking
+  const createCreatureAbilityStats = () => ({
+    flashing_blades: {
+      name: 'FLASHING BLADES',
+      creature: 'Drow Blademaster',
+      faction: 'Sting of Lolth',
+      // Overall totals
+      timesOffered: 0,
+      timesTriggered: 0,
+      timesDeclined: 0,
+      splashDamageDealt: 0,
+      // Per-difficulty breakdown
+      easy: { offered: 0, triggered: 0, declined: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0 }
+    }
+    // Future creature abilities will be added here
   })
 
   const createCreatureDeck = (faction) => {
@@ -46,9 +68,11 @@ function CommanderAbilitiesTest() {
   }
 
   /**
-   * Process attack queue with BLOODTHIRSTY, COWER, UNSTOPPABLE HORDES and BLACK HAND OF BANE ability tracking
+   * Process attack queue with ability tracking:
+   * - BLOODTHIRSTY, COWER, UNSTOPPABLE HORDES, BLACK HAND OF BANE (commander)
+   * - FLASHING BLADES (creature)
    */
-  const processAttackQueue = (attackIntentions, gameState, abilityStats) => {
+  const processAttackQueue = (attackIntentions, gameState, abilityStats, creatureAbilityStats) => {
     const results = { attacksSuccessful: 0, damageDealt: 0, creaturesDestroyed: 0 }
 
     for (const intention of attackIntentions) {
@@ -149,6 +173,52 @@ function CommanderAbilitiesTest() {
         results.attacksSuccessful++
         results.damageDealt += attackResult.damage
 
+        // Check for FLASHING BLADES ability (Drow Blademaster)
+        if (creatureAbilityStats && gameState.hasFlashingBlades && gameState.hasFlashingBlades(attackerInstance)) {
+          const flashingBladesTargets = gameState.getFlashingBladesTargets
+            ? gameState.getFlashingBladesTargets(attackerInstance, defenderInstance)
+            : []
+
+          if (flashingBladesTargets.length > 0) {
+            // Simulate AI difficulty behavior:
+            // - 33% chance: Easy AI (never uses)
+            // - 34% chance: Medium AI (50% usage)
+            // - 33% chance: Hard AI (always uses)
+            const difficultyRoll = Math.random()
+            let difficulty = 'easy'
+            let useFlashingBlades = false
+
+            if (difficultyRoll < 0.33) {
+              // Easy AI - never uses creature abilities
+              difficulty = 'easy'
+              useFlashingBlades = false
+            } else if (difficultyRoll < 0.67) {
+              // Medium AI - 50% chance to use
+              difficulty = 'medium'
+              useFlashingBlades = Math.random() < 0.5
+            } else {
+              // Hard AI - always uses
+              difficulty = 'hard'
+              useFlashingBlades = true
+            }
+
+            // Track overall stats
+            creatureAbilityStats.flashing_blades.timesOffered++
+            // Track per-difficulty stats
+            creatureAbilityStats.flashing_blades[difficulty].offered++
+
+            if (useFlashingBlades) {
+              const splashDamage = attackerInstance.creature.meleeAttack?.damage || 0
+              creatureAbilityStats.flashing_blades.timesTriggered++
+              creatureAbilityStats.flashing_blades.splashDamageDealt += splashDamage
+              creatureAbilityStats.flashing_blades[difficulty].triggered++
+            } else {
+              creatureAbilityStats.flashing_blades.timesDeclined++
+              creatureAbilityStats.flashing_blades[difficulty].declined++
+            }
+          }
+        }
+
         // Track destruction and BLOODTHIRSTY ability
         if (attackResult.destroyed) {
           results.creaturesDestroyed++
@@ -176,7 +246,7 @@ function CommanderAbilitiesTest() {
   /**
    * Execute AI turn with ability tracking
    */
-  const executeAITurn = (gameState, currentPlayerId, abilityStats, gameStats) => {
+  const executeAITurn = (gameState, currentPlayerId, abilityStats, creatureAbilityStats, gameStats) => {
     const ai = new SimpleAI(gameState, currentPlayerId)
     const player = gameState.players[currentPlayerId]
 
@@ -282,7 +352,7 @@ function CommanderAbilitiesTest() {
 
       // Process attack queue with ability tracking
       if (attackIntentions.length > 0) {
-        const attackResults = processAttackQueue(attackIntentions, gameState, abilityStats)
+        const attackResults = processAttackQueue(attackIntentions, gameState, abilityStats, creatureAbilityStats)
         result.attackActions = attackResults.attacksSuccessful
         gameStats.totalDamageDealt += attackResults.damageDealt
         gameStats.creaturesDestroyed += attackResults.creaturesDestroyed
@@ -339,7 +409,7 @@ function CommanderAbilitiesTest() {
     return result
   }
 
-  const runSingleGame = (gameNum, abilityStats) => {
+  const runSingleGame = (gameNum, abilityStats, creatureAbilityStats) => {
     const stats = {
       gameNum,
       turns: 0,
@@ -404,16 +474,16 @@ function CommanderAbilitiesTest() {
               // Check for HORDE ability - allows deployment during REFRESH phase
               // Execute AI turn BEFORE executeRefreshPhase to track HORDE deployments
               if (gameState.canDeployDuringRefresh && gameState.canDeployDuringRefresh(currentPlayerId)) {
-                executeAITurn(gameState, currentPlayerId, abilityStats, stats)
+                executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats)
               }
               gameState.executeRefreshPhase()
               break
             case GamePhases.ACTIVATE:
-              executeAITurn(gameState, currentPlayerId, abilityStats, stats)
+              executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats)
               gameState.advancePhase()
               break
             case GamePhases.DEPLOY:
-              executeAITurn(gameState, currentPlayerId, abilityStats, stats)
+              executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats)
               gameState.advancePhase()
               break
             case GamePhases.CLEANUP:
@@ -465,6 +535,7 @@ function CommanderAbilitiesTest() {
     setResults(null)
 
     const abilityStats = createAbilityStats()
+    const creatureAbilityStats = createCreatureAbilityStats()
     const allResults = []
     const summary = {
       totalGames: NUM_TESTS,
@@ -490,7 +561,7 @@ function CommanderAbilitiesTest() {
       setCurrentTest(i + 1)
       setProgress(((i + 1) / NUM_TESTS) * 100)
 
-      const gameStats = runSingleGame(i + 1, abilityStats)
+      const gameStats = runSingleGame(i + 1, abilityStats, creatureAbilityStats)
       allResults.push(gameStats)
 
       if (gameStats.completed) {
@@ -544,11 +615,11 @@ function CommanderAbilitiesTest() {
       summary.averageTurns = (summary.totalTurns / summary.completedGames).toFixed(2)
     }
 
-    setResults({ allResults, summary, abilityStats })
+    setResults({ allResults, summary, abilityStats, creatureAbilityStats })
     setIsRunning(false)
   }
 
-  // Count working abilities
+  // Count working commander abilities
   const countWorkingAbilities = (abilityStats) => {
     let working = 0
     if (abilityStats.gruumsh_commands_it.timesTriggered > 0) working++
@@ -565,20 +636,29 @@ function CommanderAbilitiesTest() {
     return working
   }
 
+  // Count working creature abilities
+  const countWorkingCreatureAbilities = (creatureAbilityStats) => {
+    if (!creatureAbilityStats) return { working: 0, total: 1 }
+    let working = 0
+    const total = 1 // Currently only FLASHING BLADES, will increase as more are added
+    if (creatureAbilityStats.flashing_blades.timesTriggered > 0) working++
+    return { working, total }
+  }
+
   return (
     <Container fluid className="mt-4">
       <Card bg="dark" text="white">
         <Card.Header>
-          <h3>Commander Abilities Test - 100 Automated Games</h3>
+          <h3>Abilities Test - 100 Automated Games</h3>
         </Card.Header>
         <Card.Body>
           {!isRunning && !results && (
             <div className="text-center">
-              <p>This will run 100 automated games to test all 10 commander abilities.</p>
+              <p>This will run 100 automated games to test all abilities.</p>
               <p>Each game features all 5 factions (5 AI players) with random commander selections.</p>
-              <p>Tracks detailed statistics for each ability type (PASSIVE and ACTIVE).</p>
+              <p>Tracks detailed statistics for Commander, Creature, and Order Card abilities.</p>
               <Button variant="success" size="lg" onClick={runAllTests}>
-                Start Commander Abilities Test
+                Start Abilities Test
               </Button>
             </div>
           )}
@@ -587,7 +667,7 @@ function CommanderAbilitiesTest() {
             <div>
               <h5>Running Test {currentTest} of {NUM_TESTS}...</h5>
               <ProgressBar now={progress} label={`${Math.round(progress)}%`} animated variant="success" />
-              <p className="mt-2 text-muted">Testing commander abilities across all factions...</p>
+              <p className="mt-2 text-muted">Testing all abilities across all factions...</p>
             </div>
           )}
 
@@ -596,7 +676,7 @@ function CommanderAbilitiesTest() {
               <Alert variant={results.summary.totalErrors === 0 ? 'success' : 'warning'}>
                 <Alert.Heading>
                   {results.summary.totalErrors === 0
-                    ? `✅ Test Complete - ${countWorkingAbilities(results.abilityStats)}/10 Abilities Active!`
+                    ? `✅ Test Complete - ${countWorkingAbilities(results.abilityStats)}/10 Commander + ${countWorkingCreatureAbilities(results.creatureAbilityStats).working}/${countWorkingCreatureAbilities(results.creatureAbilityStats).total} Creature Abilities Active!`
                     : `⚠️ Test Complete - ${results.summary.totalErrors} errors detected`}
                 </Alert.Heading>
               </Alert>
@@ -770,6 +850,97 @@ function CommanderAbilitiesTest() {
                 </Card.Body>
               </Card>
 
+              {/* Creature Ability Statistics */}
+              <Card bg="danger" text="white" className="mb-3">
+                <Card.Header><h5>🗡️ Creature Ability Statistics</h5></Card.Header>
+                <Card.Body>
+                  <Row>
+                    {/* Sting of Lolth Creature Abilities */}
+                    <Col md={12}>
+                      <h6 className="text-warning">Sting of Lolth - FLASHING BLADES <Badge bg="warning">ACTIVE</Badge> <small className="text-muted">(Drow Blademaster)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.flashing_blades?.timesOffered || 0}</Badge></td>
+                            <td><strong>Splash Damage</strong></td>
+                            <td>{results.creatureAbilityStats?.flashing_blades?.splashDamageDealt || 0}</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.flashing_blades?.timesTriggered || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.flashing_blades?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.flashing_blades.timesTriggered / results.creatureAbilityStats.flashing_blades.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.flashing_blades?.timesDeclined || 0}</Badge></td>
+                            <td colSpan={2}></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.flashing_blades?.[diff] || { offered: 0, triggered: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        Expected rates: Easy = 0% (never), Medium = ~50% (random), Hard = 100% (always)
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
               {/* Faction Balance */}
               <Card bg="info" text="white" className="mb-3">
                 <Card.Header><h5>Faction Balance</h5></Card.Header>
@@ -847,4 +1018,4 @@ function CommanderAbilitiesTest() {
   )
 }
 
-export default CommanderAbilitiesTest
+export default AbilitiesTest

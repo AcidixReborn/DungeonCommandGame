@@ -3,7 +3,7 @@ import { Container, Nav, Navbar, Button, Dropdown, Modal, Badge, ProgressBar } f
 import GameBoard from './components/GameBoard'
 import DataEntry from './components/DataEntry'
 import GameSimulation from './test/GameSimulation'
-import CommanderAbilitiesTest from './test/CommanderAbilitiesTest'
+import AbilitiesTest from './test/AbilitiesTest'
 import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 
@@ -261,7 +261,7 @@ function App() {
           {currentView === 'game' && <GameBoard onTurnInfoChange={setTurnInfo} />}
           {currentView === 'data' && <DataEntry />}
           {currentView === 'test' && <GameSimulation />}
-          {currentView === 'abilities' && <CommanderAbilitiesTest />}
+          {currentView === 'abilities' && <AbilitiesTest />}
         </Container>
 
         {/* Expanded Log Overlay - Displays turn log from navbar */}

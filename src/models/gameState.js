@@ -337,6 +337,17 @@ export class GameState {
   }
 
   /**
+   * Get all 8-directionally adjacent tiles - delegates to Board
+   * Used for abilities that affect all surrounding tiles (including diagonals)
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @returns {Array} Array of adjacent tiles (up to 8)
+   */
+  getAdjacentTiles8Dir(x, y) {
+    return this.board.getAdjacentTiles8Dir(x, y)
+  }
+
+  /**
    * Get tile at position - delegates to Board (O(1))
    * @param {number} x - X coordinate
    * @param {number} y - Y coordinate
@@ -394,6 +405,184 @@ export class GameState {
       typeof ability === 'string' && ability.toLowerCase().includes('flying')
     )
   }
+
+  // ============================================================================
+  // FLASHING BLADES - Drow Blademaster Creature Ability
+  // After melee attack deals damage, can deal 10 splash damage to adjacent enemy
+  // ============================================================================
+
+  /**
+   * Check if creature has FLASHING BLADES ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has FLASHING BLADES
+   */
+  hasFlashingBlades(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('FLASHING BLADES')
+    )
+  }
+
+  /**
+   * Get valid targets for FLASHING BLADES splash damage
+   * Returns adjacent enemy creatures (excluding the original attack target)
+   * @param {CreatureInstance} attackerInstance - The Drow Blademaster
+   * @param {CreatureInstance} originalTarget - The creature that was just attacked
+   * @returns {Array} Array of valid target CreatureInstances
+   */
+  getFlashingBladesTargets(attackerInstance, originalTarget) {
+    if (!this.hasFlashingBlades(attackerInstance)) return []
+    if (!attackerInstance.position) return []
+
+    const targets = []
+    // Use 8-directional adjacency - FLASHING BLADES can hit all surrounding tiles including diagonals
+    const adjacent = this.getAdjacentTiles8Dir(attackerInstance.position.x, attackerInstance.position.y)
+
+    for (const tile of adjacent) {
+      const occupant = tile.occupant
+      if (occupant &&
+          occupant.owner !== attackerInstance.owner &&
+          occupant.instanceId !== originalTarget?.instanceId &&
+          occupant.currentHP > 0) {
+        targets.push(occupant)
+      }
+    }
+
+    return targets
+  }
+
+  /**
+   * Apply FLASHING BLADES splash damage (10 damage)
+   * Handles morale changes and creature destruction
+   * @param {CreatureInstance} targetInstance - The creature receiving splash damage
+   * @param {string} attackerOwner - Owner of the Blademaster (for morale)
+   * @returns {Object} { success, damage, destroyed, moraleChange }
+   */
+  applyFlashingBlades(targetInstance, attackerOwner) {
+    const SPLASH_DAMAGE = 10
+
+    if (!targetInstance) {
+      return { success: false, message: 'Invalid target' }
+    }
+
+    const defenderOwner = targetInstance.owner
+
+    // Apply damage using takeDamage (same as resolveAttack)
+    const wasDestroyed = targetInstance.takeDamage(SPLASH_DAMAGE)
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Defender loses morale equal to creature's level
+      defenderPlayer.loseMorale(targetInstance.creature.level)
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level
+      }
+    }
+
+    return {
+      success: true,
+      damage: SPLASH_DAMAGE,
+      destroyed: wasDestroyed,
+      moraleChange,
+      remainingHP: Math.max(0, targetInstance.currentHP)
+    }
+  }
+
+  /**
+   * Apply FLASHING BLADES splash damage with defense reduction
+   * @param {CreatureInstance} targetInstance - The creature receiving splash damage
+   * @param {string} attackerOwner - Owner of the Blademaster (for morale)
+   * @param {number} damageReduction - Amount of damage prevented by defense
+   * @returns {Object} { success, damage, destroyed, moraleChange }
+   */
+  applyFlashingBladesWithDefense(targetInstance, attackerOwner, damageReduction = 0) {
+    const BASE_SPLASH_DAMAGE = 10
+    const actualDamage = Math.max(0, BASE_SPLASH_DAMAGE - damageReduction)
+
+    if (!targetInstance) {
+      return { success: false, message: 'Invalid target' }
+    }
+
+    // If all damage was prevented, no effect
+    if (actualDamage <= 0) {
+      return {
+        success: true,
+        damage: 0,
+        destroyed: false,
+        moraleChange: { attacker: 0, defender: 0 },
+        remainingHP: targetInstance.currentHP,
+        damageReduced: damageReduction
+      }
+    }
+
+    const defenderOwner = targetInstance.owner
+
+    // Apply damage using takeDamage
+    const wasDestroyed = targetInstance.takeDamage(actualDamage)
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Defender loses morale equal to creature's level
+      defenderPlayer.loseMorale(targetInstance.creature.level)
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level
+      }
+    }
+
+    return {
+      success: true,
+      damage: actualDamage,
+      destroyed: wasDestroyed,
+      moraleChange,
+      remainingHP: Math.max(0, targetInstance.currentHP),
+      damageReduced: damageReduction
+    }
+  }
+
 
   // ============================================================================
   // COMMANDER ABILITY DELEGATION METHODS

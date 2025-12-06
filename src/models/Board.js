@@ -121,6 +121,39 @@ export class Board {
     return adjacent
   }
 
+  /**
+   * Get all 8-directionally adjacent tiles (including diagonals)
+   * Used for abilities like FLASHING BLADES that affect all surrounding tiles
+   * Big O: O(8) = O(1) - checks exactly 8 directions
+   * @param {number} x - Center X coordinate
+   * @param {number} y - Center Y coordinate
+   * @returns {Array} Array of all adjacent tiles (up to 8)
+   */
+  getAdjacentTiles8Dir(x, y) {
+    const adjacent = []
+    const directions = [
+      { dx: 0, dy: -1 },   // North
+      { dx: 1, dy: -1 },   // Northeast
+      { dx: 1, dy: 0 },    // East
+      { dx: 1, dy: 1 },    // Southeast
+      { dx: 0, dy: 1 },    // South
+      { dx: -1, dy: 1 },   // Southwest
+      { dx: -1, dy: 0 },   // West
+      { dx: -1, dy: -1 }   // Northwest
+    ]
+
+    directions.forEach(dir => {
+      const newX = x + dir.dx
+      const newY = y + dir.dy
+      const tile = this.getTile(newX, newY)
+      if (tile) {
+        adjacent.push(tile)
+      }
+    })
+
+    return adjacent
+  }
+
   // ============================================================================
   // DISTANCE & GEOMETRY
   // ============================================================================

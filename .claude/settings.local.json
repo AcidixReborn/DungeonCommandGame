@@ -33,7 +33,11 @@
       "Bash(powershell -Command:*)",
       "Bash(timeout 90 npx vite-node:*)",
       "Bash(cd:*)",
-      "Bash(timeout 120 npx vite-node:*)"
+      "Bash(timeout 120 npx vite-node:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(timeout 180 npx vite-node:*)",
+      "Bash(del test-abilities-temp.js)"
     ],
     "deny": [],
     "ask": []

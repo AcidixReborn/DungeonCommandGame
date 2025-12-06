@@ -147,6 +147,11 @@ function GameBoard({ onTurnInfoChange }) {
   const [showHordeModal, setShowHordeModal] = useState(false)
   const [hordeRefreshExecuted, setHordeRefreshExecuted] = useState(false) // Track if refresh actions done
 
+  // FLASHING BLADES ability state (splash damage after melee attack)
+  const [showFlashingBladesModal, setShowFlashingBladesModal] = useState(false)
+  const [flashingBladesPending, setFlashingBladesPending] = useState(null) // { attacker, originalTarget, validTargets }
+  const [flashingBladesTargetMode, setFlashingBladesTargetMode] = useState(false) // True when highlighting targets for selection
+
   /**
    * Faction color mapping from faction IDs to hex colors
    */
@@ -388,9 +393,9 @@ function GameBoard({ onTurnInfoChange }) {
     // VERSATILE ability check - O(1) Set lookup
     // Adventurer who has already moved can use action to move again
     // Skip modal if user already declined for this creature this turn
+    // MUST check: Commander has VERSATILE ability AND creature is Heart of Cormyr AND Adventurer type
     // ============================================
-    const isAdventurer = creatureInstance.creature.type?.includes('Adventurer')
-    if (isAdventurer && creatureInstance.hasMovedThisTurn && !creatureInstance.isTapped) {
+    if (gameState.canUseVersatile && gameState.canUseVersatile(creatureInstance)) {
       // O(1) lookup - check if user already declined Versatile for this creature
       if (!versatileDeclinedCreatures.has(creatureInstance.id)) {
         // Show VERSATILE modal - offer to use action for extra move
@@ -710,7 +715,15 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Check for game over
         gameState.checkGameOver()
-      } else {
+
+        // Check for FLASHING BLADES trigger (human attacker vs AI defender)
+        if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
+          // Modal shown - don't clear state yet, wait for modal response
+          // BUT we DO need to trigger a re-render to show destroyed creature being removed
+          setRenderCounter(prev => prev + 1)
+          return
+        }
+            } else {
         addToast(result.message || 'Attack failed!')
       }
 
@@ -773,9 +786,12 @@ function GameBoard({ onTurnInfoChange }) {
     const accumulatedReduction = pendingAttack.accumulatedDamageReduction || 0
 
     // Calculate original incoming damage
-    const originalDamage = targetInfo.attackType === 'melee'
-      ? attackerInstance.creature.meleeAttack?.damage || 0
-      : attackerInstance.creature.rangedAttack?.damage || 0
+    // For FLASHING BLADES, damage is always 10
+    const originalDamage = targetInfo.attackType === 'flashing_blades'
+      ? 10
+      : targetInfo.attackType === 'melee'
+        ? attackerInstance.creature.meleeAttack?.damage || 0
+        : attackerInstance.creature.rangedAttack?.damage || 0
 
     if (defense.type === 'skip') {
       // No more defense - execute attack with accumulated reduction
@@ -933,16 +949,29 @@ function GameBoard({ onTurnInfoChange }) {
   const executeAttackAfterDefense = (defenseResult) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades } = pendingAttack
 
-    // Execute attack with defense damage reduction
-    const result = gameState.executeAttackWithDefense(
-      attackerInstance,
-      defenderInstance,
-      targetInfo.attackType,
-      defenseResult.damageReduction,
-      defenseResult.type
-    )
+    let result
+    if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
+      // FLASHING BLADES splash attack - use special handling
+      // Apply defense reduction to the 10 splash damage
+      const damageReduction = defenseResult.damageReduction || 0
+      result = gameState.applyFlashingBladesWithDefense(defenderInstance, attackerInstance.owner, damageReduction)
+
+      // Now tap the attacker (deferred from original attack)
+      if (attackerInstance.hasMovedThisTurn) {
+        attackerInstance.tap()
+      }
+    } else {
+      // Normal attack - execute with defense damage reduction
+      result = gameState.executeAttackWithDefense(
+        attackerInstance,
+        defenderInstance,
+        targetInfo.attackType,
+        defenseResult.damageReduction,
+        defenseResult.type
+      )
+    }
 
     if (result.success) {
       let message = ''
@@ -975,19 +1004,25 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
-      message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
-                 `with ${targetInfo.attackType} for ${result.damage} damage!`
+      if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
+        message += `⚔️ FLASHING BLADES: ${attackerInstance.creature.name} deals ${result.damage} splash damage to ${defenderInstance.creature.name}!`
+      } else {
+        message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+                   `with ${targetInfo.attackType} for ${result.damage} damage!`
+      }
 
       if (result.destroyed) {
         message += ` ${defenderInstance.creature.name} was destroyed! `
-        message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
-                  `Defender ${result.moraleChange.defender}`
+        if (result.moraleChange) {
+          message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+                    `Defender ${result.moraleChange.defender}`
+        }
         // BLOODTHIRSTY ability notification
         if (result.bloodthirsty) {
           message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
         }
       } else {
-        message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
+        message += ` ${defenderInstance.creature.name} has ${result.remainingHP || defenderInstance.currentHP} HP remaining.`
       }
 
       addToast(message)
@@ -1001,8 +1036,23 @@ function GameBoard({ onTurnInfoChange }) {
           : 'All creatures destroyed!'
         addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
       }
+
+      // Check for FLASHING BLADES trigger after defense (only for normal attacks, not splash)
+      if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades') {
+        if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
+          // Modal shown - don't clear state yet, wait for modal response
+          // BUT we DO need to trigger a re-render to show destroyed creature being removed
+          setRenderCounter(prev => prev + 1)
+          return
+        }
+      }
     } else {
       addToast(result.message || 'Attack failed!')
+    }
+
+    // Clear FLASHING BLADES pending state if this was a splash attack
+    if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
+      setFlashingBladesPending(null)
     }
 
     setSelectedBoardCreature(null)
@@ -1019,10 +1069,20 @@ function GameBoard({ onTurnInfoChange }) {
   const executeAttackAfterReactions = (reactions) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades } = pendingAttack
 
-    // Execute attack
-    const result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+    let result
+    if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
+      // FLASHING BLADES splash attack - use special handling
+      result = gameState.applyFlashingBlades(defenderInstance, attackerInstance.owner)
+      // Now tap the attacker (deferred from original attack)
+      if (attackerInstance.hasMovedThisTurn) {
+        attackerInstance.tap()
+      }
+    } else {
+      // Execute normal attack
+      result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+    }
 
     if (result.success) {
       let message = ''
@@ -1032,19 +1092,25 @@ function GameBoard({ onTurnInfoChange }) {
         message += `⚡ ${reactions.length} Immediate card${reactions.length !== 1 ? 's' : ''} played! `
       }
 
-      message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
-                 `with ${targetInfo.attackType} for ${result.damage} damage!`
+      if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
+        message += `⚔️ FLASHING BLADES: ${attackerInstance.creature.name} deals ${result.damage} splash damage to ${defenderInstance.creature.name}!`
+      } else {
+        message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+                   `with ${targetInfo.attackType} for ${result.damage} damage!`
+      }
 
       if (result.destroyed) {
         message += ` ${defenderInstance.creature.name} was destroyed! `
-        message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
-                  `Defender ${result.moraleChange.defender}`
+        if (result.moraleChange) {
+          message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+                    `Defender ${result.moraleChange.defender}`
+        }
         // BLOODTHIRSTY ability notification
         if (result.bloodthirsty) {
           message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
         }
       } else {
-        message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
+        message += ` ${defenderInstance.creature.name} has ${result.remainingHP || defenderInstance.currentHP} HP remaining.`
       }
 
       addToast(message)
@@ -1060,8 +1126,23 @@ function GameBoard({ onTurnInfoChange }) {
           : 'All creatures destroyed!'
         addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
       }
+
+      // Check for FLASHING BLADES trigger after reactions (only for normal attacks, not splash)
+      if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades') {
+        if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
+          // Modal shown - don't clear state yet, wait for modal response
+          // BUT we DO need to trigger a re-render to show destroyed creature being removed
+          setRenderCounter(prev => prev + 1)
+          return
+        }
+      }
     } else {
       addToast(result.message || 'Attack failed!')
+    }
+
+    // Clear FLASHING BLADES pending state if this was a splash attack
+    if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
+      setFlashingBladesPending(null)
     }
 
     setSelectedBoardCreature(null)
@@ -1153,6 +1234,167 @@ function GameBoard({ onTurnInfoChange }) {
     setValidAttackTargets([])
     setRenderCounter(prev => prev + 1)
   }
+
+  // ============================================
+  // FLASHING BLADES ability handlers
+  // ============================================
+
+  // User chose to use FLASHING BLADES - enter target selection mode
+  const handleFlashingBladesUse = () => {
+    if (!flashingBladesPending) return
+
+    // Close the modal and enter target selection mode
+    setShowFlashingBladesModal(false)
+    setFlashingBladesTargetMode(true)
+
+    // Clear normal attack state to prevent interference with FLASHING BLADES target selection
+    // These were left from the original attack and could cause issues
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+    setPendingRightClickAttack(null)
+
+    // The valid targets are already in flashingBladesPending.validTargets
+    // They will be highlighted on the board for right-click selection
+  }
+
+  // User chose to skip FLASHING BLADES
+  const handleFlashingBladesSkip = () => {
+    addToast(`${flashingBladesPending?.attacker.creature.name} chose not to use FLASHING BLADES.`)
+
+    // Now tap the creature if it had moved (was deferred for FLASHING BLADES)
+    if (flashingBladesPending?.attacker?.hasMovedThisTurn) {
+      flashingBladesPending.attacker.tap()
+    }
+
+    // Clear state
+    setFlashingBladesPending(null)
+    setShowFlashingBladesModal(false)
+    setFlashingBladesTargetMode(false)
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+    setRenderCounter(prev => prev + 1)
+  }
+
+  // User right-clicked on a valid FLASHING BLADES target - initiate attack
+  const handleFlashingBladesTargetSelected = (targetInstance) => {
+    if (!flashingBladesPending || !targetInstance) return
+
+    // Set up a pending attack for the splash damage
+    const attackerInstance = flashingBladesPending.attacker
+
+    // Create a special flashing blades attack target info
+    const targetInfo = {
+      creature: targetInstance,
+      attackType: 'flashing_blades',
+      damage: 10
+    }
+
+    // Store the pending attack and show the attack panel
+    setPendingAttack({
+      attackerInstance,
+      defenderInstance: targetInstance,
+      targetInfo,
+      isFlashingBlades: true
+    })
+
+    // Exit target selection mode
+    setFlashingBladesTargetMode(false)
+
+    // Show the combat panel for attack confirmation
+    setCombatPanelMode('attack')
+    setCombatHighlightCreatures({
+      attacker: attackerInstance.instanceId,
+      defender: targetInstance.instanceId
+    })
+  }
+
+  // User confirmed FLASHING BLADES splash attack from the attack panel
+  const handleFlashingBladesConfirmAttack = () => {
+    if (!pendingAttack || !pendingAttack.isFlashingBlades) return
+
+    const { attackerInstance, defenderInstance } = pendingAttack
+
+    // Check if defender is human (needs defense options) or AI
+    const defenderPlayerId = defenderInstance.owner
+    const isDefenderHuman = isPlayerHuman(defenderPlayerId)
+
+    if (isDefenderHuman) {
+      // Show defense panel for the human defender
+      setCombatPanelMode('defense')
+    } else {
+      // AI defender - check if AI wants to defend
+      const defenderPlayer = gameState.players[defenderPlayerId]
+      const difficulty = defenderPlayer?.aiDifficulty || 'easy'
+      const defenderAI = new SimpleAI(gameState, defenderPlayerId, null, difficulty)
+
+      // AI decides whether to use defensive abilities against 10 splash damage
+      const defenseDecision = defenderAI.decideDefense(defenderInstance, 10, attackerInstance.owner)
+      let defenseResult = null
+
+      if (defenseDecision.type === 'cower') {
+        defenseResult = gameState.applyCower(defenderInstance, 10, attackerInstance.owner)
+        if (defenseResult.success) {
+          defenseResult.type = 'cower'
+          defenseResult.damagePrevented = defenseResult.damageAvoided
+          defenseResult.damageReduction = defenseResult.damageAvoided
+        }
+      } else if (defenseDecision.type === 'immediate_card') {
+        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        if (result.success) {
+          defenseResult = {
+            success: true,
+            type: 'immediate_card',
+            damagePrevented: result.damagePrevented,
+            damageReduction: result.damagePrevented,
+            cardUsed: defenseDecision.card.name
+          }
+        }
+      }
+
+      // Execute the FLASHING BLADES attack
+      closeCombatPanel()
+      executeAttackAfterDefense({
+        type: defenseResult?.type || 'none',
+        damageReduction: defenseResult?.damageReduction || 0,
+        success: !!defenseResult?.success
+      })
+    }
+  }
+
+  /**
+   * Check and trigger FLASHING BLADES ability after a melee attack
+   * Called after attack resolves and damage is dealt
+   * @returns {boolean} True if FLASHING BLADES was triggered (modal shown)
+   */
+  const checkFlashingBladesTrigger = (attackerInstance, defenderInstance, attackResult, attackType) => {
+    // Only trigger on melee attacks that dealt damage
+    if (attackType !== 'melee') return false
+    if (!attackResult.success || attackResult.damage <= 0) return false
+
+    // Check if attacker has FLASHING BLADES
+    if (!gameState.hasFlashingBlades(attackerInstance)) return false
+
+    // Only show modal for human player (AI is handled separately)
+    if (!isCurrentPlayerHumanCheck()) return false
+
+    // Get valid splash targets - use ATTACKER's position for adjacency
+    const validTargets = gameState.getFlashingBladesTargets(attackerInstance, defenderInstance)
+    if (validTargets.length === 0) return false
+
+    // Set up the pending ability and show modal
+    setFlashingBladesPending({
+      attacker: attackerInstance,
+      originalTarget: defenderInstance,
+      validTargets
+    })
+    setShowFlashingBladesModal(true)
+
+    return true
+  }
+
+
 
   // SCROLLBOOK ability - discard selected order card to draw a new one
   const handleScrollbookUse = (cardIndex) => {
@@ -1413,6 +1655,53 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Check for game over
         gameState.checkGameOver()
+
+
+        // AI FLASHING BLADES check - after melee attack deals damage
+        // Note: The creature's tapping is deferred if it has FLASHING BLADES
+        if (targetInfo.attackType === 'melee' && result.damage > 0 && gameState.hasFlashingBlades(attackerInstance)) {
+          const flashingTargets = gameState.getFlashingBladesTargets(attackerInstance, defenderInstance)
+          if (flashingTargets.length > 0) {
+            // Get AI difficulty to determine if ability should be used
+            const playerNum = attackerInstance.owner.replace('PLAYER', '')
+            const playerKey = `player${playerNum}`
+            const difficulty = gameConfig[playerKey]?.difficulty || 'medium'
+
+            // Easy: never use, Medium: 50%, Hard: always use
+            let shouldUseAbility = false
+            if (difficulty === 'hard') {
+              shouldUseAbility = true
+            } else if (difficulty === 'medium') {
+              shouldUseAbility = Math.random() < 0.5
+            }
+            // Easy difficulty: shouldUseAbility stays false
+
+            if (shouldUseAbility) {
+              // Select best target (highest level/value)
+              const bestTarget = flashingTargets.reduce((best, current) => {
+                const bestValue = best.creature.level || 1
+                const currentValue = current.creature.level || 1
+                return currentValue > bestValue ? current : best
+              }, flashingTargets[0])
+
+              // Apply FLASHING BLADES damage
+              const flashResult = gameState.applyFlashingBlades(bestTarget, attackerInstance.owner)
+
+              let flashMessage = `⚔️ FLASHING BLADES: ${attackerInstance.creature.name} deals 10 splash damage to ${bestTarget.creature.name}!`
+              if (flashResult.destroyed) {
+                flashMessage += ` ${bestTarget.creature.name} was destroyed!`
+                flashMessage += ` Morale changes: Attacker +${flashResult.moraleChange.attacker}, Defender ${flashResult.moraleChange.defender}`
+              } else {
+                flashMessage += ` ${bestTarget.creature.name} has ${flashResult.remainingHP} HP remaining.`
+              }
+              addToast(flashMessage)
+            }
+          }
+          // Now tap the creature (deferred from attack due to FLASHING BLADES)
+          if (attackerInstance.hasMovedThisTurn && !attackerInstance.isTapped) {
+            attackerInstance.tap()
+          }
+        }
       } else {
         addToast(result.message || 'Attack failed!')
       }
@@ -1534,6 +1823,18 @@ function GameBoard({ onTurnInfoChange }) {
     if (!gameState || gameState.gameOver) return
     if (gameState.currentPhase !== GamePhases.ACTIVATE) return
 
+    // Handle FLASHING BLADES target selection
+    if (flashingBladesTargetMode && flashingBladesPending) {
+      const targetCreature = flashingBladesPending.validTargets.find(
+        t => t.position?.x === tile.x && t.position?.y === tile.y
+      )
+      if (targetCreature) {
+        handleFlashingBladesTargetSelected(targetCreature)
+        return
+      }
+    }
+
+
     // Must have a creature selected (via left-click) to use right-click actions
     if (!selectedBoardCreature) return
 
@@ -1636,6 +1937,19 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // ============================================
+    // FLASHING BLADES LOCK: Block phase advancement during ability - O(1)
+    // User must complete or skip the FLASHING BLADES ability
+    // ============================================
+    if (showFlashingBladesModal) {
+      addLog('system', '⚠️ You must choose whether to use FLASHING BLADES before advancing the phase.', 'warning')
+      return
+    }
+    if (flashingBladesTargetMode) {
+      addLog('system', '⚠️ You must select a target for FLASHING BLADES before advancing the phase.', 'warning')
+      return
+    }
+
     switch (gameState.currentPhase) {
       case GamePhases.REFRESH:
         // If HORDE refresh was already executed, just advance (don't redo refresh actions)
@@ -1714,8 +2028,10 @@ function GameBoard({ onTurnInfoChange }) {
 
     // ============================================
     // COMBAT LOCK: Disable phase button when combat is pending - O(1)
+    // Also blocks during FLASHING BLADES modal or target selection
     // ============================================
-    const canAdvancePhaseValue = !combatPanelMode && (gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase())
+    const isFlashingBladesActive = showFlashingBladesModal || flashingBladesTargetMode
+    const canAdvancePhaseValue = !combatPanelMode && !isFlashingBladesActive && (gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase())
 
     onTurnInfoChange({
       turnNumber: gameState.turnNumber,
@@ -1997,6 +2313,12 @@ function GameBoard({ onTurnInfoChange }) {
                   const isAttackTarget = attackTargetInfo !== undefined
                   const attackType = attackTargetInfo?.attackType
 
+                  // Check if this creature is a FLASHING BLADES target
+                  const isFlashingBladesTarget = flashingBladesTargetMode &&
+                    flashingBladesPending?.validTargets.some(
+                      t => t.position?.x === x && t.position?.y === y
+                    )
+
                   // Check if this is the selected creature
                   const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
                                               selectedBoardCreature?.position?.y === y
@@ -2027,7 +2349,7 @@ function GameBoard({ onTurnInfoChange }) {
                       isSelected={isSelectedCreature}
                       isValidMove={isValidMove}
                       movementInfo={validMove} // Pass movement info for cost display
-                      isAttackTarget={isAttackTarget}
+                      isAttackTarget={isAttackTarget || isFlashingBladesTarget}
                       attackType={attackType}
                       isLineOfSight={isLineOfSight}
                       onClick={handleTileClick}
@@ -2086,31 +2408,35 @@ function GameBoard({ onTurnInfoChange }) {
                 vertical={true}
                 canDeployCreatures={canDeployInCurrentPhase()}
                 // COMBAT PANEL PROPS - O(1) prop passing
+                // For attack mode: use pendingRightClickAttack for normal attacks, or pendingAttack for FLASHING BLADES
                 combatMode={combatPanelMode}
                 attackerCreature={
                   combatPanelMode === 'attack'
-                    ? pendingRightClickAttack?.attacker
+                    ? (pendingRightClickAttack?.attacker || pendingAttack?.attackerInstance)
                     : pendingAttack?.attackerInstance
                 }
                 defenderCreature={
                   combatPanelMode === 'attack'
-                    ? pendingRightClickAttack?.target
+                    ? (pendingRightClickAttack?.target || pendingAttack?.defenderInstance)
                     : pendingAttack?.defenderInstance
                 }
                 attackInfo={
                   combatPanelMode === 'attack'
-                    ? pendingRightClickAttack?.attackInfo
+                    ? (pendingRightClickAttack?.attackInfo || pendingAttack?.targetInfo)
                     : pendingAttack?.targetInfo
                 }
                 accumulatedDamageReduction={pendingAttack?.accumulatedDamageReduction || 0}
                 defenderPlayerState={
                   combatPanelMode === 'attack'
-                    ? (pendingRightClickAttack ? gameState.players[pendingRightClickAttack.target?.owner] : null)
+                    ? (pendingRightClickAttack
+                        ? gameState.players[pendingRightClickAttack.target?.owner]
+                        : (pendingAttack ? gameState.players[pendingAttack.defenderInstance?.owner] : null))
                     : (pendingAttack ? gameState.players[pendingAttack.defenderInstance?.owner] : null)
                 }
                 gameState={gameState}
-                onConfirmAttack={confirmRightClickAttack}
-                onCancelAttack={cancelRightClickAttack}
+                isFlashingBlades={pendingAttack?.isFlashingBlades || false}
+                onConfirmAttack={pendingAttack?.isFlashingBlades ? handleFlashingBladesConfirmAttack : confirmRightClickAttack}
+                onCancelAttack={pendingAttack?.isFlashingBlades ? null : cancelRightClickAttack}
                 onDefenseSelected={handleDefenseSelected}
                 onSkipDefense={handleReactionsSkipped}
                 // FACTION ICONS PROPS - O(1) prop passing
@@ -2375,6 +2701,43 @@ function GameBoard({ onTurnInfoChange }) {
           </Button>
           <Button variant="info" size="lg" onClick={handleSellswordCard}>
             📜 Draw Card
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+
+      {/* FLASHING BLADES Ability Modal - Choose to use splash damage */}
+      <Modal
+        show={showFlashingBladesModal}
+        onHide={handleFlashingBladesSkip}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header style={{ backgroundColor: '#8b008b', color: 'white' }}>
+          <Modal.Title>⚔️ FLASHING BLADES - Splash Damage!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {flashingBladesPending && (
+            <div>
+              <p>
+                <strong>{flashingBladesPending.attacker.creature.name}</strong> can deal{' '}
+                <span style={{ color: '#dc3545', fontWeight: 'bold' }}>10 damage</span> to an adjacent enemy!
+              </p>
+              <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
+                Valid targets: {flashingBladesPending.validTargets.map(t => t.creature.name).join(', ')}
+              </p>
+              <p style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '10px' }}>
+                Click "Use Ability" then right-click on a highlighted target to attack.
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
+          <Button variant="danger" size="lg" onClick={handleFlashingBladesUse}>
+            ⚔️ Use Ability
+          </Button>
+          <Button variant="secondary" size="lg" onClick={handleFlashingBladesSkip}>
+            Skip
           </Button>
         </Modal.Footer>
       </Modal>
