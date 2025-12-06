@@ -10,6 +10,8 @@ import PlayerPanel from './PlayerPanel'
 import FactionSelector from './FactionSelector'
 import CommanderSelector from './CommanderSelector'
 import SimpleAI from '../ai/simpleAI'
+// Import custom hooks for state management
+import { useNotifications, useSelection, useCombat } from '../hooks'
 import './GameBoard.css'
 
 /**
@@ -55,119 +57,68 @@ function GameBoard({ onTurnInfoChange }) {
   const [gameState, setGameState] = useState(null)
   const [gameConfig, setGameConfig] = useState(null)
   const [factionConfig, setFactionConfig] = useState(null) // Stores faction selection before commander selection
-  const [selectedTile, setSelectedTile] = useState(null)
-  const [selectedCreatureIndex, setSelectedCreatureIndex] = useState(null)
-  const [selectedOrderIndex, setSelectedOrderIndex] = useState(null)
-  const [selectedBoardCreature, setSelectedBoardCreature] = useState(null) // Creature on board
-
-  // Toast notification system
-  const [toastMessages, setToastMessages] = useState([]) // Array of {id, message, timestamp, round}
-  const [isLogExpanded, setIsLogExpanded] = useState(false)
 
   // Player panel collapse state
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
-  const [turnLog, setTurnLog] = useState([]) // Full log since last turn
-  const [nextToastId, setNextToastId] = useState(1)
-
-  // ============================================
-  // STATE: Faction highlight for board creatures - O(1) state access
-  // Stores playerId of faction to highlight on board, or null for none
-  // Used by faction icons in PlayerPanel nav bar
-  // ============================================
-  const [factionHighlight, setFactionHighlight] = useState(null)
-
-  /**
-   * Add a toast notification
-   * Auto-dismisses after 3 seconds, max 10 visible at a time
-   * Also adds to turn log for expanded view
-   * Filters out "AI turn ended" messages
-   * Only shows popup during AI turns - human turns just add to log
-   */
-  const addToast = (message) => {
-    // Filter out "AI turn ended" messages
-    if (message === 'AI: AI turn ended') return
-
-    const id = nextToastId
-    setNextToastId(prev => prev + 1)
-
-    const newToast = {
-      id,
-      message,
-      timestamp: Date.now(),
-      round: gameState?.turnNumber || 1
-    }
-
-    // Always add to turn log
-    setTurnLog(prev => [...prev, newToast])
-
-    // Only show popup during AI turns (not human turns)
-    // Inline human check since isPlayerHuman is defined later in component
-    const currentPlayer = gameState?.currentPlayer
-    if (currentPlayer && gameConfig) {
-      const playerNum = currentPlayer.replace('PLAYER', '')
-      const playerKey = `player${playerNum}`
-      const isHuman = gameConfig[playerKey]?.isHuman || false
-
-      if (!isHuman) {
-        setToastMessages(prev => {
-          const updated = [...prev, newToast]
-          // Keep only the last 10 toasts
-          return updated.slice(-10)
-        })
-      }
-    }
-  }
-
-  /**
-   * Remove a toast by ID (memoized to prevent timer resets)
-   */
-  const removeToast = useCallback((id) => {
-    setToastMessages(prev => prev.filter(t => t.id !== id))
-  }, [])
-
-  /**
-   * Clear old logs when a turn ends
-   * Keeps current turn and previous turn visible
-   */
-  const clearOldLogs = (turnNumber) => {
-    setTurnLog(prev => prev.filter(t => t.round >= turnNumber - 1))
-    setToastMessages(prev => prev.filter(t => t.round >= turnNumber - 1))
-  }
-  const [validMoveTiles, setValidMoveTiles] = useState([])
-  const [validAttackTargets, setValidAttackTargets] = useState([])
-  const [lineOfSightPath, setLineOfSightPath] = useState([]) // Visual path for ranged attacks
-  const [rangedRangeTiles, setRangedRangeTiles] = useState([]) // All tiles in ranged attack range
-  const [creatureViewMode, setCreatureViewMode] = useState('movement') // 'movement' | 'ranged'
-  const [draggingCreatureIndex, setDraggingCreatureIndex] = useState(null)
-  const [dragOverTile, setDragOverTile] = useState(null)
   const [isAIThinking, setIsAIThinking] = useState(false)
   const [renderCounter, setRenderCounter] = useState(0) // Force re-renders without destroying GameState
 
   // ============================================
-  // IMMEDIATE REACTION STATE
+  // CUSTOM HOOKS - Extracted state management
   // ============================================
-  const [pendingAttack, setPendingAttack] = useState(null) // Stores attack info while waiting for reactions
 
-  // ============================================
-  // COMBAT PANEL STATE - O(1) state access
-  // Used for in-panel attack confirmation and defense options
-  // ============================================
-  const [combatPanelMode, setCombatPanelMode] = useState(null) // 'attack' | 'defense' | null
-  const [combatHighlightCreatures, setCombatHighlightCreatures] = useState({
-    attacker: null,  // instanceId of attacking creature
-    defender: null   // instanceId of defending creature
+  // Selection state hook - handles tile/creature selection and valid moves
+  const {
+    selectedTile, setSelectedTile,
+    selectedCreatureIndex, setSelectedCreatureIndex,
+    selectedOrderIndex, setSelectedOrderIndex,
+    selectedBoardCreature, setSelectedBoardCreature,
+    validMoveTiles, setValidMoveTiles,
+    validAttackTargets, setValidAttackTargets,
+    lineOfSightPath, setLineOfSightPath,
+    rangedRangeTiles, setRangedRangeTiles,
+    creatureViewMode, setCreatureViewMode,
+    draggingCreatureIndex, setDraggingCreatureIndex,
+    dragOverTile, setDragOverTile,
+    factionHighlight, setFactionHighlight,
+    clearBoardSelection,
+    clearDragState
+  } = useSelection()
+
+  // Combat state hook - handles pending attacks, defense, move confirmation
+  const {
+    pendingAttack, setPendingAttack,
+    combatPanelMode, setCombatPanelMode,
+    combatHighlightCreatures, setCombatHighlightCreatures,
+    showMoveConfirm, setShowMoveConfirm,
+    pendingMove, setPendingMove,
+    pendingRightClickAttack, setPendingRightClickAttack,
+    pendingAIActions, setPendingAIActions,
+    processingAIAction, setProcessingAIAction,
+    closeCombatPanel
+  } = useCombat()
+
+  // Helper to check if current player is human (needed by notifications hook)
+  const isCurrentPlayerHumanCheck = useCallback(() => {
+    if (!gameConfig || !gameState) return true
+    const currentPlayer = gameState.currentPlayer
+    const playerNum = currentPlayer.replace('PLAYER', '')
+    const playerKey = `player${playerNum}`
+    return gameConfig[playerKey]?.isHuman || false
+  }, [gameConfig, gameState])
+
+  // Notification state hook - handles toasts and turn log
+  const {
+    toastMessages,
+    turnLog,
+    isLogExpanded, setIsLogExpanded,
+    addToast,
+    removeToast,
+    clearOldLogs
+  } = useNotifications({
+    getCurrentTurnNumber: () => gameState?.turnNumber || 1,
+    isCurrentPlayerHuman: isCurrentPlayerHumanCheck
   })
-
-  // Movement Confirmation Modal state
-  const [showMoveConfirm, setShowMoveConfirm] = useState(false)
-  const [pendingMove, setPendingMove] = useState(null) // Stores {creature, destination, path, cost}
-
-  // Right-click Attack state
-  const [pendingRightClickAttack, setPendingRightClickAttack] = useState(null) // Stores {attacker, target, attackInfo}
-
-  // AI action queue for processing attacks with modal support
-  const [pendingAIActions, setPendingAIActions] = useState([])
-  const [processingAIAction, setProcessingAIAction] = useState(false)
 
   // Treasure Discovery Modal state
   const [showTreasureDiscovery, setShowTreasureDiscovery] = useState(false)
@@ -800,14 +751,7 @@ function GameBoard({ onTurnInfoChange }) {
     executeAttackAfterReactions([])
   }
 
-  /**
-   * Helper function to close combat panel and clear all combat state - O(1)
-   * Used when defense is complete or attack is cancelled
-   */
-  const closeCombatPanel = () => {
-    setCombatPanelMode(null)
-    setCombatHighlightCreatures({ attacker: null, defender: null })
-  }
+  // closeCombatPanel is now provided by useCombat hook
 
   /**
    * Handle defense selection from DefenseOptionsPanel
