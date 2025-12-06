@@ -2,6 +2,16 @@
 import { getValidMovementTiles as pathfindingGetValidMovement } from '../utils/pathfinding.js'
 // Import Treasure system
 import { Treasure, createTokenPool, drawTokens } from './treasure.js'
+// Import game constants
+import {
+  BOARD,
+  TERRAIN,
+  COMBAT,
+  COMMANDER_ABILITIES,
+  TREASURE,
+  GAME_RULES,
+  MAGIC_CIRCLE
+} from '../constants/gameConstants.js'
 
 // Game phase constants - defines the turn sequence
 export const GamePhases = {
@@ -670,8 +680,8 @@ export class GameState {
    * - For 16×16 board and 2 players: O(256 + 2*3) = O(256) effectively constant
    */
   placeTreasures() {
-    const tokensPerFaction = 3
-    const minDistanceFromStart = 2 // Manhattan distance
+    const tokensPerFaction = TREASURE.TOKENS_PER_PLAYER
+    const minDistanceFromStart = TREASURE.MIN_DISTANCE_FROM_START
     const preferredTreasureSpacing = 3 // Manhattan distance between treasures
     let treasureIdCounter = 0
 
@@ -811,8 +821,8 @@ export class GameState {
       t.terrain === TerrainTypes.NORMAL
     )
 
-    // Randomly select 40% of players to receive magic circles
-    const numCircles = Math.max(1, Math.round(this.activePlayers.length * 0.4))
+    // Randomly select percentage of players to receive magic circles
+    const numCircles = Math.max(MAGIC_CIRCLE.MIN_CIRCLES, Math.round(this.activePlayers.length * MAGIC_CIRCLE.PLAYER_PERCENTAGE))
     const shuffledPlayers = [...this.activePlayers].sort(() => Math.random() - 0.5)
     const selectedPlayers = shuffledPlayers.slice(0, numCircles)
 
@@ -993,13 +1003,13 @@ export class GameState {
     const player = this.players[creatureInstance.owner]
     if (!player || !player.commander) return 0
 
-    // Check for WALLS OF WEB (+2 speed to Spider/Drow)
+    // Check for WALLS OF WEB (speed bonus to Spider/Drow)
     if (player.commander.hasAbility('walls_of_web')) {
       // Must belong to Sting of Lolth faction
       if (creatureInstance.creature.faction !== 'Sting of Lolth') return 0
       const creatureTypes = creatureInstance.creature.type || []
       if (creatureTypes.includes('Spider') || creatureTypes.includes('Drow')) {
-        bonus += 2
+        bonus += COMMANDER_ABILITIES.WALLS_OF_WEB_SPEED_BONUS
       }
     }
 
@@ -1105,9 +1115,9 @@ export class GameState {
       return { canCower: false, moraleCost: 0, extraCost: 0, damageAvoided: 0, reason: 'tapped' }
     }
 
-    // Calculate morale cost: damage/10, rounded up (guard against undefined/NaN)
+    // Calculate morale cost: damage/COWER_DAMAGE_PREVENTION, rounded up (guard against undefined/NaN)
     const safeDamage = (typeof incomingDamage === 'number' && !isNaN(incomingDamage)) ? incomingDamage : 0
-    const baseMoraleCost = Math.ceil(safeDamage / 10)
+    const baseMoraleCost = Math.ceil(safeDamage / COMBAT.COWER_DAMAGE_PREVENTION)
 
     // Check for BLACK HAND OF BANE extra cost (only applies to COWER, not UNSTOPPABLE HORDES)
     const extraCost = attackerOwner ? this.getBlackHandOfBaneExtraCost(attackerOwner) : 0
@@ -1197,17 +1207,21 @@ export class GameState {
       return { canUse: false, moraleCost: 0, damagePrevented: 0, reason: 'tapped' }
     }
 
-    // Player must have enough morale to pay (1 morale per creature)
+    // Player must have enough morale to pay
     const player = this.players[creatureInstance.owner]
-    if (player.morale < 1) {
+    if (player.morale < COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_MORALE_COST) {
       return { canUse: false, moraleCost: 0, damagePrevented: 0, reason: 'insufficient_morale' }
     }
 
-    return { canUse: true, moraleCost: 1, damagePrevented: 20 }
+    return {
+      canUse: true,
+      moraleCost: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_MORALE_COST,
+      damagePrevented: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_DAMAGE_PREVENTION
+    }
   }
 
   /**
-   * Apply UNSTOPPABLE HORDES ability - prevent 20 damage, pay 1 morale, tap creature
+   * Apply UNSTOPPABLE HORDES ability - prevent damage, pay morale, tap creature
    * NOTE: BLACK HAND OF BANE does NOT apply to this ability (it's not cowering)
    *
    * Big O Complexity: O(a + t) where a = commander abilities (1-2), t = creature types (1-3)
@@ -1222,14 +1236,18 @@ export class GameState {
       return { success: false, damagePrevented: 0, moraleCost: 0 }
     }
 
-    // Pay 1 morale
+    // Pay morale cost
     const player = this.players[creatureInstance.owner]
-    player.loseMorale(1)
+    player.loseMorale(COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_MORALE_COST)
 
     // Tap the creature that used the ability
     creatureInstance.tap()
 
-    return { success: true, damagePrevented: 20, moraleCost: 1 }
+    return {
+      success: true,
+      damagePrevented: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_DAMAGE_PREVENTION,
+      moraleCost: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_MORALE_COST
+    }
   }
 
   /**
@@ -1596,7 +1614,7 @@ export class GameState {
     // Must be Tyranny of Goblins faction
     const player = this.players[attackerOwner]
     if (!player || !player.commander || player.commander.faction !== 'Tyranny of Goblins') return 0
-    return 1 // Enemy cowers cost 1 extra morale
+    return COMMANDER_ABILITIES.BLACK_HAND_OF_BANE_EXTRA_COST
   }
 
   /**
@@ -1733,15 +1751,15 @@ export class GameState {
     // Ground creatures without terrain-ignoring abilities
     switch (terrain) {
       case TerrainTypes.DIFFICULT:
-        return 2 // Costs 2 movement to enter
+        return TERRAIN.DIFFICULT_COST
       case TerrainTypes.FOREST:
-        return 2 // Forests are also difficult terrain - costs 2 to enter
+        return TERRAIN.FOREST_COST
       case TerrainTypes.WATER:
-        return 2 // Water is passable but slows movement - costs 2 to enter
+        return TERRAIN.WATER_COST
       case TerrainTypes.MOUNTAIN:
         return 999 // Impassable
       default:
-        return 1
+        return TERRAIN.NORMAL_COST
     }
   }
 
@@ -2095,36 +2113,40 @@ export class GameState {
     return rangeTiles
   }
 
-  // Execute an attack from one creature to another
-  executeAttack(attackerInstance, defenderInstance, attackType = 'melee') {
+  /**
+   * Validate an attack before execution
+   * Checks creature state, range, terrain restrictions, and line of sight
+   *
+   * Big O Complexity: O(1) for melee, O(n) for ranged where n = tiles in line
+   *
+   * @param {CreatureInstance} attackerInstance - The attacking creature
+   * @param {CreatureInstance} defenderInstance - The defending creature
+   * @param {string} attackType - 'melee' or 'ranged'
+   * @returns {Object} { valid: boolean, error?: string, damage?: number }
+   */
+  validateAttack(attackerInstance, defenderInstance, attackType = 'melee') {
     // Safety check: ensure both creatures have valid positions
     if (!attackerInstance?.position || !defenderInstance?.position) {
-      return { success: false, message: 'Cannot attack: invalid creature position' }
+      return { valid: false, error: 'Cannot attack: invalid creature position' }
     }
 
     // Cannot attack if tapped
     if (attackerInstance.isTapped) {
-      return { success: false, message: 'Cannot attack: creature is tapped' }
+      return { valid: false, error: 'Cannot attack: creature is tapped' }
     }
 
     // Cannot attack if already attacked this turn
     if (attackerInstance.hasAttackedThisTurn) {
-      return { success: false, message: 'Cannot attack: creature has already attacked this turn' }
+      return { valid: false, error: 'Cannot attack: creature has already attacked this turn' }
     }
-
-    // ============================================================================
-    // ATTACK VALIDATION - O(1) for melee, O(n) for ranged where n = tiles in line
-    // Validates distance, adjacency (melee), and line-of-sight (ranged)
-    // This is a safety net in case UI/AI validation was bypassed or stale
-    // ============================================================================
 
     // Validate melee attack: must be adjacent (distance <= meleeRange, default 1)
     if (attackType === 'melee') {
       const distance = this.getDistance(attackerInstance.position, defenderInstance.position)
-      const meleeRange = attackerInstance.creature.meleeAttack?.range || 1
+      const meleeRange = attackerInstance.creature.meleeAttack?.range || COMBAT.MELEE_RANGE
       if (distance > meleeRange) {
-        console.log(`[executeAttack] BLOCKED: Melee attack invalid - distance ${distance} > meleeRange ${meleeRange}`)
-        return { success: false, message: 'Cannot attack: target is not in melee range' }
+        console.log(`[validateAttack] BLOCKED: Melee attack invalid - distance ${distance} > meleeRange ${meleeRange}`)
+        return { valid: false, error: 'Cannot attack: target is not in melee range' }
       }
     }
 
@@ -2135,44 +2157,53 @@ export class GameState {
 
       // Check distance is within range
       if (distance > rangedRange) {
-        console.log(`[executeAttack] BLOCKED: Ranged attack invalid - distance ${distance} > rangedRange ${rangedRange}`)
-        return { success: false, message: 'Cannot attack: target is out of range' }
+        console.log(`[validateAttack] BLOCKED: Ranged attack invalid - distance ${distance} > rangedRange ${rangedRange}`)
+        return { valid: false, error: 'Cannot attack: target is out of range' }
       }
 
       // Check forest restrictions - cannot shoot FROM forest
       const attackerTile = this.getTile(attackerInstance.position.x, attackerInstance.position.y)
       if (attackerTile?.terrain === TerrainTypes.FOREST) {
-        console.log(`[executeAttack] BLOCKED: Cannot make ranged attack from forest`)
-        return { success: false, message: 'Cannot make ranged attack from forest' }
+        console.log(`[validateAttack] BLOCKED: Cannot make ranged attack from forest`)
+        return { valid: false, error: 'Cannot make ranged attack from forest' }
       }
 
       // Check forest restrictions - cannot shoot AT target in forest
       const targetTile = this.getTile(defenderInstance.position.x, defenderInstance.position.y)
       if (targetTile?.terrain === TerrainTypes.FOREST) {
-        console.log(`[executeAttack] BLOCKED: Cannot make ranged attack at target in forest`)
-        return { success: false, message: 'Cannot make ranged attack at target in forest' }
+        console.log(`[validateAttack] BLOCKED: Cannot make ranged attack at target in forest`)
+        return { valid: false, error: 'Cannot make ranged attack at target in forest' }
       }
 
       // Check line of sight - O(n) where n = tiles between attacker and target
       if (!this.hasLineOfSight(attackerInstance, defenderInstance, attackerInstance.owner)) {
-        console.log(`[executeAttack] BLOCKED: No line of sight to target`)
-        return { success: false, message: 'Cannot attack: no line of sight to target' }
+        console.log(`[validateAttack] BLOCKED: No line of sight to target`)
+        return { valid: false, error: 'Cannot attack: no line of sight to target' }
       }
     }
 
-    // ============================================================================
-    // END ATTACK VALIDATION
-    // ============================================================================
-
+    // Calculate damage based on attack type
     let damage = 0
-
     if (attackType === 'melee' && attackerInstance.creature.meleeAttack) {
       damage = attackerInstance.creature.meleeAttack.damage
     } else if (attackType === 'ranged' && attackerInstance.creature.rangedAttack) {
       damage = attackerInstance.creature.rangedAttack.damage
     } else {
-      return { success: false, message: 'Invalid attack type' }
+      return { valid: false, error: 'Invalid attack type' }
     }
+
+    return { valid: true, damage }
+  }
+
+  // Execute an attack from one creature to another
+  executeAttack(attackerInstance, defenderInstance, attackType = 'melee') {
+    // Validate the attack
+    const validation = this.validateAttack(attackerInstance, defenderInstance, attackType)
+    if (!validation.valid) {
+      return { success: false, message: validation.error }
+    }
+
+    const damage = validation.damage
 
     // Mark as attacked
     attackerInstance.hasAttackedThisTurn = true
@@ -2210,86 +2241,15 @@ export class GameState {
    * @returns {Object} Attack result
    */
   executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null) {
-    // Safety check: ensure both creatures have valid positions
-    if (!attackerInstance?.position || !defenderInstance?.position) {
-      return { success: false, message: 'Cannot attack: invalid creature position' }
-    }
-
-    // Cannot attack if tapped
-    if (attackerInstance.isTapped) {
-      return { success: false, message: 'Cannot attack: creature is tapped' }
-    }
-
-    // Cannot attack if already attacked this turn
-    if (attackerInstance.hasAttackedThisTurn) {
-      return { success: false, message: 'Cannot attack: creature has already attacked this turn' }
-    }
-
-    // ============================================================================
-    // ATTACK VALIDATION - O(1) for melee, O(n) for ranged where n = tiles in line
-    // Validates distance, adjacency (melee), and line-of-sight (ranged)
-    // This is a safety net in case UI/AI validation was bypassed or stale
-    // ============================================================================
-
-    // Validate melee attack: must be adjacent (distance <= meleeRange, default 1)
-    if (attackType === 'melee') {
-      const distance = this.getDistance(attackerInstance.position, defenderInstance.position)
-      const meleeRange = attackerInstance.creature.meleeAttack?.range || 1
-      if (distance > meleeRange) {
-        console.log(`[executeAttackWithDefense] BLOCKED: Melee attack invalid - distance ${distance} > meleeRange ${meleeRange}`)
-        return { success: false, message: 'Cannot attack: target is not in melee range' }
-      }
-    }
-
-    // Validate ranged attack: check distance, forest restrictions, and line-of-sight
-    if (attackType === 'ranged') {
-      const distance = this.getDistance(attackerInstance.position, defenderInstance.position)
-      const rangedRange = attackerInstance.creature.rangedAttack?.range || 0
-
-      // Check distance is within range
-      if (distance > rangedRange) {
-        console.log(`[executeAttackWithDefense] BLOCKED: Ranged attack invalid - distance ${distance} > rangedRange ${rangedRange}`)
-        return { success: false, message: 'Cannot attack: target is out of range' }
-      }
-
-      // Check forest restrictions - cannot shoot FROM forest
-      const attackerTile = this.getTile(attackerInstance.position.x, attackerInstance.position.y)
-      if (attackerTile?.terrain === TerrainTypes.FOREST) {
-        console.log(`[executeAttackWithDefense] BLOCKED: Cannot make ranged attack from forest`)
-        return { success: false, message: 'Cannot make ranged attack from forest' }
-      }
-
-      // Check forest restrictions - cannot shoot AT target in forest
-      const targetTile = this.getTile(defenderInstance.position.x, defenderInstance.position.y)
-      if (targetTile?.terrain === TerrainTypes.FOREST) {
-        console.log(`[executeAttackWithDefense] BLOCKED: Cannot make ranged attack at target in forest`)
-        return { success: false, message: 'Cannot make ranged attack at target in forest' }
-      }
-
-      // Check line of sight - O(n) where n = tiles between attacker and target
-      if (!this.hasLineOfSight(attackerInstance, defenderInstance, attackerInstance.owner)) {
-        console.log(`[executeAttackWithDefense] BLOCKED: No line of sight to target`)
-        return { success: false, message: 'Cannot attack: no line of sight to target' }
-      }
-    }
-
-    // ============================================================================
-    // END ATTACK VALIDATION
-    // ============================================================================
-
-    let damage = 0
-
-    if (attackType === 'melee' && attackerInstance.creature.meleeAttack) {
-      damage = attackerInstance.creature.meleeAttack.damage
-    } else if (attackType === 'ranged' && attackerInstance.creature.rangedAttack) {
-      damage = attackerInstance.creature.rangedAttack.damage
-    } else {
-      return { success: false, message: 'Invalid attack type' }
+    // Validate the attack using shared validation logic
+    const validation = this.validateAttack(attackerInstance, defenderInstance, attackType)
+    if (!validation.valid) {
+      return { success: false, message: validation.error }
     }
 
     // Apply damage reduction from defense
-    const originalDamage = damage
-    damage = Math.max(0, damage - damageReduction)
+    const originalDamage = validation.damage
+    const damage = Math.max(0, originalDamage - damageReduction)
 
     // Mark as attacked
     attackerInstance.hasAttackedThisTurn = true
@@ -2431,8 +2391,8 @@ export class GameState {
           return
         }
 
-        // Apply 10 damage to non-flying creatures
-        const damageTaken = creature.takeDamage(10)
+        // Apply water damage to non-flying creatures
+        const damageTaken = creature.takeDamage(TERRAIN.WATER_DAMAGE)
 
         damageResults.push({
           creature: creature.creature.name,
@@ -2647,7 +2607,7 @@ export class GameState {
       // Only one player left
       this.gameOver = true
       this.winner = alivePlayers[0]
-    } else if (this.turnNumber >= 100) {
+    } else if (this.turnNumber >= GAME_RULES.MAX_TURNS) {
       // Turn limit reached - highest morale wins
       this.gameOver = true
       let highestMorale = -1

@@ -1,6 +1,8 @@
 // A* Pathfinding Algorithm for Dungeon Command
 // Finds optimal paths with proper movement cost calculation
 
+import { PriorityQueue } from './PriorityQueue.js'
+
 /**
  * Node class for A* pathfinding
  */
@@ -175,6 +177,9 @@ function reconstructPath(goalNode) {
  * Dijkstra's algorithm uses a priority queue ordered by cost, ensuring we always
  * find the lowest-cost path to each tile.
  *
+ * PERFORMANCE: Now uses binary heap PriorityQueue for O(log n) insert/extract
+ * instead of array.sort() which was O(n log n) per iteration.
+ *
  * Big O: O((V + E) * log V) where V = tiles in range, E = edges (8 per tile)
  * For typical movement range of 7: V ≈ 150 tiles, so O(150 * 8 * log 150) ≈ O(8700)
  *
@@ -193,19 +198,18 @@ export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPass
   // Track best path to reach each tile
   const bestPath = new Map()
 
-  // Priority queue: sorted by cost (lowest first) - Dijkstra's algorithm
-  // Using array with sort for simplicity; could use a proper heap for better perf
-  const queue = [{ node: new PathfindingNode(start.x, start.y, 0, 0), path: [start] }]
+  // Priority queue using binary heap - O(log n) insert/extract
+  // Compare by node.g (cost from start)
+  const queue = new PriorityQueue((a, b) => a.node.g - b.node.g)
+  queue.insert({ node: new PathfindingNode(start.x, start.y, 0, 0), path: [start] })
 
   const startKey = `${start.x},${start.y}`
   bestCost.set(startKey, 0)
   bestPath.set(startKey, [start])
 
-  while (queue.length > 0) {
-    // Sort by cost and take lowest - O(n log n) per iteration
-    // For better performance, could use a binary heap: O(log n) per iteration
-    queue.sort((a, b) => a.node.g - b.node.g)
-    const { node: current, path } = queue.shift()
+  while (!queue.isEmpty()) {
+    // Extract minimum cost node - O(log n)
+    const { node: current, path } = queue.extractMin()
 
     const currentKey = `${current.x},${current.y}`
 
@@ -243,9 +247,9 @@ export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPass
         const newPath = [...path, { x: neighbor.x, y: neighbor.y }]
         bestPath.set(key, newPath)
 
-        // Add to queue for further exploration
+        // Add to queue for further exploration - O(log n)
         neighbor.g = newCost
-        queue.push({ node: neighbor, path: newPath })
+        queue.insert({ node: neighbor, path: newPath })
       }
     }
   }
