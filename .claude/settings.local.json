@@ -29,7 +29,8 @@
       "Bash(node:*)",
       "Bash(npm test:*)",
       "Bash(npm run:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(powershell -Command:*)"
     ],
     "deny": [],
     "ask": []

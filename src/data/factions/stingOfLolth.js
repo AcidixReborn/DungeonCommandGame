@@ -2,6 +2,44 @@
 import lolthCmd1 from '../../assets/commanders/Lolth_Commander_Card_1.webp'
 import lolthCmd2 from '../../assets/commanders/Lolth_Commander_Card_2.webp'
 
+// O(1) - Static imports for order card images
+import closeCall1Img from '../../assets/orders/lolth/Lolth_CloseCall_Order_1.png'
+import closeCall2Img from '../../assets/orders/lolth/Lolth_CloseCall_Order_2.png'
+import deepWound3Img from '../../assets/orders/lolth/Lolth_DeepWound_Order_3.png'
+import deepWound4Img from '../../assets/orders/lolth/Lolth_DeepWound_Order_4.png'
+import faerieFire5Img from '../../assets/orders/lolth/Lolth_FaerieFire_Order_5.png'
+import faerieFire6Img from '../../assets/orders/lolth/Lolth_FaerieFire_Order_6.png'
+import feint7Img from '../../assets/orders/lolth/Lolth_Feint_Order_7.png'
+import fireTrap8Img from '../../assets/orders/lolth/Lolth_FireTrap_Order_8.png'
+import lolthsBlessing9Img from '../../assets/orders/lolth/Lolth_LolthsBlessing_Order_9.png'
+import nearMiss10Img from '../../assets/orders/lolth/Lolth_NearMiss_Order_10.png'
+import nearMiss11Img from '../../assets/orders/lolth/Lolth_NearMiss_Order_11.png'
+import parry12Img from '../../assets/orders/lolth/Lolth_Parry_Order_12.png'
+import parry13Img from '../../assets/orders/lolth/Lolth_Parry_Order_13.png'
+import piercingStrike14Img from '../../assets/orders/lolth/Lolth_PiercingStrike_Order_14.png'
+import piercingStrike15Img from '../../assets/orders/lolth/Lolth_PiercingStrike_Order_15.png'
+import quickJab16Img from '../../assets/orders/lolth/Lolth_QuickJab_Order_16.png'
+import quickJab17Img from '../../assets/orders/lolth/Lolth_QuickJab_Order_17.png'
+import riposte18Img from '../../assets/orders/lolth/Lolth_Riposte_Order_18.png'
+import riposte19Img from '../../assets/orders/lolth/Lolth_Riposte_Order_19.png'
+import sacrifice20Img from '../../assets/orders/lolth/Lolth_Sacrifice_Order_20.png'
+import scheme21Img from '../../assets/orders/lolth/Lolth_Scheme_Order_21.png'
+import scheme22Img from '../../assets/orders/lolth/Lolth_Scheme_Order_22.png'
+import secretPassage23Img from '../../assets/orders/lolth/Lolth_SecretPassage_Order_23.png'
+import shadowyAmbush24Img from '../../assets/orders/lolth/Lolth_ShadowyAmbush_Order_24.png'
+import shadowyAmbush25Img from '../../assets/orders/lolth/Lolth_ShadowyAmbush_Order_25.png'
+import sneakAttack26Img from '../../assets/orders/lolth/Lolth_SneakAttack_Order_26.png'
+import springAttack27Img from '../../assets/orders/lolth/Lolth_SpringAttack_Order_27.png'
+import springAttack28Img from '../../assets/orders/lolth/Lolth_SpringAttack_Order_28.png'
+import stalk29Img from '../../assets/orders/lolth/Lolth_Stalk_Order_29.png'
+import stalk30Img from '../../assets/orders/lolth/Lolth_Stalk_Order_30.png'
+import stealth31Img from '../../assets/orders/lolth/Lolth_Stealth_Order_31.png'
+import uncannyDodge32Img from '../../assets/orders/lolth/Lolth_UncannyDodge_Order_32.png'
+import uncannyDodge33Img from '../../assets/orders/lolth/Lolth_UncannyDodge_Order_33.png'
+import vialOfPoison34Img from '../../assets/orders/lolth/Lolth_VialOfPoison_Order_34.png'
+import web35Img from '../../assets/orders/lolth/Lolth_Web_Order_35.png'
+import web36Img from '../../assets/orders/lolth/Lolth_Web_Order_36.png'
+
 // O(1) - Static imports for creature card images
 import demonwebSpider1Img from '../../assets/creatures/Drow_DemonwebSpider_Card_1.png'
 import demonwebSpider2Img from '../../assets/creatures/Drow_DemonwebSpider_Card_2.png'
@@ -241,363 +279,368 @@ export const creatures = [
 export const orderCards = [
   {
     id: 'sol_ord_1',
-    name: 'Deadly Strike',
-    level: 1,
+    name: 'Close Call',
+    level: 3,
     abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Deal +20 damage on your next melee attack',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 40 DAMAGE to this creature from 1 source.',
+    damagePrevented: 40,
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: closeCall1Img
   },
   {
     id: 'sol_ord_2',
-    name: 'Shadow Step',
-    level: 2,
+    name: 'Close Call',
+    level: 3,
     abilityRequired: 'DEX',
-    actionType: 'MINOR',
-    effectDescription: 'Move up to your speed without provoking attacks',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 40 DAMAGE to this creature from 1 source.',
+    damagePrevented: 40,
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: closeCall2Img
   },
   {
     id: 'sol_ord_3',
-    name: 'Dark Shield',
+    name: 'Deep Wound',
     level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 20 damage',
+    abilityRequired: 'DEX',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals +10 DAMAGE. Attach this card to the target. At the start of its activation, this creature takes 10 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: deepWound3Img
   },
   {
     id: 'sol_ord_4',
-    name: 'Order Card #4',
+    name: 'Deep Wound',
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #4',
+    effectDescription: 'Make a melee attack that deals +10 DAMAGE. Attach this card to the target. At the start of its activation, this creature takes 10 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: deepWound4Img
   },
   {
     id: 'sol_ord_5',
-    name: 'Order Card #5',
-    level: 1,
-    abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #5',
+    name: 'Faerie Fire',
+    level: 2,
+    abilityRequired: 'INT',
+    actionType: 'MINOR',
+    effectDescription: 'DROW AFFINITY. Attach this card to 1 enemy creature within 10 squares. Attacks deal +10 DAMAGE to this creature.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: faerieFire5Img
   },
   {
     id: 'sol_ord_6',
-    name: 'Order Card #6',
+    name: 'Faerie Fire',
     level: 1,
-    abilityRequired: 'WIS',
+    abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #6',
+    effectDescription: 'DROW AFFINITY. Attach this card to 1 enemy creature within 10 squares. Attacks deal +10 DAMAGE to this creature.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: faerieFire6Img
   },
   {
     id: 'sol_ord_7',
-    name: 'Order Card #7',
-    level: 2,
+    name: 'Feint',
+    level: 1,
     abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #7',
+    actionType: 'MINOR',
+    effectDescription: 'Tap 1 adjacent creature.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: feint7Img
   },
   {
     id: 'sol_ord_8',
-    name: 'Order Card #8',
+    name: 'Fire Trap',
     level: 2,
-    abilityRequired: 'INT',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #8',
+    abilityRequired: 'DEX',
+    actionType: 'MINOR',
+    effectDescription: 'REQUIRES HUMANOID. Deal 20 DAMAGE to each creature within 2 squares of hazardous terrain.',
+    requiresCreatureType: 'Humanoid',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: fireTrap8Img
   },
   {
     id: 'sol_ord_9',
-    name: 'Order Card #9',
-    level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #9',
+    name: "Lolth's Blessing",
+    level: 3,
+    abilityRequired: 'WIS',
+    actionType: 'STANDARD',
+    effectDescription: 'REQUIRES EVIL. Attach this card to this creature. During Refresh, this creature\'s controller draws 1 extra Order card.',
+    requiresCreatureType: 'Evil',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: lolthsBlessing9Img
   },
   {
     id: 'sol_ord_10',
-    name: 'Order Card #10',
-    level: 1,
+    name: 'Near Miss',
+    level: 2,
     abilityRequired: 'DEX',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #10',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Untap this creature.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: nearMiss10Img
   },
   {
     id: 'sol_ord_11',
-    name: 'Order Card #11',
+    name: 'Near Miss',
     level: 2,
-    abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #11',
+    abilityRequired: 'DEX',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Untap this creature.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: nearMiss11Img
   },
   {
     id: 'sol_ord_12',
-    name: 'Order Card #12',
-    level: 1,
-    abilityRequired: 'CON',
+    name: 'Parry',
+    level: 2,
+    abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #12',
+    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Draw 1 Order card.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: parry12Img
   },
   {
     id: 'sol_ord_13',
-    name: 'Order Card #13',
-    level: 1,
+    name: 'Parry',
+    level: 2,
     abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #13',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Draw 1 Order card.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: parry13Img
   },
   {
     id: 'sol_ord_14',
-    name: 'Order Card #14',
-    level: 2,
-    abilityRequired: 'WIS',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #14',
+    name: 'Piercing Strike',
+    level: 1,
+    abilityRequired: 'DEX',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals +10 DAMAGE. This damage cannot be prevented.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: piercingStrike14Img
   },
   {
     id: 'sol_ord_15',
-    name: 'Order Card #15',
+    name: 'Piercing Strike',
     level: 1,
-    abilityRequired: 'INT',
+    abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #15',
+    effectDescription: 'Make a melee attack that deals +10 DAMAGE. This damage cannot be prevented.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: piercingStrike15Img
   },
   {
     id: 'sol_ord_16',
-    name: 'Order Card #16',
+    name: 'Quick Jab',
     level: 1,
     abilityRequired: 'DEX',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #16',
+    actionType: 'MINOR',
+    effectDescription: 'Make a melee attack that deals base melee DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: quickJab16Img
   },
   {
     id: 'sol_ord_17',
-    name: 'Order Card #17',
-    level: 2,
-    abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #17',
+    name: 'Quick Jab',
+    level: 1,
+    abilityRequired: 'DEX',
+    actionType: 'MINOR',
+    effectDescription: 'Make a melee attack that deals base melee DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: quickJab17Img
   },
   {
     id: 'sol_ord_18',
-    name: 'Order Card #18',
-    level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #18',
+    name: 'Riposte',
+    level: 2,
+    abilityRequired: 'DEX',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Make a melee attack that deals 10 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: riposte18Img
   },
   {
     id: 'sol_ord_19',
-    name: 'Order Card #19',
-    level: 1,
-    abilityRequired: 'WIS',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #19',
+    name: 'Riposte',
+    level: 2,
+    abilityRequired: 'DEX',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Make a melee attack that deals 10 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: riposte19Img
   },
   {
     id: 'sol_ord_20',
-    name: 'Order Card #20',
-    level: 2,
-    abilityRequired: 'DEX',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #20',
+    name: 'Sacrifice',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'STANDARD',
+    effectDescription: 'Discard 1 Order card to have this creature make a melee attack that deals +30 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: sacrifice20Img
   },
   {
     id: 'sol_ord_21',
-    name: 'Order Card #21',
-    level: 1,
-    abilityRequired: 'CON',
+    name: 'Scheme',
+    level: 2,
+    abilityRequired: 'WIS',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #21',
+    effectDescription: 'Draw 2 Order cards.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: scheme21Img
   },
   {
     id: 'sol_ord_22',
-    name: 'Order Card #22',
-    level: 1,
-    abilityRequired: 'INT',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #22',
+    name: 'Scheme',
+    level: 2,
+    abilityRequired: 'WIS',
+    actionType: 'STANDARD',
+    effectDescription: 'Draw 2 Order cards.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: scheme22Img
   },
   {
     id: 'sol_ord_23',
-    name: 'Order Card #23',
-    level: 2,
-    abilityRequired: 'DEX',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #23',
+    name: 'Secret Passage',
+    level: 1,
+    abilityRequired: 'ANY',
+    actionType: 'MINOR',
+    effectDescription: 'This creature shifts and ignores walls while moving during this turn. It cannot end its movement in a wall square.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: secretPassage23Img
   },
   {
     id: 'sol_ord_24',
-    name: 'Order Card #24',
-    level: 1,
-    abilityRequired: 'STR',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #24',
+    name: 'Shadowy Ambush',
+    level: 3,
+    abilityRequired: 'DEX',
+    actionType: 'STANDARD',
+    effectDescription: 'Shift 2 squares. Make a melee attack that deals 50 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: shadowyAmbush24Img
   },
   {
     id: 'sol_ord_25',
-    name: 'Order Card #25',
-    level: 1,
-    abilityRequired: 'WIS',
+    name: 'Shadowy Ambush',
+    level: 3,
+    abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #25',
+    effectDescription: 'Shift 2 squares. Make a melee attack that deals 50 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: shadowyAmbush25Img
   },
   {
     id: 'sol_ord_26',
-    name: 'Order Card #26',
-    level: 2,
+    name: 'Sneak Attack',
+    level: 6,
     abilityRequired: 'DEX',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #26',
+    actionType: 'STANDARD',
+    effectDescription: 'Make a melee attack that deals 100 DAMAGE. Creatures you control that are adjacent to the target can assist with this action.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: sneakAttack26Img
   },
   {
     id: 'sol_ord_27',
-    name: 'Order Card #27',
-    level: 1,
-    abilityRequired: 'CHA',
+    name: 'Spring Attack',
+    level: 2,
+    abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #27',
+    effectDescription: 'Shift 6 squares. Make an attack. Shift 6 squares.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: springAttack27Img
   },
   {
     id: 'sol_ord_28',
-    name: 'Order Card #28',
-    level: 1,
-    abilityRequired: 'INT',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #28',
+    name: 'Spring Attack',
+    level: 2,
+    abilityRequired: 'DEX',
+    actionType: 'STANDARD',
+    effectDescription: 'Shift 6 squares. Make an attack. Shift 6 squares.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: springAttack28Img
   },
   {
     id: 'sol_ord_29',
-    name: 'Order Card #29',
-    level: 2,
-    abilityRequired: 'STR',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #29',
+    name: 'Stalk',
+    level: 1,
+    abilityRequired: 'DEX',
+    actionType: 'MINOR',
+    effectDescription: 'Shift 6 squares.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: stalk29Img
   },
   {
     id: 'sol_ord_30',
-    name: 'Order Card #30',
+    name: 'Stalk',
     level: 1,
-    abilityRequired: 'CON',
+    abilityRequired: 'DEX',
     actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #30',
+    effectDescription: 'Shift 6 squares.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: stalk30Img
   },
   {
     id: 'sol_ord_31',
-    name: 'Order Card #31',
-    level: 1,
+    name: 'Stealth',
+    level: 2,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #31',
+    effectDescription: "If no enemy creatures have line of sight to this creature, remove it from the battlefield and place it on its Creature card. (It is still considered deployed.) At the start of its controller's next turn, place the creature in any unoccupied square on the battlefield.",
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: stealth31Img
   },
   {
     id: 'sol_ord_32',
-    name: 'Order Card #32',
+    name: 'Uncanny Dodge',
     level: 2,
-    abilityRequired: 'WIS',
+    abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #32',
+    effectDescription: 'Discard 1 Order card to prevent all damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: uncannyDodge32Img
   },
   {
     id: 'sol_ord_33',
-    name: 'Order Card #33',
-    level: 1,
-    abilityRequired: 'INT',
-    actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #33',
+    name: 'Uncanny Dodge',
+    level: 2,
+    abilityRequired: 'DEX',
+    actionType: 'IMMEDIATE',
+    effectDescription: 'Discard 1 Order card to prevent all damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: uncannyDodge33Img
   },
   {
     id: 'sol_ord_34',
-    name: 'Order Card #34',
-    level: 1,
-    abilityRequired: 'CHA',
-    actionType: 'MINOR',
-    effectDescription: 'Placeholder effect #34',
-    faction: FACTION_NAME,
-    imageUrl: null
-  },
-  {
-    id: 'sol_ord_35',
-    name: 'Order Card #35',
+    name: 'Vial of Poison',
     level: 2,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Placeholder effect #35',
+    effectDescription: "REQUIRES HUMANOID. Attach this card to this creature. Remove this card to deal +30 DAMAGE with this creature's next melee attack.",
+    requiresCreatureType: 'Humanoid',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: vialOfPoison34Img
+  },
+  {
+    id: 'sol_ord_35',
+    name: 'Web',
+    level: 1,
+    abilityRequired: 'INT',
+    actionType: 'MINOR',
+    effectDescription: 'SPIDER AFFINITY. Attach this card to 1 creature within 10 squares. This creature cannot move or shift. Remove this card as a standard action.',
+    faction: FACTION_NAME,
+    imageUrl: web35Img
   },
   {
     id: 'sol_ord_36',
-    name: 'Order Card #36',
+    name: 'Web',
     level: 1,
-    abilityRequired: 'STR',
-    actionType: 'IMMEDIATE',
-    effectDescription: 'Placeholder effect #36',
+    abilityRequired: 'INT',
+    actionType: 'MINOR',
+    effectDescription: 'SPIDER AFFINITY. Attach this card to 1 creature within 10 squares. This creature cannot move or shift. Remove this card as a standard action.',
     faction: FACTION_NAME,
-    imageUrl: null
+    imageUrl: web36Img
   }
 ]
 
