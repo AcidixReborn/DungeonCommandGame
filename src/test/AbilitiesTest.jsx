@@ -80,6 +80,19 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, creaturesPassedThrough: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, creaturesPassedThrough: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, creaturesPassedThrough: 0 }
+    },
+    shadow_stalker: {
+      name: 'SHADOW STALKER',
+      creature: 'Shadow Mastiff',
+      faction: 'Sting of Lolth',
+      // Overall totals
+      timesOffered: 0,  // Times Shadow Mastiff was deployed (could have used ability)
+      timesTriggered: 0,  // Times deployed to mountain-adjacent tile
+      timesDeclined: 0,  // Times deployed to starting zone instead
+      // Per-difficulty breakdown
+      easy: { offered: 0, triggered: 0, declined: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0 }
     }
   })
 
@@ -320,8 +333,13 @@ function AbilitiesTest() {
    * Execute AI turn with ability tracking
    */
   const executeAITurn = (gameState, currentPlayerId, abilityStats, creatureAbilityStats, gameStats) => {
-    const ai = new SimpleAI(gameState, currentPlayerId)
+    // Randomize AI difficulty: 33% easy, 34% medium, 33% hard
+    const difficultyRoll = Math.random()
+    const aiDifficulty = difficultyRoll < 0.33 ? 'easy' : difficultyRoll < 0.67 ? 'medium' : 'hard'
+    const ai = new SimpleAI(gameState, currentPlayerId, null, aiDifficulty)
     const player = gameState.players[currentPlayerId]
+    // Store difficulty on player for tracking purposes
+    player.aiDifficulty = aiDifficulty
 
     const result = { movementActions: 0, attackActions: 0, deploymentActions: 0 }
 
@@ -347,6 +365,24 @@ function AbilitiesTest() {
             if (action.isHordeDeploy) {
               abilityStats.horde.timesUsed++
               abilityStats.horde.creaturesDeployed++
+            }
+
+            // Track SHADOW STALKER ability (Shadow Mastiff)
+            if (action.creature && action.creature.includes('Shadow Mastiff')) {
+              const diff = player?.aiDifficulty || 'medium'
+              // Shadow Mastiff deployed - check if SHADOW STALKER was used
+              if (action.isShadowStalker) {
+                creatureAbilityStats.shadow_stalker.timesOffered++
+                creatureAbilityStats.shadow_stalker.timesTriggered++
+                creatureAbilityStats.shadow_stalker[diff].offered++
+                creatureAbilityStats.shadow_stalker[diff].triggered++
+              } else {
+                // Shadow Mastiff deployed to starting zone (ability offered but not used)
+                creatureAbilityStats.shadow_stalker.timesOffered++
+                creatureAbilityStats.shadow_stalker.timesDeclined++
+                creatureAbilityStats.shadow_stalker[diff].offered++
+                creatureAbilityStats.shadow_stalker[diff].declined++
+              }
             }
             break
 
@@ -790,12 +826,13 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 3 }
+    if (!creatureAbilityStats) return { working: 0, total: 4 }
     let working = 0
-    const total = 3 // FLASHING BLADES, HIDDEN BLADE, and SCUTTLE
+    const total = 4 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, and SHADOW STALKER
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
+    if (creatureAbilityStats.shadow_stalker?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -1261,6 +1298,90 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         Expected rates: Easy = 0% (never), Medium = ~50% (random), Hard = 100% (always). Creatures Passed = times a creature was moved through while SCUTTLE was enabled.
+                      </small>
+                    </Col>
+                  </Row>
+
+                  {/* SHADOW STALKER Stats */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-warning">Sting of Lolth - SHADOW STALKER <Badge bg="warning">ACTIVE</Badge> <small className="text-muted">(Shadow Mastiff)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals (Deployment Ability)</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.shadow_stalker?.timesOffered || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.shadow_stalker?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.shadow_stalker.timesTriggered / results.creatureAbilityStats.shadow_stalker.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.shadow_stalker?.timesTriggered || 0}</Badge></td>
+                            <td colSpan={2}></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.shadow_stalker?.timesDeclined || 0}</Badge></td>
+                            <td colSpan={2}></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.shadow_stalker?.[diff] || { offered: 0, triggered: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        SHADOW STALKER allows deploying to any tile adjacent to a mountain (instead of starting zone). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

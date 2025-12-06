@@ -305,61 +305,11 @@ function GameBoard({ onTurnInfoChange }) {
     if (gameState.gameOver) return
 
     setSelectedTile(tile)
-    const currentPlayer = gameState.getCurrentPlayerState()
 
-    // DEPLOY PHASE (or REFRESH with HORDE): Deploy creature from hand
+    // DEPLOY PHASE: Left-click on tile deselects creature (use right-click to deploy)
     if (selectedCreatureIndex !== null && canDeployInCurrentPhase()) {
-      const creatureCard = currentPlayer.creatureHand[selectedCreatureIndex]
-
-      // Check if tile is in player's starting zone
-      const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                               tile.startingZoneOwner === gameState.currentPlayer
-
-      // ORC SCOUT: Check if deploying Orc to treasure tile
-      const isOrcScoutDeploy = tile.treasure && !tile.occupant &&
-                               gameState.canUseOrcScout(gameState.currentPlayer) &&
-                               (creatureCard.type || []).includes('Orc')
-
-      if (!isInStartingZone && !isOrcScoutDeploy) {
-        if (gameState.canUseOrcScout(gameState.currentPlayer) && tile.treasure) {
-          addToast('ORC SCOUT: Only Orc creatures can be deployed to treasure tiles!')
-        } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
-          addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
-        } else {
-          addToast('You can only deploy creatures in your starting zone (highlighted area)!')
-        }
-        return
-      }
-
-      if (currentPlayer.canDeployCreature(creatureCard)) {
-        if (!tile.occupant) {
-          const creatureInstance = new CreatureInstance(creatureCard, gameState.currentPlayer)
-          creatureInstance.position = { x: tile.x, y: tile.y }
-
-          // Mark as deployed this turn (protected from attacks)
-          creatureInstance.markAsDeployed(gameState.turnNumber)
-
-          currentPlayer.creaturesInPlay.push(creatureInstance)
-          currentPlayer.creatureHand.splice(selectedCreatureIndex, 1)
-
-          tile.occupant = creatureInstance
-
-          // Mark ORC SCOUT as used if deployed to treasure
-          if (isOrcScoutDeploy) {
-            gameState.markOrcScoutUsed(gameState.currentPlayer)
-            setSelectedCreatureIndex(null)
-            addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
-          } else {
-            setSelectedCreatureIndex(null)
-            addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
-          }
-          setRenderCounter(prev => prev + 1)
-        } else {
-          addToast('Tile is occupied!')
-        }
-      } else {
-        addToast('Not enough leadership to deploy this creature!')
-      }
+      // Left-click on board deselects creature from hand
+      setSelectedCreatureIndex(null)
       return
     }
 
@@ -2001,7 +1951,13 @@ function GameBoard({ onTurnInfoChange }) {
                               gameState.canUseOrcScout(gameState.currentPlayer) &&
                               (creatureCard?.type || []).includes('Orc')
 
-      if ((isInStartingZone || isOrcScoutValid) && !tile.occupant) {
+      // SHADOW STALKER: Allow dragging Shadow Mastiff to mountain-adjacent tiles
+      const isShadowStalkerValid = gameState.hasShadowStalker(creatureCard) &&
+                                   !tile.occupant &&
+                                   tile.terrain !== 'MOUNTAIN' &&
+                                   gameState.board.isAdjacentToMountain(tile.x, tile.y)
+
+      if ((isInStartingZone || isOrcScoutValid || isShadowStalkerValid) && !tile.occupant) {
         setDragOverTile(tile)
       } else {
         setDragOverTile(null)
@@ -2027,8 +1983,16 @@ function GameBoard({ onTurnInfoChange }) {
                                gameState.canUseOrcScout(gameState.currentPlayer) &&
                                (creatureCard.type || []).includes('Orc')
 
-      if (!isInStartingZone && !isOrcScoutDeploy) {
-        if (gameState.canUseOrcScout(gameState.currentPlayer)) {
+      // SHADOW STALKER: Check if deploying Shadow Mastiff to mountain-adjacent tile
+      const isShadowStalkerDeploy = gameState.hasShadowStalker(creatureCard) &&
+                                    !tile.occupant &&
+                                    tile.terrain !== 'MOUNTAIN' &&
+                                    gameState.board.isAdjacentToMountain(tile.x, tile.y)
+
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy) {
+        if (gameState.hasShadowStalker(creatureCard)) {
+          addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
+        } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
           addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
         } else {
           addToast('You can only deploy creatures in your starting zone!')
@@ -2054,6 +2018,8 @@ function GameBoard({ onTurnInfoChange }) {
           if (isOrcScoutDeploy) {
             gameState.markOrcScoutUsed(gameState.currentPlayer)
             addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          } else if (isShadowStalkerDeploy && !isInStartingZone) {
+            addToast(`SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
           } else {
             addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
           }
@@ -2079,12 +2045,82 @@ function GameBoard({ onTurnInfoChange }) {
 
   /**
    * Handle right-click on tile for movement and attack
+   * - Deploy creatures during DEPLOY phase
    * - Move to valid tiles with confirmation modal
    * - Attack enemies with confirmation modal
    * @param {Object} tile - Right-clicked tile
    */
   const handleTileRightClick = (tile) => {
     if (!gameState || gameState.gameOver) return
+
+    // DEPLOY PHASE: Right-click deploys creatures from hand
+    if (canDeployInCurrentPhase() && selectedCreatureIndex !== null) {
+      const currentPlayer = gameState.getCurrentPlayerState()
+      const creatureCard = currentPlayer.creatureHand[selectedCreatureIndex]
+
+      // Check if tile is in player's starting zone
+      const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
+                               tile.startingZoneOwner === gameState.currentPlayer
+
+      // ORC SCOUT: Check if deploying Orc to treasure tile
+      const isOrcScoutDeploy = tile.treasure && !tile.occupant &&
+                               gameState.canUseOrcScout(gameState.currentPlayer) &&
+                               (creatureCard.type || []).includes('Orc')
+
+      // SHADOW STALKER: Check if deploying Shadow Mastiff to mountain-adjacent tile
+      const isShadowStalkerDeploy = gameState.hasShadowStalker(creatureCard) &&
+                                    !tile.occupant &&
+                                    tile.terrain !== 'MOUNTAIN' &&
+                                    gameState.board.isAdjacentToMountain(tile.x, tile.y)
+
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy) {
+        if (gameState.hasShadowStalker(creatureCard)) {
+          addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
+        } else if (gameState.canUseOrcScout(gameState.currentPlayer) && tile.treasure) {
+          addToast('ORC SCOUT: Only Orc creatures can be deployed to treasure tiles!')
+        } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
+          addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
+        } else {
+          addToast('You can only deploy creatures in your starting zone (highlighted area)!')
+        }
+        return
+      }
+
+      if (currentPlayer.canDeployCreature(creatureCard)) {
+        if (!tile.occupant) {
+          const creatureInstance = new CreatureInstance(creatureCard, gameState.currentPlayer)
+          creatureInstance.position = { x: tile.x, y: tile.y }
+
+          // Mark as deployed this turn (protected from attacks)
+          creatureInstance.markAsDeployed(gameState.turnNumber)
+
+          currentPlayer.creaturesInPlay.push(creatureInstance)
+          currentPlayer.creatureHand.splice(selectedCreatureIndex, 1)
+
+          tile.occupant = creatureInstance
+
+          // Mark ORC SCOUT as used if deployed to treasure
+          if (isOrcScoutDeploy) {
+            gameState.markOrcScoutUsed(gameState.currentPlayer)
+            setSelectedCreatureIndex(null)
+            addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          } else if (isShadowStalkerDeploy && !isInStartingZone) {
+            setSelectedCreatureIndex(null)
+            addToast(`SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          } else {
+            setSelectedCreatureIndex(null)
+            addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+          }
+          setRenderCounter(prev => prev + 1)
+        } else {
+          addToast('Tile is occupied!')
+        }
+      } else {
+        addToast('Not enough leadership to deploy this creature!')
+      }
+      return
+    }
+
     if (gameState.currentPhase !== GamePhases.ACTIVATE) return
 
     // Handle FLASHING BLADES target selection
@@ -2635,6 +2671,21 @@ function GameBoard({ onTurnInfoChange }) {
                     combatHighlight = 'defender'
                   }
 
+                  // ============================================
+                  // SHADOW STALKER HIGHLIGHT: Show valid deployment tiles
+                  // when creature with SHADOW STALKER is selected from hand
+                  // ============================================
+                  const currentPlayerState = gameState.getCurrentPlayerState()
+                  const selectedCreatureCard = selectedCreatureIndex !== null
+                    ? currentPlayerState?.creatureHand?.[selectedCreatureIndex]
+                    : null
+                  const isShadowStalkerHighlight = canDeployInCurrentPhase() &&
+                    selectedCreatureCard &&
+                    gameState.hasShadowStalker(selectedCreatureCard) &&
+                    !tile.occupant &&
+                    tile.terrain !== 'MOUNTAIN' &&
+                    gameState.board.isAdjacentToMountain(x, y)
+
                   return (
                     <BoardTile
                       key={`${x}-${y}`}
@@ -2658,6 +2709,7 @@ function GameBoard({ onTurnInfoChange }) {
                       boardHeight={gameState.boardHeight}
                       combatHighlight={combatHighlight}
                       factionHighlight={factionHighlight}
+                      isShadowStalkerHighlight={isShadowStalkerHighlight}
                     />
                   )
                 })}

@@ -42,8 +42,9 @@ const factionIcons = {
  * @param {Function} onRightClick - Handler for right-click (attack shortcut)
  * @param {string} combatHighlight - Combat highlight type: 'attacker' | 'defender' | null
  * @param {string} factionHighlight - Player ID of faction to highlight, or null (for faction nav icons)
+ * @param {boolean} isShadowStalkerHighlight - Whether tile is valid for SHADOW STALKER deployment
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -306,6 +307,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         ${isDragTarget ? 'drag-target' : ''}
         ${combatHighlight === 'attacker' ? 'combat-highlight-attacker' : ''}
         ${combatHighlight === 'defender' ? 'combat-highlight-defender' : ''}
+        ${isShadowStalkerHighlight ? 'shadow-stalker-highlight' : ''}
         ${creature && showPreview ? 'showing-preview' : ''}`}
       style={getStartingZoneStyle()}
       onClick={() => onClick && onClick(tile)}

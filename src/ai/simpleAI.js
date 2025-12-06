@@ -331,31 +331,62 @@ export class SimpleAI {
         continue // Not enough leadership
       }
 
-      if (startingZoneTiles.length === 0) {
-        break // No more empty tiles
+      let deployTile = null
+      let isShadowStalkerDeploy = false
+
+      // SHADOW STALKER: Check if creature can deploy to mountain-adjacent tile
+      if (this.gameState.hasShadowStalker && this.gameState.hasShadowStalker(creatureCard)) {
+        // Difficulty-based decision to use SHADOW STALKER
+        let useShadowStalker = false
+        switch (this.difficulty) {
+          case 'easy':
+            useShadowStalker = false  // Easy AI never uses SHADOW STALKER
+            break
+          case 'medium':
+            useShadowStalker = Math.random() < 0.5  // Medium AI uses 50% of the time
+            break
+          case 'hard':
+            useShadowStalker = true  // Hard AI always uses SHADOW STALKER
+            break
+        }
+
+        if (useShadowStalker && this.gameState.getShadowStalkerValidTiles) {
+          const shadowStalkerTiles = this.gameState.getShadowStalkerValidTiles()
+          if (shadowStalkerTiles.length > 0) {
+            // Pick a random mountain-adjacent tile
+            deployTile = shadowStalkerTiles[Math.floor(Math.random() * shadowStalkerTiles.length)]
+            isShadowStalkerDeploy = true
+          }
+        }
       }
 
-      // Pick a random tile from starting zone
-      const tileIndex = Math.floor(Math.random() * startingZoneTiles.length)
-      const tile = startingZoneTiles[tileIndex]
-      startingZoneTiles.splice(tileIndex, 1)
+      // Fall back to starting zone if not using SHADOW STALKER or no valid tiles
+      if (!deployTile) {
+        if (startingZoneTiles.length === 0) {
+          break // No more empty tiles
+        }
+        const tileIndex = Math.floor(Math.random() * startingZoneTiles.length)
+        deployTile = startingZoneTiles[tileIndex]
+        startingZoneTiles.splice(tileIndex, 1)
+      }
 
       // Deploy the creature
       const creatureIndex = player.creatureHand.indexOf(creatureCard)
       const creatureInstance = new CreatureInstance(creatureCard, this.playerId)
-      creatureInstance.position = { x: tile.x, y: tile.y }
+      creatureInstance.position = { x: deployTile.x, y: deployTile.y }
       creatureInstance.markAsDeployed(this.gameState.turnNumber)
 
       player.creaturesInPlay.push(creatureInstance)
       player.creatureHand.splice(creatureIndex, 1)
-      tile.occupant = creatureInstance
+      deployTile.occupant = creatureInstance
 
       actions.push({
         type: 'deploy',
         creature: creatureCard.name,
         creatureTypes: creatureCard.type || [],
-        position: { x: tile.x, y: tile.y },
-        isHordeDeploy: isHordeDeploy
+        position: { x: deployTile.x, y: deployTile.y },
+        isHordeDeploy: isHordeDeploy,
+        isShadowStalker: isShadowStalkerDeploy
       })
     }
 

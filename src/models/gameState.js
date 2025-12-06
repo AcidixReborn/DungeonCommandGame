@@ -780,6 +780,57 @@ export class GameState {
     )
   }
 
+  // ============================================================================
+  // SHADOW STALKER - Shadow Mastiff Ability (Sting of Lolth)
+  // When deploying this creature, you can place it in any unoccupied square
+  // adjacent to a mountain (8-directional adjacency)
+  // ============================================================================
+
+  /**
+   * Check if a creature card has SHADOW STALKER ability
+   * Note: Takes a creature CARD, not instance (used during deployment from hand)
+   * @param {Object} creatureCard - The creature card to check
+   * @returns {boolean} True if creature has SHADOW STALKER
+   */
+  hasShadowStalker(creatureCard) {
+    if (!creatureCard?.specialAbilities) return false
+    return creatureCard.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('SHADOW STALKER')
+    )
+  }
+
+  /**
+   * Get valid deployment tiles for SHADOW STALKER ability
+   * Returns tiles that are:
+   * - Adjacent to a MOUNTAIN (8-directional)
+   * - Unoccupied
+   * - Not a MOUNTAIN itself (creatures can't stop on mountains)
+   * Big O: O(W*H) where W=width, H=height - scans entire board
+   * @returns {Array} Array of valid tiles
+   */
+  getShadowStalkerValidTiles() {
+    const validTiles = []
+
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
+        const tile = this.getTile(x, y)
+        if (!tile) continue
+
+        // Must be unoccupied
+        if (tile.occupant) continue
+
+        // Must NOT be a mountain (can't stop on mountains)
+        if (tile.terrain === 'MOUNTAIN') continue
+
+        // Must be adjacent to a mountain
+        if (this.board.isAdjacentToMountain(x, y)) {
+          validTiles.push(tile)
+        }
+      }
+    }
+
+    return validTiles
+  }
 
   // ============================================================================
   // COMMANDER ABILITY DELEGATION METHODS

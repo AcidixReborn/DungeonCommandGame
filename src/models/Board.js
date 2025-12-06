@@ -154,6 +154,19 @@ export class Board {
     return adjacent
   }
 
+  /**
+   * Check if a position is adjacent to any MOUNTAIN tile (8-directional)
+   * Used for SHADOW STALKER ability deployment
+   * Big O: O(8) = O(1) - checks up to 8 adjacent tiles
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @returns {boolean} True if adjacent to at least one mountain
+   */
+  isAdjacentToMountain(x, y) {
+    const adjacentTiles = this.getAdjacentTiles8Dir(x, y)
+    return adjacentTiles.some(tile => tile.terrain === TerrainTypes.MOUNTAIN)
+  }
+
   // ============================================================================
   // DISTANCE & GEOMETRY
   // ============================================================================

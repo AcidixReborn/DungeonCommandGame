@@ -35,6 +35,7 @@ const CONFIG = {
   EXPECTED_RATES: {
     flashing_blades: { easy: 0, medium: 0.5, hard: 1.0 },
     hidden_blade: { easy: 0, medium: 0.5, hard: 1.0 },
+    shadow_stalker: { easy: 0, medium: 0.5, hard: 1.0 },
     versatile: { easy: 0, medium: 0.5, hard: 1.0 }
   }
 }
@@ -209,7 +210,7 @@ const stats = {
     lolth: {
       scuttle: { name: 'SCUTTLE', timesTriggered: 0, extraTilesMoved: 0, creatures: ['Demonweb Spider', 'Giant Spider', 'Drider'] },
       hidden_blade: { name: 'HIDDEN BLADE', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, damageDealt: 0, creatures: ['Drow Assassin'] },
-      shadow_stalker: { name: 'SHADOW STALKER', timesTriggered: 0, deployments: 0, creatures: ['Shadow Mastiff'] },
+      shadow_stalker: { name: 'SHADOW STALKER', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, deployments: 0, creatures: ['Shadow Mastiff'] },
       summon_spider: { name: 'SUMMON SPIDER', timesTriggered: 0, spidersDeployed: 0, creatures: ['Drow Priestess'] },
       confusion_gaze: { name: 'CONFUSION GAZE', timesTriggered: 0, enemiesSlid: 0, damageDealt: 0, creatures: ['Umber Hulk'] },
       burrow_lolth: { name: 'BURROW', timesTriggered: 0, mountainTilesMoved: 0, creatures: ['Umber Hulk'] }
@@ -349,6 +350,14 @@ function trackCreatureAbility(factionKey, abilityKey, detail = {}) {
       if (detail.triggered) ability.timesTriggered++
       if (detail.declined) ability.timesDeclined++
       if (detail.damage) ability.damageDealt += detail.damage
+      break
+    case 'shadow_stalker':
+      if (detail.offered) ability.timesOffered++
+      if (detail.triggered) {
+        ability.timesTriggered++
+        ability.deployments++
+      }
+      if (detail.declined) ability.timesDeclined++
       break
     default:
       if (detail.triggered) ability.timesTriggered++
@@ -775,6 +784,17 @@ function executeAITurn(gameState, currentPlayerId) {
               if (isTreasureTile) {
                 trackAbility('orc_scout', { used: true })
               }
+            }
+          }
+
+          // Track SHADOW STALKER ability (Shadow Mastiff)
+          if (action.creature && action.creature.includes('Shadow Mastiff')) {
+            // Shadow Mastiff deployed - check if SHADOW STALKER was used
+            if (action.isShadowStalker) {
+              trackCreatureAbility('lolth', 'shadow_stalker', { triggered: true })
+            } else {
+              // Shadow Mastiff deployed to starting zone (ability offered but not used)
+              trackCreatureAbility('lolth', 'shadow_stalker', { offered: true, declined: true })
             }
           }
           break
@@ -1508,6 +1528,23 @@ function validateAbilityUsageRates(difficulty) {
     }
   }
 
+  // Validate SHADOW STALKER usage rate
+  const shadowStalker = stats.creatureAbilityStats.lolth.shadow_stalker
+  if (shadowStalker.timesOffered > 0) {
+    const actualRate = shadowStalker.timesTriggered / shadowStalker.timesOffered
+    const expectedRate = CONFIG.EXPECTED_RATES.shadow_stalker[difficulty]
+
+    // Allow some variance (±25% for medium, exact for easy/hard)
+    let tolerance = 0
+    if (difficulty === 'medium') {
+      tolerance = 0.25  // 25% tolerance for random 50% chance
+    }
+
+    if (Math.abs(actualRate - expectedRate) > tolerance) {
+      issues.push(`SHADOW STALKER: Expected ~${(expectedRate * 100).toFixed(0)}% usage, got ${(actualRate * 100).toFixed(1)}%`)
+    }
+  }
+
   return issues
 }
 
@@ -1540,6 +1577,7 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
       gamesErrored: stats.gamesErrored,
       flashingBlades: { ...stats.creatureAbilityStats.cormyr.flashing_blades },
       hiddenBlade: { ...stats.creatureAbilityStats.lolth.hidden_blade },
+      shadowStalker: { ...stats.creatureAbilityStats.lolth.shadow_stalker },
       difficultyStats: { ...stats.difficultyStats[difficulty] }
     }
 
@@ -1574,6 +1612,14 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
     console.log(`  ${difficulty.toUpperCase().padEnd(8)}          ${String(hb.timesOffered).padStart(6)}    ${String(hb.timesTriggered).padStart(6)}     ${String(hb.timesDeclined).padStart(6)}    ${rate}%`)
   }
 
+  console.log('\n[SHADOW STALKER USAGE BY DIFFICULTY]')
+  console.log('                        OFFERED   TRIGGERED   DECLINED   RATE')
+  for (const difficulty of difficulties) {
+    const ss = difficultyResults[difficulty].shadowStalker
+    const rate = ss.timesOffered > 0 ? ((ss.timesTriggered / ss.timesOffered) * 100).toFixed(1) : '0.0'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)}          ${String(ss.timesOffered).padStart(6)}    ${String(ss.timesTriggered).padStart(6)}     ${String(ss.timesDeclined).padStart(6)}    ${rate}%`)
+  }
+
   console.log('\n[EXPECTED VS ACTUAL RATES - FLASHING BLADES]')
   for (const difficulty of difficulties) {
     const fb = difficultyResults[difficulty].flashingBlades
@@ -1588,6 +1634,15 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
     const hb = difficultyResults[difficulty].hiddenBlade
     const actualRate = hb.timesOffered > 0 ? (hb.timesTriggered / hb.timesOffered) : 0
     const expectedRate = CONFIG.EXPECTED_RATES.hidden_blade[difficulty]
+    const status = Math.abs(actualRate - expectedRate) <= 0.25 ? '✓' : '✗'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)} Expected: ${(expectedRate * 100).toFixed(0)}%   Actual: ${(actualRate * 100).toFixed(1)}%  ${status}`)
+  }
+
+  console.log('\n[EXPECTED VS ACTUAL RATES - SHADOW STALKER]')
+  for (const difficulty of difficulties) {
+    const ss = difficultyResults[difficulty].shadowStalker
+    const actualRate = ss.timesOffered > 0 ? (ss.timesTriggered / ss.timesOffered) : 0
+    const expectedRate = CONFIG.EXPECTED_RATES.shadow_stalker[difficulty]
     const status = Math.abs(actualRate - expectedRate) <= 0.25 ? '✓' : '✗'
     console.log(`  ${difficulty.toUpperCase().padEnd(8)} Expected: ${(expectedRate * 100).toFixed(0)}%   Actual: ${(actualRate * 100).toFixed(1)}%  ${status}`)
   }
