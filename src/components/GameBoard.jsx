@@ -169,6 +169,11 @@ function GameBoard({ onTurnInfoChange }) {
   const [pendingDeployment, setPendingDeployment] = useState(null)
   // { creature, tile, creatureIndex, isFromGraveyard, source: 'drag'|'rightClick' }
 
+  // GRAVEYARD DEPLOY state - tracks selected creature from graveyard for resurrection
+  const [selectedGraveyardCreature, setSelectedGraveyardCreature] = useState(null)
+  const [selectedGraveyardIndex, setSelectedGraveyardIndex] = useState(null)
+  const [draggingFromGraveyard, setDraggingFromGraveyard] = useState(false)
+
   /**
    * Faction color mapping from faction IDs to hex colors
    */
@@ -1437,6 +1442,14 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // Additional check for graveyard resurrection: requires 1 morale
+    if (isFromGraveyard && currentPlayer.morale < 1) {
+      addToast('Not enough morale to resurrect this creature! (Requires 1 Morale)')
+      setShowDeployConfirm(false)
+      setPendingDeployment(null)
+      return
+    }
+
     // Create creature instance
     const creatureInstance = new CreatureInstance(creature, gameState.currentPlayer)
     creatureInstance.position = { x: tile.x, y: tile.y }
@@ -1450,12 +1463,8 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Remove from source (hand or graveyard)
     if (isFromGraveyard) {
-      // Future: Remove from graveyard, deduct morale
-      // const graveyardIndex = currentPlayer.creatureGraveyard.findIndex(c => c.id === creature.id)
-      // if (graveyardIndex !== -1) {
-      //   currentPlayer.creatureGraveyard.splice(graveyardIndex, 1)
-      //   currentPlayer.morale -= 1
-      // }
+      // Remove from graveyard and deduct morale cost (1 morale for resurrection)
+      gameState.removeFromGraveyard(gameState.currentPlayer, creature)
     } else {
       currentPlayer.creatureHand.splice(creatureIndex, 1)
     }
@@ -1468,6 +1477,8 @@ function GameBoard({ onTurnInfoChange }) {
       addToast(`SHADOW STALKER: ${creature.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
     } else if (isSummonSpiderDeploy && !isInStartingZone) {
       addToast(`SUMMON SPIDER: ${creature.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+    } else if (isFromGraveyard) {
+      addToast(`GRAVEYARD DEPLOY: ${creature.name} resurrected at (${tile.x}, ${tile.y})! Protected until your next turn!`)
     } else {
       addToast(`Deployed ${creature.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
     }
@@ -1477,10 +1488,22 @@ function GameBoard({ onTurnInfoChange }) {
       setSelectedCreatureIndex(null)
     }
 
+    // Clear graveyard selection state if it was a graveyard deploy
+    if (isFromGraveyard) {
+      setSelectedGraveyardCreature(null)
+      setSelectedGraveyardIndex(null)
+      setDraggingFromGraveyard(false)
+    }
+
     // Clear modal state and trigger re-render
     setShowDeployConfirm(false)
     setPendingDeployment(null)
-    setRenderCounter(prev => prev + 1)
+
+    // Force re-render to show newly deployed creature on board
+    // Use setTimeout to ensure state updates are processed before forcing render
+    setTimeout(() => {
+      setRenderCounter(prev => prev + 1)
+    }, 0)
   }
 
   /**
@@ -1490,6 +1513,47 @@ function GameBoard({ onTurnInfoChange }) {
   const handleDeployCancel = () => {
     setShowDeployConfirm(false)
     setPendingDeployment(null)
+    // Also clear graveyard selection if cancelling a graveyard deploy
+    setSelectedGraveyardCreature(null)
+    setSelectedGraveyardIndex(null)
+  }
+
+  /**
+   * Handle graveyard creature selection - player clicked a Zombie to resurrect
+   * Big O: O(1) - constant time
+   */
+  const handleGraveyardCreatureSelect = (creature, index) => {
+    if (selectedGraveyardCreature?.id === creature.id) {
+      // Clicking same creature deselects it
+      setSelectedGraveyardCreature(null)
+      setSelectedGraveyardIndex(null)
+    } else {
+      setSelectedGraveyardCreature(creature)
+      setSelectedGraveyardIndex(index)
+    }
+  }
+
+  /**
+   * Handle drag start from graveyard
+   * Big O: O(1) - constant time
+   */
+  const handleGraveyardDragStart = (e, index, creature, fromGraveyard) => {
+    if (fromGraveyard) {
+      setSelectedGraveyardCreature(creature)
+      setSelectedGraveyardIndex(index)
+      setDraggingFromGraveyard(true)
+      // Clear regular dragging state
+      setDraggingCreatureIndex(null)
+    }
+  }
+
+  /**
+   * Handle drag end from graveyard
+   * Big O: O(1) - constant time
+   */
+  const handleGraveyardDragEnd = () => {
+    setDraggingFromGraveyard(false)
+    setDragOverTile(null)
   }
 
   /**
@@ -2334,6 +2398,59 @@ function GameBoard({ onTurnInfoChange }) {
 
   const handleDrop = (tile, e) => {
     try {
+      // Guard: Don't process drop if deploy confirmation modal is already showing
+      if (showDeployConfirm) {
+        return
+      }
+
+      // Handle graveyard creature deployment
+      if (draggingFromGraveyard && selectedGraveyardCreature && canDeployInCurrentPhase()) {
+        // Graveyard deploy only allowed in starting zone
+        const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
+                                 tile.startingZoneOwner === gameState.currentPlayer
+
+        if (!isInStartingZone) {
+          addToast('Graveyard creatures can only be deployed in your starting zone!')
+          setDraggingFromGraveyard(false)
+          setDragOverTile(null)
+          return
+        }
+
+        if (tile.occupant) {
+          addToast('Tile is occupied!')
+          setDraggingFromGraveyard(false)
+          setDragOverTile(null)
+          return
+        }
+
+        // Check if can resurrect (morale + leadership)
+        if (!gameState.canResurrectCreature(gameState.currentPlayer, selectedGraveyardCreature)) {
+          addToast('Cannot resurrect: not enough morale or leadership!')
+          setDraggingFromGraveyard(false)
+          setDragOverTile(null)
+          return
+        }
+
+        // Show deployment confirmation modal
+        setPendingDeployment({
+          creature: selectedGraveyardCreature,
+          tile: tile,
+          creatureIndex: selectedGraveyardIndex,
+          isFromGraveyard: true,
+          source: 'drag',
+          isOrcScoutDeploy: false,
+          isShadowStalkerDeploy: false,
+          isSummonSpiderDeploy: false,
+          isInStartingZone: true
+        })
+        setShowDeployConfirm(true)
+        setDraggingFromGraveyard(false)
+        setSelectedGraveyardCreature(null)
+        setSelectedGraveyardIndex(null)
+        setDragOverTile(null)
+        return
+      }
+
       if (draggingCreatureIndex === null || !canDeployInCurrentPhase()) {
         return
       }
@@ -3400,6 +3517,11 @@ function GameBoard({ onTurnInfoChange }) {
                 creatureViewMode={creatureViewMode}
                 onCreatureViewModeToggle={() => setCreatureViewMode(mode => mode === 'movement' ? 'ranged' : 'movement')}
                 selectedBoardCreature={selectedBoardCreature}
+                // GRAVEYARD PROPS - For resurrection
+                selectedGraveyardCreature={selectedGraveyardCreature}
+                onGraveyardCreatureSelect={handleGraveyardCreatureSelect}
+                onGraveyardDragStart={handleGraveyardDragStart}
+                onGraveyardDragEnd={handleGraveyardDragEnd}
               />
             </div>
           )}

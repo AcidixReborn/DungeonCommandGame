@@ -150,6 +150,21 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, spidersDeployed: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, spidersDeployed: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, spidersDeployed: 0 }
+    },
+    graveyard_deploy: {
+      name: 'GRAVEYARD DEPLOY',
+      creature: 'Zombie',
+      faction: 'Curse of Undeath',
+      // Overall totals
+      timesOffered: 0,  // Times Zombie was in graveyard with morale+leadership available
+      timesTriggered: 0,  // Times Zombie was resurrected
+      timesDeclined: 0,  // Times resurrection was available but not used
+      zombiesResurrected: 0,  // Total zombies resurrected
+      moralePaid: 0,  // Total morale paid (1 per resurrection)
+      // Per-difficulty breakdown
+      easy: { offered: 0, triggered: 0, declined: 0, resurrected: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, resurrected: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, resurrected: 0 }
     }
   })
 
@@ -510,6 +525,18 @@ function AbilitiesTest() {
                   creatureAbilityStats.summon_spider[diff].declined++
                 }
               }
+            }
+
+            // Track GRAVEYARD DEPLOY ability (Zombie resurrected from graveyard)
+            if (action.isGraveyardDeploy) {
+              const diff = player?.aiDifficulty || 'medium'
+              creatureAbilityStats.graveyard_deploy.timesOffered++
+              creatureAbilityStats.graveyard_deploy.timesTriggered++
+              creatureAbilityStats.graveyard_deploy.zombiesResurrected++
+              creatureAbilityStats.graveyard_deploy.moralePaid++
+              creatureAbilityStats.graveyard_deploy[diff].offered++
+              creatureAbilityStats.graveyard_deploy[diff].triggered++
+              creatureAbilityStats.graveyard_deploy[diff].resurrected++
             }
             break
 
@@ -1025,9 +1052,9 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 8 }
+    if (!creatureAbilityStats) return { working: 0, total: 9 }
     let working = 0
-    const total = 8 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER
+    const total = 9 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -1036,6 +1063,7 @@ function AbilitiesTest() {
     if (creatureAbilityStats.burrow_cormyr?.timesTriggered > 0) working++
     if (creatureAbilityStats.confusion_gaze?.timesTriggered > 0) working++
     if (creatureAbilityStats.summon_spider?.timesTriggered > 0) working++
+    if (creatureAbilityStats.graveyard_deploy?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -1932,6 +1960,94 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         SUMMON SPIDER: Deploy Spider creatures within 5 squares of Drow Priestess instead of starting zone. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+
+                  {/* GRAVEYARD DEPLOY Stats */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-danger">Curse of Undeath - GRAVEYARD DEPLOY <Badge bg="danger">ACTIVE</Badge> <small className="text-muted">(Zombie)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals (Resurrection Ability)</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.graveyard_deploy?.timesOffered || 0}</Badge></td>
+                            <td><strong>Zombies Resurrected</strong></td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.graveyard_deploy?.zombiesResurrected || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.graveyard_deploy?.timesTriggered || 0}</Badge></td>
+                            <td><strong>Morale Paid</strong></td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.graveyard_deploy?.moralePaid || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.graveyard_deploy?.timesDeclined || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.graveyard_deploy?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.graveyard_deploy.timesTriggered / results.creatureAbilityStats.graveyard_deploy.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Resurrected</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.graveyard_deploy?.[diff] || { offered: 0, triggered: 0, declined: 0, resurrected: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td><Badge bg="danger">{stats.resurrected}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        GRAVEYARD DEPLOY: During Deploy phase, pay 1 MORALE to deploy a Zombie from your graveyard. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

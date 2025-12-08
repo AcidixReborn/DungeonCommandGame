@@ -80,6 +80,9 @@ export class PlayerState {
     // Starting zone tiles for this player
     this.startingZoneTiles = []
 
+    // Graveyard - destroyed creatures go here (creature cards, not instances)
+    this.creatureGraveyard = []
+
     // Commander ability state tracking
     this.commanderAbilityState = {
       usedThisTurn: [],      // Track once-per-turn abilities (array of ability IDs)
@@ -502,6 +505,9 @@ export class GameState {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
 
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
+
       // Defender loses morale equal to creature's level
       defenderPlayer.loseMorale(targetInstance.creature.level)
 
@@ -573,6 +579,9 @@ export class GameState {
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
+
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
 
       // Defender loses morale equal to creature's level
       defenderPlayer.loseMorale(targetInstance.creature.level)
@@ -681,6 +690,9 @@ export class GameState {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
 
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
+
       // Defender loses morale equal to creature's level
       defenderPlayer.loseMorale(targetInstance.creature.level)
 
@@ -752,6 +764,9 @@ export class GameState {
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
+
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
 
       // Defender loses morale equal to creature's level
       defenderPlayer.loseMorale(targetInstance.creature.level)
@@ -1060,6 +1075,9 @@ export class GameState {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
 
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
+
       // Defender loses morale equal to creature's level
       defenderPlayer.loseMorale(targetInstance.creature.level)
 
@@ -1132,6 +1150,9 @@ export class GameState {
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
+
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
 
       // Defender loses morale equal to creature's level
       defenderPlayer.loseMorale(targetInstance.creature.level)
@@ -1229,6 +1250,98 @@ export class GameState {
     }
 
     return validTiles
+  }
+
+  // ============================================================================
+  // GRAVEYARD SYSTEM - All creatures go to graveyard when destroyed
+  // Zombies from Curse of Undeath can be resurrected from graveyard
+  // ============================================================================
+
+  /**
+   * Check if creature has GRAVEYARD DEPLOY ability
+   * Only Zombies from Curse of Undeath have this ability
+   * Big O: O(n) where n = number of special abilities (typically 1-3)
+   * @param {Object} creature - The creature card to check
+   * @returns {boolean} True if creature has GRAVEYARD DEPLOY
+   */
+  hasGraveyardDeploy(creature) {
+    if (!creature?.specialAbilities) return false
+    return creature.specialAbilities.some(
+      a => typeof a === 'string' && a.toUpperCase().includes('GRAVEYARD')
+    )
+  }
+
+  /**
+   * Get all creatures in a player's graveyard
+   * Sorted: Zombies (resurrectable) first, then others by name
+   * Big O: O(n log n) where n = graveyard size
+   * @param {string} playerId - The player ID
+   * @returns {Array} Array of creature cards sorted by resurrectability
+   */
+  getGraveyardCreatures(playerId) {
+    const player = this.players[playerId]
+    if (!player) return []
+
+    // Sort: resurrectable creatures first, then by name
+    return [...player.creatureGraveyard].sort((a, b) => {
+      const aCanRes = this.hasGraveyardDeploy(a) ? 0 : 1
+      const bCanRes = this.hasGraveyardDeploy(b) ? 0 : 1
+      if (aCanRes !== bCanRes) return aCanRes - bCanRes
+      return a.name.localeCompare(b.name)
+    })
+  }
+
+  /**
+   * Get resurrectable creatures (Zombies) from graveyard
+   * Big O: O(n) where n = graveyard size
+   * @param {string} playerId - The player ID
+   * @returns {Array} Array of creature cards that can be resurrected
+   */
+  getResurrectableCreatures(playerId) {
+    const player = this.players[playerId]
+    if (!player) return []
+    return player.creatureGraveyard.filter(c => this.hasGraveyardDeploy(c))
+  }
+
+  /**
+   * Check if player can resurrect a creature (has morale + leadership)
+   * Big O: O(c) where c = creatures in play (for leadership calculation)
+   * @param {string} playerId - The player ID
+   * @param {Object} creature - The creature card to check
+   * @returns {boolean} True if player can resurrect the creature
+   */
+  canResurrectCreature(playerId, creature) {
+    const player = this.players[playerId]
+    if (!player) return false
+    if (!this.hasGraveyardDeploy(creature)) return false
+
+    // Check morale cost (1)
+    if (player.morale < 1) return false
+
+    // Check leadership cost (creature level)
+    if (!player.canDeployCreature(creature)) return false
+
+    return true
+  }
+
+  /**
+   * Remove creature from graveyard when resurrected
+   * Also deducts the morale cost
+   * Big O: O(n) where n = graveyard size (for findIndex)
+   * @param {string} playerId - The player ID
+   * @param {Object} creature - The creature card to remove
+   * @returns {boolean} True if creature was found and removed
+   */
+  removeFromGraveyard(playerId, creature) {
+    const player = this.players[playerId]
+    if (!player) return false
+
+    const index = player.creatureGraveyard.findIndex(c => c.id === creature.id)
+    if (index === -1) return false
+
+    player.creatureGraveyard.splice(index, 1)
+    player.morale -= 1 // Deduct morale cost
+    return true
   }
 
   // ============================================================================

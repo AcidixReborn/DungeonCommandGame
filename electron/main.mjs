@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -58,6 +58,18 @@ ipcMain.handle('quit-app', () => {
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
   createWindow()
+
+  // Register keyboard shortcuts for DevTools (since F12 may not work on all systems)
+  globalShortcut.register('CommandOrControl+Shift+I', () => {
+    if (mainWindow) {
+      mainWindow.webContents.toggleDevTools()
+    }
+  })
+  globalShortcut.register('CommandOrControl+Shift+D', () => {
+    if (mainWindow) {
+      mainWindow.webContents.toggleDevTools()
+    }
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window when the

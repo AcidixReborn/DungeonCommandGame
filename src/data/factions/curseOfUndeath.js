@@ -267,7 +267,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: During your Deploy phase, you can pay 1 MORALE to deploy this creature from your graveyard.'],
+    specialAbilities: ['GRAVEYARD DEPLOY: During your Deploy phase, pay 1 MORALE to deploy this creature from your graveyard.'],
     faction: FACTION_NAME,
     imageUrl: zombie11Img
   },
@@ -282,7 +282,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: During your Deploy phase, you can pay 1 MORALE to deploy this creature from your graveyard.'],
+    specialAbilities: ['GRAVEYARD DEPLOY: During your Deploy phase, pay 1 MORALE to deploy this creature from your graveyard.'],
     faction: FACTION_NAME,
     imageUrl: zombie12Img
   }

@@ -42,6 +42,16 @@ electron.ipcMain.handle("quit-app", () => {
 });
 electron.app.whenReady().then(() => {
   createWindow();
+  electron.globalShortcut.register("CommandOrControl+Shift+I", () => {
+    if (mainWindow) {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
+  electron.globalShortcut.register("CommandOrControl+Shift+D", () => {
+    if (mainWindow) {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
   electron.app.on("activate", function() {
     if (electron.BrowserWindow.getAllWindows().length === 0) createWindow();
   });

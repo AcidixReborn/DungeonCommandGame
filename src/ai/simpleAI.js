@@ -357,6 +357,62 @@ export class SimpleAI {
       }
     }
 
+    // GRAVEYARD DEPLOY: Check for resurrectable Zombies in graveyard
+    // Curse of Undeath faction ability - Zombies can be deployed from graveyard for 1 Morale
+    if (this.gameState.getResurrectableCreatures) {
+      const resurrectableCreatures = this.gameState.getResurrectableCreatures(this.playerId)
+
+      for (const creature of resurrectableCreatures) {
+        // Check if we can afford resurrection (1 Morale + Leadership)
+        if (!this.gameState.canResurrectCreature(this.playerId, creature)) continue
+
+        // Difficulty-based decision to use GRAVEYARD DEPLOY
+        let shouldResurrect = false
+        switch (this.difficulty) {
+          case 'easy':
+            shouldResurrect = false  // Easy AI never uses GRAVEYARD DEPLOY
+            break
+          case 'medium':
+            shouldResurrect = Math.random() < 0.5  // Medium AI uses 50% of the time
+            break
+          case 'hard':
+            shouldResurrect = true  // Hard AI always resurrects if possible
+            break
+        }
+
+        if (!shouldResurrect) continue
+
+        // Need a tile to deploy to - use starting zone
+        const availableStartingZoneTiles = player.startingZoneTiles
+          .map(coord => this.gameState.getTile(coord.x, coord.y))
+          .filter(tile => tile && !tile.occupant)
+
+        if (availableStartingZoneTiles.length === 0) break  // No tiles available
+
+        // Pick a random starting zone tile
+        const deployTile = availableStartingZoneTiles[Math.floor(Math.random() * availableStartingZoneTiles.length)]
+
+        // Deploy the creature from graveyard
+        const creatureInstance = new CreatureInstance(creature, this.playerId)
+        creatureInstance.position = { x: deployTile.x, y: deployTile.y }
+        creatureInstance.markAsDeployed(this.gameState.turnNumber)
+
+        player.creaturesInPlay.push(creatureInstance)
+        deployTile.occupant = creatureInstance
+
+        // Remove from graveyard and deduct morale
+        this.gameState.removeFromGraveyard(this.playerId, creature)
+
+        actions.push({
+          type: 'deploy',
+          creature: creature.name,
+          creatureTypes: creature.type || [],
+          position: { x: deployTile.x, y: deployTile.y },
+          isGraveyardDeploy: true
+        })
+      }
+    }
+
     // Deploy creatures in order of level (highest first) until out of leadership
     const sortedCreatures = [...player.creatureHand].sort((a, b) => b.level - a.level)
 

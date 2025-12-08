@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { Card, Badge, ProgressBar, Row, Col } from 'react-bootstrap'
-import { GiDragonHead, GiCardPlay, GiCrossedSwords, GiSpiderWeb, GiKnightBanner, GiGoblinHead, GiSkullCrossedBones, GiOrcHead } from 'react-icons/gi'
+import { GiDragonHead, GiCardPlay, GiCrossedSwords, GiSpiderWeb, GiKnightBanner, GiGoblinHead, GiSkullCrossedBones, GiOrcHead, GiTombstone } from 'react-icons/gi'
 import CreatureCard from './CreatureCard'
 import OrderCard from './OrderCard'
 import AttackConfirmPanel from './AttackConfirmPanel'
 import DefenseOptionsPanel from './DefenseOptionsPanel'
+import GraveyardPanel from './GraveyardPanel'
 import './PlayerPanel.css'
 
 /**
@@ -97,7 +98,12 @@ function PlayerPanel({
   // View mode toggle props - O(1) prop access
   creatureViewMode = 'movement',
   onCreatureViewModeToggle = null,
-  selectedBoardCreature = null
+  selectedBoardCreature = null,
+  // Graveyard props - O(1) prop access
+  selectedGraveyardCreature = null,
+  onGraveyardCreatureSelect = null,
+  onGraveyardDragStart = null,
+  onGraveyardDragEnd = null
 }) {
   // ============================================
   // STATE: Active view for vertical nav bar - O(1) state access
@@ -116,6 +122,12 @@ function PlayerPanel({
   // Stores playerId of selected faction, or null if none selected
   // ============================================
   const [selectedFactionView, setSelectedFactionView] = useState(null)
+
+  // ============================================
+  // STATE: Selected faction for graveyard view - O(1) state access
+  // Stores playerId of selected graveyard faction
+  // ============================================
+  const [selectedGraveyardFaction, setSelectedGraveyardFaction] = useState(null)
 
   // ============================================
   // EFFECT: Auto-switch view based on game phase - O(1) operation
@@ -209,6 +221,35 @@ function PlayerPanel({
     onFactionHighlight && onFactionHighlight(factionPlayerId)
   }
 
+  // ============================================
+  // HANDLER: Graveyard button click - O(1)
+  // Switches to graveyard view and sets initial faction to current player
+  // ============================================
+  const handleGraveyardClick = () => {
+    // Set initial graveyard faction to current player if not set
+    if (!selectedGraveyardFaction && currentPlayerId) {
+      setSelectedGraveyardFaction(currentPlayerId)
+    } else if (!selectedGraveyardFaction && allPlayers) {
+      setSelectedGraveyardFaction(Object.keys(allPlayers)[0])
+    }
+    setActiveView('graveyard')
+  }
+
+  // ============================================
+  // COMPUTED: Get player order for graveyard faction cycling
+  // Current player first, then others in order
+  // ============================================
+  const getGraveyardPlayerOrder = () => {
+    if (!allPlayers) return []
+    const playerIds = Object.keys(allPlayers)
+    if (currentPlayerId && playerIds.includes(currentPlayerId)) {
+      // Current player first, then others
+      const others = playerIds.filter(id => id !== currentPlayerId)
+      return [currentPlayerId, ...others]
+    }
+    return playerIds
+  }
+
   // Guard against NaN/undefined morale values for display
   const safeMorale = (typeof player.morale === 'number' && !isNaN(player.morale)) ? player.morale : 0
   const safeStartingMorale = player.commander?.startingMorale || 1 // Prevent division by 0
@@ -300,8 +341,30 @@ function PlayerPanel({
                 </div>
               )}
 
+              {/* ============================================
+                  GRAVEYARD VIEW - Shows all graveyards with faction cycling
+                  Zombies can be resurrected from here during DEPLOY phase
+                  ============================================ */}
+              {activeView === 'graveyard' && gameState && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
+                  <GraveyardPanel
+                    gameState={gameState}
+                    playerOrder={getGraveyardPlayerOrder()}
+                    selectedFactionId={selectedGraveyardFaction || currentPlayerId || Object.keys(allPlayers || {})[0]}
+                    onFactionChange={setSelectedGraveyardFaction}
+                    onCreatureSelect={onGraveyardCreatureSelect}
+                    selectedGraveyardCreature={selectedGraveyardCreature}
+                    isDeployPhase={currentPhase === 'DEPLOY'}
+                    currentPlayerId={currentPlayerId}
+                    isHumanTurn={isHuman}
+                    onDragStart={onGraveyardDragStart}
+                    onDragEnd={onGraveyardDragEnd}
+                  />
+                </div>
+              )}
+
               {/* Human-only views: Creatures hand, Orders hand */}
-              {isHuman && activeView !== 'faction' && activeView !== 'combat' && (
+              {isHuman && activeView !== 'faction' && activeView !== 'combat' && activeView !== 'graveyard' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
                       {/* Creature Cards View - O(n) render where n = creatures in hand */}
@@ -386,6 +449,16 @@ function PlayerPanel({
                   <GiCrossedSwords size={20} />
                 </button>
               )}
+
+              {/* Graveyard Button - View destroyed creatures, resurrect Zombies */}
+              <button
+                className={`player-panel-nav-btn graveyard-btn ${activeView === 'graveyard' ? 'active' : ''}`}
+                onClick={handleGraveyardClick}
+                disabled={!isHuman}
+                title="View Graveyards"
+              >
+                <GiTombstone size={20} />
+              </button>
 
               {/* ============================================
                   FACTION ICONS SECTION

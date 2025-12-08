@@ -61,13 +61,15 @@ export class PhaseManager {
           const owner = creature.owner
           tile.occupant = null
 
-          // Remove from player's creaturesInPlay array
+          // Remove from player's creaturesInPlay array and add to graveyard
           if (owner) {
             const ownerState = gs.players[owner]
             const index = ownerState.creaturesInPlay.indexOf(creature)
             if (index !== -1) {
               ownerState.creaturesInPlay.splice(index, 1)
             }
+            // Add creature CARD to graveyard (not instance)
+            ownerState.creatureGraveyard.push(creature.creature)
           }
         }
       }

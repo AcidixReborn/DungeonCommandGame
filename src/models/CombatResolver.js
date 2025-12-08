@@ -256,6 +256,9 @@ export class CombatResolver {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
 
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(defenderInstance.creature)
+
       // Defender loses morale equal to creature's level
       defenderPlayer.loseMorale(defenderInstance.creature.level)
 
