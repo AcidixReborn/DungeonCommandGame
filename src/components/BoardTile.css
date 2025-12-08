@@ -763,6 +763,48 @@
 }
 
 /* ============================================
+   ALL RANGED LOS INDICATOR
+   Shows crosshair on tiles in range of friendly ranged creatures
+   ============================================ */
+
+.all-ranged-los-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.7;
+  filter: drop-shadow(0 0 2px rgba(255, 100, 50, 0.8));
+}
+
+.board-tile.all-ranged-los {
+  cursor: crosshair;
+}
+
+/* ============================================
+   SELECTED CREATURE RANGED LOS INDICATOR
+   Shows arrow on tiles in range of selected ranged creature (brighter highlight)
+   ============================================ */
+
+.selected-creature-ranged-los-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 12px;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0.95;
+  color: #00ffc8;
+  filter: drop-shadow(0 0 4px rgba(0, 255, 200, 0.9));
+  text-shadow: 0 0 6px rgba(0, 200, 255, 0.8);
+}
+
+.board-tile.selected-creature-ranged-los {
+  cursor: crosshair;
+}
+
+/* ============================================
    CREATURE HOVER PREVIEW
    Shows creature card on battlefield hover
    ============================================ */

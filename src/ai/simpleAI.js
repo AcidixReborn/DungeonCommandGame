@@ -220,6 +220,46 @@ export class SimpleAI {
           }
         }
 
+        // ============================================
+        // LIGHTNING BREATH CHECK: Try to use ability before normal attack
+        // Easy: Never use (0%), Medium: 50% chance, Hard: Always use (100%)
+        // Requires 2+ valid targets within range 5
+        // ============================================
+        if (this.gameState.hasLightningBreath(creature)) {
+          const lightningTargets = this.gameState.getLightningBreathTargets(creature)
+          if (lightningTargets.length >= 2) {
+            // Lightning Breath is available (2+ targets) - check if AI will use it
+            const canUse = this.canUseCreatureAbilities()
+            const useChance = this.difficulty === 'hard' ? 1.0 : 0.5
+            const rollSuccess = Math.random() < useChance
+
+            if (canUse && rollSuccess) {
+              // Select up to 3 weakest targets for LIGHTNING BREATH
+              const sortedTargets = [...lightningTargets].sort((a, b) => a.currentHP - b.currentHP)
+              const selectedTargets = sortedTargets.slice(0, 3)
+
+              console.log(`[AI] LIGHTNING BREATH: ${creature.creature.name} targeting ${selectedTargets.map(t => t.creature.name).join(', ')}`)
+
+              actions.push({
+                type: 'lightning_breath',
+                attackerInstance: creature,
+                targets: selectedTargets,
+                damage: this.gameState.getLightningBreathDamage(creature)
+              })
+              didAction = true
+              hasAttackIntention = true  // Counts as attack action
+              continue  // Don't fall through to normal attack
+            } else {
+              // Track declined opportunity for stats
+              actions.push({
+                type: 'lightning_breath_declined',
+                attackerInstance: creature,
+                validTargetCount: lightningTargets.length
+              })
+            }
+          }
+        }
+
         const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
         if (attackTargets.length > 0) {
           const target = this.selectWeakestTarget(attackTargets)

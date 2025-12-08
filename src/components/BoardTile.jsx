@@ -49,8 +49,15 @@ const factionIcons = {
  * @param {string} summonSpiderFactionColor - Faction color to use for SUMMON SPIDER highlight
  * @param {boolean} isLichNecromancerHighlight - Whether tile is valid for LICH NECROMANCER Undead deployment
  * @param {string} lichNecromancerFactionColor - Faction color to use for LICH NECROMANCER highlight (purple)
+ * @param {boolean} isLightningBreathValidTarget - Whether creature on tile is valid target for LIGHTNING BREATH
+ * @param {boolean} isLightningBreathSelected - Whether creature on tile is already selected for LIGHTNING BREATH
+ * @param {number} lightningBreathTargetIndex - Index of this creature in LIGHTNING BREATH target array (-1 if not selected)
+ * @param {boolean} isAllRangedLOS - Whether tile is in LOS of any friendly ranged creature (all ranged LOS mode)
+ * @param {number} allRangedLOSCount - Number of ranged creatures that can hit this tile
+ * @param {Array} rangedLOSFactions - Array of player IDs (owners) whose ranged creatures can hit this tile
+ * @param {boolean} isSelectedCreatureRangedLOS - Whether tile is in LOS of the currently selected ranged creature (brighter highlight)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -305,6 +312,125 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
       }
     }
 
+    // LIGHTNING BREATH: Apply cyan/electric highlight to valid targets
+    if (isLightningBreathValidTarget || isLightningBreathSelected) {
+      // Selected targets get brighter highlight with target number
+      if (isLightningBreathSelected) {
+        return {
+          background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.5) 0%, rgba(0, 188, 212, 0.4) 100%)',
+          boxShadow: `
+            inset 0 0 0 3px rgba(0, 255, 255, 0.95),
+            inset 0 0 30px rgba(0, 188, 212, 0.7),
+            0 0 15px rgba(0, 255, 255, 0.6)
+          `,
+          borderColor: 'rgba(0, 255, 255, 0.9)'
+        }
+      }
+      // Valid but not selected - dimmer electric glow
+      return {
+        background: 'linear-gradient(135deg, rgba(0, 188, 212, 0.3) 0%, rgba(0, 150, 180, 0.2) 100%)',
+        boxShadow: `
+          inset 0 0 0 2px rgba(0, 188, 212, 0.7),
+          inset 0 0 20px rgba(0, 188, 212, 0.4)
+        `,
+        borderColor: 'rgba(0, 188, 212, 0.6)'
+      }
+    }
+
+    // SELECTED CREATURE RANGED LOS: Brighter cyan/yellow highlight for the selected ranged creature's specific LOS
+    // This takes priority over the general all-ranged-LOS highlight
+    if (isSelectedCreatureRangedLOS) {
+      return {
+        background: 'linear-gradient(135deg, rgba(0, 255, 200, 0.35) 0%, rgba(0, 200, 255, 0.30) 100%)',
+        boxShadow: `
+          inset 0 0 0 3px rgba(0, 255, 200, 0.9),
+          inset 0 0 20px rgba(0, 200, 255, 0.5),
+          0 0 10px rgba(0, 255, 200, 0.4)
+        `,
+        borderColor: 'rgba(0, 255, 200, 0.8)'
+      }
+    }
+
+    // ALL RANGED LOS: Apply FACTION-COLORED highlight for ranged attack coverage
+    // Uses player faction colors with overlap support (diagonal split for 2 factions, conic for 3+)
+    if (isAllRangedLOS && rangedLOSFactions.length > 0 && playerFactionColors) {
+      const factionCount = rangedLOSFactions.length
+      const baseOpacity = 0.35
+      const borderOpacity = 0.6
+
+      if (factionCount === 1) {
+        // Single faction - solid faction color
+        const factionColor = playerFactionColors[rangedLOSFactions[0]]
+        if (factionColor) {
+          const rgb = hexToRgb(factionColor)
+          if (rgb) {
+            return {
+              background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOpacity}) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOpacity - 0.1}) 100%)`,
+              boxShadow: `
+                inset 0 0 0 2px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${borderOpacity}),
+                inset 0 0 15px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOpacity})
+              `,
+              borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${borderOpacity})`
+            }
+          }
+        }
+      } else if (factionCount === 2) {
+        // Two factions - diagonal split (top-left to bottom-right)
+        const color1 = playerFactionColors[rangedLOSFactions[0]]
+        const color2 = playerFactionColors[rangedLOSFactions[1]]
+        if (color1 && color2) {
+          const rgb1 = hexToRgb(color1)
+          const rgb2 = hexToRgb(color2)
+          if (rgb1 && rgb2) {
+            return {
+              background: `linear-gradient(135deg, rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${baseOpacity}) 0%, rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${baseOpacity}) 50%, rgba(${rgb2.r}, ${rgb2.g}, ${rgb2.b}, ${baseOpacity}) 50%, rgba(${rgb2.r}, ${rgb2.g}, ${rgb2.b}, ${baseOpacity}) 100%)`,
+              boxShadow: `
+                inset 0 0 0 2px rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity}),
+                inset 0 0 15px rgba(${rgb2.r}, ${rgb2.g}, ${rgb2.b}, ${baseOpacity * 0.5})
+              `,
+              borderColor: `rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity})`
+            }
+          }
+        }
+      } else {
+        // 3+ factions - conic gradient (pie slices)
+        const gradientStops = rangedLOSFactions.map((owner, i) => {
+          const factionColor = playerFactionColors[owner]
+          if (!factionColor) return null
+          const rgb = hexToRgb(factionColor)
+          if (!rgb) return null
+          const start = (i / factionCount) * 360
+          const end = ((i + 1) / factionCount) * 360
+          return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOpacity}) ${start}deg ${end}deg`
+        }).filter(Boolean)
+
+        if (gradientStops.length > 0) {
+          // Get first faction color for border
+          const firstColor = playerFactionColors[rangedLOSFactions[0]]
+          const rgb1 = firstColor ? hexToRgb(firstColor) : null
+
+          return {
+            background: `conic-gradient(from 0deg, ${gradientStops.join(', ')})`,
+            boxShadow: rgb1 ? `
+              inset 0 0 0 2px rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity}),
+              inset 0 0 15px rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${baseOpacity * 0.5})
+            ` : '',
+            borderColor: rgb1 ? `rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity})` : 'rgba(255, 100, 50, 0.6)'
+          }
+        }
+      }
+
+      // Fallback to original red/orange if faction colors fail
+      return {
+        background: `linear-gradient(135deg, rgba(255, 100, 50, ${baseOpacity}) 0%, rgba(255, 50, 50, ${baseOpacity - 0.05}) 100%)`,
+        boxShadow: `
+          inset 0 0 0 2px rgba(255, 100, 50, ${borderOpacity}),
+          inset 0 0 15px rgba(255, 50, 50, ${baseOpacity})
+        `,
+        borderColor: `rgba(255, 100, 50, ${borderOpacity})`
+      }
+    }
+
     if (tile.terrain !== TerrainTypes.STARTING_ZONE || !tile.startingZoneOwner || !playerFactionColors) {
       return {}
     }
@@ -365,6 +491,8 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         ${isShadowStalkerHighlight ? 'shadow-stalker-highlight' : ''}
         ${isConfusionGazeSlide ? 'confusion-gaze-slide' : ''}
         ${isConfusionGazeAttack ? 'confusion-gaze-attack' : ''}
+        ${isAllRangedLOS ? 'all-ranged-los' : ''}
+        ${isSelectedCreatureRangedLOS ? 'selected-creature-ranged-los' : ''}
         ${creature && showPreview ? 'showing-preview' : ''}`}
       style={getStartingZoneStyle()}
       onClick={() => onClick && onClick(tile)}
@@ -384,10 +512,25 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         </div>
       )}
 
-      {/* Show line-of-sight indicator */}
-      {isLineOfSight && (
+      {/* Show line-of-sight indicator (movement mode single creature LOS) */}
+      {/* Only show if NOT in ranged LOS modes (those have their own indicators) */}
+      {isLineOfSight && !isAllRangedLOS && !isSelectedCreatureRangedLOS && (
         <div className="line-of-sight-indicator">
           ➤
+        </div>
+      )}
+
+      {/* Show selected creature's ranged LOS indicator (takes priority in ranged mode) */}
+      {isSelectedCreatureRangedLOS && (
+        <div className="selected-creature-ranged-los-indicator" title="Selected creature can hit this tile">
+          ➤
+        </div>
+      )}
+
+      {/* Show all ranged LOS indicator (only if not showing selected creature's LOS) */}
+      {isAllRangedLOS && !isSelectedCreatureRangedLOS && (
+        <div className="all-ranged-los-indicator" title={`${allRangedLOSCount} ranged creature${allRangedLOSCount > 1 ? 's' : ''} from ${rangedLOSFactions.length} faction${rangedLOSFactions.length > 1 ? 's' : ''} can hit this tile`}>
+          🎯
         </div>
       )}
 
@@ -427,6 +570,42 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
           {isAttackTarget && (
             <div className="attack-indicator">
               {attackType === 'ranged' ? '🏹' : '⚔️'}
+            </div>
+          )}
+          {/* LIGHTNING BREATH target number indicator */}
+          {isLightningBreathSelected && lightningBreathTargetIndex >= 0 && (
+            <div className="lightning-breath-target-number" style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              backgroundColor: '#00bcd4',
+              color: 'white',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid white',
+              boxShadow: '0 0 8px rgba(0, 188, 212, 0.8)',
+              zIndex: 10
+            }}>
+              {lightningBreathTargetIndex + 1}
+            </div>
+          )}
+          {/* LIGHTNING BREATH valid target indicator */}
+          {isLightningBreathValidTarget && !isLightningBreathSelected && (
+            <div className="lightning-breath-valid-indicator" style={{
+              position: 'absolute',
+              top: '-6px',
+              right: '-6px',
+              fontSize: '14px',
+              textShadow: '0 0 8px rgba(0, 255, 255, 0.8)',
+              zIndex: 10
+            }}>
+              ⚡
             </div>
           )}
         </div>

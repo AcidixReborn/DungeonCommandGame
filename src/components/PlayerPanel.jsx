@@ -90,6 +90,7 @@ function PlayerPanel({
   onCancelAttack,
   onDefenseSelected,
   onSkipDefense,
+  onLightningBreath,
   // Faction icons props - O(1) prop access
   allPlayers = null,
   onFactionHighlight = null,
@@ -324,6 +325,7 @@ function PlayerPanel({
                       gameState={gameState}
                       onConfirm={onConfirmAttack}
                       onCancel={onCancelAttack}
+                      onLightningBreath={onLightningBreath}
                     />
                   )}
                   {/* Defense Options Panel - O(1) render for options, O(n) for creature lists */}
@@ -429,13 +431,13 @@ function PlayerPanel({
               >
                 <GiCardPlay size={20} />
               </button>
-              {/* View Mode Toggle - Only visible when ranged creature is selected on board */}
-              {selectedBoardCreature?.creature?.rangedAttack && onCreatureViewModeToggle && (
+              {/* View Mode Toggle - Switches between movement and ranged LOS view */}
+              {onCreatureViewModeToggle && (
                 <button
-                  className={`player-panel-nav-btn view-mode-toggle ${creatureViewMode}`}
+                  className={`player-panel-nav-btn view-mode-toggle ${creatureViewMode === 'ranged' ? 'active' : ''}`}
                   onClick={onCreatureViewModeToggle}
                   disabled={!isHuman}
-                  title={creatureViewMode === 'movement' ? 'Show Ranged Attack Range' : 'Show Movement Range'}
+                  title={creatureViewMode === 'movement' ? 'Show All Ranged Attack Coverage' : 'Show Movement Range'}
                 >
                   {creatureViewMode === 'movement' ? '🏹' : '👟'}
                 </button>

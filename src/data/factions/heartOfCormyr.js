@@ -116,7 +116,7 @@ export const creatures = [
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: { damage: 20, range: 5 },
     specialAbilities: [
-      'FLYING: This creature can fly. PLACEHOLDER',
+      'FLYING: This creature ignores difficult terrain and can move over mountains (but cannot stop on them).',
       'ACID BREATH 20: Whenever this creature makes a ranged attack, it deals 20 DAMAGE to each creature adjacent to the target. PLACEHOLDER'
     ],
     faction: FACTION_NAME,

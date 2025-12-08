@@ -169,6 +169,14 @@ function GameBoard({ onTurnInfoChange }) {
   const [currentSplashIndex, setCurrentSplashIndex] = useState(0) // Index into pendingSplashAttacks
   const [splashResults, setSplashResults] = useState([]) // Accumulated results for toast message
 
+  // LIGHTNING BREATH ability state - multi-target ranged attack
+  const [lightningBreathMode, setLightningBreathMode] = useState(false) // True when selecting targets
+  const [lightningBreathAttacker, setLightningBreathAttacker] = useState(null) // The Dracolich
+  const [lightningBreathTargets, setLightningBreathTargets] = useState([]) // Selected targets (max 3)
+  const [lightningBreathValidTargets, setLightningBreathValidTargets] = useState([]) // All valid targets
+  const [lightningBreathCurrentAttackIndex, setLightningBreathCurrentAttackIndex] = useState(0) // Current attack being resolved
+  const [lightningBreathResults, setLightningBreathResults] = useState([]) // Results for summary toast
+
   // DEPLOY CONFIRMATION state (shows leadership cost before deploying)
   const [showDeployConfirm, setShowDeployConfirm] = useState(false)
   const [pendingDeployment, setPendingDeployment] = useState(null)
@@ -228,6 +236,25 @@ function GameBoard({ onTurnInfoChange }) {
     })
     return factionMap
   }, [gameConfig, gameState])
+
+  /**
+   * Compute all ranged LOS tiles for ALL ranged creatures on board when in ranged view mode
+   * Big O Complexity: O(C * (2R+1)^2) where C = ranged creatures, R = max range
+   */
+  const allRangedLOSTiles = useMemo(() => {
+    if (creatureViewMode !== 'ranged' || !gameState) return []
+    // Debug: Check what creaturesInPlay contains from GameBoard
+    console.log('[GameBoard] useMemo DEBUG - gameState.creaturesInPlay:', gameState.creaturesInPlay)
+    console.log('[GameBoard] useMemo DEBUG - gameState type:', typeof gameState, gameState.constructor?.name)
+    console.log('[GameBoard] useMemo DEBUG - renderCounter:', renderCounter)
+    const tiles = gameState.getAllRangedLOSTiles()
+    console.log('[GameBoard] allRangedLOSTiles computed:', {
+      mode: creatureViewMode,
+      tilesCount: tiles.length,
+      creaturesInPlay: gameState.creaturesInPlay?.length
+    })
+    return tiles
+  }, [creatureViewMode, gameState, renderCounter])
 
   /**
    * Helper function to check if a player is human
@@ -759,11 +786,17 @@ function GameBoard({ onTurnInfoChange }) {
   const handleDefenseSelected = (defense) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo, isSplashDamage } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isSplashDamage, isLightningBreath } = pendingAttack
 
     // Route splash damage defense to dedicated handler
     if (isSplashDamage || targetInfo.attackType === 'splash') {
       handleSplashDefenseSelected(defense)
+      return
+    }
+
+    // Route Lightning Breath defense to dedicated handler
+    if (isLightningBreath || targetInfo.attackType === 'lightning_breath') {
+      handleLightningBreathDefenseSelected(defense)
       return
     }
 
@@ -2876,6 +2909,20 @@ function GameBoard({ onTurnInfoChange }) {
   const handleTileRightClick = (tile) => {
     if (!gameState || gameState.gameOver) return
 
+    // ============================================
+    // LIGHTNING BREATH TARGET SELECTION MODE
+    // Handle clicking on creatures to add them as targets
+    // ============================================
+    if (lightningBreathMode && lightningBreathAttacker) {
+      // Check if tile has an enemy creature that can be targeted
+      if (tile.occupant && tile.occupant.owner !== lightningBreathAttacker.owner) {
+        handleLightningBreathTargetSelect(tile.occupant)
+      } else if (!tile.occupant) {
+        addToast('Click on an enemy creature to target it with Lightning Breath')
+      }
+      return // Don't process other right-click actions during target selection
+    }
+
     // DEPLOY PHASE: Right-click deploys creatures from hand
     if (canDeployInCurrentPhase() && selectedCreatureIndex !== null) {
       const currentPlayer = gameState.getCurrentPlayerState()
@@ -3159,6 +3206,356 @@ function GameBoard({ onTurnInfoChange }) {
     setCombatHighlightCreatures({ attacker: null, defender: null })
   }
 
+  // ============================================
+  // LIGHTNING BREATH ABILITY HANDLERS
+  // Multi-target ranged attack (up to 3 targets)
+  // ============================================
+
+  /**
+   * Start Lightning Breath target selection mode
+   * Called when player clicks "Lightning Breath" button in attack panel
+   * @param {Object} attacker - The Dracolich creature instance
+   * @param {Object} firstTarget - The initially right-clicked target (pre-selected)
+   */
+  const handleLightningBreathStart = (attacker, firstTarget) => {
+    console.log('[handleLightningBreathStart] Starting Lightning Breath mode', {
+      attacker: attacker.creature.name,
+      firstTarget: firstTarget.creature.name
+    })
+
+    // Get all valid targets
+    const validTargets = gameState.getLightningBreathTargets(attacker)
+    console.log('[handleLightningBreathStart] Valid targets:', validTargets.map(t => t.creature.name))
+
+    // Clear the normal attack state
+    setPendingRightClickAttack(null)
+    setCombatPanelMode(null)
+
+    // Enter Lightning Breath mode
+    setLightningBreathMode(true)
+    setLightningBreathAttacker(attacker)
+    setLightningBreathTargets([firstTarget]) // First target pre-selected
+    setLightningBreathValidTargets(validTargets)
+    setLightningBreathCurrentAttackIndex(0)
+    setLightningBreathResults([])
+
+    addToast(`⚡ LIGHTNING BREATH: Select up to 2 more targets (1/3 selected)`)
+  }
+
+  /**
+   * Add a target to Lightning Breath selection
+   * Called when player clicks on a valid target during Lightning Breath mode
+   * @param {Object} target - The target creature instance
+   */
+  const handleLightningBreathTargetSelect = (target) => {
+    if (!lightningBreathMode || !lightningBreathAttacker) return
+
+    // Check if target is already selected - if so, deselect it (toggle behavior)
+    if (lightningBreathTargets.some(t => t.instanceId === target.instanceId)) {
+      console.log('[handleLightningBreathTargetSelect] Deselecting target:', target.creature.name)
+      const newTargets = lightningBreathTargets.filter(t => t.instanceId !== target.instanceId)
+      setLightningBreathTargets(newTargets)
+      addToast(`Removed ${target.creature.name} from targets (${newTargets.length}/3)`)
+      return
+    }
+
+    // Check if target is valid
+    if (!lightningBreathValidTargets.some(t => t.instanceId === target.instanceId)) {
+      console.log('[handleLightningBreathTargetSelect] Target not valid:', target.creature.name)
+      addToast(`${target.creature.name} is not a valid target!`)
+      return
+    }
+
+    // Check if we already have 3 targets
+    if (lightningBreathTargets.length >= 3) {
+      console.log('[handleLightningBreathTargetSelect] Already have 3 targets')
+      addToast(`Maximum 3 targets selected! Click "Confirm" to attack.`)
+      return
+    }
+
+    // Add target
+    const newTargets = [...lightningBreathTargets, target]
+    setLightningBreathTargets(newTargets)
+    console.log('[handleLightningBreathTargetSelect] Added target:', target.creature.name, 'Total:', newTargets.length)
+    addToast(`⚡ Target ${newTargets.length}/3 selected: ${target.creature.name}`)
+  }
+
+  /**
+   * Confirm Lightning Breath and begin sequential attack resolution
+   * Called when player clicks "Confirm" after selecting targets
+   */
+  const handleLightningBreathConfirm = () => {
+    if (!lightningBreathMode || !lightningBreathAttacker || lightningBreathTargets.length < 2) {
+      console.log('[handleLightningBreathConfirm] Invalid state - need at least 2 targets')
+      addToast(`Select at least 2 targets for Lightning Breath!`)
+      return
+    }
+
+    console.log('[handleLightningBreathConfirm] Confirming Lightning Breath with targets:',
+      lightningBreathTargets.map(t => t.creature.name))
+
+    addToast(`⚡ ${lightningBreathAttacker.creature.name} unleashes LIGHTNING BREATH on ${lightningBreathTargets.length} targets!`)
+
+    // Exit target selection mode (but keep targets/attacker for sequential resolution)
+    setLightningBreathMode(false)
+    setLightningBreathValidTargets([])
+
+    // Start resolving attacks sequentially
+    setLightningBreathCurrentAttackIndex(0)
+
+    // Set up the first attack's defense panel
+    const firstTarget = lightningBreathTargets[0]
+    const damage = gameState.getLightningBreathDamage(lightningBreathAttacker)
+
+    setPendingAttack({
+      attackerInstance: lightningBreathAttacker,
+      defenderInstance: firstTarget,
+      targetInfo: { attackType: 'lightning_breath', damage },
+      isLightningBreath: true,
+      lightningBreathIndex: 0,
+      lightningBreathTotal: lightningBreathTargets.length
+    })
+
+    setCombatPanelMode('defense')
+    setCombatHighlightCreatures({
+      attacker: lightningBreathAttacker.instanceId,
+      defender: firstTarget.instanceId
+    })
+
+    addToast(`⚡ Lightning Breath Attack 1/${lightningBreathTargets.length}: ${firstTarget.creature.name}`)
+  }
+
+  /**
+   * Cancel Lightning Breath target selection
+   * Called when player clicks "Cancel" during target selection
+   */
+  const handleLightningBreathCancel = () => {
+    console.log('[handleLightningBreathCancel] Cancelling Lightning Breath')
+
+    setLightningBreathMode(false)
+    setLightningBreathAttacker(null)
+    setLightningBreathTargets([])
+    setLightningBreathValidTargets([])
+    setLightningBreathCurrentAttackIndex(0)
+    setLightningBreathResults([])
+
+    addToast(`Lightning Breath cancelled`)
+  }
+
+  /**
+   * Process result of a single Lightning Breath attack and move to next
+   * Called after defense is resolved for each target
+   * @param {Object} result - The attack result from combat resolution
+   */
+  const handleLightningBreathAttackResolved = (result) => {
+    const currentIndex = lightningBreathCurrentAttackIndex
+    const targets = lightningBreathTargets
+    const attacker = lightningBreathAttacker
+
+    console.log('[handleLightningBreathAttackResolved] Attack resolved:', {
+      index: currentIndex,
+      target: targets[currentIndex]?.creature.name,
+      result
+    })
+
+    // Store result
+    const newResults = [...lightningBreathResults, result]
+    setLightningBreathResults(newResults)
+
+    // Show individual toast
+    const targetName = targets[currentIndex]?.creature.name || 'Unknown'
+    const damageDealt = result.damage || 0
+    if (result.destroyed) {
+      addToast(`⚡ Lightning Breath DESTROYED ${targetName}!`)
+    } else if (damageDealt > 0) {
+      addToast(`⚡ Lightning Breath hit ${targetName} for ${damageDealt} damage!`)
+    } else {
+      addToast(`⚡ Lightning Breath damage to ${targetName} was fully prevented!`)
+    }
+
+    // Check if there are more targets
+    const nextIndex = currentIndex + 1
+    if (nextIndex < targets.length) {
+      // Move to next target
+      setLightningBreathCurrentAttackIndex(nextIndex)
+      const nextTarget = targets[nextIndex]
+      const damage = gameState.getLightningBreathDamage(attacker)
+
+      setPendingAttack({
+        attackerInstance: attacker,
+        defenderInstance: nextTarget,
+        targetInfo: { attackType: 'lightning_breath', damage },
+        isLightningBreath: true,
+        lightningBreathIndex: nextIndex,
+        lightningBreathTotal: targets.length
+      })
+
+      setCombatHighlightCreatures({
+        attacker: attacker.instanceId,
+        defender: nextTarget.instanceId
+      })
+
+      addToast(`⚡ Lightning Breath Attack ${nextIndex + 1}/${targets.length}: ${nextTarget.creature.name}`)
+    } else {
+      // All attacks resolved - finish up
+      handleLightningBreathComplete(newResults)
+    }
+  }
+
+  /**
+   * Complete Lightning Breath ability after all attacks resolved
+   * Shows summary toast and consumes the Dracolich's action
+   * @param {Array} results - Array of all attack results
+   */
+  const handleLightningBreathComplete = (results) => {
+    const attacker = lightningBreathAttacker
+    const targets = lightningBreathTargets
+
+    console.log('[handleLightningBreathComplete] All attacks resolved:', {
+      attacker: attacker?.creature.name,
+      targetCount: targets.length,
+      results
+    })
+
+    // Calculate totals for summary
+    const totalDamage = results.reduce((sum, r) => sum + (r.damage || 0), 0)
+    const kills = results.filter(r => r.destroyed).length
+
+    // Summary toast
+    let summaryMsg = `⚡ LIGHTNING BREATH complete! Hit ${targets.length} targets for ${totalDamage} total damage`
+    if (kills > 0) {
+      summaryMsg += ` (${kills} destroyed!)`
+    }
+    addToast(summaryMsg)
+
+    // Mark attacker as having attacked (consumes action)
+    if (attacker) {
+      attacker.hasAttackedThisTurn = true
+      // Tap if already moved
+      if (attacker.hasMovedThisTurn) {
+        attacker.tap()
+      }
+    }
+
+    // Clear Lightning Breath state
+    setLightningBreathMode(false)
+    setLightningBreathAttacker(null)
+    setLightningBreathTargets([])
+    setLightningBreathValidTargets([])
+    setLightningBreathCurrentAttackIndex(0)
+    setLightningBreathResults([])
+
+    // Clear combat panel
+    setPendingAttack(null)
+    setCombatPanelMode(null)
+    setCombatHighlightCreatures({ attacker: null, defender: null })
+  }
+
+  /**
+   * Handle defense selection for Lightning Breath attacks
+   * Similar to splash damage defense, but with sequential attack resolution
+   * @param {Object} defense - Defense selection
+   */
+  const handleLightningBreathDefenseSelected = (defense) => {
+    if (!pendingAttack || !pendingAttack.isLightningBreath) return
+
+    const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
+    const damage = targetInfo.damage || gameState.getLightningBreathDamage(attackerInstance)
+
+    console.log('[handleLightningBreathDefenseSelected] Defense selected:', {
+      defense: defense.type,
+      target: defenderInstance.creature.name,
+      damage
+    })
+
+    let damageAfterDefense = damage
+    let defenseResult = { type: defense.type, success: false }
+
+    if (defense.type === 'skip') {
+      // Take full damage
+      damageAfterDefense = damage
+      defenseResult.success = true
+    } else if (defense.type === 'cower') {
+      // COWER: Avoid ALL damage
+      const cowerResult = gameState.applyCower(defenderInstance, damage, attackerInstance.owner)
+      damageAfterDefense = cowerResult.success ? 0 : damage
+      defenseResult = { ...cowerResult, type: 'cower' }
+    } else if (defense.type === 'unstoppable_hordes') {
+      // UNSTOPPABLE HORDES: Prevent 10 damage per creature
+      let totalReduction = 0
+      defense.creatures.forEach(creature => {
+        const result = gameState.applyUnstoppableHordes(creature)
+        if (result.success) {
+          totalReduction += result.damagePrevented
+        }
+      })
+      damageAfterDefense = Math.max(0, damage - totalReduction)
+      defenseResult = { type: 'unstoppable_hordes', damagePrevented: totalReduction, success: true }
+    } else if (defense.type === 'immediate_card') {
+      // IMMEDIATE CARD: Prevent 10 damage
+      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature)
+      damageAfterDefense = result.success ? Math.max(0, damage - result.damagePrevented) : damage
+      defenseResult = { ...result, type: 'immediate_card' }
+    }
+
+    // Apply damage to defender
+    const previousHP = defenderInstance.currentHP
+    defenderInstance.currentHP -= damageAfterDefense
+    const destroyed = defenderInstance.currentHP <= 0
+
+    console.log('[handleLightningBreathDefenseSelected] Damage applied:', {
+      damage: damageAfterDefense,
+      previousHP,
+      newHP: defenderInstance.currentHP,
+      destroyed
+    })
+
+    // Handle destruction
+    let moraleChange = { attacker: 0, defender: 0 }
+    if (destroyed) {
+      // Clear tile
+      if (defenderInstance.position) {
+        const tile = gameState.getTile(defenderInstance.position.x, defenderInstance.position.y)
+        if (tile) tile.occupant = null
+      }
+
+      // Remove from battlefield
+      const defenderOwner = defenderInstance.owner
+      const defenderPlayer = gameState.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === defenderInstance.instanceId)
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Add to graveyard
+      defenderPlayer.creatureGraveyard.push(defenderInstance.creature)
+
+      // Morale changes
+      defenderPlayer.loseMorale(defenderInstance.creature.level)
+      const attackerPlayer = gameState.players[attackerInstance.owner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: 1,
+        defender: -defenderInstance.creature.level
+      }
+
+      addToast(`⚡ ${defenderInstance.creature.name} was destroyed by Lightning Breath!`)
+    }
+
+    // Create result object
+    const result = {
+      damage: damageAfterDefense,
+      destroyed,
+      moraleChange,
+      targetName: defenderInstance.creature.name,
+      defenseResult
+    }
+
+    // Move to next target or complete
+    handleLightningBreathAttackResolved(result)
+  }
+
   const advancePhase = () => {
     if (!gameState) return
 
@@ -3170,7 +3567,7 @@ function GameBoard({ onTurnInfoChange }) {
       const message = combatPanelMode === 'attack'
         ? 'You must confirm or cancel your attack before advancing the phase.'
         : 'You must select a defense option or take damage before advancing the phase.'
-      addLog('system', `⚠️ ${message}`, 'warning')
+      addToast(`⚠️ ${message}`)
       return
     }
 
@@ -3179,11 +3576,11 @@ function GameBoard({ onTurnInfoChange }) {
     // User must complete or skip the FLASHING BLADES ability
     // ============================================
     if (showFlashingBladesModal) {
-      addLog('system', '⚠️ You must choose whether to use FLASHING BLADES before advancing the phase.', 'warning')
+      addToast('⚠️ You must choose whether to use FLASHING BLADES before advancing the phase.')
       return
     }
     if (flashingBladesTargetMode) {
-      addLog('system', '⚠️ You must select a target for FLASHING BLADES before advancing the phase.', 'warning')
+      addToast('⚠️ You must select a target for FLASHING BLADES before advancing the phase.')
       return
     }
 
@@ -3192,11 +3589,11 @@ function GameBoard({ onTurnInfoChange }) {
     // User must complete or skip the HIDDEN BLADE ability
     // ============================================
     if (showHiddenBladeModal) {
-      addLog('system', '⚠️ You must choose whether to use HIDDEN BLADE before advancing the phase.', 'warning')
+      addToast('⚠️ You must choose whether to use HIDDEN BLADE before advancing the phase.')
       return
     }
     if (hiddenBladeTargetMode) {
-      addLog('system', '⚠️ You must select a target for HIDDEN BLADE before advancing the phase.', 'warning')
+      addToast('⚠️ You must select a target for HIDDEN BLADE before advancing the phase.')
       return
     }
 
@@ -3205,14 +3602,23 @@ function GameBoard({ onTurnInfoChange }) {
     // User must complete the CONFUSION GAZE ability (mandatory attack)
     // ============================================
     if (showConfusionGazeModal) {
-      addLog('system', '⚠️ You must choose whether to use CONFUSION GAZE before advancing the phase.', 'warning')
+      addToast('⚠️ You must choose whether to use CONFUSION GAZE before advancing the phase.')
       return
     }
     if (confusionGazeMode) {
       const modeMsg = confusionGazeMode === 'slide'
         ? 'You must select a slide destination for CONFUSION GAZE before advancing the phase.'
         : 'You must select an attack target to complete CONFUSION GAZE before advancing the phase.'
-      addLog('system', `⚠️ ${modeMsg}`, 'warning')
+      addToast(`⚠️ ${modeMsg}`)
+      return
+    }
+
+    // ============================================
+    // LIGHTNING BREATH LOCK: Block phase advancement during ability - O(1)
+    // User must complete target selection or cancel
+    // ============================================
+    if (lightningBreathMode) {
+      addToast('⚠️ You must complete LIGHTNING BREATH target selection or cancel before advancing the phase.')
       return
     }
 
@@ -3430,6 +3836,88 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // ============================================
+      // LIGHTNING BREATH AI EXECUTION
+      // Process lightning breath actions immediately (multi-target ranged attack)
+      // ============================================
+      const lightningBreathActions = actions.filter(action => action.type === 'lightning_breath')
+      for (const lbAction of lightningBreathActions) {
+        const { attackerInstance, targets, damage } = lbAction
+
+        console.log(`[AI] Executing LIGHTNING BREATH: ${attackerInstance.creature.name} attacking ${targets.length} targets`)
+
+        let totalDamage = 0
+        let kills = 0
+
+        // Process each target sequentially
+        for (let i = 0; i < targets.length; i++) {
+          const target = targets[i]
+
+          // Apply damage directly (AI doesn't use defense options for its own attacks)
+          const previousHP = target.currentHP
+          target.currentHP -= damage
+          const destroyed = target.currentHP <= 0
+          totalDamage += damage
+
+          console.log(`[AI] Lightning Breath hit ${target.creature.name}: ${damage} damage, ${previousHP} -> ${target.currentHP} HP`)
+
+          if (destroyed) {
+            kills++
+
+            // Clear tile
+            if (target.position) {
+              const tile = gameState.getTile(target.position.x, target.position.y)
+              if (tile) tile.occupant = null
+            }
+
+            // Remove from battlefield
+            const defenderOwner = target.owner
+            const defenderPlayer = gameState.players[defenderOwner]
+            const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === target.instanceId)
+            if (index !== -1) {
+              defenderPlayer.creaturesInPlay.splice(index, 1)
+            }
+
+            // Add to graveyard
+            defenderPlayer.creatureGraveyard.push(target.creature)
+
+            // Morale changes
+            defenderPlayer.loseMorale(target.creature.level)
+            const attackerPlayer = gameState.players[attackerInstance.owner]
+            attackerPlayer.gainMorale(1)
+
+            addToast(`⚡ AI Lightning Breath DESTROYED ${target.creature.name}!`)
+          } else {
+            addToast(`⚡ AI Lightning Breath hit ${target.creature.name} for ${damage} damage!`)
+          }
+        }
+
+        // Mark attacker as attacked and tap if moved
+        attackerInstance.hasAttackedThisTurn = true
+        if (attackerInstance.hasMovedThisTurn) {
+          attackerInstance.tap()
+        }
+
+        // Summary toast
+        let summaryMsg = `⚡ AI LIGHTNING BREATH: ${attackerInstance.creature.name} hit ${targets.length} targets for ${totalDamage} total damage!`
+        if (kills > 0) {
+          summaryMsg += ` (${kills} destroyed!)`
+        }
+        addToast(summaryMsg)
+
+        // Check for elimination
+        for (const target of targets) {
+          gameState.checkGameOver()
+          const eliminationResult = gameState.checkAndEliminatePlayer(target.owner)
+          if (eliminationResult.eliminated) {
+            const reason = eliminationResult.reason === 'morale'
+              ? 'Morale reduced to 0!'
+              : 'All creatures destroyed!'
+            addToast(`🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`)
+          }
+        }
+      }
+
+      // ============================================
       // HORDE PROTECTION FIX FOR AI
       // If AI used HORDE deployment during REFRESH, clear protection for creatures
       // deployed this turn. This mirrors the human HORDE logic at lines 1612-1615.
@@ -3605,6 +4093,8 @@ function GameBoard({ onTurnInfoChange }) {
         {/* Battlefield - Left Side (no Card wrapper, just the grid) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <div className="board-grid" style={{ flex: 1 }}>
+            {/* Debug log for ranged LOS at render time */}
+            {console.log('[GameBoard RENDER] creatureViewMode:', creatureViewMode, '| allRangedLOSTiles count:', allRangedLOSTiles.length)}
             {Array.from({ length: gameState.boardHeight }).map((_, y) => (
               <div key={y} className="board-row">
                 {Array.from({ length: gameState.boardWidth }).map((_, x) => {
@@ -3647,6 +4137,21 @@ function GameBoard({ onTurnInfoChange }) {
                     confusionGazePending?.attackTargets?.some(
                       t => t.target.position?.x === x && t.target.position?.y === y
                     )
+
+                  // ============================================
+                  // LIGHTNING BREATH HIGHLIGHTS: Show valid targets and selected targets
+                  // ============================================
+                  const isLightningBreathValidTarget = lightningBreathMode &&
+                    lightningBreathValidTargets.some(
+                      t => t.position?.x === x && t.position?.y === y
+                    )
+                  const isLightningBreathSelected = lightningBreathMode &&
+                    lightningBreathTargets.some(
+                      t => t.position?.x === x && t.position?.y === y
+                    )
+                  const lightningBreathTargetIndex = lightningBreathMode
+                    ? lightningBreathTargets.findIndex(t => t.position?.x === x && t.position?.y === y)
+                    : -1
 
                   // Check if this is the selected creature
                   const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
@@ -3743,6 +4248,38 @@ function GameBoard({ onTurnInfoChange }) {
                     }
                   }
 
+                  // ============================================
+                  // RANGED LOS HIGHLIGHT: Faction-colored tiles showing ranged attack coverage
+                  // When creature SELECTED: Show ONLY that creature's LOS (cyan highlight)
+                  // When NO creature selected: Show ALL ranged LOS with faction colors
+                  // ============================================
+                  let isAllRangedLOS = false
+                  let allRangedLOSCount = 0
+                  let rangedLOSFactions = []
+                  let isSelectedCreatureRangedLOS = false
+
+                  if (creatureViewMode === 'ranged') {
+                    // Check if a ranged creature is selected
+                    if (selectedBoardCreature?.creature?.rangedAttack) {
+                      // SELECTED CREATURE: Show ONLY its LOS (cyan highlight)
+                      // rangedRangeInfo is already computed above
+                      isSelectedCreatureRangedLOS = rangedRangeInfo?.hasLOS === true
+                    } else {
+                      // NO CREATURE SELECTED: Show ALL ranged LOS with faction colors
+                      const allRangedLOSInfo = allRangedLOSTiles.find(t => t.x === x && t.y === y)
+                      if (allRangedLOSInfo?.hasLOS) {
+                        isAllRangedLOS = true
+                        allRangedLOSCount = allRangedLOSInfo.creatureCount || 0
+                        rangedLOSFactions = allRangedLOSInfo.owners || []
+                      }
+                    }
+                  }
+
+                  // Debug log for first few tiles with ranged LOS
+                  if ((isAllRangedLOS || isSelectedCreatureRangedLOS) && x < 3 && y < 3) {
+                    console.log(`[BoardTile ${x},${y}] ranged mode: isAllRangedLOS=${isAllRangedLOS}, isSelectedCreatureRangedLOS=${isSelectedCreatureRangedLOS}, factions=${rangedLOSFactions.join(',')}`)
+                  }
+
                   return (
                     <BoardTile
                       key={`${x}-${y}`}
@@ -3754,6 +4291,10 @@ function GameBoard({ onTurnInfoChange }) {
                       isAttackTarget={isAttackTarget || isFlashingBladesTarget || isHiddenBladeTarget}
                       attackType={attackType}
                       isLineOfSight={isLineOfSight}
+                      isAllRangedLOS={isAllRangedLOS}
+                      allRangedLOSCount={allRangedLOSCount}
+                      rangedLOSFactions={rangedLOSFactions}
+                      isSelectedCreatureRangedLOS={isSelectedCreatureRangedLOS}
                       onClick={handleTileClick}
                       onRightClick={handleTileRightClick}
                       onDrop={handleDrop}
@@ -3773,6 +4314,9 @@ function GameBoard({ onTurnInfoChange }) {
                       summonSpiderFactionColor={summonSpiderFactionColor}
                       isLichNecromancerHighlight={isLichNecromancerHighlight}
                       lichNecromancerFactionColor={lichNecromancerFactionColor}
+                      isLightningBreathValidTarget={isLightningBreathValidTarget}
+                      isLightningBreathSelected={isLightningBreathSelected}
+                      lightningBreathTargetIndex={lightningBreathTargetIndex}
                     />
                   )
                 })}
@@ -3852,6 +4396,7 @@ function GameBoard({ onTurnInfoChange }) {
                   confirmRightClickAttack
                 }
                 onCancelAttack={pendingAttack?.isFlashingBlades || pendingAttack?.isHiddenBlade || pendingAttack?.isConfusionGaze ? null : cancelRightClickAttack}
+                onLightningBreath={handleLightningBreathStart}
                 onDefenseSelected={handleDefenseSelected}
                 onSkipDefense={handleReactionsSkipped}
                 // FACTION ICONS PROPS - O(1) prop passing
@@ -3861,7 +4406,13 @@ function GameBoard({ onTurnInfoChange }) {
                 currentPlayerId={currentPlayerId}
                 // VIEW MODE TOGGLE - For switching between movement and ranged preview
                 creatureViewMode={creatureViewMode}
-                onCreatureViewModeToggle={() => setCreatureViewMode(mode => mode === 'movement' ? 'ranged' : 'movement')}
+                onCreatureViewModeToggle={() => {
+                  setCreatureViewMode(mode => {
+                    const newMode = mode === 'movement' ? 'ranged' : 'movement'
+                    console.log(`[GameBoard] creatureViewMode toggled: ${mode} -> ${newMode}`)
+                    return newMode
+                  })
+                }}
                 selectedBoardCreature={selectedBoardCreature}
                 // GRAVEYARD PROPS - For resurrection
                 selectedGraveyardCreature={selectedGraveyardCreature}
@@ -4161,6 +4712,75 @@ function GameBoard({ onTurnInfoChange }) {
           }}
           onClick={handleDeployCancel}
         />
+      )}
+
+      {/* LIGHTNING BREATH Target Selection Panel */}
+      {lightningBreathMode && lightningBreathAttacker && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1050,
+          backgroundColor: '#1a1a2e',
+          border: '2px solid #00bcd4',
+          borderRadius: '8px',
+          padding: '15px 25px',
+          boxShadow: '0 0 20px rgba(0, 188, 212, 0.5)',
+          minWidth: '350px',
+          textAlign: 'center'
+        }}>
+          <h5 style={{ color: '#00bcd4', marginBottom: '10px' }}>
+            ⚡ LIGHTNING BREATH - Target Selection
+          </h5>
+          <p style={{ color: 'white', marginBottom: '8px' }}>
+            <strong>{lightningBreathAttacker.creature.name}</strong> is targeting:
+          </p>
+          <div style={{ marginBottom: '10px' }}>
+            {lightningBreathTargets.map((target, idx) => (
+              <Badge
+                key={target.instanceId}
+                bg="info"
+                style={{ margin: '2px 4px', fontSize: '0.9rem', cursor: 'pointer' }}
+                onClick={() => {
+                  // Remove this target from selection
+                  console.log('[LightningBreath] Deselecting target:', target.creature.name)
+                  setLightningBreathTargets(prev => prev.filter(t => t.instanceId !== target.instanceId))
+                  addToast(`Removed ${target.creature.name} from Lightning Breath targets`)
+                }}
+                title="Click to remove this target"
+              >
+                {idx + 1}. {target.creature.name} ✕
+              </Badge>
+            ))}
+            {lightningBreathTargets.length < 3 && (
+              <span style={{ color: '#888', fontSize: '0.85rem', marginLeft: '8px' }}>
+                (Click targets to add/remove)
+              </span>
+            )}
+          </div>
+          <p style={{ color: '#aaa', fontSize: '0.85rem', marginBottom: '12px' }}>
+            {lightningBreathTargets.length}/3 targets selected
+            {lightningBreathTargets.length < 2 && ' (minimum 2 required)'}
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+            <Button
+              variant="success"
+              size="sm"
+              onClick={handleLightningBreathConfirm}
+              disabled={lightningBreathTargets.length < 2}
+            >
+              ⚡ Confirm Attack ({lightningBreathTargets.length} targets)
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleLightningBreathCancel}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* FLASHING BLADES Ability Modal - Choose to use splash damage */}

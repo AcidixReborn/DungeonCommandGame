@@ -271,7 +271,7 @@ export const creatures = [
     meleeAttack: { damage: 40, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'PLACEHOLDER: FLYING',
+      'FLYING: This creature ignores difficult terrain and can move over mountains (but cannot stop on them).',
       'PLACEHOLDER: REACH 2 - Creatures 2 spaces away count as adjacent to this creature.',
       'PLACEHOLDER: As a standard action, make a melee attack. If the target takes damage from this attack, tap it.'
     ],

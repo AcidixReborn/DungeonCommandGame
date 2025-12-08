@@ -1584,6 +1584,121 @@ export class GameState {
     }
   }
 
+  // --------------------------------------------------------------------------
+  // 2D: LIGHTNING BREATH (Dracolich) - Up to 3 ranged attacks on different targets
+  // --------------------------------------------------------------------------
+
+  /**
+   * Check if creature has LIGHTNING BREATH ability
+   * Big O: O(n) where n = number of special abilities (typically 1-3)
+   * @param {Object} creatureInstance - The creature instance to check
+   * @returns {boolean} True if creature has LIGHTNING BREATH ability
+   */
+  hasLightningBreath(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      a => typeof a === 'string' && a.toUpperCase().includes('LIGHTNING BREATH')
+    )
+  }
+
+  /**
+   * Check if LIGHTNING BREATH can be used (requires 2+ valid targets)
+   * Big O: O(e) where e = enemy creatures in play
+   * @param {Object} creatureInstance - The creature instance to check
+   * @returns {boolean} True if Lightning Breath can be used
+   */
+  canUseLightningBreath(creatureInstance) {
+    if (!this.hasLightningBreath(creatureInstance)) return false
+    const validTargets = this.getLightningBreathTargets(creatureInstance)
+    return validTargets.length >= 2
+  }
+
+  /**
+   * Get all valid targets for LIGHTNING BREATH ability
+   * Requirements:
+   * - Within range 5
+   * - Not adjacent (distance > 1)
+   * - Line of sight (not blocked by mountains or enemy creatures)
+   * - Target not in FOREST (hiding)
+   * - Attacker not in FOREST (cannot shoot from forest)
+   *
+   * Big O: O(p * c * n) where p = players, c = creatures per player, n = tiles in LOS line
+   * @param {Object} creatureInstance - The Dracolich creature instance
+   * @returns {Array} Array of valid target creature instances
+   */
+  getLightningBreathTargets(creatureInstance) {
+    if (!creatureInstance?.position) return []
+    if (!this.hasLightningBreath(creatureInstance)) return []
+
+    const attackerPos = creatureInstance.position
+    const attackerOwner = creatureInstance.owner
+    const rangedRange = creatureInstance.creature.rangedAttack?.range || 5
+
+    // Check if attacker is in FOREST (cannot shoot from forest)
+    const attackerTile = this.getTile(attackerPos.x, attackerPos.y)
+    if (attackerTile?.terrain === 'FOREST') {
+      console.log('[getLightningBreathTargets] Attacker in FOREST - cannot use Lightning Breath')
+      return []
+    }
+
+    const validTargets = []
+
+    // Check all enemy creatures across all players
+    for (const playerId of Object.keys(this.players)) {
+      if (playerId === attackerOwner) continue // Skip own creatures
+
+      const player = this.players[playerId]
+      for (const enemyCreature of player.creaturesInPlay) {
+        if (!enemyCreature.position) continue
+        if (enemyCreature.currentHP <= 0) continue
+
+        const targetPos = enemyCreature.position
+        const distance = this.getDistance(attackerPos, targetPos)
+
+        // Must be within range
+        if (distance > rangedRange) {
+          console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} out of range (${distance} > ${rangedRange})`)
+          continue
+        }
+
+        // Cannot target adjacent creatures (ranged attacks only)
+        if (distance <= 1) {
+          console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} is adjacent - cannot target with ranged`)
+          continue
+        }
+
+        // Check if target is in FOREST (cannot attack creatures hiding in forest)
+        const targetTile = this.getTile(targetPos.x, targetPos.y)
+        if (targetTile?.terrain === 'FOREST') {
+          console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} in FOREST - cannot target`)
+          continue
+        }
+
+        // Check line of sight (blocked by mountains and enemy creatures)
+        if (!this.hasLineOfSight(creatureInstance, enemyCreature, attackerOwner)) {
+          console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} - no line of sight`)
+          continue
+        }
+
+        // Valid target!
+        console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} is a valid target`)
+        validTargets.push(enemyCreature)
+      }
+    }
+
+    console.log(`[getLightningBreathTargets] Found ${validTargets.length} valid targets for Lightning Breath`)
+    return validTargets
+  }
+
+  /**
+   * Get Lightning Breath damage (standard ranged damage)
+   * @param {Object} creatureInstance - The Dracolich creature instance
+   * @returns {number} Damage per attack (20)
+   */
+  getLightningBreathDamage(creatureInstance) {
+    return creatureInstance?.creature?.rangedAttack?.damage || 20
+  }
+
   // ============================================================================
   // COMMANDER ABILITY DELEGATION METHODS
   // These methods delegate to CommanderAbilityManager for backward compatibility
@@ -1970,6 +2085,76 @@ export class GameState {
    */
   getRangedAttackRangeTiles(creatureInstance) {
     return this.combatResolver.getRangedAttackRangeTiles(creatureInstance)
+  }
+
+  /**
+   * Get combined LOS tiles for ALL ranged creatures belonging to a player
+   * Used for "Show All Ranged LOS" feature
+   *
+   * Big O Complexity: O(C * (2R+1)^2) where C = number of ranged creatures, R = max range
+   *
+   * @returns {Array} Array of {x, y, hasLOS, creatureCount, creatures, owners} for tiles in any ranged creature's range
+   */
+  getAllRangedLOSTiles() {
+    // Map to track tiles: key = "x,y", value = {x, y, hasLOS, creatureCount, creatures, owners}
+    const tileMap = new Map()
+
+    // Get ALL creatures from ALL players
+    const allCreatures = []
+    for (const playerId of this.activePlayers) {
+      const player = this.players[playerId]
+      if (player?.creaturesInPlay) {
+        allCreatures.push(...player.creaturesInPlay)
+      }
+    }
+
+    console.log(`[getAllRangedLOSTiles] DEBUG - found ${allCreatures.length} total creatures from ${this.activePlayers.length} players`)
+
+    // Safety check - return empty if no creatures in play
+    if (allCreatures.length === 0) {
+      console.log('[getAllRangedLOSTiles] No creatures on board - returning empty')
+      return []
+    }
+
+    // Get ALL creatures on board (from all players) that have ranged attacks
+    const allRangedCreatures = allCreatures.filter(c => c.creature.rangedAttack)
+    console.log(`[getAllRangedLOSTiles] Found ${allRangedCreatures.length} ranged creatures:`,
+      allRangedCreatures.map(c => ({ name: c.creature.name, owner: c.owner, pos: c.position }))
+    )
+
+    // For each ranged creature, get its LOS tiles
+    for (const creature of allRangedCreatures) {
+      const rangeTiles = this.getRangedAttackRangeTiles(creature)
+
+      for (const tile of rangeTiles) {
+        // Only include tiles with LOS
+        if (!tile.hasLOS) continue
+
+        const key = `${tile.x},${tile.y}`
+
+        if (tileMap.has(key)) {
+          // Tile already tracked, increment count
+          const existing = tileMap.get(key)
+          existing.creatureCount++
+          existing.creatures.push(creature.creature.name)
+          if (!existing.owners.includes(creature.owner)) {
+            existing.owners.push(creature.owner)
+          }
+        } else {
+          // New tile
+          tileMap.set(key, {
+            x: tile.x,
+            y: tile.y,
+            hasLOS: true,
+            creatureCount: 1,
+            creatures: [creature.creature.name],
+            owners: [creature.owner]
+          })
+        }
+      }
+    }
+
+    return Array.from(tileMap.values())
   }
 
   /**

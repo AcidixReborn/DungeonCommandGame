@@ -207,6 +207,22 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 }
+    },
+    lightning_breath: {
+      name: 'LIGHTNING BREATH',
+      creature: 'Dracolich',
+      faction: 'Curse of Undeath',
+      // Overall totals - difficulty-based trigger (0/50/100 pattern)
+      timesOffered: 0,  // Times LIGHTNING BREATH could have been used (2+ valid targets)
+      timesTriggered: 0,  // Times ability was used
+      timesDeclined: 0,  // Times ability was declined by AI difficulty
+      targetsHit: 0,  // Total targets hit
+      totalDamage: 0,  // Total damage dealt
+      kills: 0,  // Creatures killed
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, targetsHit: 0, damage: 0, kills: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, targetsHit: 0, damage: 0, kills: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, targetsHit: 0, damage: 0, kills: 0 }
     }
   })
 
@@ -888,6 +904,85 @@ function AbilitiesTest() {
             }
             break
 
+          case 'lightning_breath':
+            // Track LIGHTNING BREATH ability (Dracolich) - TRIGGERED
+            // AI difficulty affects whether LIGHTNING BREATH is used:
+            // - Easy: Never use (0% chance)
+            // - Medium: 50% chance
+            // - Hard: Always use (100%)
+            {
+              const diff = player?.aiDifficulty || 'medium'
+              const targets = action.targets || []
+              const damagePerTarget = action.damage || 20
+
+              // Track offered (ability was available with 2+ targets)
+              creatureAbilityStats.lightning_breath.timesOffered++
+              creatureAbilityStats.lightning_breath[diff].offered++
+
+              // Track triggered (AI chose to use it)
+              creatureAbilityStats.lightning_breath.timesTriggered++
+              creatureAbilityStats.lightning_breath[diff].triggered++
+
+              // Apply damage to each target and track results
+              for (const target of targets) {
+                if (target && !target.isDestroyed()) {
+                  creatureAbilityStats.lightning_breath.targetsHit++
+                  creatureAbilityStats.lightning_breath.totalDamage += damagePerTarget
+                  creatureAbilityStats.lightning_breath[diff].targetsHit++
+                  creatureAbilityStats.lightning_breath[diff].damage += damagePerTarget
+
+                  // Apply damage
+                  const destroyed = target.takeDamage(damagePerTarget)
+                  if (destroyed) {
+                    creatureAbilityStats.lightning_breath.kills++
+                    creatureAbilityStats.lightning_breath[diff].kills++
+
+                    // Remove creature properly (same as applyFlashingBlades)
+                    // Clear tile occupant
+                    if (target.position) {
+                      const tile = gameState.getTile(target.position.x, target.position.y)
+                      if (tile) tile.occupant = null
+                    }
+                    // Remove from creaturesInPlay
+                    const defenderPlayer = gameState.players[target.owner]
+                    if (defenderPlayer) {
+                      const idx = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === target.instanceId)
+                      if (idx !== -1) defenderPlayer.creaturesInPlay.splice(idx, 1)
+                      // Add to graveyard
+                      defenderPlayer.creatureGraveyard.push(target.creature)
+                      // Apply morale changes
+                      defenderPlayer.loseMorale(target.creature.level)
+                    }
+
+                    gameStats.creaturesDestroyed++
+                  }
+                }
+              }
+
+              // Mark attacker as having attacked
+              if (action.attackerInstance) {
+                action.attackerInstance.hasAttackedThisTurn = true
+              }
+
+              result.attackActions++
+            }
+            break
+
+          case 'lightning_breath_declined':
+            // Track LIGHTNING BREATH declined - ability was available but AI chose not to use
+            {
+              const diff = player?.aiDifficulty || 'medium'
+
+              // Track offered (ability was available with 2+ targets)
+              creatureAbilityStats.lightning_breath.timesOffered++
+              creatureAbilityStats.lightning_breath[diff].offered++
+
+              // Track declined (AI chose not to use it based on difficulty)
+              creatureAbilityStats.lightning_breath.timesDeclined++
+              creatureAbilityStats.lightning_breath[diff].declined++
+            }
+            break
+
           case 'attack_intention':
             attackIntentions.push(action)
             break
@@ -946,8 +1041,11 @@ function AbilitiesTest() {
         }
       }
 
-    } catch {
+    } catch (err) {
       gameStats.errors++
+      if (gameStats.errorMessages) {
+        gameStats.errorMessages.push(`AI Turn Error: ${err.message || err}`)
+      }
     }
 
     return result
@@ -963,6 +1061,7 @@ function AbilitiesTest() {
       creaturesDestroyed: 0,
       totalDamageDealt: 0,
       errors: 0,
+      errorMessages: [],  // Capture detailed error messages
       factions: {},
       commanders: {}
     }
@@ -1038,8 +1137,9 @@ function AbilitiesTest() {
             default:
               gameState.advancePhase()
           }
-        } catch {
+        } catch (err) {
           stats.errors++
+          stats.errorMessages.push(`Game ${stats.gameNum}, Turn ${turnCount}, Phase ${gameState.phase}: ${err.message || err}`)
           break
         }
 
@@ -1067,8 +1167,9 @@ function AbilitiesTest() {
         stats.winner = gameState.winner
       }
 
-    } catch {
+    } catch (err) {
       stats.errors++
+      stats.errorMessages.push(`Game ${stats.gameNum}: ${err.message || err}`)
     }
 
     return stats
@@ -1091,6 +1192,7 @@ function AbilitiesTest() {
       minTurns: Infinity,
       maxTurns: 0,
       totalErrors: 0,
+      errorLog: [],  // Captures detailed error messages
       totalCreaturesDeployed: 0,
       totalCreaturesDestroyed: 0,
       totalDamageDealt: 0,
@@ -1151,6 +1253,10 @@ function AbilitiesTest() {
       }
 
       summary.totalErrors += gameStats.errors
+      // Collect error messages (limit to first 100 to prevent memory issues)
+      if (gameStats.errorMessages && gameStats.errorMessages.length > 0 && summary.errorLog.length < 100) {
+        summary.errorLog.push(...gameStats.errorMessages.slice(0, 100 - summary.errorLog.length))
+      }
       summary.totalCreaturesDeployed += gameStats.creaturesDeployed
       summary.totalCreaturesDestroyed += gameStats.creaturesDestroyed
       summary.totalDamageDealt += gameStats.totalDamageDealt
@@ -1185,7 +1291,7 @@ function AbilitiesTest() {
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
     if (!creatureAbilityStats) return { working: 0, total: 9 }
     let working = 0
-    const total = 12 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH
+    const total = 13 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -1199,6 +1305,7 @@ function AbilitiesTest() {
     if (creatureAbilityStats.life_drain?.timesTriggered > 0) working++
     if (creatureAbilityStats.lich_necromancer_deploy?.timesTriggered > 0) working++
     if (creatureAbilityStats.tomb_guardian_splash?.timesTriggered > 0) working++
+    if (creatureAbilityStats.lightning_breath?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -2410,6 +2517,98 @@ function AbilitiesTest() {
                       </small>
                     </Col>
                   </Row>
+
+                  {/* LIGHTNING BREATH - Dracolich (Curse of Undeath) */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-light">Curse of Undeath - LIGHTNING BREATH <Badge bg="danger">ACTIVE</Badge> <small className="text-muted">(Dracolich)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals (Multi-Target Ranged Attack)</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.lightning_breath?.timesOffered || 0}</Badge></td>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.lightning_breath?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.lightning_breath?.timesDeclined || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.lightning_breath?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.lightning_breath.timesTriggered / results.creatureAbilityStats.lightning_breath.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>Targets Hit</strong></td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.lightning_breath?.targetsHit || 0}</Badge></td>
+                            <td><strong>Total Damage</strong></td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.lightning_breath?.totalDamage || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Kills</strong></td>
+                            <td><Badge bg="dark">{results.creatureAbilityStats?.lightning_breath?.kills || 0}</Badge></td>
+                            <td></td>
+                            <td></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.lightning_breath?.[diff] || { offered: 0, triggered: 0, declined: 0, targetsHit: 0, damage: 0, kills: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        LIGHTNING BREATH: Dracolich makes up to 3 ranged attacks (20 damage each) targeting different enemies. Requires 2+ valid targets. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
                 </Card.Body>
               </Card>
 
@@ -2482,6 +2681,33 @@ function AbilitiesTest() {
                   Run Another Test
                 </Button>
               </div>
+
+              {/* Error Log - Shows when errors occurred */}
+              {results.summary.errorLog && results.summary.errorLog.length > 0 && (
+                <Card bg="dark" text="white" className="mt-3">
+                  <Card.Header><h5>🔴 Error Log ({results.summary.totalErrors} total errors)</h5></Card.Header>
+                  <Card.Body style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    <Table striped bordered variant="dark" size="sm">
+                      <thead>
+                        <tr><th>#</th><th>Error Details</th></tr>
+                      </thead>
+                      <tbody>
+                        {results.summary.errorLog.map((error, idx) => (
+                          <tr key={idx}>
+                            <td style={{ width: '50px' }}>{idx + 1}</td>
+                            <td style={{ wordBreak: 'break-word' }}>{error}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                    {results.summary.errorLog.length >= 100 && (
+                      <small className="text-muted">
+                        * Showing first 100 errors of {results.summary.totalErrors} total
+                      </small>
+                    )}
+                  </Card.Body>
+                </Card>
+              )}
             </div>
           )}
         </Card.Body>

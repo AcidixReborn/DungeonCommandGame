@@ -132,7 +132,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: { damage: 20, range: 5 },
-    specialAbilities: ['PLACEHOLDER: FLYING', 'PLACEHOLDER: LIGHTNING BREATH - As a standard action, make up to 3 ranged attacks. Each attack must target a different enemy creature.'],
+    specialAbilities: ['FLYING: This creature ignores difficult terrain and can move over mountains (but cannot stop on them).', 'LIGHTNING BREATH: As a standard action, make up to 3 ranged attacks. Each attack must target a different enemy creature.'],
     faction: FACTION_NAME,
     imageUrl: dracolichImg
   },

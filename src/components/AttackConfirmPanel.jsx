@@ -13,9 +13,10 @@ import './CombatPanel.css'
  * @param {CreatureInstance} attacker - The attacking creature
  * @param {CreatureInstance} defender - The target creature
  * @param {Object} attackInfo - Attack details { attackType: 'melee'|'ranged', creature, ... }
- * @param {Object} gameState - Game state for ability detection (LIFE DRAIN, etc.)
+ * @param {Object} gameState - Game state for ability detection (LIFE DRAIN, LIGHTNING BREATH, etc.)
  * @param {Function} onConfirm - Callback when attack is confirmed
  * @param {Function} onCancel - Callback when attack is cancelled
+ * @param {Function} onLightningBreath - Callback when Lightning Breath is selected (optional)
  */
 function AttackConfirmPanel({
   attacker,
@@ -24,7 +25,8 @@ function AttackConfirmPanel({
   defenderPlayerState,
   gameState,
   onConfirm,
-  onCancel
+  onCancel,
+  onLightningBreath
 }) {
   if (!attacker || !defender || !attackInfo) return null
 
@@ -51,6 +53,21 @@ function AttackConfirmPanel({
   const maxHP = attacker.creature.hitPoints
   const currentHP = attacker.currentHP
   const potentialHeal = lifeDrainApplies ? Math.min(10, maxHP - currentHP) : 0
+
+  // Check for LIGHTNING BREATH ability (Dracolich) - only on ranged attacks with 2+ valid targets
+  const isRangedAttack = attackInfo.attackType === 'ranged'
+  const canUseLightningBreath = isRangedAttack && gameState?.canUseLightningBreath && gameState.canUseLightningBreath(attacker)
+  const lightningBreathDamage = canUseLightningBreath ? (gameState?.getLightningBreathDamage?.(attacker) || 20) : 0
+
+  // Debug log for Lightning Breath availability
+  if (isRangedAttack && gameState?.hasLightningBreath?.(attacker)) {
+    console.log(`[AttackConfirmPanel] LIGHTNING BREATH check:`, {
+      hasAbility: true,
+      canUse: canUseLightningBreath,
+      damage: lightningBreathDamage,
+      attacker: attacker.creature.name
+    })
+  }
 
   return (
     <div className="combat-panel attack-confirm-panel">
@@ -133,8 +150,22 @@ function AttackConfirmPanel({
             Cancel
           </Button>
         )}
+        {/* Lightning Breath button - only show when ability is available and has 2+ targets */}
+        {canUseLightningBreath && onLightningBreath && (
+          <Button
+            variant="info"
+            size="sm"
+            onClick={() => {
+              console.log('[AttackConfirmPanel] LIGHTNING BREATH button clicked!')
+              onLightningBreath(attacker, defender)
+            }}
+            title="Make up to 3 ranged attacks on different targets"
+          >
+            ⚡ Lightning Breath (3x{lightningBreathDamage} dmg)
+          </Button>
+        )}
         <Button variant="danger" size="sm" onClick={onConfirm}>
-          {isConfusionGaze ? '😵 Strike!' : isFlashingBlades ? '⚔️ Deal Splash Damage!' : isHiddenBlade ? '🗡️ Strike!' : '⚔️ Attack!'}
+          {isConfusionGaze ? '😵 Strike!' : isFlashingBlades ? '⚔️ Deal Splash Damage!' : isHiddenBlade ? '🗡️ Strike!' : isRangedAttack ? `🏹 Ranged Attack (${damage} dmg)` : '⚔️ Attack!'}
         </Button>
       </div>
     </div>
