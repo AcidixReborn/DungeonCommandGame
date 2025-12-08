@@ -13,6 +13,7 @@ import './CombatPanel.css'
  * @param {CreatureInstance} attacker - The attacking creature
  * @param {CreatureInstance} defender - The target creature
  * @param {Object} attackInfo - Attack details { attackType: 'melee'|'ranged', creature, ... }
+ * @param {Object} gameState - Game state for ability detection (LIFE DRAIN, etc.)
  * @param {Function} onConfirm - Callback when attack is confirmed
  * @param {Function} onCancel - Callback when attack is cancelled
  */
@@ -21,6 +22,7 @@ function AttackConfirmPanel({
   defender,
   attackInfo,
   defenderPlayerState,
+  gameState,
   onConfirm,
   onCancel
 }) {
@@ -32,14 +34,23 @@ function AttackConfirmPanel({
   const isFlashingBlades = attackInfo.attackType === 'flashing_blades'
   const isHiddenBlade = attackInfo.attackType === 'hidden_blade'
   const isConfusionGaze = attackInfo.attackType === 'confusion_gaze'
+  const isMeleeAttack = attackInfo.attackType === 'melee'
 
   const damage = isFlashingBlades || isHiddenBlade
     ? 10
     : isConfusionGaze
       ? attacker.creature.meleeAttack?.damage || 30
-      : attackInfo.attackType === 'melee'
+      : isMeleeAttack
         ? attacker.creature.meleeAttack?.damage || 0
         : attacker.creature.rangedAttack?.damage || 0
+
+  // Check for LIFE DRAIN ability (Vampire Stalker) - only triggers on melee attacks with damage > 0
+  const hasLifeDrain = gameState?.hasLifeDrain && gameState.hasLifeDrain(attacker)
+  const lifeDrainApplies = hasLifeDrain && isMeleeAttack && damage > 0
+  // Calculate potential healing (capped at missing HP)
+  const maxHP = attacker.creature.hitPoints
+  const currentHP = attacker.currentHP
+  const potentialHeal = lifeDrainApplies ? Math.min(10, maxHP - currentHP) : 0
 
   return (
     <div className="combat-panel attack-confirm-panel">
@@ -95,6 +106,24 @@ function AttackConfirmPanel({
             {defender.currentHP}/{defender.creature.hitPoints}
           </span>
         </div>
+        {/* LIFE DRAIN preview - shows potential healing on melee damage */}
+        {lifeDrainApplies && (
+          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+            <span style={{ color: '#4caf50' }}>LIFE DRAIN:</span>
+            <span style={{ color: '#4caf50' }}>
+              {potentialHeal > 0 ? (
+                <>+{potentialHeal} HP ({currentHP} → {currentHP + potentialHeal})</>
+              ) : (
+                <>Already at max HP</>
+              )}
+            </span>
+          </div>
+        )}
+        {lifeDrainApplies && (
+          <div style={{ fontSize: '0.75rem', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
+            * Heals only if damage is dealt (blocked = no heal)
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}

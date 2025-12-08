@@ -47,8 +47,10 @@ const factionIcons = {
  * @param {boolean} isConfusionGazeAttack - Whether creature on tile is valid attack target for CONFUSION GAZE
  * @param {boolean} isSummonSpiderHighlight - Whether tile is valid for SUMMON SPIDER deployment
  * @param {string} summonSpiderFactionColor - Faction color to use for SUMMON SPIDER highlight
+ * @param {boolean} isLichNecromancerHighlight - Whether tile is valid for LICH NECROMANCER Undead deployment
+ * @param {string} lichNecromancerFactionColor - Faction color to use for LICH NECROMANCER highlight (purple)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -275,6 +277,30 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
             inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)
           `,
           borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`
+        }
+      }
+    }
+
+    // LICH NECROMANCER: Apply purple highlight to tiles adjacent to Lich for Undead deployment
+    if (isLichNecromancerHighlight && lichNecromancerFactionColor) {
+      const rgb = hexToRgb(lichNecromancerFactionColor)
+      if (rgb) {
+        const brightenColor = (r, g, b, factor = 1.4) => ({
+          r: Math.min(255, Math.floor(r * factor)),
+          g: Math.min(255, Math.floor(g * factor)),
+          b: Math.min(255, Math.floor(b * factor))
+        })
+        const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
+
+        // Purple necromancer theme highlight
+        return {
+          background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.40) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.30) 100%)`,
+          boxShadow: `
+            inset 0 0 0 3px rgba(${brightRgb.r}, ${brightRgb.g}, ${brightRgb.b}, 0.95),
+            inset 0 0 25px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6),
+            inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)
+          `,
+          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`
         }
       }
     }

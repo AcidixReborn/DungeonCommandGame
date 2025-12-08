@@ -165,6 +165,48 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, resurrected: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, resurrected: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, resurrected: 0 }
+    },
+    // Phase 2 abilities
+    life_drain: {
+      name: 'LIFE DRAIN',
+      creature: 'Vampire Stalker',
+      faction: 'Curse of Undeath',
+      // Overall totals - automatic trigger, no choice involved
+      timesTriggered: 0,  // Times healed after melee attack dealt damage
+      totalHealed: 0,  // Total HP healed
+      // Per-difficulty breakdown (same across all since automatic)
+      easy: { triggered: 0, healed: 0 },
+      medium: { triggered: 0, healed: 0 },
+      hard: { triggered: 0, healed: 0 }
+    },
+    lich_necromancer_deploy: {
+      name: 'ADJACENT UNDEAD DEPLOY',
+      creature: 'Lich Necromancer',
+      faction: 'Curse of Undeath',
+      // Overall totals
+      timesOffered: 0,  // Times Undead deployed when Lich in play
+      timesTriggered: 0,  // Times deployed adjacent to Lich
+      timesDeclined: 0,  // Times deployed to starting zone instead
+      // Per-difficulty breakdown
+      easy: { offered: 0, triggered: 0, declined: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0 }
+    },
+    tomb_guardian_splash: {
+      name: 'SWIRL (SPLASH)',
+      creature: 'Skeletal Tomb Guardian',
+      faction: 'Curse of Undeath',
+      // Overall totals - difficulty-based trigger (0/50/100 pattern)
+      timesOffered: 0,  // Times SWIRL could have triggered (melee attack with adjacent enemies)
+      timesTriggered: 0,  // Times splash was triggered
+      timesDeclined: 0,  // Times SWIRL was declined by AI difficulty
+      enemiesHit: 0,  // Total enemies hit by splash
+      totalDamage: 0,  // Total splash damage dealt
+      kills: 0,  // Creatures killed by splash
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 }
     }
   })
 
@@ -424,6 +466,62 @@ function AbilitiesTest() {
           }
         }
 
+        // Check for LIFE DRAIN ability (Vampire Stalker) - automatic on melee damage > 0
+        if (creatureAbilityStats && attackResult.lifeDrain?.triggered) {
+          // Get difficulty from player if available, otherwise simulate
+          const attackerPlayer = gameState.players[attackerOwner]
+          const difficulty = attackerPlayer?.aiDifficulty || 'medium'
+
+          creatureAbilityStats.life_drain.timesTriggered++
+          creatureAbilityStats.life_drain.totalHealed += attackResult.lifeDrain.healAmount
+          creatureAbilityStats.life_drain[difficulty].triggered++
+          creatureAbilityStats.life_drain[difficulty].healed = (creatureAbilityStats.life_drain[difficulty].healed || 0) + attackResult.lifeDrain.healAmount
+        }
+
+        // Check for TOMB GUARDIAN SWIRL ability - difficulty-based (0/50/100 pattern)
+        // Track when Skeletal Tomb Guardian makes a melee attack (offered)
+        if (creatureAbilityStats && gameState.hasTombGuardianSplash && gameState.hasTombGuardianSplash(attackerInstance) && attackResult.attackType === 'melee') {
+          const attackerPlayer = gameState.players[attackerOwner]
+          const difficulty = attackerPlayer?.aiDifficulty || 'medium'
+
+          // Check if there were adjacent enemies (SWIRL was "offered")
+          const adjacentEnemies = gameState.getTombGuardianSplashTargets && gameState.getTombGuardianSplashTargets(attackerInstance, defenderInstance)
+          if (adjacentEnemies && adjacentEnemies.length > 0) {
+            // SWIRL was offered (Skeletal Tomb Guardian made melee attack with adjacent enemies)
+            creatureAbilityStats.tomb_guardian_splash.timesOffered++
+            creatureAbilityStats.tomb_guardian_splash[difficulty].offered++
+
+            if (attackResult.pendingSplashAttacks?.length > 0) {
+              // SWIRL triggered
+              creatureAbilityStats.tomb_guardian_splash.timesTriggered++
+              creatureAbilityStats.tomb_guardian_splash.enemiesHit += attackResult.pendingSplashAttacks.length
+              creatureAbilityStats.tomb_guardian_splash[difficulty].triggered++
+              creatureAbilityStats.tomb_guardian_splash[difficulty].enemiesHit += attackResult.pendingSplashAttacks.length
+
+              // Apply splash damage and track results
+              for (const splashAttack of attackResult.pendingSplashAttacks) {
+                const splashResult = gameState.combatResolver?.executeSplashDamage?.(
+                  splashAttack.attackerInstance,
+                  splashAttack.targetInstance,
+                  20  // Full splash damage in test (no defense)
+                )
+                if (splashResult) {
+                  creatureAbilityStats.tomb_guardian_splash.totalDamage += splashResult.damage || 20
+                  creatureAbilityStats.tomb_guardian_splash[difficulty].damage += splashResult.damage || 20
+                  if (splashResult.destroyed) {
+                    creatureAbilityStats.tomb_guardian_splash.kills++
+                    creatureAbilityStats.tomb_guardian_splash[difficulty].kills++
+                  }
+                }
+              }
+            } else {
+              // SWIRL was declined by AI difficulty
+              creatureAbilityStats.tomb_guardian_splash.timesDeclined++
+              creatureAbilityStats.tomb_guardian_splash[difficulty].declined++
+            }
+          }
+        }
+
         // Track destruction and BLOODTHIRSTY ability
         if (attackResult.destroyed) {
           results.creaturesDestroyed++
@@ -537,6 +635,38 @@ function AbilitiesTest() {
               creatureAbilityStats.graveyard_deploy[diff].offered++
               creatureAbilityStats.graveyard_deploy[diff].triggered++
               creatureAbilityStats.graveyard_deploy[diff].resurrected++
+            }
+
+            // Track LICH NECROMANCER DEPLOY ability (Undead deployed adjacent to Lich)
+            if (action.creatureTypes && action.creatureTypes.some(t => t.toLowerCase() === 'undead')) {
+              // Check if Lich Necromancer was in play when Undead was deployed
+              const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(currentPlayerId)
+              if (lich) {
+                const diff = player?.aiDifficulty || 'medium'
+                if (action.isLichNecromancer) {
+                  creatureAbilityStats.lich_necromancer_deploy.timesOffered++
+                  creatureAbilityStats.lich_necromancer_deploy.timesTriggered++
+                  creatureAbilityStats.lich_necromancer_deploy[diff].offered++
+                  creatureAbilityStats.lich_necromancer_deploy[diff].triggered++
+                } else {
+                  // Undead deployed to starting zone when Lich was available
+                  creatureAbilityStats.lich_necromancer_deploy.timesOffered++
+                  creatureAbilityStats.lich_necromancer_deploy.timesDeclined++
+                  creatureAbilityStats.lich_necromancer_deploy[diff].offered++
+                  creatureAbilityStats.lich_necromancer_deploy[diff].declined++
+                }
+              }
+            }
+            break
+
+          case 'graveyardDeclined':
+            // Track GRAVEYARD DEPLOY declined opportunity
+            {
+              const diff = player?.aiDifficulty || 'medium'
+              creatureAbilityStats.graveyard_deploy.timesOffered++
+              creatureAbilityStats.graveyard_deploy.timesDeclined++
+              creatureAbilityStats.graveyard_deploy[diff].offered++
+              creatureAbilityStats.graveyard_deploy[diff].declined++
             }
             break
 
@@ -858,7 +988,8 @@ function AbilitiesTest() {
           commander: new Commander(commander),
           creatures: createCreatureDeck(faction),
           orders: createOrderDeck(faction),
-          faction
+          faction,
+          isHuman: false  // Mark as AI for difficulty-based ability testing
         })
       }
 
@@ -1054,7 +1185,7 @@ function AbilitiesTest() {
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
     if (!creatureAbilityStats) return { working: 0, total: 9 }
     let working = 0
-    const total = 9 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY
+    const total = 12 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -1064,6 +1195,10 @@ function AbilitiesTest() {
     if (creatureAbilityStats.confusion_gaze?.timesTriggered > 0) working++
     if (creatureAbilityStats.summon_spider?.timesTriggered > 0) working++
     if (creatureAbilityStats.graveyard_deploy?.timesTriggered > 0) working++
+    // Phase 2 abilities
+    if (creatureAbilityStats.life_drain?.timesTriggered > 0) working++
+    if (creatureAbilityStats.lich_necromancer_deploy?.timesTriggered > 0) working++
+    if (creatureAbilityStats.tomb_guardian_splash?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -1967,7 +2102,7 @@ function AbilitiesTest() {
                   {/* GRAVEYARD DEPLOY Stats */}
                   <Row className="mt-4">
                     <Col md={12}>
-                      <h6 className="text-danger">Curse of Undeath - GRAVEYARD DEPLOY <Badge bg="danger">ACTIVE</Badge> <small className="text-muted">(Zombie)</small></h6>
+                      <h6 className="text-light">Curse of Undeath - GRAVEYARD DEPLOY <Badge bg="danger">ACTIVE</Badge> <small className="text-muted">(Zombie)</small></h6>
 
                       {/* Overall Stats */}
                       <Table striped bordered variant="dark" size="sm" className="mb-2">
@@ -2048,6 +2183,230 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         GRAVEYARD DEPLOY: During Deploy phase, pay 1 MORALE to deploy a Zombie from your graveyard. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+
+                  {/* LIFE DRAIN Stats */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-light">Curse of Undeath - LIFE DRAIN <Badge bg="danger">ACTIVE</Badge> <small className="text-muted">(Vampire Stalker)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals (Automatic on Melee Damage)</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Times Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.life_drain?.timesTriggered || 0}</Badge></td>
+                            <td><strong>Total HP Healed</strong></td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.life_drain?.totalHealed || 0}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Triggered</th>
+                            <th>Healed</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.life_drain?.[diff] || { triggered: 0, healed: 0 }
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="danger">{stats.healed || 0}</Badge></td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        LIFE DRAIN: Vampire Stalker heals 10 HP when dealing melee damage (capped at max HP). Automatic ability - triggers on all difficulties equally.
+                      </small>
+                    </Col>
+                  </Row>
+
+                  {/* LICH NECROMANCER DEPLOY Stats */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-light">Curse of Undeath - ADJACENT UNDEAD DEPLOY <Badge bg="danger">ACTIVE</Badge> <small className="text-muted">(Lich Necromancer)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals (Deploy Undead Adjacent to Lich)</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.lich_necromancer_deploy?.timesOffered || 0}</Badge></td>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.lich_necromancer_deploy?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.lich_necromancer_deploy?.timesDeclined || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.lich_necromancer_deploy?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.lich_necromancer_deploy.timesTriggered / results.creatureAbilityStats.lich_necromancer_deploy.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.lich_necromancer_deploy?.[diff] || { offered: 0, triggered: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        ADJACENT UNDEAD DEPLOY: When Lich Necromancer is in play, Undead creatures from Curse of Undeath can deploy adjacent to it. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+
+                  {/* SWIRL (TOMB GUARDIAN SPLASH) Stats */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-light">Curse of Undeath - SWIRL <Badge bg="danger">ACTIVE</Badge> <small className="text-muted">(Skeletal Tomb Guardian)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals (Splash Damage on Melee Attack)</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.tomb_guardian_splash?.timesOffered || 0}</Badge></td>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.tomb_guardian_splash?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.tomb_guardian_splash?.timesDeclined || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.tomb_guardian_splash?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.tomb_guardian_splash.timesTriggered / results.creatureAbilityStats.tomb_guardian_splash.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>Enemies Hit</strong></td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.tomb_guardian_splash?.enemiesHit || 0}</Badge></td>
+                            <td><strong>Total Damage</strong></td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.tomb_guardian_splash?.totalDamage || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Kills</strong></td>
+                            <td><Badge bg="dark">{results.creatureAbilityStats?.tomb_guardian_splash?.kills || 0}</Badge></td>
+                            <td></td>
+                            <td></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.tomb_guardian_splash?.[diff] || { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        SWIRL: Skeletal Tomb Guardian deals 20 splash damage to all adjacent enemies (excluding main target) on melee attack. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

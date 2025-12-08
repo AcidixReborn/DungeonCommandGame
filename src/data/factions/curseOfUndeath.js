@@ -177,7 +177,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 30, range: 5 },
-    specialAbilities: ['PLACEHOLDER: When deploying any Undead creature, you can place it in any unoccupied square adjacent to this creature.'],
+    specialAbilities: ['ADJACENT UNDEAD DEPLOY: When deploying any Undead creature from Curse of Undeath, you can place it in any unoccupied square adjacent to this creature (not on mountains).'],
     faction: FACTION_NAME,
     imageUrl: lichNecromancerImg
   },
@@ -207,7 +207,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: Whenever this creature makes a melee attack, it deals 20 DAMAGE to each other enemy creature adjacent to this creature.'],
+    specialAbilities: ['SWIRL: Whenever this creature makes a melee attack, it deals 20 DAMAGE to each other enemy creature adjacent to this creature (automatic, each target can defend).'],
     faction: FACTION_NAME,
     imageUrl: skeletalTombGuardianImg
   },
@@ -222,7 +222,7 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: true, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: LIFE DRAIN - Whenever a target takes damage from this creature\'s melee attack, this creature heals 10 DAMAGE.'],
+    specialAbilities: ['LIFE DRAIN: Whenever a target takes damage from this creature\'s melee attack, this creature heals 10 DAMAGE (capped at max HP).'],
     faction: FACTION_NAME,
     imageUrl: vampireStalkerImg
   },

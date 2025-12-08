@@ -366,6 +366,13 @@ export class SimpleAI {
         // Check if we can afford resurrection (1 Morale + Leadership)
         if (!this.gameState.canResurrectCreature(this.playerId, creature)) continue
 
+        // Need a tile to deploy to - use starting zone
+        const availableStartingZoneTiles = player.startingZoneTiles
+          .map(coord => this.gameState.getTile(coord.x, coord.y))
+          .filter(tile => tile && !tile.occupant)
+
+        if (availableStartingZoneTiles.length === 0) break  // No tiles available
+
         // Difficulty-based decision to use GRAVEYARD DEPLOY
         let shouldResurrect = false
         switch (this.difficulty) {
@@ -380,14 +387,15 @@ export class SimpleAI {
             break
         }
 
-        if (!shouldResurrect) continue
-
-        // Need a tile to deploy to - use starting zone
-        const availableStartingZoneTiles = player.startingZoneTiles
-          .map(coord => this.gameState.getTile(coord.x, coord.y))
-          .filter(tile => tile && !tile.occupant)
-
-        if (availableStartingZoneTiles.length === 0) break  // No tiles available
+        if (!shouldResurrect) {
+          // Track declined opportunity for stats
+          actions.push({
+            type: 'graveyardDeclined',
+            creature: creature.name,
+            creatureTypes: creature.type || []
+          })
+          continue
+        }
 
         // Pick a random starting zone tile
         const deployTile = availableStartingZoneTiles[Math.floor(Math.random() * availableStartingZoneTiles.length)]
@@ -493,7 +501,50 @@ export class SimpleAI {
         }
       }
 
-      // Fall back to starting zone if not using SHADOW STALKER/SUMMON SPIDER or no valid tiles
+      // LICH NECROMANCER: Check if Undead creature can deploy adjacent to Lich
+      let isLichNecromancerDeploy = false
+      if (!deployTile && this.gameState.isUndeadCreature && this.gameState.isUndeadCreature(creatureCard)) {
+        const lich = this.gameState.hasLichNecromancerDeploy && this.gameState.hasLichNecromancerDeploy(this.playerId)
+        if (lich) {
+          // Difficulty-based decision to use LICH NECROMANCER deploy
+          let useLichDeploy = false
+          switch (this.difficulty) {
+            case 'easy':
+              useLichDeploy = false  // Easy AI never uses LICH NECROMANCER deploy
+              break
+            case 'medium':
+              useLichDeploy = Math.random() < 0.5  // Medium AI uses 50% of the time
+              break
+            case 'hard':
+              useLichDeploy = true  // Hard AI always uses LICH NECROMANCER deploy
+              break
+          }
+
+          if (useLichDeploy && this.gameState.getLichNecromancerDeployTiles) {
+            let lichTiles = this.gameState.getLichNecromancerDeployTiles(lich)
+
+            // Hard AI: Avoid water and difficult terrain
+            if (this.difficulty === 'hard' && lichTiles.length > 0) {
+              const safeTiles = lichTiles.filter(t =>
+                t.tile.terrain !== 'WATER' && t.tile.terrain !== 'DIFFICULT'
+              )
+              if (safeTiles.length > 0) {
+                lichTiles = safeTiles
+              }
+              // If no safe tiles, still use ability but with available tiles
+            }
+
+            if (lichTiles.length > 0) {
+              // Pick a random tile adjacent to Lich
+              const randomTile = lichTiles[Math.floor(Math.random() * lichTiles.length)]
+              deployTile = randomTile.tile
+              isLichNecromancerDeploy = true
+            }
+          }
+        }
+      }
+
+      // Fall back to starting zone if not using SHADOW STALKER/SUMMON SPIDER/LICH NECROMANCER or no valid tiles
       if (!deployTile) {
         if (startingZoneTiles.length === 0) {
           break // No more empty tiles
@@ -520,7 +571,8 @@ export class SimpleAI {
         position: { x: deployTile.x, y: deployTile.y },
         isHordeDeploy: isHordeDeploy,
         isShadowStalker: isShadowStalkerDeploy,
-        isSummonSpider: isSummonSpiderDeploy
+        isSummonSpider: isSummonSpiderDeploy,
+        isLichNecromancer: isLichNecromancerDeploy
       })
     }
 

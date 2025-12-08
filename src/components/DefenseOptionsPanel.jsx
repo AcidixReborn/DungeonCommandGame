@@ -60,9 +60,24 @@ function DefenseOptionsPanel({
 
   // O(1) - Calculate incoming damage using attackInfo prop
   const attackType = attackInfo?.attackType || 'melee'
-  const originalDamage = attackType === 'melee'
-    ? attackerInstance.creature.meleeAttack?.damage || 0
-    : attackerInstance.creature.rangedAttack?.damage || 0
+
+  // Calculate original damage based on attack type
+  // For special abilities (splash, flashing_blades, hidden_blade, confusion_gaze), use attackInfo.damage
+  // For normal attacks, calculate from creature stats
+  let originalDamage
+  if (attackInfo?.damage !== undefined && (
+    attackType === 'splash' ||
+    attackType === 'flashing_blades' ||
+    attackType === 'hidden_blade' ||
+    attackType === 'confusion_gaze'
+  )) {
+    // Special ability attacks have fixed damage in attackInfo
+    originalDamage = attackInfo.damage
+  } else if (attackType === 'melee') {
+    originalDamage = attackerInstance.creature.meleeAttack?.damage || 0
+  } else {
+    originalDamage = attackerInstance.creature.rangedAttack?.damage || 0
+  }
 
   const incomingDamage = Math.max(0, originalDamage - accumulatedDamageReduction)
 
@@ -234,8 +249,20 @@ function DefenseOptionsPanel({
       <div className="combat-info">
         <div className="combat-info-row">
           <span>Attack Type:</span>
-          <Badge bg={attackType === 'ranged' ? 'info' : 'danger'}>
-            {attackType === 'ranged' ? '🏹 Ranged' : '⚔️ Melee'}
+          <Badge bg={
+            attackType === 'ranged' ? 'info'
+            : attackType === 'splash' ? 'warning'
+            : attackType === 'flashing_blades' ? 'warning'
+            : attackType === 'hidden_blade' ? 'secondary'
+            : attackType === 'confusion_gaze' ? 'warning'
+            : 'danger'
+          }>
+            {attackType === 'ranged' ? '🏹 Ranged'
+             : attackType === 'splash' ? '💀 SWIRL (Splash)'
+             : attackType === 'flashing_blades' ? '⚔️ FLASHING BLADES'
+             : attackType === 'hidden_blade' ? '🗡️ HIDDEN BLADE'
+             : attackType === 'confusion_gaze' ? '😵 CONFUSION GAZE'
+             : '⚔️ Melee'}
           </Badge>
         </div>
         <div className="combat-info-row">

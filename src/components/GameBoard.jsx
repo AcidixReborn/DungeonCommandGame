@@ -164,6 +164,11 @@ function GameBoard({ onTurnInfoChange }) {
   const [confusionGazePending, setConfusionGazePending] = useState(null)
   // { attacker, target, validSlideTiles, slideDestination, attackTargets }
 
+  // TOMB GUARDIAN SWIRL ability state - queue of splash attacks after melee
+  const [pendingSplashAttacks, setPendingSplashAttacks] = useState([]) // Array of { attackerInstance, targetInstance, damage }
+  const [currentSplashIndex, setCurrentSplashIndex] = useState(0) // Index into pendingSplashAttacks
+  const [splashResults, setSplashResults] = useState([]) // Accumulated results for toast message
+
   // DEPLOY CONFIRMATION state (shows leadership cost before deploying)
   const [showDeployConfirm, setShowDeployConfirm] = useState(false)
   const [pendingDeployment, setPendingDeployment] = useState(null)
@@ -754,7 +759,13 @@ function GameBoard({ onTurnInfoChange }) {
   const handleDefenseSelected = (defense) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isSplashDamage } = pendingAttack
+
+    // Route splash damage defense to dedicated handler
+    if (isSplashDamage || targetInfo.attackType === 'splash') {
+      handleSplashDefenseSelected(defense)
+      return
+    }
 
     // Get current accumulated damage reduction (or initialize to 0)
     const accumulatedReduction = pendingAttack.accumulatedDamageReduction || 0
@@ -1022,6 +1033,11 @@ function GameBoard({ onTurnInfoChange }) {
         message += ` ${defenderInstance.creature.name} has ${result.remainingHP || defenderInstance.currentHP} HP remaining.`
       }
 
+      // LIFE DRAIN toast notification
+      if (result.lifeDrain?.triggered) {
+        addToast(`🧛 LIFE DRAIN: ${result.lifeDrain.creatureName} healed ${result.lifeDrain.healAmount} HP! (${result.lifeDrain.currentHP}/${result.lifeDrain.maxHP})`)
+      }
+
       addToast(message)
       gameState.checkGameOver()
 
@@ -1032,6 +1048,43 @@ function GameBoard({ onTurnInfoChange }) {
           ? 'Morale reduced to 0!'
           : 'All creatures destroyed!'
         addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
+      }
+
+      // Check for TOMB GUARDIAN SPLASH (SWIRL) - triggers on melee attacks regardless of result
+      if (result.pendingSplashAttacks && result.pendingSplashAttacks.length > 0) {
+        // Queue splash attacks for resolution
+        setPendingSplashAttacks(result.pendingSplashAttacks)
+        setCurrentSplashIndex(0)
+        setSplashResults([])
+
+        // Start processing first splash target
+        const firstSplash = result.pendingSplashAttacks[0]
+        const defenderPlayerId = firstSplash.targetInstance.owner
+
+        // Check if defender is AI - auto-resolve, or human - show defense panel
+        if (gameConfig) {
+          const playerNum = defenderPlayerId.replace('PLAYER', '')
+          const playerKey = `player${playerNum}`
+          const isHuman = gameConfig[playerKey]?.isHuman
+
+          if (!isHuman) {
+            // AI defender - auto-resolve all splash attacks
+            processSplashAttacksForAI(result.pendingSplashAttacks, attackerInstance)
+          } else {
+            // Human defender - show defense panel for first splash target
+            setPendingAttack({
+              attackerInstance: firstSplash.attackerInstance,
+              defenderInstance: firstSplash.targetInstance,
+              targetInfo: { attackType: 'splash', damage: 20 },
+              isSplashDamage: true,
+              splashSource: 'Skeletal Tomb Guardian'
+            })
+            setCombatPanelMode('defense')  // Show defense panel for splash damage
+            setRenderCounter(prev => prev + 1)
+            return  // Wait for defense resolution
+          }
+        }
+        return
       }
 
       // Check for FLASHING BLADES trigger after defense (only for normal melee attacks, not splash/ability attacks)
@@ -1082,6 +1135,187 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Continue processing remaining AI actions
     setProcessingAIAction(false)
+  }
+
+  /**
+   * Process all splash attacks for AI defenders (auto-resolve defense)
+   * AI uses decideDefense for each splash target
+   *
+   * @param {Array} splashAttacks - Array of splash attack objects
+   * @param {CreatureInstance} attackerInstance - The attacking creature (Skeletal Tomb Guardian)
+   */
+  const processSplashAttacksForAI = (splashAttacks, attackerInstance) => {
+    const results = []
+
+    for (const splash of splashAttacks) {
+      const targetInstance = splash.targetInstance
+      const defenderPlayerId = targetInstance.owner
+
+      // Get AI instance for defender
+      const playerNum = defenderPlayerId.replace('PLAYER', '')
+      const playerKey = `player${playerNum}`
+      const difficulty = gameConfig[playerKey]?.difficulty || 'easy'
+      const ai = new SimpleAI(gameState, defenderPlayerId, null, difficulty)
+
+      // AI decides defense for this splash attack
+      const defenseDecision = ai.decideDefense(targetInstance, 20, attackerInstance.owner)
+
+      let damageAfterDefense = 20
+      let defenseUsed = null
+
+      // Apply defense if chosen
+      if (defenseDecision.type === 'cower') {
+        const cowerResult = gameState.applyCower(targetInstance, 20, attackerInstance.owner)
+        damageAfterDefense = Math.max(0, 20 - cowerResult.damageAvoided)
+        defenseUsed = 'cower'
+      } else if (defenseDecision.type === 'unstoppable_hordes') {
+        const creatures = defenseDecision.creatures || []
+        let totalPrevented = 0
+        creatures.forEach(c => {
+          const result = gameState.applyUnstoppableHordes(c)
+          if (result.success) totalPrevented += result.damagePrevented
+        })
+        // Add defender if they can use it
+        if (defenseDecision.defenderCanUse) {
+          const result = gameState.applyUnstoppableHordes(targetInstance)
+          if (result.success) totalPrevented += result.damagePrevented
+        }
+        damageAfterDefense = Math.max(0, 20 - totalPrevented)
+        defenseUsed = 'unstoppable_hordes'
+      }
+
+      // Apply splash damage
+      const splashResult = gameState.combatResolver.executeSplashDamage(attackerInstance, targetInstance, damageAfterDefense)
+      results.push({
+        ...splashResult,
+        defenseUsed,
+        damageAfterDefense
+      })
+    }
+
+    // Show combined toast for all splash results
+    if (results.length > 0) {
+      const hitNames = results.map(r => r.targetName).join(', ')
+      const destroyedCount = results.filter(r => r.destroyed).length
+      let msg = `💀 SWIRL: Skeletal Tomb Guardian dealt splash damage to ${hitNames}!`
+      if (destroyedCount > 0) {
+        msg += ` (${destroyedCount} destroyed!)`
+      }
+      addToast(msg)
+    }
+
+    // NOW tap the attacker (deferred from original attack until splash resolves)
+    if (attackerInstance.hasMovedThisTurn && !attackerInstance.isTapped) {
+      attackerInstance.tap()
+    }
+
+    // Clear splash state and combat panel
+    setPendingSplashAttacks([])
+    setCurrentSplashIndex(0)
+    setSplashResults([])
+    setPendingAttack(null)
+    setCombatPanelMode(null)  // Clear combat panel after AI splash resolution
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Handle splash damage defense selection (for human defenders)
+   * Called when human chooses defense for a splash attack
+   *
+   * @param {Object} defense - Defense selection (same format as handleDefenseSelected)
+   */
+  const handleSplashDefenseSelected = (defense) => {
+    if (pendingSplashAttacks.length === 0 || currentSplashIndex >= pendingSplashAttacks.length) {
+      return
+    }
+
+    const currentSplash = pendingSplashAttacks[currentSplashIndex]
+    const { attackerInstance, targetInstance } = currentSplash
+
+    let damageAfterDefense = 20
+
+    // Apply defense if not skipped
+    if (defense.type === 'cower') {
+      const cowerResult = gameState.applyCower(targetInstance, 20, attackerInstance.owner)
+      damageAfterDefense = Math.max(0, 20 - cowerResult.damageAvoided)
+    } else if (defense.type === 'unstoppable_hordes') {
+      let totalPrevented = 0
+      defense.creatures?.forEach(c => {
+        const result = gameState.applyUnstoppableHordes(c)
+        if (result.success) totalPrevented += result.damagePrevented
+      })
+      damageAfterDefense = Math.max(0, 20 - totalPrevented)
+    } else if (defense.type === 'immediate_card') {
+      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature)
+      if (result.success) {
+        damageAfterDefense = Math.max(0, 20 - result.damagePrevented)
+      }
+    }
+
+    // Apply splash damage
+    const splashResult = gameState.combatResolver.executeSplashDamage(attackerInstance, targetInstance, damageAfterDefense)
+
+    // Add to accumulated results
+    const newResults = [...splashResults, {
+      ...splashResult,
+      defenseUsed: defense.type !== 'skip' ? defense.type : null,
+      damageAfterDefense
+    }]
+    setSplashResults(newResults)
+
+    // Check if more splash targets remain
+    const nextIndex = currentSplashIndex + 1
+    if (nextIndex < pendingSplashAttacks.length) {
+      setCurrentSplashIndex(nextIndex)
+      const nextSplash = pendingSplashAttacks[nextIndex]
+      const nextDefenderPlayerId = nextSplash.targetInstance.owner
+
+      // Check if next defender is AI or human
+      const playerNum = nextDefenderPlayerId.replace('PLAYER', '')
+      const playerKey = `player${playerNum}`
+      const isHuman = gameConfig[playerKey]?.isHuman
+
+      if (!isHuman) {
+        // AI defender - auto-resolve remaining splash attacks
+        const remainingSplashes = pendingSplashAttacks.slice(nextIndex)
+        processSplashAttacksForAI(remainingSplashes, attackerInstance)
+      } else {
+        // Human defender - show defense panel for next target
+        setPendingAttack({
+          attackerInstance: nextSplash.attackerInstance,
+          defenderInstance: nextSplash.targetInstance,
+          targetInfo: { attackType: 'splash', damage: 20 },
+          isSplashDamage: true,
+          splashSource: 'Skeletal Tomb Guardian'
+        })
+        setCombatPanelMode('defense')  // Keep defense panel showing for next target
+        setRenderCounter(prev => prev + 1)
+      }
+    } else {
+      // All splash attacks resolved - show combined toast
+      if (newResults.length > 0) {
+        const hitNames = newResults.map(r => r.targetName).join(', ')
+        const destroyedCount = newResults.filter(r => r.destroyed).length
+        let msg = `💀 SWIRL: Skeletal Tomb Guardian dealt splash damage to ${hitNames}!`
+        if (destroyedCount > 0) {
+          msg += ` (${destroyedCount} destroyed!)`
+        }
+        addToast(msg)
+      }
+
+      // NOW tap the attacker (deferred from original attack until splash resolves)
+      if (attackerInstance.hasMovedThisTurn && !attackerInstance.isTapped) {
+        attackerInstance.tap()
+      }
+
+      // Clear splash state and combat panel
+      setPendingSplashAttacks([])
+      setCurrentSplashIndex(0)
+      setSplashResults([])
+      setPendingAttack(null)
+      setCombatPanelMode(null)  // Clear combat panel after splash resolution
+      setRenderCounter(prev => prev + 1)
+    }
   }
 
   // Execute the attack after reactions have been handled
@@ -1151,6 +1385,11 @@ function GameBoard({ onTurnInfoChange }) {
         message += ` ${defenderInstance.creature.name} has ${result.remainingHP || defenderInstance.currentHP} HP remaining.`
       }
 
+      // LIFE DRAIN toast notification
+      if (result.lifeDrain?.triggered) {
+        addToast(`🧛 LIFE DRAIN: ${result.lifeDrain.creatureName} healed ${result.lifeDrain.healAmount} HP! (${result.lifeDrain.currentHP}/${result.lifeDrain.maxHP})`)
+      }
+
       addToast(message)
 
       // Check for game over
@@ -1163,6 +1402,43 @@ function GameBoard({ onTurnInfoChange }) {
           ? 'Morale reduced to 0!'
           : 'All creatures destroyed!'
         addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
+      }
+
+      // Check for TOMB GUARDIAN SPLASH (SWIRL) - triggers on melee attacks regardless of result
+      if (result.pendingSplashAttacks && result.pendingSplashAttacks.length > 0) {
+        // Queue splash attacks for resolution
+        setPendingSplashAttacks(result.pendingSplashAttacks)
+        setCurrentSplashIndex(0)
+        setSplashResults([])
+
+        // Start processing first splash target
+        const firstSplash = result.pendingSplashAttacks[0]
+        const defenderPlayerId = firstSplash.targetInstance.owner
+
+        // Check if defender is AI - auto-resolve, or human - show defense panel
+        if (gameConfig) {
+          const playerNum = defenderPlayerId.replace('PLAYER', '')
+          const playerKey = `player${playerNum}`
+          const isHuman = gameConfig[playerKey]?.isHuman
+
+          if (!isHuman) {
+            // AI defender - auto-resolve all splash attacks
+            processSplashAttacksForAI(result.pendingSplashAttacks, attackerInstance)
+          } else {
+            // Human defender - show defense panel for first splash target
+            setPendingAttack({
+              attackerInstance: firstSplash.attackerInstance,
+              defenderInstance: firstSplash.targetInstance,
+              targetInfo: { attackType: 'splash', damage: 20 },
+              isSplashDamage: true,
+              splashSource: 'Skeletal Tomb Guardian'
+            })
+            setCombatPanelMode('defense')  // Show defense panel for splash damage
+            setRenderCounter(prev => prev + 1)
+            return  // Wait for defense resolution
+          }
+        }
+        return
       }
 
       // Check for FLASHING BLADES trigger after reactions (only for normal attacks, not splash/ability attacks)
@@ -1430,7 +1706,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (!pendingDeployment) return
 
     const { creature, tile, creatureIndex, isFromGraveyard, source,
-            isOrcScoutDeploy, isShadowStalkerDeploy, isSummonSpiderDeploy, isInStartingZone } = pendingDeployment
+            isOrcScoutDeploy, isShadowStalkerDeploy, isSummonSpiderDeploy, isLichNecromancerDeploy, isInStartingZone } = pendingDeployment
 
     const currentPlayer = gameState.getCurrentPlayerState()
 
@@ -1477,6 +1753,8 @@ function GameBoard({ onTurnInfoChange }) {
       addToast(`SHADOW STALKER: ${creature.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
     } else if (isSummonSpiderDeploy && !isInStartingZone) {
       addToast(`SUMMON SPIDER: ${creature.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+    } else if (isLichNecromancerDeploy && !isInStartingZone) {
+      addToast(`LICH NECROMANCER: ${creature.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
     } else if (isFromGraveyard) {
       addToast(`GRAVEYARD DEPLOY: ${creature.name} resurrected at (${tile.x}, ${tile.y})! Protected until your next turn!`)
     } else {
@@ -2486,11 +2764,26 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy) {
+      // LICH NECROMANCER: Check if deploying Undead creature adjacent to Lich Necromancer
+      let isLichNecromancerDeploy = false
+      if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) &&
+          !tile.occupant &&
+          tile.terrain !== 'MOUNTAIN') {
+        const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+        if (lich?.position) {
+          const dx = Math.abs(tile.x - lich.position.x)
+          const dy = Math.abs(tile.y - lich.position.y)
+          isLichNecromancerDeploy = Math.max(dx, dy) === 1 // Adjacent only (range 1)
+        }
+      }
+
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
         } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
           addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
+        } else if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) && gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)) {
+          addToast('LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
           addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
         } else {
@@ -2522,6 +2815,7 @@ function GameBoard({ onTurnInfoChange }) {
           isOrcScoutDeploy,
           isShadowStalkerDeploy,
           isSummonSpiderDeploy,
+          isLichNecromancerDeploy,
           isInStartingZone
         })
         setShowDeployConfirm(true)
@@ -2550,6 +2844,8 @@ function GameBoard({ onTurnInfoChange }) {
           addToast(`SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else if (isSummonSpiderDeploy && !isInStartingZone) {
           addToast(`SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isLichNecromancerDeploy && !isInStartingZone) {
+          addToast(`LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else {
           addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
         }
@@ -2613,11 +2909,26 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy) {
+      // LICH NECROMANCER: Check if deploying Undead creature adjacent to Lich Necromancer
+      let isLichNecromancerDeploy = false
+      if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) &&
+          !tile.occupant &&
+          tile.terrain !== 'MOUNTAIN') {
+        const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+        if (lich?.position) {
+          const dx = Math.abs(tile.x - lich.position.x)
+          const dy = Math.abs(tile.y - lich.position.y)
+          isLichNecromancerDeploy = Math.max(dx, dy) === 1 // Adjacent only (range 1)
+        }
+      }
+
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
         } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
           addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
+        } else if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) && gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)) {
+          addToast('LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer) && tile.treasure) {
           addToast('ORC SCOUT: Only Orc creatures can be deployed to treasure tiles!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
@@ -2647,6 +2958,7 @@ function GameBoard({ onTurnInfoChange }) {
           isOrcScoutDeploy,
           isShadowStalkerDeploy,
           isSummonSpiderDeploy,
+          isLichNecromancerDeploy,
           isInStartingZone
         })
         setShowDeployConfirm(true)
@@ -2677,6 +2989,9 @@ function GameBoard({ onTurnInfoChange }) {
         } else if (isSummonSpiderDeploy && !isInStartingZone) {
           setSelectedCreatureIndex(null)
           addToast(`SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isLichNecromancerDeploy && !isInStartingZone) {
+          setSelectedCreatureIndex(null)
+          addToast(`LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else {
           setSelectedCreatureIndex(null)
           addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
@@ -3399,6 +3714,35 @@ function GameBoard({ onTurnInfoChange }) {
                     }
                   }
 
+                  // ============================================
+                  // LICH NECROMANCER HIGHLIGHT: Show valid deployment tiles
+                  // during deploy phase when Lich Necromancer is in play
+                  // Tiles adjacent to Lich (range 1) get same color as starting zone
+                  // Always show during deploy phase so players know where they can deploy Undead
+                  // ============================================
+                  let isLichNecromancerHighlight = false
+                  let lichNecromancerFactionColor = null
+
+                  if (canDeployInCurrentPhase() &&
+                      !tile.occupant &&
+                      tile.terrain !== 'MOUNTAIN') {
+                    const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+                    if (lich?.position) {
+                      // Check if tile is adjacent to Lich (range 1, 8-directional)
+                      const dx = Math.abs(x - lich.position.x)
+                      const dy = Math.abs(y - lich.position.y)
+                      if (Math.max(dx, dy) === 1) {
+                        // Don't highlight if already in starting zone (it already has the highlight)
+                        const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
+                                                 tile.startingZoneOwner === gameState.currentPlayer
+                        if (!isInStartingZone) {
+                          isLichNecromancerHighlight = true
+                          lichNecromancerFactionColor = playerFactionColors?.[gameState.currentPlayer]
+                        }
+                      }
+                    }
+                  }
+
                   return (
                     <BoardTile
                       key={`${x}-${y}`}
@@ -3427,6 +3771,8 @@ function GameBoard({ onTurnInfoChange }) {
                       isConfusionGazeAttack={isConfusionGazeAttack}
                       isSummonSpiderHighlight={isSummonSpiderHighlight}
                       summonSpiderFactionColor={summonSpiderFactionColor}
+                      isLichNecromancerHighlight={isLichNecromancerHighlight}
+                      lichNecromancerFactionColor={lichNecromancerFactionColor}
                     />
                   )
                 })}

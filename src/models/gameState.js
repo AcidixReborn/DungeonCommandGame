@@ -1345,6 +1345,246 @@ export class GameState {
   }
 
   // ============================================================================
+  // PHASE 2: CREATURE ABILITIES - Curse of Undeath Combat Abilities
+  // 2A: LIFE DRAIN (Vampire Stalker) - Heal 10 HP on melee damage
+  // 2B: ADJACENT UNDEAD DEPLOY (Lich Necromancer) - Deploy Undead adjacent to Lich
+  // 2C: SWIRL/SPLASH (Skeletal Tomb Guardian) - 20 damage to adjacent enemies
+  // ============================================================================
+
+  // --------------------------------------------------------------------------
+  // 2A: LIFE DRAIN (Vampire Stalker)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Check if creature has LIFE DRAIN ability
+   * Big O: O(n) where n = number of special abilities (typically 1-3)
+   * @param {Object} creatureInstance - The creature instance to check
+   * @returns {boolean} True if creature has LIFE DRAIN ability
+   */
+  hasLifeDrain(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      a => typeof a === 'string' && a.toUpperCase().includes('LIFE DRAIN')
+    )
+  }
+
+  /**
+   * Apply LIFE DRAIN healing (10 HP, capped at max HP)
+   * Big O: O(1) - constant time operation
+   * @param {Object} attackerInstance - The attacking creature instance
+   * @returns {number} Amount actually healed (0 if already at max HP)
+   */
+  applyLifeDrain(attackerInstance) {
+    if (!attackerInstance) return 0
+
+    const maxHP = attackerInstance.creature.hitPoints
+    const currentHP = attackerInstance.currentHP
+    const healAmount = Math.min(10, maxHP - currentHP)
+
+    if (healAmount > 0) {
+      attackerInstance.currentHP += healAmount
+    }
+
+    return healAmount
+  }
+
+  // --------------------------------------------------------------------------
+  // 2B: ADJACENT UNDEAD DEPLOY (Lich Necromancer)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Check if creature is Undead type AND from Curse of Undeath faction
+   * Only Undead from Curse of Undeath can be deployed adjacent to Lich Necromancer
+   * Big O: O(t) where t = number of types (typically 2-4)
+   * @param {Object} creature - The creature card to check
+   * @returns {boolean} True if creature is Undead from Curse of Undeath
+   */
+  isUndeadCreature(creature) {
+    if (!creature?.type) return false
+    if (creature.faction !== 'Curse of Undeath') return false
+    return creature.type.some(t => t.toLowerCase() === 'undead')
+  }
+
+  /**
+   * Check if player has Lich Necromancer in play
+   * Returns the Lich instance if found, null otherwise
+   * Big O: O(c) where c = creatures in play
+   * @param {string} playerId - The player ID
+   * @returns {Object|null} The Lich Necromancer instance or null if not found
+   */
+  hasLichNecromancerDeploy(playerId) {
+    const player = this.players[playerId]
+    if (!player) return null
+
+    for (const creature of player.creaturesInPlay) {
+      if (!creature.creature?.specialAbilities) continue
+      // Check by name AND ability text to ensure we find the right creature
+      if (creature.creature.name !== 'Lich Necromancer') continue
+      const hasAbility = creature.creature.specialAbilities.some(
+        a => typeof a === 'string' && a.toUpperCase().includes('ADJACENT')
+      )
+      if (hasAbility) {
+        return creature
+      }
+    }
+    return null
+  }
+
+  /**
+   * Get valid tiles adjacent to Lich Necromancer for Undead deployment
+   * Big O: O(9) - checks at most 9 tiles (8 adjacent + center skip)
+   * @param {Object} lichInstance - The Lich Necromancer creature instance
+   * @returns {Array} Array of valid tile objects with {x, y, tile}
+   */
+  getLichNecromancerDeployTiles(lichInstance) {
+    if (!lichInstance?.position) return []
+
+    const validTiles = []
+    const pos = lichInstance.position
+
+    // 8-directional adjacency (range = 1)
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue // Skip Lich's own tile
+        const x = pos.x + dx
+        const y = pos.y + dy
+
+        const tile = this.getTile(x, y)
+        if (!tile) continue
+        if (tile.terrain === 'MOUNTAIN') continue
+        if (tile.occupant) continue
+
+        validTiles.push({ x, y, tile })
+      }
+    }
+
+    return validTiles
+  }
+
+  // --------------------------------------------------------------------------
+  // 2C: SWIRL/SPLASH DAMAGE (Skeletal Tomb Guardian)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Check if creature has Tomb Guardian splash/swirl ability
+   * Big O: O(n) where n = number of special abilities
+   * @param {Object} creatureInstance - The creature instance to check
+   * @returns {boolean} True if creature has splash ability
+   */
+  hasTombGuardianSplash(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    if (creatureInstance.creature.name !== 'Skeletal Tomb Guardian') return false
+    return creatureInstance.creature.specialAbilities.some(
+      a => typeof a === 'string' &&
+           (a.toUpperCase().includes('SWIRL') ||
+            (a.toUpperCase().includes('20 DAMAGE') && a.toUpperCase().includes('ADJACENT')))
+    )
+  }
+
+  /**
+   * Get all enemies adjacent to Skeletal Tomb Guardian (NOT adjacent to target)
+   * Includes enemies from ANY faction adjacent to the Guardian
+   * Big O: O(8) - checks at most 8 adjacent tiles
+   * @param {Object} attackerInstance - The Skeletal Tomb Guardian instance
+   * @param {Object} mainTargetInstance - The main attack target (excluded from splash)
+   * @returns {Array} Array of enemy creature instances to receive splash damage
+   */
+  getTombGuardianSplashTargets(attackerInstance, mainTargetInstance = null) {
+    if (!this.hasTombGuardianSplash(attackerInstance)) return []
+    if (!attackerInstance.position) return []
+
+    const targets = []
+    const pos = attackerInstance.position
+
+    // Check all 8 adjacent tiles to the Guardian
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue // Skip Guardian's own tile
+        const x = pos.x + dx
+        const y = pos.y + dy
+
+        const tile = this.getTile(x, y)
+        if (!tile || !tile.occupant) continue
+
+        const occupant = tile.occupant
+        // Skip if it's the main attack target (they already receive main attack damage)
+        if (mainTargetInstance && occupant.instanceId === mainTargetInstance.instanceId) continue
+        // Skip friendly creatures
+        if (occupant.owner === attackerInstance.owner) continue
+        // Skip dead creatures
+        if (occupant.currentHP <= 0) continue
+
+        targets.push(occupant)
+      }
+    }
+
+    return targets
+  }
+
+  /**
+   * Apply Tomb Guardian splash damage (20 damage) to a single target
+   * This is called AFTER defense options are resolved for each splash target
+   * Big O: O(c) where c = creatures in play (for removal if destroyed)
+   * @param {Object} targetInstance - The creature instance receiving splash damage
+   * @param {string} attackerOwner - The owner of the attacking creature
+   * @param {number} damageAfterDefense - Damage after defense options (default 20)
+   * @returns {Object} Result object with damage, destroyed status, morale changes
+   */
+  applyTombGuardianSplash(targetInstance, attackerOwner, damageAfterDefense = 20) {
+    if (!targetInstance) {
+      return { success: false, message: 'Invalid target' }
+    }
+
+    const defenderOwner = targetInstance.owner
+    const previousHP = targetInstance.currentHP
+
+    // Apply damage
+    targetInstance.currentHP -= damageAfterDefense
+    const wasDestroyed = targetInstance.currentHP <= 0
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    if (wasDestroyed) {
+      // Clear tile
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) tile.occupant = null
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
+
+      // Defender loses morale equal to creature's level
+      defenderPlayer.loseMorale(targetInstance.creature.level)
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level
+      }
+    }
+
+    return {
+      success: true,
+      damage: damageAfterDefense,
+      destroyed: wasDestroyed,
+      moraleChange,
+      remainingHP: Math.max(0, targetInstance.currentHP),
+      targetName: targetInstance.creature.name
+    }
+  }
+
+  // ============================================================================
   // COMMANDER ABILITY DELEGATION METHODS
   // These methods delegate to CommanderAbilityManager for backward compatibility
   // ============================================================================

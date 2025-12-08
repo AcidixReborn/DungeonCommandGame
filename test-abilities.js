@@ -248,7 +248,7 @@ const stats = {
       graveyard_deploy: { name: 'GRAVEYARD DEPLOY', timesTriggered: 0, zombiesRedeployed: 0, moralePaid: 0, creatures: ['Zombie'] },
       life_drain: { name: 'LIFE DRAIN', timesTriggered: 0, hpHealed: 0, creatures: ['Vampire Stalker'] },
       aura_damage: { name: 'AURA DAMAGE', timesTriggered: 0, damageDealt: 0, creatures: ['Disciple of Kyuss'] },
-      cleave: { name: 'CLEAVE', timesTriggered: 0, splashDamageDealt: 0, creatures: ['Skeletal Tomb Guardian'] },
+      swirl: { name: 'SWIRL', timesTriggered: 0, splashDamageDealt: 0, creatures: ['Skeletal Tomb Guardian'] },
       rider_undeath: { name: 'RIDER', timesTriggered: 0, skeletonsDeployed: 0, creatures: ['Skeletal Lancer'] },
       undead_deployment: { name: 'UNDEAD DEPLOYMENT', timesTriggered: 0, undeadDeployed: 0, creatures: ['Lich Necromancer'] },
       phasing: { name: 'PHASING', timesTriggered: 0, wallsIgnored: 0, creatures: ['Hypnotic Spirit'] },

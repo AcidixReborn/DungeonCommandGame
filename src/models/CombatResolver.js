@@ -143,14 +143,22 @@ export class CombatResolver {
     const hasHiddenBlade = this.gameState.hasHiddenBlade &&
       this.gameState.hasHiddenBlade(attackerInstance)
 
+    // Check for TOMB GUARDIAN SPLASH (SWIRL) BEFORE resolving damage
+    // We need to know if splash is pending to defer tapping
+    const pendingSplashAttacks = this.checkTombGuardianSplash(attackerInstance, attackType, defenderInstance)
+    const hasPendingSplash = pendingSplashAttacks && pendingSplashAttacks.length > 0
+
     // Tap the creature if it has both moved AND attacked
-    // UNLESS it has FLASHING BLADES or HIDDEN BLADE (will be tapped after ability resolves)
-    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade) {
+    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, or PENDING SPLASH (will be tapped after ability resolves)
+    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash) {
       attackerInstance.tap()
     }
 
     // Use the combat resolution (includes +1 morale on kill)
     const result = this.resolveAttack(attackerInstance, defenderInstance, damage)
+
+    // Check for LIFE DRAIN ability (Vampire Stalker - heals on melee damage)
+    const lifeDrainResult = this.checkLifeDrain(attackerInstance, attackType, damage)
 
     return {
       success: true,
@@ -158,7 +166,10 @@ export class CombatResolver {
       attackType,
       damage,
       pendingFlashingBlades: hasFlashingBlades,
-      pendingHiddenBlade: hasHiddenBlade
+      pendingHiddenBlade: hasHiddenBlade,
+      lifeDrain: lifeDrainResult,
+      pendingSplashAttacks,
+      pendingSplash: hasPendingSplash  // Flag to indicate splash needs to be resolved before tapping
     }
   }
 
@@ -200,14 +211,22 @@ export class CombatResolver {
     const hasHiddenBlade = this.gameState.hasHiddenBlade &&
       this.gameState.hasHiddenBlade(attackerInstance)
 
+    // Check for TOMB GUARDIAN SPLASH (SWIRL) BEFORE resolving damage
+    // We need to know if splash is pending to defer tapping
+    const pendingSplashAttacks = this.checkTombGuardianSplash(attackerInstance, attackType, defenderInstance)
+    const hasPendingSplash = pendingSplashAttacks && pendingSplashAttacks.length > 0
+
     // Tap the creature if it has both moved AND attacked
-    // UNLESS it has FLASHING BLADES or HIDDEN BLADE (will be tapped after ability resolves)
-    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade) {
+    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, or PENDING SPLASH (will be tapped after ability resolves)
+    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash) {
       attackerInstance.tap()
     }
 
     // Use the combat resolution (includes +1 morale on kill)
     const result = this.resolveAttack(attackerInstance, defenderInstance, damage)
+
+    // Check for LIFE DRAIN ability (Vampire Stalker - heals on melee damage)
+    const lifeDrainResult = this.checkLifeDrain(attackerInstance, attackType, damage)
 
     return {
       success: true,
@@ -218,7 +237,10 @@ export class CombatResolver {
       damageReduced: damageReduction,
       defenseUsed: defenseType,
       pendingFlashingBlades: hasFlashingBlades,
-      pendingHiddenBlade: hasHiddenBlade
+      pendingHiddenBlade: hasHiddenBlade,
+      lifeDrain: lifeDrainResult,
+      pendingSplashAttacks,
+      pendingSplash: hasPendingSplash  // Flag to indicate splash needs to be resolved before tapping
     }
   }
 
@@ -290,6 +312,33 @@ export class CombatResolver {
       destroyed: false,
       damage: damageAmount,
       moraleChange: null
+    }
+  }
+
+  /**
+   * Apply LIFE DRAIN if attacker has the ability and attack dealt damage
+   * Big O: O(1) - constant time check and heal
+   * @param {CreatureInstance} attackerInstance - The attacking creature
+   * @param {string} attackType - 'melee' or 'ranged'
+   * @param {number} damageDealt - Actual damage dealt to defender
+   * @returns {Object|null} Life drain result or null if not applicable
+   */
+  checkLifeDrain(attackerInstance, attackType, damageDealt) {
+    // LIFE DRAIN only triggers on melee attacks that deal damage
+    if (attackType !== 'melee' || damageDealt <= 0) return null
+
+    // Check if attacker has LIFE DRAIN ability
+    if (!this.gameState.hasLifeDrain || !this.gameState.hasLifeDrain(attackerInstance)) return null
+
+    // Apply the healing
+    const healAmount = this.gameState.applyLifeDrain(attackerInstance)
+
+    return {
+      triggered: true,
+      healAmount,
+      creatureName: attackerInstance.creature.name,
+      currentHP: attackerInstance.currentHP,
+      maxHP: attackerInstance.creature.hitPoints
     }
   }
 
@@ -436,6 +485,78 @@ export class CombatResolver {
     }
 
     return true
+  }
+
+  /**
+   * Check for TOMB GUARDIAN SPLASH (SWIRL) ability and get pending splash attacks
+   * Splash triggers on ANY melee attack by Skeletal Tomb Guardian
+   * Returns array of pending splash targets that need defense resolution
+   *
+   * Big O: O(8) - checks at most 8 adjacent tiles
+   *
+   * @param {CreatureInstance} attackerInstance - The attacking creature
+   * @param {string} attackType - 'melee' or 'ranged'
+   * @param {CreatureInstance} mainTarget - The primary attack target (excluded from splash)
+   * @returns {Array|null} Array of splash target info or null if ability doesn't trigger
+   */
+  checkTombGuardianSplash(attackerInstance, attackType, mainTarget) {
+    // SPLASH only triggers on melee attacks
+    if (attackType !== 'melee') return null
+
+    // Check if attacker has TOMB GUARDIAN SPLASH ability
+    if (!this.gameState.hasTombGuardianSplash || !this.gameState.hasTombGuardianSplash(attackerInstance)) return null
+
+    // AI difficulty check for SWIRL (same pattern as BURROW)
+    // Human players ALWAYS have SWIRL enabled
+    // AI: Easy = 0%, Medium = 50%, Hard = 100%
+    const owner = attackerInstance.owner
+    const player = this.gameState.players[owner]
+
+    if (!player?.isHuman) {
+      const aiDifficulty = player?.aiDifficulty || 'medium'
+      if (aiDifficulty === 'easy') {
+        return null  // Easy AI never uses SWIRL
+      } else if (aiDifficulty === 'medium') {
+        if (Math.random() >= 0.5) {
+          return null  // Medium AI uses 50% of the time
+        }
+      }
+      // Hard AI always uses SWIRL (no early return)
+    }
+
+    // Get all adjacent enemies (excluding main target)
+    const splashTargets = this.gameState.getTombGuardianSplashTargets(attackerInstance, mainTarget)
+
+    if (splashTargets.length === 0) return null
+
+    // Return pending splash attacks that need defense resolution
+    return splashTargets.map(target => ({
+      attackerInstance,
+      targetInstance: target,
+      damage: 20,  // Splash damage amount
+      attackType: 'splash',
+      sourceAbility: 'TOMB_GUARDIAN_SPLASH'
+    }))
+  }
+
+  /**
+   * Execute a single splash damage attack (after defense resolution)
+   * Called for each splash target after they've had a chance to defend
+   *
+   * Big O: O(c) where c = creatures in play (for removal)
+   *
+   * @param {CreatureInstance} attackerInstance - The attacking creature
+   * @param {CreatureInstance} targetInstance - The splash target
+   * @param {number} damageAfterDefense - Damage to apply after defense (0 if fully blocked)
+   * @returns {Object} Splash attack result
+   */
+  executeSplashDamage(attackerInstance, targetInstance, damageAfterDefense) {
+    const result = this.gameState.applyTombGuardianSplash(targetInstance, attackerInstance.owner, damageAfterDefense)
+    return {
+      ...result,
+      attackerName: attackerInstance.creature.name,
+      sourceAbility: 'TOMB_GUARDIAN_SPLASH'
+    }
   }
 
   /**
