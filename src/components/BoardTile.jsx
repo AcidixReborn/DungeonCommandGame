@@ -45,8 +45,10 @@ const factionIcons = {
  * @param {boolean} isShadowStalkerHighlight - Whether tile is valid for SHADOW STALKER deployment
  * @param {boolean} isConfusionGazeSlide - Whether tile is valid slide destination for CONFUSION GAZE
  * @param {boolean} isConfusionGazeAttack - Whether creature on tile is valid attack target for CONFUSION GAZE
+ * @param {boolean} isSummonSpiderHighlight - Whether tile is valid for SUMMON SPIDER deployment
+ * @param {string} summonSpiderFactionColor - Faction color to use for SUMMON SPIDER highlight
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -249,9 +251,34 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
 
   /**
    * Get dynamic inline styles for starting zones based on faction color
-   * @returns {Object} Style object for starting zone
+   * Also applies to SUMMON SPIDER highlight tiles (same visual as current player's starting zone)
+   * @returns {Object} Style object for starting zone or SUMMON SPIDER highlight
    */
   const getStartingZoneStyle = () => {
+    // SUMMON SPIDER: Apply starting zone style to tiles within Priestess range
+    if (isSummonSpiderHighlight && summonSpiderFactionColor) {
+      const rgb = hexToRgb(summonSpiderFactionColor)
+      if (rgb) {
+        const brightenColor = (r, g, b, factor = 1.4) => ({
+          r: Math.min(255, Math.floor(r * factor)),
+          g: Math.min(255, Math.floor(g * factor)),
+          b: Math.min(255, Math.floor(b * factor))
+        })
+        const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
+
+        // Use same visual as current player's starting zone
+        return {
+          background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25) 100%)`,
+          boxShadow: `
+            inset 0 0 0 3px rgba(${brightRgb.r}, ${brightRgb.g}, ${brightRgb.b}, 0.9),
+            inset 0 0 20px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5),
+            inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)
+          `,
+          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`
+        }
+      }
+    }
+
     if (tile.terrain !== TerrainTypes.STARTING_ZONE || !tile.startingZoneOwner || !playerFactionColors) {
       return {}
     }

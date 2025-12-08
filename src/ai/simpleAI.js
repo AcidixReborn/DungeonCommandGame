@@ -394,7 +394,50 @@ export class SimpleAI {
         }
       }
 
-      // Fall back to starting zone if not using SHADOW STALKER or no valid tiles
+      // SUMMON SPIDER: Check if Spider creature can deploy near Drow Priestess
+      let isSummonSpiderDeploy = false
+      if (!deployTile && this.gameState.isSpiderCreature && this.gameState.isSpiderCreature(creatureCard)) {
+        const priestess = this.gameState.hasSummonSpider && this.gameState.hasSummonSpider(this.playerId)
+        if (priestess) {
+          // Difficulty-based decision to use SUMMON SPIDER
+          let useSummonSpider = false
+          switch (this.difficulty) {
+            case 'easy':
+              useSummonSpider = false  // Easy AI never uses SUMMON SPIDER
+              break
+            case 'medium':
+              useSummonSpider = Math.random() < 0.5  // Medium AI uses 50% of the time
+              break
+            case 'hard':
+              useSummonSpider = true  // Hard AI always uses SUMMON SPIDER
+              break
+          }
+
+          if (useSummonSpider && this.gameState.getSummonSpiderTiles) {
+            let summonSpiderTiles = this.gameState.getSummonSpiderTiles(priestess)
+
+            // Hard AI: Avoid water and difficult terrain
+            if (this.difficulty === 'hard' && summonSpiderTiles.length > 0) {
+              const safeTiles = summonSpiderTiles.filter(t =>
+                t.tile.terrain !== 'WATER' && t.tile.terrain !== 'DIFFICULT'
+              )
+              if (safeTiles.length > 0) {
+                summonSpiderTiles = safeTiles
+              }
+              // If no safe tiles, still use ability but with available tiles
+            }
+
+            if (summonSpiderTiles.length > 0) {
+              // Pick a random tile near Priestess
+              const randomTile = summonSpiderTiles[Math.floor(Math.random() * summonSpiderTiles.length)]
+              deployTile = randomTile.tile
+              isSummonSpiderDeploy = true
+            }
+          }
+        }
+      }
+
+      // Fall back to starting zone if not using SHADOW STALKER/SUMMON SPIDER or no valid tiles
       if (!deployTile) {
         if (startingZoneTiles.length === 0) {
           break // No more empty tiles
@@ -420,7 +463,8 @@ export class SimpleAI {
         creatureTypes: creatureCard.type || [],
         position: { x: deployTile.x, y: deployTile.y },
         isHordeDeploy: isHordeDeploy,
-        isShadowStalker: isShadowStalkerDeploy
+        isShadowStalker: isShadowStalkerDeploy,
+        isSummonSpider: isSummonSpiderDeploy
       })
     }
 

@@ -9,6 +9,7 @@ import BoardTile from './BoardTile'
 import PlayerPanel from './PlayerPanel'
 import FactionSelector from './FactionSelector'
 import CommanderSelector from './CommanderSelector'
+import DeployConfirmPanel from './DeployConfirmPanel'
 import SimpleAI from '../ai/simpleAI'
 // Import custom hooks for state management
 import { useNotifications, useSelection, useCombat } from '../hooks'
@@ -162,6 +163,11 @@ function GameBoard({ onTurnInfoChange }) {
   const [confusionGazeMode, setConfusionGazeMode] = useState(null) // null | 'slide' | 'attack'
   const [confusionGazePending, setConfusionGazePending] = useState(null)
   // { attacker, target, validSlideTiles, slideDestination, attackTargets }
+
+  // DEPLOY CONFIRMATION state (shows leadership cost before deploying)
+  const [showDeployConfirm, setShowDeployConfirm] = useState(false)
+  const [pendingDeployment, setPendingDeployment] = useState(null)
+  // { creature, tile, creatureIndex, isFromGraveyard, source: 'drag'|'rightClick' }
 
   /**
    * Faction color mapping from faction IDs to hex colors
@@ -1411,6 +1417,82 @@ function GameBoard({ onTurnInfoChange }) {
   }
 
   /**
+   * Handle deployment confirmation - user confirmed deployment from modal
+   * Creates the creature instance and places it on the board
+   * Big O: O(1) - constant time operations
+   */
+  const handleDeployConfirm = () => {
+    if (!pendingDeployment) return
+
+    const { creature, tile, creatureIndex, isFromGraveyard, source,
+            isOrcScoutDeploy, isShadowStalkerDeploy, isSummonSpiderDeploy, isInStartingZone } = pendingDeployment
+
+    const currentPlayer = gameState.getCurrentPlayerState()
+
+    // Check leadership (double-check in case state changed)
+    if (!currentPlayer.canDeployCreature(creature)) {
+      addToast('Not enough leadership to deploy this creature!')
+      setShowDeployConfirm(false)
+      setPendingDeployment(null)
+      return
+    }
+
+    // Create creature instance
+    const creatureInstance = new CreatureInstance(creature, gameState.currentPlayer)
+    creatureInstance.position = { x: tile.x, y: tile.y }
+
+    // Mark as deployed this turn (protected from attacks)
+    creatureInstance.markAsDeployed(gameState.turnNumber)
+
+    // Add to play
+    currentPlayer.creaturesInPlay.push(creatureInstance)
+    tile.occupant = creatureInstance
+
+    // Remove from source (hand or graveyard)
+    if (isFromGraveyard) {
+      // Future: Remove from graveyard, deduct morale
+      // const graveyardIndex = currentPlayer.creatureGraveyard.findIndex(c => c.id === creature.id)
+      // if (graveyardIndex !== -1) {
+      //   currentPlayer.creatureGraveyard.splice(graveyardIndex, 1)
+      //   currentPlayer.morale -= 1
+      // }
+    } else {
+      currentPlayer.creatureHand.splice(creatureIndex, 1)
+    }
+
+    // Mark ORC SCOUT as used if deployed to treasure
+    if (isOrcScoutDeploy) {
+      gameState.markOrcScoutUsed(gameState.currentPlayer)
+      addToast(`ORC SCOUT: Deployed ${creature.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+    } else if (isShadowStalkerDeploy && !isInStartingZone) {
+      addToast(`SHADOW STALKER: ${creature.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+    } else if (isSummonSpiderDeploy && !isInStartingZone) {
+      addToast(`SUMMON SPIDER: ${creature.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+    } else {
+      addToast(`Deployed ${creature.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+    }
+
+    // Clear selection based on source
+    if (source === 'rightClick') {
+      setSelectedCreatureIndex(null)
+    }
+
+    // Clear modal state and trigger re-render
+    setShowDeployConfirm(false)
+    setPendingDeployment(null)
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Handle deployment cancellation - user cancelled from modal
+   * Big O: O(1) - constant time
+   */
+  const handleDeployCancel = () => {
+    setShowDeployConfirm(false)
+    setPendingDeployment(null)
+  }
+
+  /**
    * Check and trigger FLASHING BLADES ability after a melee attack
    * Called after attack resolves and damage is dealt
    * @returns {boolean} True if FLASHING BLADES was triggered (modal shown)
@@ -2229,7 +2311,20 @@ function GameBoard({ onTurnInfoChange }) {
                                    tile.terrain !== 'MOUNTAIN' &&
                                    gameState.board.isAdjacentToMountain(tile.x, tile.y)
 
-      if ((isInStartingZone || isOrcScoutValid || isShadowStalkerValid) && !tile.occupant) {
+      // SUMMON SPIDER: Allow dragging Spider creatures within 5 squares of Drow Priestess
+      let isSummonSpiderValid = false
+      if (gameState.isSpiderCreature(creatureCard) &&
+          !tile.occupant &&
+          tile.terrain !== 'MOUNTAIN') {
+        const priestess = gameState.hasSummonSpider(gameState.currentPlayer)
+        if (priestess?.position) {
+          const dx = Math.abs(tile.x - priestess.position.x)
+          const dy = Math.abs(tile.y - priestess.position.y)
+          isSummonSpiderValid = Math.max(dx, dy) <= 5
+        }
+      }
+
+      if ((isInStartingZone || isOrcScoutValid || isShadowStalkerValid || isSummonSpiderValid) && !tile.occupant) {
         setDragOverTile(tile)
       } else {
         setDragOverTile(null)
@@ -2261,9 +2356,24 @@ function GameBoard({ onTurnInfoChange }) {
                                     tile.terrain !== 'MOUNTAIN' &&
                                     gameState.board.isAdjacentToMountain(tile.x, tile.y)
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy) {
+      // SUMMON SPIDER: Check if deploying Spider creature within 5 squares of Drow Priestess
+      let isSummonSpiderDeploy = false
+      if (gameState.isSpiderCreature(creatureCard) &&
+          !tile.occupant &&
+          tile.terrain !== 'MOUNTAIN') {
+        const priestess = gameState.hasSummonSpider(gameState.currentPlayer)
+        if (priestess?.position) {
+          const dx = Math.abs(tile.x - priestess.position.x)
+          const dy = Math.abs(tile.y - priestess.position.y)
+          isSummonSpiderDeploy = Math.max(dx, dy) <= 5
+        }
+      }
+
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
+        } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
+          addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
           addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
         } else {
@@ -2274,31 +2384,59 @@ function GameBoard({ onTurnInfoChange }) {
         return
       }
 
+      if (tile.occupant) {
+        addToast('Tile is occupied!')
+        setDraggingCreatureIndex(null)
+        setDragOverTile(null)
+        return
+      }
+
+      // Check if current player is human - show confirmation modal
+      const isHuman = isPlayerHuman(gameState.currentPlayer)
+
+      if (isHuman) {
+        // Show deployment confirmation modal for human players
+        setPendingDeployment({
+          creature: creatureCard,
+          tile: tile,
+          creatureIndex: draggingCreatureIndex,
+          isFromGraveyard: false,
+          source: 'drag',
+          isOrcScoutDeploy,
+          isShadowStalkerDeploy,
+          isSummonSpiderDeploy,
+          isInStartingZone
+        })
+        setShowDeployConfirm(true)
+        setDraggingCreatureIndex(null)
+        setDragOverTile(null)
+        return
+      }
+
+      // AI players deploy directly (no confirmation needed)
       if (currentPlayer.canDeployCreature(creatureCard)) {
-        if (!tile.occupant) {
-          const creatureInstance = new CreatureInstance(creatureCard, gameState.currentPlayer)
-          creatureInstance.position = { x: tile.x, y: tile.y }
+        const creatureInstance = new CreatureInstance(creatureCard, gameState.currentPlayer)
+        creatureInstance.position = { x: tile.x, y: tile.y }
 
-          // Mark as deployed this turn (protected from attacks)
-          creatureInstance.markAsDeployed(gameState.turnNumber)
+        // Mark as deployed this turn (protected from attacks)
+        creatureInstance.markAsDeployed(gameState.turnNumber)
 
-          currentPlayer.creaturesInPlay.push(creatureInstance)
-          currentPlayer.creatureHand.splice(draggingCreatureIndex, 1)
-          tile.occupant = creatureInstance
+        currentPlayer.creaturesInPlay.push(creatureInstance)
+        currentPlayer.creatureHand.splice(draggingCreatureIndex, 1)
+        tile.occupant = creatureInstance
 
-          // Mark ORC SCOUT as used if deployed to treasure
-          if (isOrcScoutDeploy) {
-            gameState.markOrcScoutUsed(gameState.currentPlayer)
-            addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
-          } else if (isShadowStalkerDeploy && !isInStartingZone) {
-            addToast(`SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
-          } else {
-            addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
-          }
-          setRenderCounter(prev => prev + 1)
+        // Mark ORC SCOUT as used if deployed to treasure
+        if (isOrcScoutDeploy) {
+          gameState.markOrcScoutUsed(gameState.currentPlayer)
+          addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isShadowStalkerDeploy && !isInStartingZone) {
+          addToast(`SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isSummonSpiderDeploy && !isInStartingZone) {
+          addToast(`SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else {
-          addToast('Tile is occupied!')
+          addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
         }
+        setRenderCounter(prev => prev + 1)
       } else {
         addToast('Not enough leadership to deploy this creature!')
       }
@@ -2345,9 +2483,24 @@ function GameBoard({ onTurnInfoChange }) {
                                     tile.terrain !== 'MOUNTAIN' &&
                                     gameState.board.isAdjacentToMountain(tile.x, tile.y)
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy) {
+      // SUMMON SPIDER: Check if deploying Spider creature within 5 squares of Drow Priestess
+      let isSummonSpiderDeploy = false
+      if (gameState.isSpiderCreature(creatureCard) &&
+          !tile.occupant &&
+          tile.terrain !== 'MOUNTAIN') {
+        const priestess = gameState.hasSummonSpider(gameState.currentPlayer)
+        if (priestess?.position) {
+          const dx = Math.abs(tile.x - priestess.position.x)
+          const dy = Math.abs(tile.y - priestess.position.y)
+          isSummonSpiderDeploy = Math.max(dx, dy) <= 5
+        }
+      }
+
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
+        } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
+          addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer) && tile.treasure) {
           addToast('ORC SCOUT: Only Orc creatures can be deployed to treasure tiles!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
@@ -2358,35 +2511,60 @@ function GameBoard({ onTurnInfoChange }) {
         return
       }
 
+      if (tile.occupant) {
+        addToast('Tile is occupied!')
+        return
+      }
+
+      // Check if current player is human - show confirmation modal
+      const isHuman = isPlayerHuman(gameState.currentPlayer)
+
+      if (isHuman) {
+        // Show deployment confirmation modal for human players
+        setPendingDeployment({
+          creature: creatureCard,
+          tile: tile,
+          creatureIndex: selectedCreatureIndex,
+          isFromGraveyard: false,
+          source: 'rightClick',
+          isOrcScoutDeploy,
+          isShadowStalkerDeploy,
+          isSummonSpiderDeploy,
+          isInStartingZone
+        })
+        setShowDeployConfirm(true)
+        return
+      }
+
+      // AI players deploy directly (no confirmation needed)
       if (currentPlayer.canDeployCreature(creatureCard)) {
-        if (!tile.occupant) {
-          const creatureInstance = new CreatureInstance(creatureCard, gameState.currentPlayer)
-          creatureInstance.position = { x: tile.x, y: tile.y }
+        const creatureInstance = new CreatureInstance(creatureCard, gameState.currentPlayer)
+        creatureInstance.position = { x: tile.x, y: tile.y }
 
-          // Mark as deployed this turn (protected from attacks)
-          creatureInstance.markAsDeployed(gameState.turnNumber)
+        // Mark as deployed this turn (protected from attacks)
+        creatureInstance.markAsDeployed(gameState.turnNumber)
 
-          currentPlayer.creaturesInPlay.push(creatureInstance)
-          currentPlayer.creatureHand.splice(selectedCreatureIndex, 1)
+        currentPlayer.creaturesInPlay.push(creatureInstance)
+        currentPlayer.creatureHand.splice(selectedCreatureIndex, 1)
 
-          tile.occupant = creatureInstance
+        tile.occupant = creatureInstance
 
-          // Mark ORC SCOUT as used if deployed to treasure
-          if (isOrcScoutDeploy) {
-            gameState.markOrcScoutUsed(gameState.currentPlayer)
-            setSelectedCreatureIndex(null)
-            addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
-          } else if (isShadowStalkerDeploy && !isInStartingZone) {
-            setSelectedCreatureIndex(null)
-            addToast(`SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
-          } else {
-            setSelectedCreatureIndex(null)
-            addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
-          }
-          setRenderCounter(prev => prev + 1)
+        // Mark ORC SCOUT as used if deployed to treasure
+        if (isOrcScoutDeploy) {
+          gameState.markOrcScoutUsed(gameState.currentPlayer)
+          setSelectedCreatureIndex(null)
+          addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isShadowStalkerDeploy && !isInStartingZone) {
+          setSelectedCreatureIndex(null)
+          addToast(`SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isSummonSpiderDeploy && !isInStartingZone) {
+          setSelectedCreatureIndex(null)
+          addToast(`SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else {
-          addToast('Tile is occupied!')
+          setSelectedCreatureIndex(null)
+          addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
         }
+        setRenderCounter(prev => prev + 1)
       } else {
         addToast('Not enough leadership to deploy this creature!')
       }
@@ -3075,6 +3253,35 @@ function GameBoard({ onTurnInfoChange }) {
                     tile.terrain !== 'MOUNTAIN' &&
                     gameState.board.isAdjacentToMountain(x, y)
 
+                  // ============================================
+                  // SUMMON SPIDER HIGHLIGHT: Show valid deployment tiles
+                  // during deploy phase when Drow Priestess is in play
+                  // Tiles within 5 squares of Priestess get same color as starting zone
+                  // Always show during deploy phase so players know where they can deploy Spiders
+                  // ============================================
+                  let isSummonSpiderHighlight = false
+                  let summonSpiderFactionColor = null
+
+                  if (canDeployInCurrentPhase() &&
+                      !tile.occupant &&
+                      tile.terrain !== 'MOUNTAIN') {
+                    const priestess = gameState.hasSummonSpider(gameState.currentPlayer)
+                    if (priestess?.position) {
+                      // Check if tile is within 5 squares of Priestess (Chebyshev distance)
+                      const dx = Math.abs(x - priestess.position.x)
+                      const dy = Math.abs(y - priestess.position.y)
+                      if (Math.max(dx, dy) <= 5) {
+                        // Don't highlight if already in starting zone (it already has the highlight)
+                        const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
+                                                 tile.startingZoneOwner === gameState.currentPlayer
+                        if (!isInStartingZone) {
+                          isSummonSpiderHighlight = true
+                          summonSpiderFactionColor = playerFactionColors?.[gameState.currentPlayer]
+                        }
+                      }
+                    }
+                  }
+
                   return (
                     <BoardTile
                       key={`${x}-${y}`}
@@ -3101,6 +3308,8 @@ function GameBoard({ onTurnInfoChange }) {
                       isShadowStalkerHighlight={isShadowStalkerHighlight}
                       isConfusionGazeSlide={isConfusionGazeSlide}
                       isConfusionGazeAttack={isConfusionGazeAttack}
+                      isSummonSpiderHighlight={isSummonSpiderHighlight}
+                      summonSpiderFactionColor={summonSpiderFactionColor}
                     />
                   )
                 })}
@@ -3448,6 +3657,43 @@ function GameBoard({ onTurnInfoChange }) {
         </Modal.Footer>
       </Modal>
 
+      {/* DEPLOY CONFIRMATION Panel - Shows leadership cost before deploying creature */}
+      {showDeployConfirm && pendingDeployment && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1050,
+          minWidth: '300px'
+        }}>
+          <DeployConfirmPanel
+            creature={pendingDeployment.creature}
+            currentLeadershipUsage={gameState?.getCurrentPlayerState()?.getCurrentLeadershipUsage() || 0}
+            maxLeadership={gameState?.getCurrentPlayerState()?.leadership || 0}
+            isFromGraveyard={pendingDeployment.isFromGraveyard}
+            currentMorale={gameState?.getCurrentPlayerState()?.morale || 0}
+            onConfirm={handleDeployConfirm}
+            onCancel={handleDeployCancel}
+          />
+        </div>
+      )}
+
+      {/* Backdrop for deploy confirmation */}
+      {showDeployConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1049
+          }}
+          onClick={handleDeployCancel}
+        />
+      )}
 
       {/* FLASHING BLADES Ability Modal - Choose to use splash damage */}
       <Modal

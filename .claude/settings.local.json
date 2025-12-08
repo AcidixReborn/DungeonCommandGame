@@ -37,7 +37,8 @@
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
       "Bash(timeout 180 npx vite-node:*)",
-      "Bash(del test-abilities-temp.js)"
+      "Bash(del test-abilities-temp.js)",
+      "Bash(timeout 10 npm run dev:*)"
     ],
     "deny": [],
     "ask": []

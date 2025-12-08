@@ -38,7 +38,8 @@ const CONFIG = {
     shadow_stalker: { easy: 0, medium: 0.5, hard: 1.0 },
     versatile: { easy: 0, medium: 0.5, hard: 1.0 },
     burrow: { easy: 0, medium: 0.5, hard: 1.0 },
-    confusion_gaze: { easy: 0, medium: 0.5, hard: 1.0 }
+    confusion_gaze: { easy: 0, medium: 0.5, hard: 1.0 },
+    summon_spider: { easy: 0, medium: 0.5, hard: 1.0 }
   }
 }
 
@@ -864,6 +865,20 @@ function executeAITurn(gameState, currentPlayerId) {
             } else {
               // Shadow Mastiff deployed to starting zone (ability offered but not used)
               trackCreatureAbility('lolth', 'shadow_stalker', { offered: true, declined: true })
+            }
+          }
+
+          // Track SUMMON SPIDER ability (Spider creatures deployed near Drow Priestess)
+          if (action.creatureTypes && action.creatureTypes.includes('Spider')) {
+            // Check if Drow Priestess was in play when Spider was deployed
+            const priestess = gameState.hasSummonSpider && gameState.hasSummonSpider(currentPlayerId)
+            if (priestess) {
+              if (action.isSummonSpider) {
+                trackCreatureAbility('lolth', 'summon_spider', { triggered: true, spidersDeployed: 1 })
+              } else {
+                // Spider deployed to starting zone when Priestess was available
+                trackCreatureAbility('lolth', 'summon_spider', { offered: true, declined: true })
+              }
             }
           }
           break

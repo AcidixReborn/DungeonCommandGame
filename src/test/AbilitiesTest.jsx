@@ -136,6 +136,20 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0 },
       medium: { offered: 0, triggered: 0, declined: 0 },
       hard: { offered: 0, triggered: 0, declined: 0 }
+    },
+    summon_spider: {
+      name: 'SUMMON SPIDER',
+      creature: 'Drow Priestess',
+      faction: 'Sting of Lolth',
+      // Overall totals
+      timesOffered: 0,  // Times Spider was deployed when Priestess was in play
+      timesTriggered: 0,  // Times Spider was deployed near Priestess
+      timesDeclined: 0,  // Times Spider was deployed to starting zone instead
+      spidersDeployed: 0,  // Total spiders deployed via ability
+      // Per-difficulty breakdown
+      easy: { offered: 0, triggered: 0, declined: 0, spidersDeployed: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, spidersDeployed: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, spidersDeployed: 0 }
     }
   })
 
@@ -472,6 +486,29 @@ function AbilitiesTest() {
                 creatureAbilityStats.shadow_stalker.timesDeclined++
                 creatureAbilityStats.shadow_stalker[diff].offered++
                 creatureAbilityStats.shadow_stalker[diff].declined++
+              }
+            }
+
+            // Track SUMMON SPIDER ability (Spider creatures deployed near Drow Priestess)
+            if (action.creatureTypes && action.creatureTypes.includes('Spider')) {
+              // Check if Drow Priestess was in play when Spider was deployed
+              const priestess = gameState.hasSummonSpider && gameState.hasSummonSpider(currentPlayerId)
+              if (priestess) {
+                const diff = player?.aiDifficulty || 'medium'
+                if (action.isSummonSpider) {
+                  creatureAbilityStats.summon_spider.timesOffered++
+                  creatureAbilityStats.summon_spider.timesTriggered++
+                  creatureAbilityStats.summon_spider.spidersDeployed++
+                  creatureAbilityStats.summon_spider[diff].offered++
+                  creatureAbilityStats.summon_spider[diff].triggered++
+                  creatureAbilityStats.summon_spider[diff].spidersDeployed++
+                } else {
+                  // Spider deployed to starting zone when Priestess was available
+                  creatureAbilityStats.summon_spider.timesOffered++
+                  creatureAbilityStats.summon_spider.timesDeclined++
+                  creatureAbilityStats.summon_spider[diff].offered++
+                  creatureAbilityStats.summon_spider[diff].declined++
+                }
               }
             }
             break
@@ -988,9 +1025,9 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 7 }
+    if (!creatureAbilityStats) return { working: 0, total: 8 }
     let working = 0
-    const total = 7 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE
+    const total = 8 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -998,6 +1035,7 @@ function AbilitiesTest() {
     if (creatureAbilityStats.burrow_lolth?.timesTriggered > 0) working++
     if (creatureAbilityStats.burrow_cormyr?.timesTriggered > 0) working++
     if (creatureAbilityStats.confusion_gaze?.timesTriggered > 0) working++
+    if (creatureAbilityStats.summon_spider?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -1807,6 +1845,93 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         CONFUSION GAZE: Slide an enemy within 5 squares up to 3 tiles, then make a melee attack (30 damage). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+
+                  {/* SUMMON SPIDER Stats */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-warning">Sting of Lolth - SUMMON SPIDER <Badge bg="warning">ACTIVE</Badge> <small className="text-muted">(Drow Priestess)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals (Passive Deployment Ability)</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.summon_spider?.timesOffered || 0}</Badge></td>
+                            <td><strong>Spiders Deployed</strong></td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.summon_spider?.spidersDeployed || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.summon_spider?.timesTriggered || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.summon_spider?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.summon_spider.timesTriggered / results.creatureAbilityStats.summon_spider.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.summon_spider?.timesDeclined || 0}</Badge></td>
+                            <td colSpan={2}></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Spiders</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.summon_spider?.[diff] || { offered: 0, triggered: 0, declined: 0, spidersDeployed: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td><Badge bg="warning">{stats.spidersDeployed}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        SUMMON SPIDER: Deploy Spider creatures within 5 squares of Drow Priestess instead of starting zone. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

@@ -1157,6 +1157,81 @@ export class GameState {
   }
 
   // ============================================================================
+  // SUMMON SPIDER - Drow Priestess Ability (Sting of Lolth)
+  // When deploying any Spider creature, you can place it in any unoccupied
+  // square within 5 squares of this creature (Chebyshev distance)
+  // ============================================================================
+
+  /**
+   * Check if a creature is a Spider type
+   * Spiders have 'Spider' in their type array: Demonweb Spider, Giant Spider, Drider
+   * Big O: O(n) where n = number of types (typically 2-3)
+   * @param {Object} creature - The creature card to check
+   * @returns {boolean} True if creature is a Spider type
+   */
+  isSpiderCreature(creature) {
+    if (!creature?.type) return false
+    return creature.type.some(t => t.toLowerCase() === 'spider')
+  }
+
+  /**
+   * Check if player has Drow Priestess in play with SUMMON SPIDER ability
+   * Returns the Priestess instance if found, null otherwise
+   * Big O: O(n) where n = creatures in play (typically < 12)
+   * @param {string} playerId - The player ID to check
+   * @returns {CreatureInstance|null} The Priestess instance or null
+   */
+  hasSummonSpider(playerId) {
+    const player = this.players[playerId]
+    if (!player) return null
+
+    for (const creature of player.creaturesInPlay) {
+      if (!creature.creature?.specialAbilities) continue
+      const hasSummon = creature.creature.specialAbilities.some(
+        ability => typeof ability === 'string' && ability.toUpperCase().includes('SUMMON SPIDER')
+      )
+      if (hasSummon) return creature // Return the Priestess instance
+    }
+    return null
+  }
+
+  /**
+   * Get valid SUMMON SPIDER deployment tiles (within 5 squares of Priestess)
+   * Returns tiles that are:
+   * - Within 5 squares (Chebyshev distance) of the Priestess
+   * - Unoccupied
+   * - Not a MOUNTAIN (creatures can't deploy on mountains)
+   * Big O: O(121) - checks at most (2*5+1)^2 = 121 tiles
+   * @param {CreatureInstance} priestessInstance - The Drow Priestess in play
+   * @returns {Array} Array of {x, y, tile} valid deployment positions
+   */
+  getSummonSpiderTiles(priestessInstance) {
+    if (!priestessInstance?.position) return []
+
+    const validTiles = []
+    const pos = priestessInstance.position
+
+    // Check all tiles within 5 squares (Chebyshev distance)
+    for (let dx = -5; dx <= 5; dx++) {
+      for (let dy = -5; dy <= 5; dy++) {
+        const x = pos.x + dx
+        const y = pos.y + dy
+
+        const tile = this.getTile(x, y)
+        if (!tile) continue // Off board
+
+        // Cannot deploy on mountains or occupied tiles
+        if (tile.terrain === 'MOUNTAIN') continue
+        if (tile.occupant) continue
+
+        validTiles.push({ x, y, tile })
+      }
+    }
+
+    return validTiles
+  }
+
+  // ============================================================================
   // COMMANDER ABILITY DELEGATION METHODS
   // These methods delegate to CommanderAbilityManager for backward compatibility
   // ============================================================================
