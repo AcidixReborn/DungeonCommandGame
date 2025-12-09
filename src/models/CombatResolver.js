@@ -259,6 +259,21 @@ export class CombatResolver {
     const attackerOwner = attackerInstance.owner
     const defenderOwner = defenderInstance.owner
 
+    // Check INSUBSTANTIAL before applying damage
+    // This ability blocks ALL damage from a single source once per refresh cycle
+    if (this.gameState.canUseInsubstantial(defenderInstance)) {
+      const blocked = this.gameState.useInsubstantial(defenderInstance, damageAmount, attackerOwner)
+      if (blocked) {
+        return {
+          destroyed: false,
+          damage: 0,
+          damageBlocked: damageAmount,
+          insubstantialUsed: true,
+          moraleChange: null
+        }
+      }
+    }
+
     // Apply damage to defender
     const wasDestroyed = defenderInstance.takeDamage(damageAmount)
 
@@ -297,6 +312,21 @@ export class CombatResolver {
         }
       }
 
+      // RIDER ability: Check if destroyed creature can deploy replacement
+      // NOTE: We must capture position BEFORE the creature is removed from the tile
+      // The actual deployment happens in GameBoard.jsx after this result is processed
+      let riderData = null
+      if (this.gameState.hasRider(defenderInstance)) {
+        // Store the position where the creature died for RIDER deployment
+        riderData = {
+          creatureName: defenderInstance.creature.name,
+          creatureLevel: defenderInstance.creature.level,
+          position: defenderInstance.position ? { ...defenderInstance.position } : null,
+          ownerPlayerId: defenderOwner
+        }
+        console.log(`[RIDER] ${defenderInstance.creature.name} destroyed - RIDER ability may trigger at position (${riderData.position?.x}, ${riderData.position?.y})`)
+      }
+
       return {
         destroyed: true,
         damage: damageAmount,
@@ -304,7 +334,9 @@ export class CombatResolver {
           attacker: +1,
           defender: -defenderInstance.creature.level
         },
-        bloodthirsty: leadershipGained > 0 ? { leadershipGained } : null
+        bloodthirsty: leadershipGained > 0 ? { leadershipGained } : null,
+        riderTriggered: riderData !== null,
+        riderData: riderData
       }
     }
 

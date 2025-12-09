@@ -96,6 +96,7 @@ export class CreatureInstance {
     this.turnDeployed = null // Track which turn it was deployed
     this.hasMovedThisTurn = false // Track if creature has moved this turn
     this.hasAttackedThisTurn = false // Track if creature has attacked this turn
+    this.insubstantialUsed = false // INSUBSTANTIAL: Track if ability used this refresh cycle
   }
 
   /**

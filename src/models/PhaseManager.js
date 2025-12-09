@@ -40,8 +40,8 @@ export class PhaseManager {
         creaturesOnWater++
         const creature = tile.occupant
 
-        // Flying creatures are immune to water damage
-        if (gs.hasFlying(creature)) {
+        // Flying and Phasing creatures are immune to water damage
+        if (gs.hasFlying(creature) || gs.hasPhasing(creature)) {
           flyingOnWater++
           return
         }
@@ -293,6 +293,16 @@ export class PhaseManager {
         creature.clearDeploymentProtection()
       }
     })
+
+    // INSUBSTANTIAL: Reset ability for Curse of Undeath creatures
+    // Only reset when the Undead faction enters their refresh phase
+    if (player.faction === 'Curse of Undeath') {
+      player.creaturesInPlay.forEach(creature => {
+        if (creature.insubstantialUsed !== undefined) {
+          creature.insubstantialUsed = false
+        }
+      })
+    }
 
     // Auto-advance to activate phase
     this.advancePhase()

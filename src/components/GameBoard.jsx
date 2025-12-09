@@ -188,6 +188,17 @@ function GameBoard({ onTurnInfoChange }) {
   const [showAiDeathModal, setShowAiDeathModal] = useState(false)
   const [currentAiDeath, setCurrentAiDeath] = useState(null)
 
+  // INSUBSTANTIAL ability modal - shows when damage is blocked
+  const [showInsubstantialModal, setShowInsubstantialModal] = useState(false)
+  const [insubstantialData, setInsubstantialData] = useState(null)
+
+  // RIDER ability modal - shows when Skeletal Lancer dies, allows deploying Skeleton from hand
+  const [showRiderModal, setShowRiderModal] = useState(false)
+  const [riderData, setRiderData] = useState(null)
+  // { destroyedCreature, creatureLevel, position, ownerPlayerId, eligibleCreatures }
+  const [pendingRiderCallback, setPendingRiderCallback] = useState(null)
+  const [selectedRiderCreature, setSelectedRiderCreature] = useState(null)
+
   // DEPLOY CONFIRMATION state (shows leadership cost before deploying)
   const [showDeployConfirm, setShowDeployConfirm] = useState(false)
   const [pendingDeployment, setPendingDeployment] = useState(null)
@@ -577,6 +588,42 @@ function GameBoard({ onTurnInfoChange }) {
     if (!targetInfo) {
       addToast('Target is out of range!')
       return
+    }
+
+    // Calculate incoming damage for INSUBSTANTIAL check
+    const incomingDamageForCheck = targetInfo.attackType === 'melee'
+      ? attackerInstance.creature.meleeAttack?.damage || 0
+      : attackerInstance.creature.rangedAttack?.damage || 0
+
+    // Check if defender has INSUBSTANTIAL available - triggers before defense panel
+    if (gameState.canUseInsubstantial(defenderInstance)) {
+      const blocked = gameState.useInsubstantial(defenderInstance, incomingDamageForCheck, attackerInstance.owner)
+      if (blocked) {
+        // Check if defender is human - show modal
+        const defenderOwner = defenderInstance.owner
+        const defenderIsHuman = isPlayerHuman(defenderOwner)
+
+        if (defenderIsHuman) {
+          // Show Insubstantial modal for human defender
+          showInsubstantialNotification(defenderInstance, incomingDamageForCheck, attackerInstance)
+        } else {
+          // AI defender - just toast
+          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${incomingDamageForCheck} damage! Ability used until next Undead Refresh.`)
+        }
+
+        // Attack is blocked - tap attacker if they moved and mark as attacked
+        attackerInstance.hasAttackedThisTurn = true
+        if (attackerInstance.hasMovedThisTurn) {
+          attackerInstance.tap()
+        }
+
+        // Clear selection and re-render
+        setSelectedBoardCreature(null)
+        setValidMoveTiles([])
+        setValidAttackTargets([])
+        setRenderCounter(prev => prev + 1)
+        return
+      }
     }
 
     // Check if defender is a human player
@@ -1073,6 +1120,10 @@ function GameBoard({ onTurnInfoChange }) {
         if (result.bloodthirsty) {
           message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
         }
+        // RIDER ability notification
+        if (result.riderTriggered) {
+          message += ` 🐴 RIDER ability may trigger!`
+        }
       } else {
         message += ` ${defenderInstance.creature.name} has ${result.remainingHP || defenderInstance.currentHP} HP remaining.`
       }
@@ -1084,6 +1135,38 @@ function GameBoard({ onTurnInfoChange }) {
 
       addToast(message)
       gameState.checkGameOver()
+
+      // RIDER ability check - must be processed BEFORE other follow-up attacks
+      if (result.riderTriggered && result.riderData) {
+        const { position, ownerPlayerId, creatureLevel, creatureName } = result.riderData
+        const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3)
+
+        if (eligibleCreatures.length > 0) {
+          // Check if the RIDER owner is a human player (not AI)
+          // Use isPlayerHuman() to properly handle hotseat games with multiple human players
+          const riderOwnerIsHuman = isPlayerHuman(ownerPlayerId)
+
+          if (riderOwnerIsHuman) {
+            // Show modal for human player to select creature
+            setRiderData({
+              destroyedCreature: creatureName,
+              creatureLevel: creatureLevel,
+              position: position,
+              ownerPlayerId: ownerPlayerId,
+              eligibleCreatures: eligibleCreatures
+            })
+            setShowRiderModal(true)
+            // Store callback to continue combat flow after modal
+            setPendingRiderCallback(() => () => {
+              setRenderCounter(prev => prev + 1)
+            })
+            return // Wait for modal selection
+          } else {
+            // AI handles RIDER
+            handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, null)
+          }
+        }
+      }
 
       // Check for immediate elimination of defender
       const eliminationResult = gameState.checkAndEliminatePlayer(defenderInstance.owner)
@@ -1425,6 +1508,10 @@ function GameBoard({ onTurnInfoChange }) {
         if (result.bloodthirsty) {
           message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
         }
+        // RIDER ability notification
+        if (result.riderTriggered) {
+          message += ` 🐴 RIDER ability may trigger!`
+        }
       } else {
         message += ` ${defenderInstance.creature.name} has ${result.remainingHP || defenderInstance.currentHP} HP remaining.`
       }
@@ -1438,6 +1525,38 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Check for game over
       gameState.checkGameOver()
+
+      // RIDER ability check - must be processed BEFORE other follow-up attacks
+      if (result.riderTriggered && result.riderData) {
+        const { position, ownerPlayerId, creatureLevel, creatureName } = result.riderData
+        const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3)
+
+        if (eligibleCreatures.length > 0) {
+          // Check if the RIDER owner is a human player (not AI)
+          // Use isPlayerHuman() to properly handle hotseat games with multiple human players
+          const riderOwnerIsHuman = isPlayerHuman(ownerPlayerId)
+
+          if (riderOwnerIsHuman) {
+            // Show modal for human player to select creature
+            setRiderData({
+              destroyedCreature: creatureName,
+              creatureLevel: creatureLevel,
+              position: position,
+              ownerPlayerId: ownerPlayerId,
+              eligibleCreatures: eligibleCreatures
+            })
+            setShowRiderModal(true)
+            // Store callback to continue combat flow after modal
+            setPendingRiderCallback(() => () => {
+              setRenderCounter(prev => prev + 1)
+            })
+            return // Wait for modal selection
+          } else {
+            // AI handles RIDER
+            handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, null)
+          }
+        }
+      }
 
       // Check for immediate elimination of defender
       const eliminationResult = gameState.checkAndEliminatePlayer(defenderInstance.owner)
@@ -1693,6 +1812,38 @@ function GameBoard({ onTurnInfoChange }) {
     if (!pendingAttack || !pendingAttack.isFlashingBlades) return
 
     const { attackerInstance, defenderInstance } = pendingAttack
+    const flashingBladesDamage = 10
+
+    // Check if defender has INSUBSTANTIAL available - triggers before defense panel
+    if (gameState.canUseInsubstantial(defenderInstance)) {
+      const blocked = gameState.useInsubstantial(defenderInstance, flashingBladesDamage, attackerInstance.owner)
+      if (blocked) {
+        // Check if defender is human - show modal
+        const defenderOwner = defenderInstance.owner
+        const defenderIsHuman = isPlayerHuman(defenderOwner)
+
+        if (defenderIsHuman) {
+          // Show Insubstantial modal for human defender
+          showInsubstantialNotification(defenderInstance, flashingBladesDamage, attackerInstance)
+        } else {
+          // AI defender - just toast
+          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${flashingBladesDamage} FLASHING BLADES damage! Ability used until next Undead Refresh.`)
+        }
+
+        // Tap attacker if they moved
+        if (attackerInstance.hasMovedThisTurn) {
+          attackerInstance.tap()
+        }
+
+        // Clear pending attack and combat panel
+        setPendingAttack(null)
+        closeCombatPanel()
+        setFlashingBladesPending(null)
+        setFlashingBladesTargetMode(false)
+        setRenderCounter(prev => prev + 1)
+        return
+      }
+    }
 
     // Check if defender is human (needs defense options) or AI
     const defenderPlayerId = defenderInstance.owner
@@ -1985,6 +2136,33 @@ function GameBoard({ onTurnInfoChange }) {
     if (!pendingAttack || !pendingAttack.isHiddenBlade) return
 
     const { attackerInstance, defenderInstance } = pendingAttack
+    const hiddenBladeDamage = 10
+
+    // Check if defender has INSUBSTANTIAL available - triggers before defense panel
+    if (gameState.canUseInsubstantial(defenderInstance)) {
+      const blocked = gameState.useInsubstantial(defenderInstance, hiddenBladeDamage, attackerInstance.owner)
+      if (blocked) {
+        // Check if defender is human - show modal
+        const defenderOwner = defenderInstance.owner
+        const defenderIsHuman = isPlayerHuman(defenderOwner)
+
+        if (defenderIsHuman) {
+          // Show Insubstantial modal for human defender
+          showInsubstantialNotification(defenderInstance, hiddenBladeDamage, attackerInstance)
+        } else {
+          // AI defender - just toast
+          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${hiddenBladeDamage} HIDDEN BLADE damage! Ability used until next Undead Refresh.`)
+        }
+
+        // Clear pending attack and combat panel
+        setPendingAttack(null)
+        closeCombatPanel()
+        setHiddenBladePending(null)
+        setHiddenBladeTargetMode(false)
+        setRenderCounter(prev => prev + 1)
+        return
+      }
+    }
 
     // Check if defender is human (needs defense options) or AI
     const defenderPlayerId = defenderInstance.owner
@@ -2224,6 +2402,38 @@ function GameBoard({ onTurnInfoChange }) {
     const { attackerInstance, defenderInstance } = pendingAttack
     const damage = attackerInstance.creature.meleeAttack?.damage || 30
 
+    // Check if defender has INSUBSTANTIAL available - triggers before defense panel
+    if (gameState.canUseInsubstantial(defenderInstance)) {
+      const blocked = gameState.useInsubstantial(defenderInstance, damage, attackerInstance.owner)
+      if (blocked) {
+        // Check if defender is human - show modal
+        const defenderOwner = defenderInstance.owner
+        const defenderIsHuman = isPlayerHuman(defenderOwner)
+
+        if (defenderIsHuman) {
+          // Show Insubstantial modal for human defender
+          showInsubstantialNotification(defenderInstance, damage, attackerInstance)
+        } else {
+          // AI defender - just toast
+          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${damage} CONFUSION GAZE damage! Ability used until next Undead Refresh.`)
+        }
+
+        // Mark attacker as attacked and tap if moved
+        attackerInstance.hasAttackedThisTurn = true
+        if (attackerInstance.hasMovedThisTurn) {
+          attackerInstance.tap()
+        }
+
+        // Clear pending attack and combat panel
+        setPendingAttack(null)
+        closeCombatPanel()
+        setConfusionGazeMode(null)
+        setConfusionGazePending(null)
+        setRenderCounter(prev => prev + 1)
+        return
+      }
+    }
+
     // Check if defender is human (needs defense options) or AI
     const defenderPlayerId = defenderInstance.owner
     const isDefenderHuman = isPlayerHuman(defenderPlayerId)
@@ -2403,6 +2613,40 @@ function GameBoard({ onTurnInfoChange }) {
     // END ATTACK RE-VALIDATION
     // ============================================================================
 
+    // Calculate incoming damage for INSUBSTANTIAL check
+    const incomingDamageForCheck = targetInfo.attackType === 'melee'
+      ? attackerInstance.creature.meleeAttack?.damage || 0
+      : attackerInstance.creature.rangedAttack?.damage || 0
+
+    // Check if defender has INSUBSTANTIAL available - triggers before defense panel
+    if (gameState.canUseInsubstantial(defenderInstance)) {
+      const blocked = gameState.useInsubstantial(defenderInstance, incomingDamageForCheck, attackerInstance.owner)
+      if (blocked) {
+        // Check if defender is human - show modal
+        const defenderOwner = defenderInstance.owner
+        const defenderIsHuman = isPlayerHuman(defenderOwner)
+
+        if (defenderIsHuman) {
+          // Show Insubstantial modal for human defender
+          showInsubstantialNotification(defenderInstance, incomingDamageForCheck, attackerInstance)
+        } else {
+          // AI defender - just toast
+          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${incomingDamageForCheck} damage! Ability used until next Undead Refresh.`)
+        }
+
+        // Attack is blocked - tap attacker if they moved and mark as attacked
+        attackerInstance.hasAttackedThisTurn = true
+        if (attackerInstance.hasMovedThisTurn) {
+          attackerInstance.tap()
+        }
+
+        // Clear AI processing state
+        setProcessingAIAction(false)
+        setRenderCounter(prev => prev + 1)
+        return
+      }
+    }
+
     // Check if defender is a human player
     const defenderPlayerId = defenderInstance.owner
     const isDefenderHuman = isPlayerHuman(defenderPlayerId)
@@ -2577,6 +2821,37 @@ function GameBoard({ onTurnInfoChange }) {
         // Check for game over
         gameState.checkGameOver()
 
+        // RIDER ability check - when AI-defended Skeletal Lancer is destroyed
+        // This handles: Human attacks AI's Skeletal Lancer, or AI attacks AI's Skeletal Lancer
+        if (result.destroyed && result.riderTriggered && result.riderData) {
+          const { position, ownerPlayerId, creatureLevel, creatureName } = result.riderData
+          const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3)
+
+          if (eligibleCreatures.length > 0) {
+            // Check if RIDER owner is human or AI
+            const isRiderOwnerHuman = isPlayerHuman(ownerPlayerId)
+
+            if (isRiderOwnerHuman) {
+              // Human's Skeletal Lancer killed by AI - show modal for human
+              setRiderData({
+                destroyedCreature: creatureName,
+                creatureLevel: creatureLevel,
+                position: position,
+                ownerPlayerId: ownerPlayerId,
+                eligibleCreatures: eligibleCreatures
+              })
+              setShowRiderModal(true)
+              setProcessingAIAction(false)
+              return // Wait for modal selection before continuing
+            } else {
+              // AI's Skeletal Lancer killed - AI decides on RIDER
+              handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, () => {
+                setProcessingAIAction(false)
+              })
+              return
+            }
+          }
+        }
 
         // AI FLASHING BLADES check - after melee attack deals damage
         // Note: The creature's tapping is deferred if it has FLASHING BLADES
@@ -3356,6 +3631,33 @@ function GameBoard({ onTurnInfoChange }) {
     const firstTarget = lightningBreathTargets[0]
     const damage = gameState.getLightningBreathDamage(lightningBreathAttacker)
 
+    // Check if first target has INSUBSTANTIAL available
+    if (gameState.canUseInsubstantial(firstTarget)) {
+      const blocked = gameState.useInsubstantial(firstTarget, damage, lightningBreathAttacker.owner)
+      if (blocked) {
+        const defenderIsHuman = isPlayerHuman(firstTarget.owner)
+        if (defenderIsHuman) {
+          showInsubstantialNotification(firstTarget, damage, lightningBreathAttacker)
+        } else {
+          addToast(`👻 INSUBSTANTIAL: ${firstTarget.creature.name} blocked ${damage} LIGHTNING BREATH damage!`)
+        }
+
+        // Create result for this blocked attack
+        const blockedResult = {
+          damage: 0,
+          destroyed: false,
+          moraleChange: { attacker: 0, defender: 0 },
+          targetName: firstTarget.creature.name,
+          defenseResult: { type: 'insubstantial', success: true, damageBlocked: damage },
+          insubstantialUsed: true
+        }
+
+        // Move to next target or complete
+        handleLightningBreathAttackResolved(blockedResult)
+        return
+      }
+    }
+
     setPendingAttack({
       attackerInstance: lightningBreathAttacker,
       defenderInstance: firstTarget,
@@ -3429,6 +3731,45 @@ function GameBoard({ onTurnInfoChange }) {
       setLightningBreathCurrentAttackIndex(nextIndex)
       const nextTarget = targets[nextIndex]
       const damage = gameState.getLightningBreathDamage(attacker)
+
+      // Check if next target has INSUBSTANTIAL available
+      if (gameState.canUseInsubstantial(nextTarget)) {
+        const blocked = gameState.useInsubstantial(nextTarget, damage, attacker.owner)
+        if (blocked) {
+          const defenderIsHuman = isPlayerHuman(nextTarget.owner)
+          if (defenderIsHuman) {
+            showInsubstantialNotification(nextTarget, damage, attacker)
+          } else {
+            addToast(`👻 INSUBSTANTIAL: ${nextTarget.creature.name} blocked ${damage} LIGHTNING BREATH damage!`)
+          }
+
+          // Create result for this blocked attack and recursively continue
+          const blockedResult = {
+            damage: 0,
+            destroyed: false,
+            moraleChange: { attacker: 0, defender: 0 },
+            targetName: nextTarget.creature.name,
+            defenseResult: { type: 'insubstantial', success: true, damageBlocked: damage },
+            insubstantialUsed: true
+          }
+
+          // Store result and continue to next
+          const updatedResults = [...newResults, blockedResult]
+          setLightningBreathResults(updatedResults)
+
+          // Check for more targets after this blocked one
+          const followingIndex = nextIndex + 1
+          if (followingIndex < targets.length) {
+            // Recursively handle next target
+            setLightningBreathCurrentAttackIndex(followingIndex)
+            handleLightningBreathAttackResolved(blockedResult)
+          } else {
+            // All attacks resolved
+            handleLightningBreathComplete(updatedResults)
+          }
+          return
+        }
+      }
 
       setPendingAttack({
         attackerInstance: attacker,
@@ -3657,6 +3998,248 @@ function GameBoard({ onTurnInfoChange }) {
       // Queue for later
       setAiDeathQueue(prev => [...prev, deathData])
     }
+  }
+
+  /**
+   * Show INSUBSTANTIAL modal when ability blocks damage (human players only)
+   * @param {CreatureInstance} defenderInstance - The creature that used INSUBSTANTIAL
+   * @param {number} damageBlocked - Amount of damage blocked
+   * @param {CreatureInstance} attackerInstance - The creature that tried to deal damage
+   */
+  const showInsubstantialNotification = (defenderInstance, damageBlocked, attackerInstance) => {
+    setInsubstantialData({
+      defenderInstance,
+      damageBlocked,
+      attackerInstance
+    })
+    setShowInsubstantialModal(true)
+  }
+
+  /**
+   * Handle INSUBSTANTIAL modal dismissal
+   * Clears all combat-related state since the attack was blocked
+   */
+  const handleInsubstantialDismiss = () => {
+    setShowInsubstantialModal(false)
+    setInsubstantialData(null)
+
+    // Clear combat panel state - attack was blocked, no further action needed
+    setPendingAttack(null)
+    setCombatPanelMode(null)
+    setCombatHighlightCreatures({ attacker: null, defender: null })
+
+    // Clear selection state
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+
+    setRenderCounter(prev => prev + 1)
+  }
+
+  // ============================================================================
+  // RIDER Ability Handlers - Skeletal Lancer
+  // When creature is destroyed, deploy a Skeleton (Level 3 or lower) from hand
+  // Morale loss = (destroyed creature level - deployed creature level)
+  // ============================================================================
+
+  /**
+   * Handle RIDER creature selection - player chooses which Skeleton to deploy
+   * @param {Object} selectedCreature - The creature card selected from hand
+   */
+  const handleRiderSelect = (selectedCreature) => {
+    if (!riderData || !gameState) return
+
+    const { position, ownerPlayerId, creatureLevel } = riderData
+    const player = gameState.players[ownerPlayerId]
+
+    // Calculate morale cost (Skeletal Lancer level - deployed creature level)
+    const moraleCost = creatureLevel - selectedCreature.level
+
+    // Remove creature from hand
+    const creatureIndex = player.creatureHand.findIndex(c => c.id === selectedCreature.id)
+    if (creatureIndex !== -1) {
+      player.creatureHand.splice(creatureIndex, 1)
+    }
+
+    // Create and place creature instance
+    const creatureInstance = new CreatureInstance(selectedCreature, ownerPlayerId)
+    creatureInstance.position = { ...position }
+    creatureInstance.markAsDeployed(gameState.turnNumber)
+
+    // Place on tile
+    const tile = gameState.getTile(position.x, position.y)
+    if (tile) {
+      tile.occupant = creatureInstance
+    }
+
+    // Add to creatures in play
+    player.creaturesInPlay.push(creatureInstance)
+
+    // Apply morale cost (reduced by deployed creature level)
+    player.morale -= moraleCost
+
+    // Track for abilities test
+    if (window.trackAbility) {
+      window.trackAbility('rider', 'triggered', player.aiDifficulty || 'human', {
+        deployedCreature: selectedCreature.name,
+        deployedLevel: selectedCreature.level,
+        moraleCost: moraleCost,
+        moraleSaved: selectedCreature.level
+      })
+    }
+
+    console.log(`[RIDER] Deployed ${selectedCreature.name} (Level ${selectedCreature.level}). Lost ${moraleCost} morale instead of ${creatureLevel}.`)
+
+    // Close modal and clear state
+    setShowRiderModal(false)
+    setRiderData(null)
+    setSelectedRiderCreature(null)
+
+    if (pendingRiderCallback) {
+      const callback = pendingRiderCallback
+      setPendingRiderCallback(null)
+      callback()
+    }
+
+    addToast(`RIDER: Deployed ${selectedCreature.name} (Level ${selectedCreature.level}). Lost ${moraleCost} morale.`, 'info')
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Handle RIDER decline - player chooses not to deploy a replacement
+   * Full morale loss occurs (creature level)
+   */
+  const handleRiderDecline = () => {
+    if (!riderData || !gameState) return
+
+    const { ownerPlayerId, creatureLevel, destroyedCreature } = riderData
+
+    // Track for abilities test
+    const player = gameState.players[ownerPlayerId]
+    if (window.trackAbility) {
+      window.trackAbility('rider', 'declined', player?.aiDifficulty || 'human', {
+        destroyedCreature: destroyedCreature,
+        moraleLost: creatureLevel
+      })
+    }
+
+    console.log(`[RIDER] Declined - ${destroyedCreature} destroyed. Full morale loss of ${creatureLevel}.`)
+
+    // Close modal and clear state
+    setShowRiderModal(false)
+    setRiderData(null)
+    setSelectedRiderCreature(null)
+
+    if (pendingRiderCallback) {
+      const callback = pendingRiderCallback
+      setPendingRiderCallback(null)
+      callback()
+    }
+
+    addToast(`RIDER declined: ${destroyedCreature} destroyed. Lost ${creatureLevel} morale.`, 'warning')
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Handle AI RIDER ability decision
+   * Applies 0/50/100 difficulty rule
+   * @param {string} playerId - AI player ID
+   * @param {Array} eligibleCreatures - Eligible creatures from hand
+   * @param {Object} position - Position where creature died
+   * @param {number} creatureLevel - Level of destroyed creature
+   * @param {string} destroyedCreature - Name of destroyed creature
+   * @param {Function} callback - Callback to execute after RIDER resolution
+   */
+  const handleAIRiderDecision = (playerId, eligibleCreatures, position, creatureLevel, destroyedCreature, callback) => {
+    const player = gameState.players[playerId]
+    if (!player) {
+      if (callback) callback()
+      return
+    }
+
+    const aiDifficulty = player.aiDifficulty || 'medium'
+
+    // Track that RIDER was offered
+    if (window.trackAbility) {
+      window.trackAbility('rider', 'offered', aiDifficulty, {
+        destroyedCreature: destroyedCreature,
+        eligibleCount: eligibleCreatures.length
+      })
+    }
+
+    // Apply 0/50/100 difficulty rule
+    let shouldDeploy = false
+    switch (aiDifficulty) {
+      case 'easy':
+        shouldDeploy = false  // Easy: Never use RIDER (0%)
+        break
+      case 'medium':
+        shouldDeploy = Math.random() < 0.5  // Medium: 50% chance
+        break
+      case 'hard':
+        shouldDeploy = true  // Hard: Always use RIDER (100%)
+        break
+      default:
+        shouldDeploy = Math.random() < 0.5
+    }
+
+    if (!shouldDeploy) {
+      console.log(`[RIDER] AI (${aiDifficulty}) declined to deploy replacement for ${destroyedCreature}`)
+      if (window.trackAbility) {
+        window.trackAbility('rider', 'declined', aiDifficulty, {
+          destroyedCreature: destroyedCreature,
+          moraleLost: creatureLevel
+        })
+      }
+      if (callback) callback()
+      return
+    }
+
+    // AI selects highest level creature (minimizes morale loss)
+    const sortedCreatures = [...eligibleCreatures].sort((a, b) => b.level - a.level)
+    const selectedCreature = sortedCreatures[0]
+
+    // Calculate morale cost
+    const moraleCost = creatureLevel - selectedCreature.level
+
+    // Remove from hand
+    const creatureIndex = player.creatureHand.findIndex(c => c.id === selectedCreature.id)
+    if (creatureIndex !== -1) {
+      player.creatureHand.splice(creatureIndex, 1)
+    }
+
+    // Create and place creature instance
+    const creatureInstance = new CreatureInstance(selectedCreature, playerId)
+    creatureInstance.position = { ...position }
+    creatureInstance.markAsDeployed(gameState.turnNumber)
+
+    // Place on tile
+    const tile = gameState.getTile(position.x, position.y)
+    if (tile) {
+      tile.occupant = creatureInstance
+    }
+
+    // Add to creatures in play
+    player.creaturesInPlay.push(creatureInstance)
+
+    // Apply morale cost
+    player.morale -= moraleCost
+
+    // Track for abilities test
+    if (window.trackAbility) {
+      window.trackAbility('rider', 'triggered', aiDifficulty, {
+        deployedCreature: selectedCreature.name,
+        deployedLevel: selectedCreature.level,
+        moraleCost: moraleCost,
+        moraleSaved: selectedCreature.level
+      })
+    }
+
+    console.log(`[RIDER] AI (${aiDifficulty}) deployed ${selectedCreature.name} (Level ${selectedCreature.level}). Lost ${moraleCost} morale.`)
+    addToast(`AI RIDER: Deployed ${selectedCreature.name}. Lost ${moraleCost} morale.`, 'info')
+
+    if (callback) callback()
+    setRenderCounter(prev => prev + 1)
   }
 
   const advancePhase = () => {
@@ -4595,8 +5178,8 @@ function GameBoard({ onTurnInfoChange }) {
                 Cost: <Badge bg="warning" text="dark">{pendingMove.cost}</Badge> / {pendingMove.creature.creature.speed}
               </div>
 
-              {/* Water terrain warning */}
-              {pendingMove.destination.terrain === 'WATER' && !gameState.hasFlying(pendingMove.creature) && (
+              {/* Water terrain warning - only show for creatures without flying/phasing immunity */}
+              {pendingMove.destination.terrain === 'WATER' && !gameState.hasFlying(pendingMove.creature) && !gameState.hasPhasing(pendingMove.creature) && (
                 <div
                   style={{
                     marginTop: '0.75rem',
@@ -4615,8 +5198,8 @@ function GameBoard({ onTurnInfoChange }) {
                 </div>
               )}
 
-              {/* Flying creature on water - no damage */}
-              {pendingMove.destination.terrain === 'WATER' && gameState.hasFlying(pendingMove.creature) && (
+              {/* Flying/Phasing creature on water - no damage */}
+              {pendingMove.destination.terrain === 'WATER' && (gameState.hasFlying(pendingMove.creature) || gameState.hasPhasing(pendingMove.creature)) && (
                 <div
                   style={{
                     marginTop: '0.75rem',
@@ -4627,7 +5210,7 @@ function GameBoard({ onTurnInfoChange }) {
                   }}
                 >
                   <div style={{ color: '#0c5460', fontSize: '0.85rem' }}>
-                    ✈️ Flying creature - immune to water damage
+                    {gameState.hasFlying(pendingMove.creature) ? '✈️ Flying' : '👻 Phasing'} creature - immune to water damage
                   </div>
                 </div>
               )}
@@ -5313,6 +5896,206 @@ function GameBoard({ onTurnInfoChange }) {
         abilitiesTriggered={currentAiDeath?.abilitiesTriggered || []}
         moraleChanges={currentAiDeath?.moraleChanges}
       />
+
+      {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}
+      <Modal
+        show={showInsubstantialModal}
+        onHide={handleInsubstantialDismiss}
+        centered
+        size="lg"
+        backdrop="static"
+        className="damage-notification-modal"
+      >
+        <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}>
+          <Modal.Title>
+            <span style={{ color: '#17a2b8' }}>👻</span> INSUBSTANTIAL
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {insubstantialData && (
+            <>
+              {/* Defender creature card */}
+              <div className="text-center mb-3">
+                {insubstantialData.defenderInstance?.creature?.imageUrl && (
+                  <img
+                    src={insubstantialData.defenderInstance.creature.imageUrl}
+                    alt={insubstantialData.defenderInstance.creature.name}
+                    className="damage-modal-creature-img"
+                    style={{ maxHeight: '200px', borderRadius: '8px', border: '2px solid #17a2b8' }}
+                  />
+                )}
+                <div className="mt-2">
+                  <strong>{insubstantialData.defenderInstance?.creature?.name}</strong>
+                  <Badge bg="info" className="ms-2">INSUBSTANTIAL</Badge>
+                </div>
+              </div>
+
+              {/* Damage blocked alert */}
+              <Alert variant="info" className="mb-3 text-center">
+                <div style={{ fontSize: '1.2rem' }}>
+                  <strong>💨 {insubstantialData.damageBlocked} damage blocked!</strong>
+                </div>
+                <div className="mt-2">
+                  {insubstantialData.defenderInstance?.creature?.name} became insubstantial,
+                  phasing through the attack from {insubstantialData.attackerInstance?.creature?.name || 'the enemy'}!
+                </div>
+              </Alert>
+
+              {/* Warning about ability reset */}
+              <Alert variant="warning" className="mb-0">
+                <strong>⚠️ Note:</strong> INSUBSTANTIAL will not be available again until the
+                next <strong>Curse of Undeath Refresh Phase</strong>.
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444' }}>
+          <Button variant="primary" onClick={handleInsubstantialDismiss} size="lg">
+            Continue
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* RIDER ABILITY MODAL - Deploy Skeleton creature from hand */}
+      <Modal
+        show={showRiderModal}
+        onHide={() => {}} // Prevent closing without choice
+        centered
+        size="lg"
+        backdrop="static"
+        className="damage-notification-modal"
+      >
+        <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #6c757d' }}>
+          <Modal.Title>
+            <span style={{ color: '#adb5bd' }}>🐴</span> RIDER - Deploy Replacement Creature
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {riderData && (() => {
+            const riderOwner = gameState?.players[riderData.ownerPlayerId]
+            const currentLeadership = riderOwner?.leadership || 0
+            const currentMorale = riderOwner?.morale || 0
+            return (
+            <>
+              {/* Explanation Alert */}
+              <Alert variant="info" style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}>
+                <strong>{riderData.destroyedCreature}</strong> was destroyed!
+                <br />
+                You may deploy a Skeleton creature (Level 3 or lower) from your hand to tile ({riderData.position?.x}, {riderData.position?.y}).
+              </Alert>
+
+              {/* Current Player Stats */}
+              <div style={{
+                backgroundColor: '#1a1d21',
+                padding: '12px 15px',
+                borderRadius: '8px',
+                marginBottom: '15px',
+                display: 'flex',
+                justifyContent: 'space-around',
+                alignItems: 'center'
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ color: '#ffc107', fontSize: '1.5rem', fontWeight: 'bold' }}>
+                    {currentLeadership}
+                  </div>
+                  <div style={{ color: '#aaa', fontSize: '0.85rem' }}>Current Leadership</div>
+                </div>
+                <div style={{ borderLeft: '1px solid #444', height: '40px' }}></div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ color: '#dc3545', fontSize: '1.5rem', fontWeight: 'bold' }}>
+                    {currentMorale}
+                  </div>
+                  <div style={{ color: '#aaa', fontSize: '0.85rem' }}>Current Morale</div>
+                </div>
+              </div>
+
+              {/* Creature Selection Cards */}
+              <p className="mb-3"><strong>Select a Skeleton to deploy:</strong></p>
+              <Row className="g-3 justify-content-center">
+                {riderData.eligibleCreatures.map((creature, index) => {
+                  const moraleCost = riderData.creatureLevel - creature.level
+                  const isSelected = selectedRiderCreature?.id === creature.id
+                  return (
+                    <Col key={index} xs={12} sm={6} md={4}>
+                      <div
+                        onClick={() => setSelectedRiderCreature(creature)}
+                        style={{
+                          cursor: 'pointer',
+                          padding: '15px',
+                          border: isSelected ? '3px solid #28a745' : '2px solid #6c757d',
+                          borderRadius: '10px',
+                          backgroundColor: isSelected ? 'rgba(40, 167, 69, 0.2)' : 'rgba(255,255,255,0.05)',
+                          textAlign: 'center',
+                          transition: 'all 0.2s ease',
+                          boxShadow: isSelected ? '0 0 15px rgba(40, 167, 69, 0.5)' : 'none'
+                        }}
+                      >
+                        {/* Creature Image */}
+                        {creature.imageUrl && (
+                          <img
+                            src={creature.imageUrl}
+                            alt={creature.name}
+                            style={{
+                              maxHeight: '150px',
+                              maxWidth: '100%',
+                              borderRadius: '6px',
+                              marginBottom: '10px',
+                              border: '1px solid #555'
+                            }}
+                          />
+                        )}
+
+                        {/* Creature Name & Level */}
+                        <div><strong>{creature.name}</strong></div>
+                        <Badge bg="secondary" className="mt-1">Level {creature.level}</Badge>
+
+                        {/* Stats Display */}
+                        <div style={{ marginTop: '10px', padding: '8px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '5px' }}>
+                          <div><small>HP: {creature.hitPoints} | Speed: {creature.speed}</small></div>
+                          <div><small>Melee: {creature.meleeAttack?.damage || 'N/A'}</small></div>
+                          <div style={{ color: '#ffc107', marginTop: '5px', fontWeight: 'bold' }}>
+                            Leadership: {creature.level}
+                          </div>
+                          <div style={{ color: '#dc3545', fontWeight: 'bold' }}>
+                            Morale cost: {moraleCost}
+                          </div>
+                          <div style={{ color: '#28a745', fontSize: '0.85rem' }}>
+                            (Save {riderData.creatureLevel - moraleCost} morale vs full loss)
+                          </div>
+                        </div>
+                      </div>
+                    </Col>
+                  )
+                })}
+              </Row>
+            </>
+            )
+          })()}
+        </Modal.Body>
+
+        <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444', justifyContent: 'space-between' }}>
+          <div>
+            <span style={{ color: '#dc3545', fontSize: '0.9rem' }}>
+              Declining = full {riderData?.creatureLevel || 4} morale loss
+            </span>
+          </div>
+          <div>
+            <Button variant="secondary" onClick={handleRiderDecline} className="me-2">
+              Decline RIDER
+            </Button>
+            <Button
+              variant="success"
+              onClick={() => selectedRiderCreature && handleRiderSelect(selectedRiderCreature)}
+              disabled={!selectedRiderCreature}
+            >
+              Deploy {selectedRiderCreature?.name || 'Creature'}
+            </Button>
+          </div>
+        </Modal.Footer>
+      </Modal>
     </div>
   )
 }

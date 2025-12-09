@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Container, Card, Button, ProgressBar, Alert, Table, Badge, Row, Col } from 'react-bootstrap'
 import { GameState, GamePhases, Players, TerrainTypes } from '../models/gameState'
-import { Creature } from '../models/creatures'
+import { Creature, CreatureInstance } from '../models/creatures'
 import { Commander } from '../models/commanders'
 import { OrderCard } from '../models/orders'
 import { Factions, commanders, sampleCreatures, sampleOrderCards } from '../data/factions'
@@ -240,6 +240,49 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 }
+    },
+    phasing: {
+      name: 'PHASING',
+      creature: 'Hypnotic Spirit',
+      faction: 'Curse of Undeath',
+      // Overall totals - passive ability like FLYING but can pass through creatures
+      timesOffered: 0,  // Times creature could move (had movement points)
+      timesTriggered: 0,  // Times creature moved using phasing terrain benefits
+      creaturesPassedThrough: 0,  // Number of creatures passed through during moves
+      mountainsTraversed: 0,  // Number of mountain tiles crossed
+      // Per-difficulty breakdown (0/50/100 pattern for AI using phasing benefits)
+      easy: { offered: 0, triggered: 0, creaturesThrough: 0, mountains: 0 },
+      medium: { offered: 0, triggered: 0, creaturesThrough: 0, mountains: 0 },
+      hard: { offered: 0, triggered: 0, creaturesThrough: 0, mountains: 0 }
+    },
+    insubstantial: {
+      name: 'INSUBSTANTIAL',
+      creature: 'Hypnotic Spirit',
+      faction: 'Curse of Undeath',
+      // Overall totals - passive damage prevention, resets on Undead faction refresh
+      timesOffered: 0,  // Times creature took damage with ability available
+      timesTriggered: 0,  // Times ability blocked damage
+      timesDeclined: 0,  // Times AI declined (difficulty-based 0/50/100 pattern)
+      totalDamageBlocked: 0,  // Total damage blocked by ability
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, blocked: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, blocked: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, blocked: 0 }
+    },
+    rider: {
+      name: 'RIDER',
+      creature: 'Skeletal Lancer',
+      faction: 'Curse of Undeath',
+      // Overall totals - on death, deploy Skeleton creature from hand
+      timesOffered: 0,  // Times Skeletal Lancer was destroyed with eligible Skeleton in hand
+      timesTriggered: 0,  // Times a Skeleton was deployed via RIDER
+      timesDeclined: 0,  // Times AI declined (difficulty-based 0/50/100 pattern)
+      creaturesDeployed: 0,  // Total creatures deployed
+      totalMoraleSaved: 0,  // Total morale saved (deployed creature level)
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, deployed: 0, moraleSaved: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, deployed: 0, moraleSaved: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, deployed: 0, moraleSaved: 0 }
     }
   })
 
@@ -343,6 +386,43 @@ function AbilitiesTest() {
           abilityStats.unstoppable_hordes.cowerUsed++
           abilityStats.unstoppable_hordes.damagePrevented += totalDamageReduction
           abilityStats.unstoppable_hordes.moraleLost += creaturesUsed
+        }
+      }
+
+      // Check for INSUBSTANTIAL ability - Hypnotic Spirit (Curse of Undeath)
+      // Blocks ALL damage from 1 source, resets on Undead faction's refresh phase
+      // AI difficulty affects whether INSUBSTANTIAL is used (0/50/100 pattern)
+      if (gameState.canUseInsubstantial && gameState.canUseInsubstantial(defenderInstance)) {
+        const defenderPlayer = gameState.players[defenderOwner]
+        const difficulty = defenderPlayer?.aiDifficulty || 'medium'
+
+        // Track that INSUBSTANTIAL was available (offered)
+        creatureAbilityStats.insubstantial.timesOffered++
+        if (creatureAbilityStats.insubstantial[difficulty]) {
+          creatureAbilityStats.insubstantial[difficulty].offered++
+        }
+
+        // Use the gameState's useInsubstantial method which handles AI difficulty
+        const blocked = gameState.useInsubstantial(defenderInstance, incomingDamage, attackerOwner)
+
+        if (blocked) {
+          // Track that INSUBSTANTIAL was used (triggered)
+          creatureAbilityStats.insubstantial.timesTriggered++
+          creatureAbilityStats.insubstantial.totalDamageBlocked += incomingDamage
+          if (creatureAbilityStats.insubstantial[difficulty]) {
+            creatureAbilityStats.insubstantial[difficulty].triggered++
+            creatureAbilityStats.insubstantial[difficulty].blocked += incomingDamage
+          }
+
+          // Skip the rest of the attack - damage was fully blocked
+          results.attacksSuccessful++
+          continue
+        } else {
+          // Track that INSUBSTANTIAL was declined (AI difficulty)
+          creatureAbilityStats.insubstantial.timesDeclined++
+          if (creatureAbilityStats.insubstantial[difficulty]) {
+            creatureAbilityStats.insubstantial[difficulty].declined++
+          }
         }
       }
 
@@ -567,6 +647,82 @@ function AbilitiesTest() {
               player.leadership = (player.leadership || 0) + 1
               abilityStats.bloodthirsty.timesTriggered++
               abilityStats.bloodthirsty.leadershipGained++
+            }
+          }
+
+          // Check for RIDER ability (Skeletal Lancer dies)
+          if (attackResult.riderTriggered && attackResult.riderData) {
+            const { ownerPlayerId, creatureLevel, position } = attackResult.riderData
+            const defenderPlayer = gameState.players[ownerPlayerId]
+            const difficulty = defenderPlayer?.aiDifficulty || 'medium'
+
+            // Check if there are eligible Skeleton creatures in hand
+            const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3)
+
+            if (eligibleCreatures.length > 0) {
+              // Track that RIDER was offered
+              creatureAbilityStats.rider.timesOffered++
+              if (creatureAbilityStats.rider[difficulty]) {
+                creatureAbilityStats.rider[difficulty].offered++
+              }
+
+              // Apply 0/50/100 difficulty rule
+              let shouldDeploy = false
+              switch (difficulty) {
+                case 'easy':
+                  shouldDeploy = false  // Easy: Never use RIDER (0%)
+                  break
+                case 'medium':
+                  shouldDeploy = Math.random() < 0.5  // Medium: 50% chance
+                  break
+                case 'hard':
+                  shouldDeploy = true  // Hard: Always use RIDER (100%)
+                  break
+                default:
+                  shouldDeploy = Math.random() < 0.5
+              }
+
+              if (shouldDeploy) {
+                // Select highest level creature (minimizes morale loss)
+                const sortedCreatures = [...eligibleCreatures].sort((a, b) => b.level - a.level)
+                const selectedCreature = sortedCreatures[0]
+                const moraleSaved = selectedCreature.level
+
+                // Deploy the creature
+                const creatureIndex = defenderPlayer.creatureHand.findIndex(c => c.id === selectedCreature.id)
+                if (creatureIndex !== -1) {
+                  defenderPlayer.creatureHand.splice(creatureIndex, 1)
+                }
+
+                // Create proper CreatureInstance with all required methods
+                const creatureInstance = new CreatureInstance(selectedCreature, ownerPlayerId)
+                creatureInstance.position = { ...position }
+                // Mark as deployed for protection until next refresh phase
+                creatureInstance.markAsDeployed(gameState.turnNumber)
+
+                // Place on tile
+                const tile = gameState.getTile(position.x, position.y)
+                if (tile) {
+                  tile.occupant = creatureInstance
+                }
+                defenderPlayer.creaturesInPlay.push(creatureInstance)
+
+                // Track triggered
+                creatureAbilityStats.rider.timesTriggered++
+                creatureAbilityStats.rider.creaturesDeployed++
+                creatureAbilityStats.rider.totalMoraleSaved += moraleSaved
+                if (creatureAbilityStats.rider[difficulty]) {
+                  creatureAbilityStats.rider[difficulty].triggered++
+                  creatureAbilityStats.rider[difficulty].deployed++
+                  creatureAbilityStats.rider[difficulty].moraleSaved += moraleSaved
+                }
+              } else {
+                // Track declined
+                creatureAbilityStats.rider.timesDeclined++
+                if (creatureAbilityStats.rider[difficulty]) {
+                  creatureAbilityStats.rider[difficulty].declined++
+                }
+              }
             }
           }
         }
@@ -888,6 +1044,83 @@ function AbilitiesTest() {
                   creatureAbilityStats[abilityKey].timesDeclined++
                   if (creatureAbilityStats[abilityKey][difficulty]) {
                     creatureAbilityStats[abilityKey][difficulty].declined++
+                  }
+                }
+              }
+            }
+
+            // Track PHASING - Hypnotic Spirit (Curse of Undeath)
+            // Works like FLYING but can also pass through other creatures
+            // AI difficulty affects whether PHASING benefits are used (0/50/100 pattern)
+            if (action.from && action.to) {
+              const creatures = player.creaturesInPlay || []
+              const movedCreature = creatures.find(c =>
+                c.position &&
+                c.position.x === action.to.x &&
+                c.position.y === action.to.y
+              )
+              if (movedCreature && gameState.hasPhasing && gameState.hasPhasing(movedCreature)) {
+                // Use random roll for difficulty (same approach as SCUTTLE/BURROW)
+                const difficultyRoll = Math.random()
+                let difficulty = 'easy'
+                let phasingEnabled = false
+
+                if (difficultyRoll < 0.33) {
+                  difficulty = 'easy'
+                  phasingEnabled = false
+                } else if (difficultyRoll < 0.67) {
+                  difficulty = 'medium'
+                  phasingEnabled = Math.random() < 0.5
+                } else {
+                  difficulty = 'hard'
+                  phasingEnabled = true
+                }
+
+                // Track that a PHASING creature moved (offered)
+                creatureAbilityStats.phasing.timesOffered++
+                if (creatureAbilityStats.phasing[difficulty]) {
+                  creatureAbilityStats.phasing[difficulty].offered++
+                }
+
+                if (phasingEnabled) {
+                  // Track that PHASING was triggered (enabled)
+                  creatureAbilityStats.phasing.timesTriggered++
+                  if (creatureAbilityStats.phasing[difficulty]) {
+                    creatureAbilityStats.phasing[difficulty].triggered++
+                  }
+
+                  // Check path for creatures passed through and mountains traversed
+                  const path = action.path || []
+                  let creaturesPassedThrough = 0
+                  let mountainsTraversed = 0
+
+                  for (const pos of path) {
+                    const tile = gameState.getTile(pos.x, pos.y)
+                    if (tile) {
+                      // Count creatures passed through (not the start or end position)
+                      if (tile.occupant && tile.occupant !== movedCreature &&
+                          !(pos.x === action.from.x && pos.y === action.from.y) &&
+                          !(pos.x === action.to.x && pos.y === action.to.y)) {
+                        creaturesPassedThrough++
+                      }
+                      // Count mountains traversed
+                      if (tile.terrain === 'MOUNTAIN' || tile.terrain === TerrainTypes.MOUNTAIN) {
+                        mountainsTraversed++
+                      }
+                    }
+                  }
+
+                  if (creaturesPassedThrough > 0) {
+                    creatureAbilityStats.phasing.creaturesPassedThrough += creaturesPassedThrough
+                    if (creatureAbilityStats.phasing[difficulty]) {
+                      creatureAbilityStats.phasing[difficulty].creaturesThrough += creaturesPassedThrough
+                    }
+                  }
+                  if (mountainsTraversed > 0) {
+                    creatureAbilityStats.phasing.mountainsTraversed += mountainsTraversed
+                    if (creatureAbilityStats.phasing[difficulty]) {
+                      creatureAbilityStats.phasing[difficulty].mountains += mountainsTraversed
+                    }
                   }
                 }
               }
@@ -1367,9 +1600,9 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 9 }
+    if (!creatureAbilityStats) return { working: 0, total: 15 }
     let working = 0
-    const total = 13 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH
+    const total = 15 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -1384,6 +1617,9 @@ function AbilitiesTest() {
     if (creatureAbilityStats.lich_necromancer_deploy?.timesTriggered > 0) working++
     if (creatureAbilityStats.tomb_guardian_splash?.timesTriggered > 0) working++
     if (creatureAbilityStats.lightning_breath?.timesTriggered > 0) working++
+    // Hypnotic Spirit abilities
+    if (creatureAbilityStats.phasing?.timesTriggered > 0) working++
+    if (creatureAbilityStats.insubstantial?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -2776,6 +3012,277 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         DISCIPLE OF KYUSS: Each enemy creature takes 10 DAMAGE whenever it ends its activation adjacent to this creature. Triggers at end of ACTIVATE phase. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* PHASING - Hypnotic Spirit (Curse of Undeath) */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Curse of Undeath - PHASING <Badge bg="info">PASSIVE</Badge> <small className="text-muted">(Hypnotic Spirit)</small></h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Creature Moved)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.phasing?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (Phasing Benefits Used)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.phasing?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.phasing?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.phasing.timesTriggered / results.creatureAbilityStats.phasing.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Creatures Passed Through</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.phasing?.creaturesPassedThrough || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Mountains Traversed</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.phasing?.mountainsTraversed || 0}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.phasing?.[diff] || {}
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered || 0}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered || 0}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        PHASING: Ignores terrain and can move through other creatures. Cannot end on mountains or other creatures. Works like FLYING but can pass through creatures. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* INSUBSTANTIAL - Hypnotic Spirit (Curse of Undeath) */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Curse of Undeath - INSUBSTANTIAL <Badge bg="danger">PASSIVE</Badge> <small className="text-muted">(Hypnotic Spirit)</small></h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Damage Incoming)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.insubstantial?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (Damage Blocked)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.insubstantial?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (AI Difficulty)</td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.insubstantial?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.insubstantial?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.insubstantial.timesTriggered / results.creatureAbilityStats.insubstantial.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Total Damage Blocked</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.insubstantial?.totalDamageBlocked || 0}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.insubstantial?.[diff] || {}
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered || 0}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered || 0}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined || 0}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        INSUBSTANTIAL: Prevent all damage from 1 source. Resets at the start of the Undead faction's Refresh phase. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* RIDER Ability Card - Skeletal Lancer */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🐴 RIDER (Skeletal Lancer - Curse of Undeath)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Skeletal Lancer destroyed with eligible Skeleton in hand)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.rider?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (Skeleton deployed)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.rider?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.rider?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.rider?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.rider.timesTriggered / results.creatureAbilityStats.rider.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Total Creatures Deployed</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.rider?.creaturesDeployed || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Morale Saved</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.rider?.totalMoraleSaved || 0}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.rider?.[diff] || {}
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        RIDER: When Skeletal Lancer dies, deploy a Skeleton (Level 3 or lower) from hand to the same tile. Morale loss = (4 - deployed creature level). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

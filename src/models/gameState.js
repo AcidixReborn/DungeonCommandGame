@@ -410,6 +410,81 @@ export class GameState {
   }
 
   /**
+   * Check if creature has PHASING ability
+   * PHASING works like FLYING (ignores terrain, all costs 1) but can also move through other creatures
+   * Cannot end movement on mountains or other creatures
+   * Immune to water damage (like flying)
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has PHASING
+   */
+  hasPhasing(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.creature) return false
+    const abilities = creatureInstance.creature.specialAbilities || []
+    return abilities.some(ability =>
+      typeof ability === 'string' && ability.toUpperCase().includes('PHASING')
+    )
+  }
+
+  /**
+   * Check if creature has INSUBSTANTIAL ability
+   * INSUBSTANTIAL prevents all damage from 1 source, then resets at owner's refresh phase
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has INSUBSTANTIAL
+   */
+  hasInsubstantial(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.creature) return false
+    const abilities = creatureInstance.creature.specialAbilities || []
+    return abilities.some(ability =>
+      typeof ability === 'string' && ability.toUpperCase().includes('INSUBSTANTIAL')
+    )
+  }
+
+  /**
+   * Check if creature can use INSUBSTANTIAL ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has INSUBSTANTIAL and hasn't used it yet
+   */
+  canUseInsubstantial(creatureInstance) {
+    return this.hasInsubstantial(creatureInstance) && !creatureInstance.insubstantialUsed
+  }
+
+  /**
+   * Attempt to use INSUBSTANTIAL ability to block damage
+   * Applies 0/50/100 AI difficulty rule for AI players
+   * @param {CreatureInstance} creatureInstance - Creature attempting to use ability
+   * @param {number} incomingDamage - Amount of damage to block
+   * @param {string} attackerOwner - Owner of the attacker (for logging)
+   * @returns {boolean} True if damage was blocked, false otherwise
+   */
+  useInsubstantial(creatureInstance, incomingDamage, attackerOwner) {
+    if (!this.canUseInsubstantial(creatureInstance)) return false
+
+    // AI difficulty check (0/50/100 rule)
+    const defenderOwner = creatureInstance.owner
+    const defenderPlayer = this.players[defenderOwner]
+
+    if (defenderPlayer && !defenderPlayer.isHuman) {
+      const aiDifficulty = defenderPlayer.aiDifficulty || 'medium'
+
+      if (aiDifficulty === 'easy') {
+        console.log(`[Insubstantial] Easy AI - ability disabled for ${creatureInstance.creature.name}`)
+        return false  // Easy AI never uses ability
+      } else if (aiDifficulty === 'medium') {
+        if (Math.random() >= 0.5) {
+          console.log(`[Insubstantial] Medium AI - ability not triggered (50% roll failed) for ${creatureInstance.creature.name}`)
+          return false  // Medium AI: 50% chance
+        }
+      }
+      // Hard AI: always use
+    }
+
+    // Mark ability as used
+    creatureInstance.insubstantialUsed = true
+    console.log(`[Insubstantial] ${creatureInstance.creature.name} blocked ${incomingDamage} damage!`)
+    return true  // Damage blocked
+  }
+
+  /**
    * Check if creature has BURROW ability
    * BURROW allows movement through MOUNTAIN tiles (cost=1) but cannot stop on them
    * Unlike FLYING, burrowing creatures still take water damage
@@ -421,6 +496,55 @@ export class GameState {
     return creatureInstance.creature.specialAbilities.some(
       ability => typeof ability === 'string' && ability.toUpperCase().includes('BURROW')
     )
+  }
+
+  // ============================================================================
+  // RIDER - Skeletal Lancer Creature Ability
+  // When creature is destroyed, deploy a Skeleton (Level 3 or lower) from hand to same tile
+  // Morale loss = (destroyed creature level - deployed creature level)
+  // ============================================================================
+
+  /**
+   * Check if creature has RIDER ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has RIDER
+   */
+  hasRider(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('RIDER')
+    )
+  }
+
+  /**
+   * Get eligible Skeleton creatures from player's hand for RIDER deployment
+   * @param {string} playerId - Player ID to check
+   * @param {number} maxLevel - Maximum level allowed (default 3)
+   * @returns {Array} Array of eligible creature cards
+   */
+  getEligibleRiderCreatures(playerId, maxLevel = 3) {
+    const player = this.players[playerId]
+    if (!player) return []
+
+    return player.creatureHand.filter(creature => {
+      // Must be Skeleton type
+      const isSkeleton = creature.type && creature.type.includes('Skeleton')
+      // Must be at or below max level
+      const validLevel = creature.level <= maxLevel
+      // Must have enough leadership to deploy
+      const hasLeadership = player.leadership >= creature.level
+      return isSkeleton && validLevel && hasLeadership
+    })
+  }
+
+  /**
+   * Check if RIDER ability can trigger (has eligible creatures to deploy)
+   * @param {string} playerId - Player ID to check
+   * @param {number} maxLevel - Maximum level allowed (default 3)
+   * @returns {boolean} True if RIDER can trigger
+   */
+  canTriggerRider(playerId, maxLevel = 3) {
+    return this.getEligibleRiderCreatures(playerId, maxLevel).length > 0
   }
 
   // ============================================================================
@@ -483,6 +607,20 @@ export class GameState {
     }
 
     const defenderOwner = targetInstance.owner
+
+    // Check INSUBSTANTIAL before applying splash damage
+    if (this.canUseInsubstantial(targetInstance)) {
+      const blocked = this.useInsubstantial(targetInstance, SPLASH_DAMAGE, attackerOwner)
+      if (blocked) {
+        return {
+          success: true,
+          destroyed: false,
+          damageBlocked: SPLASH_DAMAGE,
+          insubstantialUsed: true,
+          moraleChange: { attacker: 0, defender: 0 }
+        }
+      }
+    }
 
     // Apply damage using takeDamage (same as resolveAttack)
     const wasDestroyed = targetInstance.takeDamage(SPLASH_DAMAGE)
@@ -558,6 +696,22 @@ export class GameState {
     }
 
     const defenderOwner = targetInstance.owner
+
+    // Check INSUBSTANTIAL before applying Flashing Blades splash damage
+    if (this.canUseInsubstantial(targetInstance)) {
+      const blocked = this.useInsubstantial(targetInstance, actualDamage, attackerOwner)
+      if (blocked) {
+        return {
+          success: true,
+          damage: 0,
+          destroyed: false,
+          damageBlocked: actualDamage,
+          insubstantialUsed: true,
+          moraleChange: { attacker: 0, defender: 0 },
+          remainingHP: targetInstance.currentHP
+        }
+      }
+    }
 
     // Apply damage using takeDamage
     const wasDestroyed = targetInstance.takeDamage(actualDamage)
@@ -669,6 +823,20 @@ export class GameState {
 
     const defenderOwner = targetInstance.owner
 
+    // Check INSUBSTANTIAL before applying Hidden Blade damage
+    if (this.canUseInsubstantial(targetInstance)) {
+      const blocked = this.useInsubstantial(targetInstance, HIDDEN_BLADE_DAMAGE, attackerOwner)
+      if (blocked) {
+        return {
+          success: true,
+          destroyed: false,
+          damageBlocked: HIDDEN_BLADE_DAMAGE,
+          insubstantialUsed: true,
+          moraleChange: { attacker: 0, defender: 0 }
+        }
+      }
+    }
+
     // Apply damage using takeDamage
     const wasDestroyed = targetInstance.takeDamage(HIDDEN_BLADE_DAMAGE)
 
@@ -743,6 +911,22 @@ export class GameState {
     }
 
     const defenderOwner = targetInstance.owner
+
+    // Check INSUBSTANTIAL before applying Hidden Blade damage with defense
+    if (this.canUseInsubstantial(targetInstance)) {
+      const blocked = this.useInsubstantial(targetInstance, actualDamage, attackerOwner)
+      if (blocked) {
+        return {
+          success: true,
+          damage: 0,
+          destroyed: false,
+          damageBlocked: actualDamage,
+          insubstantialUsed: true,
+          moraleChange: { attacker: 0, defender: 0 },
+          remainingHP: targetInstance.currentHP
+        }
+      }
+    }
 
     // Apply damage using takeDamage
     const wasDestroyed = targetInstance.takeDamage(actualDamage)
@@ -1054,6 +1238,21 @@ export class GameState {
     const attackerOwner = attackerInstance.owner
     const defenderOwner = targetInstance.owner
 
+    // Check INSUBSTANTIAL before applying Confusion Gaze damage
+    if (this.canUseInsubstantial(targetInstance)) {
+      const blocked = this.useInsubstantial(targetInstance, CONFUSION_GAZE_DAMAGE, attackerOwner)
+      if (blocked) {
+        return {
+          success: true,
+          destroyed: false,
+          damageBlocked: CONFUSION_GAZE_DAMAGE,
+          insubstantialUsed: true,
+          moraleChange: { attacker: 0, defender: 0 },
+          remainingHP: targetInstance.currentHP
+        }
+      }
+    }
+
     // Apply damage using takeDamage
     const wasDestroyed = targetInstance.takeDamage(CONFUSION_GAZE_DAMAGE)
 
@@ -1129,6 +1328,22 @@ export class GameState {
 
     const attackerOwner = attackerInstance.owner
     const defenderOwner = targetInstance.owner
+
+    // Check INSUBSTANTIAL before applying Confusion Gaze damage with defense
+    if (this.canUseInsubstantial(targetInstance)) {
+      const blocked = this.useInsubstantial(targetInstance, actualDamage, attackerOwner)
+      if (blocked) {
+        return {
+          success: true,
+          damage: 0,
+          destroyed: false,
+          damageBlocked: actualDamage,
+          insubstantialUsed: true,
+          moraleChange: { attacker: 0, defender: 0 },
+          remainingHP: targetInstance.currentHP
+        }
+      }
+    }
 
     // Apply damage using takeDamage
     const wasDestroyed = targetInstance.takeDamage(actualDamage)
@@ -1827,6 +2042,29 @@ export class GameState {
         const previousHP = creature.currentHP
         const damageAmount = 10 // Unpreventable damage
 
+        // Check INSUBSTANTIAL before applying Disciple of Kyuss damage
+        // Note: "Unpreventable" means no defense cards, but INSUBSTANTIAL still works
+        if (this.canUseInsubstantial(creature)) {
+          const blocked = this.useInsubstantial(creature, damageAmount, disciple.owner)
+          if (blocked) {
+            const event = {
+              creatureName: creature.creature.name,
+              creatureOwner: endingPlayerId,
+              creatureImageUrl: creature.creature.imageUrl,
+              creatureLevel: creature.creature.level,
+              damage: 0,
+              damageBlocked: damageAmount,
+              damageSource: `Disciple of Kyuss`,
+              destroyed: false,
+              insubstantialUsed: true,
+              previousHP,
+              remainingHP: creature.currentHP
+            }
+            damageEvents.push(event)
+            continue // Skip to next creature
+          }
+        }
+
         // Apply damage directly (unpreventable - no defense)
         creature.currentHP = Math.max(0, creature.currentHP - damageAmount)
         const wasDestroyed = creature.currentHP <= 0
@@ -2069,10 +2307,11 @@ export class GameState {
    * @param {Object} tile - Tile to check
    * @param {boolean} flying - Whether creature is flying
    * @param {boolean} burrowing - Whether creature has BURROW ability enabled
+   * @param {boolean} phasing - Whether creature has PHASING ability enabled
    * @returns {boolean} True if passable
    */
-  isTerrainPassable(tile, flying = false, burrowing = false) {
-    return this.board.isTerrainPassable(tile, flying, burrowing)
+  isTerrainPassable(tile, flying = false, burrowing = false, phasing = false) {
+    return this.board.isTerrainPassable(tile, flying, burrowing, phasing)
   }
 
   /**
@@ -2082,14 +2321,15 @@ export class GameState {
    * @param {boolean} flying - Whether creature is flying
    * @param {CreatureInstance} creatureInstance - Optional creature for ability checks
    * @param {boolean} burrowing - Whether creature has BURROW ability enabled
+   * @param {boolean} phasing - Whether creature has PHASING ability enabled
    * @returns {number} Movement cost (999 = impassable)
    */
-  getTerrainMovementCost(terrain, flying = false, creatureInstance = null, burrowing = false) {
+  getTerrainMovementCost(terrain, flying = false, creatureInstance = null, burrowing = false, phasing = false) {
     // Check for GRUUMSH COMMANDS IT ability (ignore difficult terrain)
     const ignoresDifficult = creatureInstance ? this.ignoresDifficultTerrain(creatureInstance) : false
 
     // Delegate to Board with the ability check result
-    return this.board.getTerrainMovementCost(terrain, flying, ignoresDifficult, burrowing)
+    return this.board.getTerrainMovementCost(terrain, flying, ignoresDifficult, burrowing, phasing)
   }
 
   // Get all valid movement tiles using A* pathfinding
@@ -2135,6 +2375,37 @@ export class GameState {
       }
     }
 
+    // PHASING: Check if creature has ability AND apply AI difficulty logic
+    // PHASING works like FLYING (ignores terrain) but can also move through other creatures
+    // Human players ALWAYS have PHASING enabled
+    // AI difficulty affects whether PHASING is enabled:
+    // - Easy: PHASING disabled (AI doesn't benefit from passive)
+    // - Medium: 50% chance PHASING is enabled
+    // - Hard: PHASING always enabled
+    const hasPhasingAbility = this.hasPhasing(creatureInstance)
+    let phasingEnabled = false
+
+    if (hasPhasingAbility) {
+      const owner = creatureInstance.owner
+      const player = this.players[owner]
+
+      // Human players always get PHASING enabled
+      if (player?.isHuman) {
+        phasingEnabled = true
+      } else {
+        // AI players use difficulty-based logic
+        const aiDifficulty = player?.aiDifficulty || 'medium'
+
+        if (aiDifficulty === 'easy') {
+          phasingEnabled = false  // Easy AI never uses PHASING
+        } else if (aiDifficulty === 'medium') {
+          phasingEnabled = Math.random() < 0.5  // Medium AI uses 50% of the time
+        } else {
+          phasingEnabled = true  // Hard AI always uses PHASING
+        }
+      }
+    }
+
     // SCUTTLE: Create callback if creature has the ability
     // Allows moving through any creature (enemy or ally) for 1 speed cost
     // Human players ALWAYS have SCUTTLE enabled
@@ -2145,7 +2416,13 @@ export class GameState {
     const hasScuttleAbility = this.hasScuttle(creatureInstance)
     let canPassThrough = null
 
-    if (hasScuttleAbility) {
+    // PHASING also allows passing through creatures (like SCUTTLE)
+    if (phasingEnabled) {
+      canPassThrough = () => {
+        // PHASING can pass through ANY creature (enemy or ally)
+        return true
+      }
+    } else if (hasScuttleAbility) {
       const owner = creatureInstance.owner
       const player = this.players[owner]
 
@@ -2173,13 +2450,18 @@ export class GameState {
       }
     }
 
-    // FLYING/BURROW: Create callback to check if creature can STOP on a tile
-    // Flying and burrowing creatures can pass through mountains but cannot stop on them
+    // FLYING/BURROW/PHASING: Create callback to check if creature can STOP on a tile
+    // Flying, burrowing, and phasing creatures can pass through mountains but cannot stop on them
+    // PHASING creatures also cannot stop on occupied tiles (they can pass through but not stop)
     let canStopOn = null
-    if (flying || burrowEnabled) {
+    if (flying || burrowEnabled || phasingEnabled) {
       canStopOn = (tile) => {
         // Cannot stop on mountain tiles
         if (tile.terrain === 'MOUNTAIN' || tile.terrain === TerrainTypes.MOUNTAIN) {
+          return false
+        }
+        // PHASING: Cannot stop on occupied tiles (can pass through but not stop)
+        if (phasingEnabled && tile.occupant) {
           return false
         }
         return true
@@ -2187,13 +2469,14 @@ export class GameState {
     }
 
     // Use pathfinding algorithm with creature context for ability checks
+    // Pass phasing flag for terrain cost/passability (phasing treats terrain like flying)
     const validMovement = pathfindingGetValidMovement(
       startPos,
       speed,
-      (terrain, isFlying) => this.getTerrainMovementCost(terrain, isFlying, creatureInstance, burrowEnabled),
-      (tile, isFlying) => this.isTerrainPassable(tile, isFlying, burrowEnabled),
+      (terrain, isFlying) => this.getTerrainMovementCost(terrain, isFlying || phasingEnabled, creatureInstance, burrowEnabled, phasingEnabled),
+      (tile, isFlying) => this.isTerrainPassable(tile, isFlying || phasingEnabled, burrowEnabled, phasingEnabled),
       (x, y) => this.getTile(x, y),
-      flying,
+      flying || phasingEnabled,  // Phasing creatures behave like flying for terrain purposes
       canPassThrough,
       canStopOn
     )

@@ -162,7 +162,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: PHASING - This creature shifts and ignores walls while moving. It cannot end its movement in a wall space.', 'PLACEHOLDER: INSUBSTANTIAL - Prevent all damage to this creature from 1 source.'],
+    specialAbilities: ['PHASING: This creature ignores terrain and can move through other creatures. Cannot end movement on mountains or other creatures.', 'INSUBSTANTIAL: Prevent all damage to this creature from 1 source. Resets at the start of this creature\'s faction Refresh phase.'],
     faction: FACTION_NAME,
     imageUrl: hypnoticSpiritImg
   },
@@ -192,7 +192,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: RIDER - When this creature is destroyed, you can immediately deploy 1 Skeleton creature of Level 3 or lower in any square it occupied.'],
+    specialAbilities: ['RIDER: When this creature is destroyed, you may deploy 1 Skeleton creature (Level 3 or lower) from your hand to this tile. Morale loss = (4 - deployed creature level).'],
     faction: FACTION_NAME,
     imageUrl: skeletalLancerImg
   },

@@ -230,15 +230,16 @@ export class Board {
    * @param {Object} tile - Tile to check
    * @param {boolean} flying - Whether creature is flying
    * @param {boolean} burrowing - Whether creature has BURROW ability
+   * @param {boolean} phasing - Whether creature has PHASING ability
    * @returns {boolean} True if passable
    */
-  isTerrainPassable(tile, flying = false, burrowing = false) {
+  isTerrainPassable(tile, flying = false, burrowing = false, phasing = false) {
     if (!tile) return false
 
-    // Mountains block non-flying/non-burrowing creatures entirely
-    // Flying/Burrowing creatures can pass over/through mountains but cannot stop on them
+    // Mountains block non-flying/non-burrowing/non-phasing creatures entirely
+    // Flying/Burrowing/Phasing creatures can pass over/through mountains but cannot stop on them
     if (tile.terrain === TerrainTypes.MOUNTAIN || tile.terrain === 'MOUNTAIN') {
-      return flying || burrowing
+      return flying || burrowing || phasing
     }
 
     return true
@@ -250,14 +251,23 @@ export class Board {
    * @param {boolean} flying - Whether creature is flying
    * @param {boolean} ignoresDifficult - Whether creature ignores difficult terrain
    * @param {boolean} burrowing - Whether creature has BURROW ability
+   * @param {boolean} phasing - Whether creature has PHASING ability
    * @returns {number} Movement cost (999 = impassable)
    */
-  getTerrainMovementCost(terrain, flying = false, ignoresDifficult = false, burrowing = false) {
+  getTerrainMovementCost(terrain, flying = false, ignoresDifficult = false, burrowing = false, phasing = false) {
     // Flying creatures ignore difficult terrain
     // IMPORTANT: Mountains cost 1 to PASS THROUGH, but creatures cannot STOP on them
     // The "cannot stop" logic is handled in pathfinding's final destination filtering (canStopOn callback)
     if (flying) {
       // All terrain (including mountains) costs 1 for flying creatures
+      return 1
+    }
+
+    // Phasing creatures ignore terrain like flying, and can also pass through other creatures
+    // IMPORTANT: Mountains cost 1 to PASS THROUGH, but creatures cannot STOP on them
+    // The "cannot stop" logic is handled in pathfinding's final destination filtering (canStopOn callback)
+    if (phasing) {
+      // All terrain (including mountains) costs 1 for phasing creatures
       return 1
     }
 
