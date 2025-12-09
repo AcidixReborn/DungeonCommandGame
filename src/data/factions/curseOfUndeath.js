@@ -117,7 +117,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: { damage: 20, range: 10 },
-    specialAbilities: ['PLACEHOLDER: Each enemy creature takes 10 DAMAGE whenever it ends its activation adjacent to this creature.'],
+    specialAbilities: ['DISCIPLE_OF_KYUSS: Each enemy creature takes 10 DAMAGE whenever it ends its activation adjacent to this creature.'],
     faction: FACTION_NAME,
     imageUrl: discipleOfKyussImg
   },

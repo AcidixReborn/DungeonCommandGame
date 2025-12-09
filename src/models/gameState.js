@@ -1700,6 +1700,205 @@ export class GameState {
   }
 
   // ============================================================================
+  // DISCIPLE OF KYUSS ABILITY METHODS
+  // Passive ability: Each enemy creature takes 10 DAMAGE whenever it ends its
+  // activation adjacent to this creature (triggers at end of Activate Phase)
+  // ============================================================================
+
+  /**
+   * Check if creature has DISCIPLE_OF_KYUSS ability
+   * Big O: O(n) where n = number of special abilities (typically 1-3)
+   * @param {Object} creatureInstance - The creature instance to check
+   * @returns {boolean} True if creature has DISCIPLE_OF_KYUSS ability
+   */
+  hasDiscipleOfKyuss(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      a => typeof a === 'string' && a.toUpperCase().includes('DISCIPLE_OF_KYUSS')
+    )
+  }
+
+  /**
+   * Find all enemy Disciple of Kyuss creatures on the board
+   * Big O: O(p * c) where p = players, c = creatures per player
+   * @param {string} currentPlayerId - The player ending their Activate phase
+   * @returns {Array<CreatureInstance>} Array of enemy Disciples of Kyuss
+   */
+  getEnemyDisciplesOfKyuss(currentPlayerId) {
+    const disciples = []
+    for (const playerId of this.activePlayers) {
+      if (playerId === currentPlayerId) continue // Skip current player's creatures
+      const player = this.players[playerId]
+      if (!player) continue
+      for (const creature of player.creaturesInPlay) {
+        if (creature.currentHP > 0 && this.hasDiscipleOfKyuss(creature)) {
+          disciples.push(creature)
+        }
+      }
+    }
+    return disciples
+  }
+
+  /**
+   * Get all creatures of a faction that are adjacent to a Disciple of Kyuss
+   * Uses 8-directional adjacency (including diagonals)
+   * Big O: O(c * a) where c = creatures in faction, a = adjacent tiles (8)
+   * @param {string} factionPlayerId - The player whose creatures to check
+   * @param {CreatureInstance} disciple - The Disciple of Kyuss creature
+   * @returns {Array<CreatureInstance>} Creatures adjacent to the Disciple
+   */
+  getCreaturesAdjacentToDisciple(factionPlayerId, disciple) {
+    const adjacentCreatures = []
+    const player = this.players[factionPlayerId]
+    if (!player || !disciple.position) return adjacentCreatures
+
+    const adjacentTiles = this.getAdjacentTiles8Dir(disciple.position.x, disciple.position.y)
+
+    for (const creature of player.creaturesInPlay) {
+      if (!creature.position) continue
+      if (creature.currentHP <= 0) continue
+      const isAdjacent = adjacentTiles.some(
+        tile => tile.x === creature.position.x && tile.y === creature.position.y
+      )
+      if (isAdjacent) {
+        adjacentCreatures.push(creature)
+      }
+    }
+    return adjacentCreatures
+  }
+
+  /**
+   * Execute Disciple of Kyuss damage at end of Activate Phase
+   * Deals 10 UNPREVENTABLE damage to each creature of the ending faction
+   * that is adjacent to an enemy Disciple of Kyuss
+   * Big O: O(d * c) where d = enemy disciples, c = creatures in ending faction
+   * @param {string} endingPlayerId - The player ending their Activate phase
+   * @returns {Object} { damageEvents: Array, deaths: Array, sourceCreature: CreatureInstance }
+   */
+  executeDiscipleOfKyussDamage(endingPlayerId) {
+    const damageEvents = []
+    const deaths = []
+    let sourceCreature = null
+
+    // Find all enemy Disciples of Kyuss
+    const disciples = this.getEnemyDisciplesOfKyuss(endingPlayerId)
+    if (disciples.length === 0) return { damageEvents, deaths, sourceCreature }
+
+    console.log(`[Disciple of Kyuss] Found ${disciples.length} enemy Disciple(s) - checking for adjacent creatures`)
+
+    // Track creatures already damaged (avoid double-damage if somehow adjacent to multiple Disciples)
+    const damagedCreatureIds = new Set()
+
+    for (const disciple of disciples) {
+      sourceCreature = disciple // Track the source for modal display
+
+      // AI DIFFICULTY CHECK: 0/50/100 rule
+      // Check if the Disciple's owner is AI and apply difficulty rules
+      const discipleOwner = disciple.owner
+      const disciplePlayer = this.players[discipleOwner]
+
+      if (disciplePlayer && !disciplePlayer.isHuman) {
+        const aiDifficulty = disciplePlayer.aiDifficulty || 'medium'
+
+        if (aiDifficulty === 'easy') {
+          // Easy AI: Never trigger Disciple of Kyuss (0%)
+          console.log(`[Disciple of Kyuss] Easy AI - ability disabled for ${disciple.creature.name}`)
+          continue // Skip this Disciple
+        } else if (aiDifficulty === 'medium') {
+          // Medium AI: 50% chance to trigger
+          if (Math.random() >= 0.5) {
+            console.log(`[Disciple of Kyuss] Medium AI - ability not triggered (50% roll failed) for ${disciple.creature.name}`)
+            continue // Skip this Disciple
+          }
+          console.log(`[Disciple of Kyuss] Medium AI - ability triggered (50% roll passed) for ${disciple.creature.name}`)
+        }
+        // Hard AI: Always trigger (100%) - no early continue
+      }
+
+      const adjacentCreatures = this.getCreaturesAdjacentToDisciple(endingPlayerId, disciple)
+
+      console.log(`[Disciple of Kyuss] ${disciple.creature.name} has ${adjacentCreatures.length} adjacent enemy creature(s)`)
+
+      for (const creature of adjacentCreatures) {
+        // Skip if already damaged by another Disciple
+        if (damagedCreatureIds.has(creature.instanceId)) continue
+        damagedCreatureIds.add(creature.instanceId)
+
+        const previousHP = creature.currentHP
+        const damageAmount = 10 // Unpreventable damage
+
+        // Apply damage directly (unpreventable - no defense)
+        creature.currentHP = Math.max(0, creature.currentHP - damageAmount)
+        const wasDestroyed = creature.currentHP <= 0
+
+        console.log(`[Disciple of Kyuss] ${creature.creature.name} takes ${damageAmount} damage: ${previousHP} -> ${creature.currentHP}${wasDestroyed ? ' (DESTROYED!)' : ''}`)
+
+        const event = {
+          creatureName: creature.creature.name,
+          creatureOwner: endingPlayerId,
+          creatureImageUrl: creature.creature.imageUrl,
+          creatureLevel: creature.creature.level,
+          damage: damageAmount,
+          damageSource: `Disciple of Kyuss`,
+          destroyed: wasDestroyed,
+          previousHP,
+          remainingHP: creature.currentHP
+        }
+
+        if (wasDestroyed) {
+          // Handle death: clear tile, remove from play, add to graveyard, lose morale
+          this.handleDiscipleOfKyussDeath(creature, disciple.owner)
+          deaths.push(creature)
+        }
+
+        damageEvents.push(event)
+      }
+    }
+
+    if (damageEvents.length > 0) {
+      console.log(`[Disciple of Kyuss] Phase end damage complete: ${damageEvents.length} creature(s) damaged, ${deaths.length} killed`)
+    }
+
+    return { damageEvents, deaths, sourceCreature }
+  }
+
+  /**
+   * Handle creature death from Disciple of Kyuss damage
+   * Centralizes death logic: clear tile, remove from play, graveyard, morale
+   * @param {CreatureInstance} creature - The destroyed creature
+   * @param {string} killerOwner - Owner of the Disciple (for morale bonus)
+   */
+  handleDiscipleOfKyussDeath(creature, killerOwner) {
+    const owner = creature.owner
+    const player = this.players[owner]
+
+    // Clear tile occupant
+    if (creature.position) {
+      const tile = this.getTile(creature.position.x, creature.position.y)
+      if (tile) tile.occupant = null
+    }
+
+    // Remove from battlefield
+    const index = player.creaturesInPlay.findIndex(c => c.instanceId === creature.instanceId)
+    if (index !== -1) {
+      player.creaturesInPlay.splice(index, 1)
+    }
+
+    // Add to graveyard
+    player.creatureGraveyard.push(creature.creature)
+
+    // Lose morale equal to creature level
+    player.loseMorale(creature.creature.level)
+
+    // Killer gains +1 morale (standard rule)
+    if (killerOwner && this.players[killerOwner]) {
+      this.players[killerOwner].gainMorale(1)
+    }
+
+    console.log(`[Disciple of Kyuss] ${creature.creature.name} destroyed - ${owner} loses ${creature.creature.level} morale, ${killerOwner} gains 1 morale`)
+  }
+
+  // ============================================================================
   // COMMANDER ABILITY DELEGATION METHODS
   // These methods delegate to CommanderAbilityManager for backward compatibility
   // ============================================================================

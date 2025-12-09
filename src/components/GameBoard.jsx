@@ -13,6 +13,7 @@ import DeployConfirmPanel from './DeployConfirmPanel'
 import SimpleAI from '../ai/simpleAI'
 // Import custom hooks for state management
 import { useNotifications, useSelection, useCombat } from '../hooks'
+import DamageNotificationModal from './DamageNotificationModal'
 import './GameBoard.css'
 
 /**
@@ -176,6 +177,16 @@ function GameBoard({ onTurnInfoChange }) {
   const [lightningBreathValidTargets, setLightningBreathValidTargets] = useState([]) // All valid targets
   const [lightningBreathCurrentAttackIndex, setLightningBreathCurrentAttackIndex] = useState(0) // Current attack being resolved
   const [lightningBreathResults, setLightningBreathResults] = useState([]) // Results for summary toast
+
+  // DISCIPLE OF KYUSS ability state - damage notification modal
+  const [showDamageNotification, setShowDamageNotification] = useState(false)
+  const [damageNotificationData, setDamageNotificationData] = useState(null)
+  const [pendingPhaseAdvance, setPendingPhaseAdvance] = useState(false)
+
+  // AI COMBAT DEATH modal queue - shows deaths during AI turns
+  const [aiDeathQueue, setAiDeathQueue] = useState([])
+  const [showAiDeathModal, setShowAiDeathModal] = useState(false)
+  const [currentAiDeath, setCurrentAiDeath] = useState(null)
 
   // DEPLOY CONFIRMATION state (shows leadership cost before deploying)
   const [showDeployConfirm, setShowDeployConfirm] = useState(false)
@@ -2539,6 +2550,24 @@ function GameBoard({ onTurnInfoChange }) {
           if (result.bloodthirsty) {
             message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
           }
+
+          // Queue AI death modal for visibility
+          const abilitiesTriggered = []
+          if (result.lifeDrain) {
+            abilitiesTriggered.push(`Life Drain: ${attackerInstance.creature.name} heals ${result.lifeDrain.healAmount} HP`)
+          }
+          if (result.bloodthirsty) {
+            abilitiesTriggered.push(`Bloodthirsty: +${result.bloodthirsty.leadershipGained} Leadership`)
+          }
+
+          queueAiDeathModal({
+            attackerInstance,
+            defenderInstance,
+            damageDealt: result.damage,
+            attackType: targetInfo.attackType,
+            abilitiesTriggered,
+            moraleChanges: result.moraleChange
+          })
         } else {
           message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
         }
@@ -2583,6 +2612,16 @@ function GameBoard({ onTurnInfoChange }) {
               if (flashResult.destroyed) {
                 flashMessage += ` ${bestTarget.creature.name} was destroyed!`
                 flashMessage += ` Morale changes: Attacker +${flashResult.moraleChange.attacker}, Defender ${flashResult.moraleChange.defender}`
+
+                // Queue AI death modal for FLASHING BLADES kill
+                queueAiDeathModal({
+                  attackerInstance,
+                  defenderInstance: bestTarget,
+                  damageDealt: 10,
+                  attackType: 'melee',
+                  abilitiesTriggered: ['Flashing Blades: 10 splash damage to adjacent enemy'],
+                  moraleChanges: flashResult.moraleChange
+                })
               } else {
                 flashMessage += ` ${bestTarget.creature.name} has ${flashResult.remainingHP} HP remaining.`
               }
@@ -2634,6 +2673,16 @@ function GameBoard({ onTurnInfoChange }) {
               if (hiddenResult.destroyed) {
                 hiddenMessage += ` ${bestTarget.creature.name} was destroyed!`
                 hiddenMessage += ` Morale changes: Attacker +${hiddenResult.moraleChange.attacker}, Defender ${hiddenResult.moraleChange.defender}`
+
+                // Queue AI death modal for HIDDEN BLADE kill
+                queueAiDeathModal({
+                  attackerInstance,
+                  defenderInstance: bestTarget,
+                  damageDealt: 10,
+                  attackType: 'melee',
+                  abilitiesTriggered: ['Hidden Blade: 10 damage to adjacent tapped enemy'],
+                  moraleChanges: hiddenResult.moraleChange
+                })
               } else {
                 hiddenMessage += ` ${bestTarget.creature.name} has ${hiddenResult.remainingHP} HP remaining.`
               }
@@ -3556,6 +3605,60 @@ function GameBoard({ onTurnInfoChange }) {
     handleLightningBreathAttackResolved(result)
   }
 
+  // ============================================================================
+  // DISCIPLE OF KYUSS / AI DEATH MODAL HANDLERS
+  // ============================================================================
+
+  /**
+   * Handle damage notification modal dismissal (Disciple of Kyuss ability)
+   * Continues phase advancement after player acknowledges damage
+   */
+  const handleDamageNotificationDismiss = () => {
+    setShowDamageNotification(false)
+    setDamageNotificationData(null)
+
+    if (pendingPhaseAdvance) {
+      setPendingPhaseAdvance(false)
+      gameState.advancePhase()
+    }
+
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Handle AI death modal dismissal
+   * Shows next death in queue or continues AI turn
+   */
+  const handleAiDeathModalDismiss = () => {
+    setShowAiDeathModal(false)
+    setCurrentAiDeath(null)
+
+    // Check if there are more deaths in the queue
+    if (aiDeathQueue.length > 0) {
+      const nextDeath = aiDeathQueue[0]
+      setAiDeathQueue(prev => prev.slice(1))
+      setCurrentAiDeath(nextDeath)
+      setShowAiDeathModal(true)
+    }
+
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Queue an AI combat death for modal display
+   * @param {Object} deathData - { attackerInstance, defenderInstance, damageDealt, attackType, abilitiesTriggered, moraleChanges }
+   */
+  const queueAiDeathModal = (deathData) => {
+    if (!showAiDeathModal && aiDeathQueue.length === 0) {
+      // Show immediately if no modal is showing
+      setCurrentAiDeath(deathData)
+      setShowAiDeathModal(true)
+    } else {
+      // Queue for later
+      setAiDeathQueue(prev => [...prev, deathData])
+    }
+  }
+
   const advancePhase = () => {
     if (!gameState) return
 
@@ -3640,7 +3743,30 @@ function GameBoard({ onTurnInfoChange }) {
         }
         break
       case GamePhases.ACTIVATE:
-        gameState.advancePhase()
+        {
+          // Check for Disciple of Kyuss damage before advancing phase
+          const kyussResult = gameState.executeDiscipleOfKyussDamage(gameState.currentPlayer)
+
+          if (kyussResult.damageEvents.length > 0) {
+            // Show damage notification modal
+            setDamageNotificationData({
+              mode: 'ability',
+              abilityName: 'Disciple of Kyuss',
+              sourceCreature: kyussResult.sourceCreature,
+              damageEvents: kyussResult.damageEvents
+            })
+            setShowDamageNotification(true)
+            setPendingPhaseAdvance(true)
+
+            // Check for game over after deaths
+            if (kyussResult.deaths.length > 0) {
+              gameState.checkGameOver()
+            }
+          } else {
+            // No Disciples or no adjacent creatures - advance normally
+            gameState.advancePhase()
+          }
+        }
         break
       case GamePhases.DEPLOY:
         gameState.executeDeployPhase()
@@ -5164,6 +5290,29 @@ function GameBoard({ onTurnInfoChange }) {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* DISCIPLE OF KYUSS DAMAGE NOTIFICATION MODAL */}
+      <DamageNotificationModal
+        show={showDamageNotification}
+        onDismiss={handleDamageNotificationDismiss}
+        mode={damageNotificationData?.mode || 'ability'}
+        abilityName={damageNotificationData?.abilityName}
+        sourceCreature={damageNotificationData?.sourceCreature}
+        damageEvents={damageNotificationData?.damageEvents || []}
+      />
+
+      {/* AI COMBAT DEATH NOTIFICATION MODAL */}
+      <DamageNotificationModal
+        show={showAiDeathModal}
+        onDismiss={handleAiDeathModalDismiss}
+        mode="combat"
+        attackerInstance={currentAiDeath?.attackerInstance}
+        defenderInstance={currentAiDeath?.defenderInstance}
+        damageDealt={currentAiDeath?.damageDealt}
+        attackType={currentAiDeath?.attackType}
+        abilitiesTriggered={currentAiDeath?.abilitiesTriggered || []}
+        moraleChanges={currentAiDeath?.moraleChanges}
+      />
     </div>
   )
 }

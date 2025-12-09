@@ -1,0 +1,92 @@
+/* ============================================
+   DAMAGE NOTIFICATION MODAL STYLES
+   Used for Disciple of Kyuss and AI combat deaths
+   ============================================ */
+
+.damage-notification-modal .modal-content {
+  border: 2px solid #444;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.damage-notification-modal .modal-header {
+  padding: 1rem 1.5rem;
+}
+
+.damage-notification-modal .modal-title {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.damage-notification-modal .modal-body {
+  padding: 1.5rem;
+}
+
+.damage-notification-modal .modal-footer {
+  padding: 1rem 1.5rem;
+  justify-content: center;
+}
+
+/* Creature images in modal */
+.damage-modal-creature-img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Damage events list */
+.damage-events-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.damage-event-item {
+  transition: all 0.2s ease;
+}
+
+.damage-event-item.destroyed {
+  animation: pulse-red 0.5s ease-in-out;
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    background-color: rgba(220, 53, 69, 0.2);
+  }
+  50% {
+    background-color: rgba(220, 53, 69, 0.4);
+  }
+}
+
+/* Combat mode styles */
+.damage-notification-modal .vs-text {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ffc107;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Scrollbar styling for damage events list */
+.damage-events-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.damage-events-list::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.damage-events-list::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.damage-events-list::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* Continue button styling */
+.damage-notification-modal .btn-primary {
+  min-width: 150px;
+  font-size: 1.1rem;
+  font-weight: bold;
+}

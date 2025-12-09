@@ -223,6 +223,23 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, targetsHit: 0, damage: 0, kills: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, targetsHit: 0, damage: 0, kills: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, targetsHit: 0, damage: 0, kills: 0 }
+    },
+    disciple_of_kyuss: {
+      name: 'DISCIPLE OF KYUSS',
+      creature: 'Disciple of Kyuss',
+      faction: 'Curse of Undeath',
+      // Overall totals - difficulty-based trigger (0/50/100 pattern)
+      // Triggers at end of ACTIVATE phase for adjacent enemy creatures
+      timesOffered: 0,  // Times adjacent enemies existed at phase end
+      timesTriggered: 0,  // Times damage was dealt
+      timesDeclined: 0,  // Times ability was skipped (AI difficulty)
+      enemiesHit: 0,  // Total enemies damaged
+      totalDamage: 0,  // Total damage dealt
+      kills: 0,  // Creatures killed
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 }
     }
   })
 
@@ -1124,6 +1141,67 @@ function AbilitiesTest() {
               break
             case GamePhases.ACTIVATE:
               executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats)
+
+              // Track DISCIPLE OF KYUSS ability at end of ACTIVATE phase
+              // This passive triggers when the current player ends their activation
+              // and their creatures are adjacent to an enemy Disciple of Kyuss
+              if (creatureAbilityStats && gameState.getEnemyDisciplesOfKyuss) {
+                const disciples = gameState.getEnemyDisciplesOfKyuss(currentPlayerId)
+
+                for (const disciple of disciples) {
+                  const adjacentCreatures = gameState.getCreaturesAdjacentToDisciple
+                    ? gameState.getCreaturesAdjacentToDisciple(currentPlayerId, disciple)
+                    : []
+
+                  if (adjacentCreatures.length > 0) {
+                    const discipleOwnerPlayer = gameState.players[disciple.owner]
+                    const aiDifficulty = discipleOwnerPlayer?.aiDifficulty || 'medium'
+
+                    // Track offered (adjacent enemies exist)
+                    creatureAbilityStats.disciple_of_kyuss.timesOffered++
+                    if (creatureAbilityStats.disciple_of_kyuss[aiDifficulty]) {
+                      creatureAbilityStats.disciple_of_kyuss[aiDifficulty].offered++
+                    }
+
+                    // Determine if ability triggers based on difficulty (0/50/100 rule)
+                    let abilityTriggers = false
+                    if (aiDifficulty === 'easy') {
+                      abilityTriggers = false
+                    } else if (aiDifficulty === 'medium') {
+                      abilityTriggers = Math.random() < 0.5
+                    } else {
+                      abilityTriggers = true // hard
+                    }
+
+                    if (abilityTriggers) {
+                      creatureAbilityStats.disciple_of_kyuss.timesTriggered++
+                      creatureAbilityStats.disciple_of_kyuss.enemiesHit += adjacentCreatures.length
+                      creatureAbilityStats.disciple_of_kyuss.totalDamage += adjacentCreatures.length * 10
+                      if (creatureAbilityStats.disciple_of_kyuss[aiDifficulty]) {
+                        creatureAbilityStats.disciple_of_kyuss[aiDifficulty].triggered++
+                        creatureAbilityStats.disciple_of_kyuss[aiDifficulty].enemiesHit += adjacentCreatures.length
+                        creatureAbilityStats.disciple_of_kyuss[aiDifficulty].damage += adjacentCreatures.length * 10
+                      }
+
+                      // Check for kills (creatures with <= 10 HP would die)
+                      for (const creature of adjacentCreatures) {
+                        if (creature.currentHP <= 10) {
+                          creatureAbilityStats.disciple_of_kyuss.kills++
+                          if (creatureAbilityStats.disciple_of_kyuss[aiDifficulty]) {
+                            creatureAbilityStats.disciple_of_kyuss[aiDifficulty].kills++
+                          }
+                        }
+                      }
+                    } else {
+                      creatureAbilityStats.disciple_of_kyuss.timesDeclined++
+                      if (creatureAbilityStats.disciple_of_kyuss[aiDifficulty]) {
+                        creatureAbilityStats.disciple_of_kyuss[aiDifficulty].declined++
+                      }
+                    }
+                  }
+                }
+              }
+
               gameState.advancePhase()
               break
             case GamePhases.DEPLOY:
@@ -2606,6 +2684,98 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         LIGHTNING BREATH: Dracolich makes up to 3 ranged attacks (20 damage each) targeting different enemies. Requires 2+ valid targets. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+
+                  {/* DISCIPLE OF KYUSS - Disciple of Kyuss (Curse of Undeath) */}
+                  <Row className="mt-4">
+                    <Col md={12}>
+                      <h6 className="text-light">Curse of Undeath - DISCIPLE OF KYUSS <Badge bg="danger">PASSIVE</Badge> <small className="text-muted">(Disciple of Kyuss)</small></h6>
+
+                      {/* Overall Stats */}
+                      <Table striped bordered variant="dark" size="sm" className="mb-2">
+                        <thead>
+                          <tr><th colSpan={4} className="text-center">Overall Totals (End of Activate Phase Damage)</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>Offered</strong></td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.disciple_of_kyuss?.timesOffered || 0}</Badge></td>
+                            <td><strong>Triggered</strong></td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.disciple_of_kyuss?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Declined</strong></td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.disciple_of_kyuss?.timesDeclined || 0}</Badge></td>
+                            <td><strong>Overall Usage Rate</strong></td>
+                            <td>
+                              {results.creatureAbilityStats?.disciple_of_kyuss?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.disciple_of_kyuss.timesTriggered / results.creatureAbilityStats.disciple_of_kyuss.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>Enemies Hit</strong></td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.disciple_of_kyuss?.enemiesHit || 0}</Badge></td>
+                            <td><strong>Total Damage</strong></td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.disciple_of_kyuss?.totalDamage || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td><strong>Kills</strong></td>
+                            <td><Badge bg="dark">{results.creatureAbilityStats?.disciple_of_kyuss?.kills || 0}</Badge></td>
+                            <td></td>
+                            <td></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+
+                      {/* Per-Difficulty Breakdown */}
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Usage Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.disciple_of_kyuss?.[diff] || { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance
+                            return (
+                              <tr key={diff}>
+                                <td><strong>{diff.toUpperCase()}</strong></td>
+                                <td><Badge bg="info">{stats.offered}</Badge></td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="secondary">{stats.declined}</Badge></td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        DISCIPLE OF KYUSS: Each enemy creature takes 10 DAMAGE whenever it ends its activation adjacent to this creature. Triggers at end of ACTIVATE phase. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>
