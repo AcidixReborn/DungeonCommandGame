@@ -117,7 +117,7 @@ export const creatures = [
     rangedAttack: { damage: 20, range: 5 },
     specialAbilities: [
       'FLYING: This creature ignores difficult terrain and can move over mountains (but cannot stop on them).',
-      'ACID BREATH 20: Whenever this creature makes a ranged attack, it deals 20 DAMAGE to each creature adjacent to the target. PLACEHOLDER'
+      'ACID BREATH 20: Whenever this creature makes a ranged attack, it deals 20 DAMAGE to each enemy creature adjacent to the target.'
     ],
     faction: FACTION_NAME,
     imageUrl: copperDragonImg
@@ -265,7 +265,7 @@ export const creatures = [
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 20, range: 5 },
     specialAbilities: [
-      'EXPLOSIVE BOLTS 10: Whenever this creature makes a ranged attack, it deals 10 DAMAGE to each creature adjacent to the target. PLACEHOLDER'
+      'EXPLOSIVE BOLTS 10: Whenever this creature makes a ranged attack, it deals 10 DAMAGE to each enemy creature adjacent to the target.'
     ],
     faction: FACTION_NAME,
     imageUrl: halfOrcThugImg

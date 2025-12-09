@@ -199,6 +199,12 @@ function GameBoard({ onTurnInfoChange }) {
   const [pendingRiderCallback, setPendingRiderCallback] = useState(null)
   const [selectedRiderCreature, setSelectedRiderCreature] = useState(null)
 
+  // RANGED SPLASH DAMAGE state (ACID BREATH / EXPLOSIVE BOLTS)
+  const [pendingRangedSplashTargets, setPendingRangedSplashTargets] = useState([])
+  const [currentRangedSplashIndex, setCurrentRangedSplashIndex] = useState(0)
+  const [rangedSplashAttackInfo, setRangedSplashAttackInfo] = useState(null)
+  const [showRangedSplashDefensePanel, setShowRangedSplashDefensePanel] = useState(false)
+
   // DEPLOY CONFIRMATION state (shows leadership cost before deploying)
   const [showDeployConfirm, setShowDeployConfirm] = useState(false)
   const [pendingDeployment, setPendingDeployment] = useState(null)
@@ -787,7 +793,37 @@ function GameBoard({ onTurnInfoChange }) {
           setRenderCounter(prev => prev + 1)
           return
         }
-            } else {
+
+        // Check for RANGED SPLASH DAMAGE (ACID BREATH / EXPLOSIVE BOLTS)
+        // Only triggers on ranged attacks, and splash happens AFTER main attack resolves
+        console.log(`[GAMEBOARD DEBUG - AI DEFENDER PATH] Checking ranged splash:`, {
+          pendingRangedSplash: result.pendingRangedSplash,
+          attackType: targetInfo.attackType,
+          isRangedAttack: targetInfo.attackType === 'ranged',
+          shouldCheckSplash: result.pendingRangedSplash && targetInfo.attackType === 'ranged',
+          attackerName: attackerInstance?.creature?.name,
+          defenderName: defenderInstance?.creature?.name,
+          defenderPosition: defenderInstance?.position
+        })
+        if (result.pendingRangedSplash && targetInfo.attackType === 'ranged') {
+          const defenderPosition = defenderInstance.position
+          console.log(`[GAMEBOARD DEBUG - AI DEFENDER PATH] Ranged splash condition met, calling checkAndProcessRangedSplash`)
+          const hasSplash = checkAndProcessRangedSplash(attackerInstance, defenderPosition, () => {
+            // Callback when splash processing completes
+            console.log(`[GAMEBOARD DEBUG - AI DEFENDER PATH] Ranged splash processing completed`)
+            setSelectedBoardCreature(null)
+            setValidMoveTiles([])
+            setValidAttackTargets([])
+            setRenderCounter(prev => prev + 1)
+          })
+          console.log(`[GAMEBOARD DEBUG - AI DEFENDER PATH] checkAndProcessRangedSplash returned:`, hasSplash)
+          if (hasSplash) {
+            // Splash is being processed - don't clear state yet
+            setRenderCounter(prev => prev + 1)
+            return
+          }
+        }
+      } else {
         addToast(result.message || 'Attack failed!')
       }
 
@@ -842,11 +878,22 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} defense - { type: 'cower' | 'unstoppable_hordes' | 'immediate_card' | 'skip', damageReduction, moraleCost, creatures, card, creature }
    */
   const handleDefenseSelected = (defense) => {
+    console.log('[DEFENSE SELECTED] handleDefenseSelected called with:', defense)
+    console.log('[DEFENSE SELECTED] pendingAttack:', pendingAttack)
+
     if (!pendingAttack) return
 
     const { attackerInstance, defenderInstance, targetInfo, isSplashDamage, isLightningBreath } = pendingAttack
 
-    // Route splash damage defense to dedicated handler
+    // Route RANGED SPLASH defense to dedicated handler (ACID BREATH / EXPLOSIVE BOLTS)
+    // IMPORTANT: Check this BEFORE generic splash, since ranged splash also sets isSplashDamage
+    if (pendingAttack.isRangedSplash || targetInfo.attackType === 'ranged_splash') {
+      console.log('[DEFENSE SELECTED] Routing to handleRangedSplashDefenseSelected')
+      handleRangedSplashDefenseSelected(defense)
+      return
+    }
+
+    // Route splash damage defense to dedicated handler (SWIRL ability)
     if (isSplashDamage || targetInfo.attackType === 'splash') {
       handleSplashDefenseSelected(defense)
       return
@@ -1025,7 +1072,14 @@ function GameBoard({ onTurnInfoChange }) {
   const executeAttackAfterDefense = (defenseResult) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze, isRangedSplash } = pendingAttack
+
+    // Handle RANGED SPLASH damage (ACID BREATH / EXPLOSIVE BOLTS)
+    if (isRangedSplash && rangedSplashAttackInfo) {
+      const damageReduction = defenseResult.damageReduction || 0
+      handleRangedSplashDefenseComplete({ damageReduction })
+      return
+    }
 
     let result
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
@@ -1230,6 +1284,38 @@ function GameBoard({ onTurnInfoChange }) {
         // (using defense cards taps the defender)
         if (checkHiddenBladeTrigger(attackerInstance, result)) {
           // Modal shown - don't clear state yet, wait for modal response
+          setRenderCounter(prev => prev + 1)
+          return
+        }
+      }
+
+      // Check for RANGED SPLASH DAMAGE (ACID BREATH / EXPLOSIVE BOLTS)
+      // Only triggers on ranged attacks, and splash happens AFTER main attack resolves
+      console.log(`[GAMEBOARD DEBUG] Checking ranged splash:`, {
+        pendingRangedSplash: result.pendingRangedSplash,
+        attackType: targetInfo.attackType,
+        isRangedAttack: targetInfo.attackType === 'ranged',
+        shouldCheckSplash: result.pendingRangedSplash && targetInfo.attackType === 'ranged',
+        attackerName: attackerInstance?.creature?.name,
+        defenderName: defenderInstance?.creature?.name,
+        defenderPosition: defenderInstance?.position
+      })
+      if (result.pendingRangedSplash && targetInfo.attackType === 'ranged') {
+        const defenderPosition = defenderInstance.position
+        console.log(`[GAMEBOARD DEBUG] Ranged splash condition met, calling checkAndProcessRangedSplash`)
+        const hasSplash = checkAndProcessRangedSplash(attackerInstance, defenderPosition, () => {
+          // Callback when splash processing completes
+          console.log(`[GAMEBOARD DEBUG] Ranged splash processing completed`)
+          setSelectedBoardCreature(null)
+          setValidMoveTiles([])
+          setValidAttackTargets([])
+          setPendingAttack(null)
+          setRenderCounter(prev => prev + 1)
+          setProcessingAIAction(false)
+        })
+        console.log(`[GAMEBOARD DEBUG] checkAndProcessRangedSplash returned:`, hasSplash)
+        if (hasSplash) {
+          // Splash is being processed - don't clear state yet
           setRenderCounter(prev => prev + 1)
           return
         }
@@ -1618,6 +1704,38 @@ function GameBoard({ onTurnInfoChange }) {
         // Check for HIDDEN BLADE trigger after reactions (for any attack type - melee OR ranged)
         if (checkHiddenBladeTrigger(attackerInstance, result)) {
           // Modal shown - don't clear state yet, wait for modal response
+          setRenderCounter(prev => prev + 1)
+          return
+        }
+      }
+
+      // Check for RANGED SPLASH DAMAGE (ACID BREATH / EXPLOSIVE BOLTS)
+      // Only triggers on ranged attacks, and splash happens AFTER main attack resolves
+      console.log(`[GAMEBOARD DEBUG] Checking ranged splash:`, {
+        pendingRangedSplash: result.pendingRangedSplash,
+        attackType: targetInfo.attackType,
+        isRangedAttack: targetInfo.attackType === 'ranged',
+        shouldCheckSplash: result.pendingRangedSplash && targetInfo.attackType === 'ranged',
+        attackerName: attackerInstance?.creature?.name,
+        defenderName: defenderInstance?.creature?.name,
+        defenderPosition: defenderInstance?.position
+      })
+      if (result.pendingRangedSplash && targetInfo.attackType === 'ranged') {
+        const defenderPosition = defenderInstance.position
+        console.log(`[GAMEBOARD DEBUG] Ranged splash condition met, calling checkAndProcessRangedSplash`)
+        const hasSplash = checkAndProcessRangedSplash(attackerInstance, defenderPosition, () => {
+          // Callback when splash processing completes
+          console.log(`[GAMEBOARD DEBUG] Ranged splash processing completed`)
+          setSelectedBoardCreature(null)
+          setValidMoveTiles([])
+          setValidAttackTargets([])
+          setPendingAttack(null)
+          setRenderCounter(prev => prev + 1)
+          setProcessingAIAction(false)
+        })
+        console.log(`[GAMEBOARD DEBUG] checkAndProcessRangedSplash returned:`, hasSplash)
+        if (hasSplash) {
+          // Splash is being processed - don't clear state yet
           setRenderCounter(prev => prev + 1)
           return
         }
@@ -4240,6 +4358,292 @@ function GameBoard({ onTurnInfoChange }) {
 
     if (callback) callback()
     setRenderCounter(prev => prev + 1)
+  }
+
+  // ============================================================================
+  // RANGED SPLASH DAMAGE HANDLERS (ACID BREATH / EXPLOSIVE BOLTS)
+  // ============================================================================
+
+  /**
+   * Process splash damage targets one at a time
+   * Shows defense panel for human defenders, AI uses 0/50/100 rule
+   * @param {Array} targets - Array of enemy creatures adjacent to ranged target
+   * @param {number} index - Current index in targets array
+   * @param {Object} attackerInstance - The creature that made the ranged attack
+   * @param {number} splashDamage - Damage to deal (20 for Acid Breath, 10 for Explosive Bolts)
+   * @param {string} abilityName - 'ACID BREATH' or 'EXPLOSIVE BOLTS'
+   * @param {Function} onComplete - Callback when all splash damage is resolved
+   */
+  const processNextRangedSplashTarget = (targets, index, attackerInstance, splashDamage, abilityName, onComplete) => {
+    if (index >= targets.length) {
+      // All splash targets processed - now tap the attacker and complete
+      // Find the actual creature in the CURRENT gameState (not stale closure)
+      const attackerOwner = attackerInstance.owner
+      const actualAttacker = gameState.players[attackerOwner]?.creaturesInPlay.find(
+        c => c.instanceId === attackerInstance.instanceId
+      )
+
+      if (actualAttacker) {
+        actualAttacker.hasAttackedThisTurn = true
+        actualAttacker.tap()
+      }
+
+      // Clear splash state
+      setPendingRangedSplashTargets([])
+      setCurrentRangedSplashIndex(0)
+      setRangedSplashAttackInfo(null)
+      setShowRangedSplashDefensePanel(false)
+      setCombatPanelMode(null)  // Clear combat panel after splash resolution
+
+      // Force re-render to show tapped state
+      setRenderCounter(prev => prev + 1)
+
+      if (onComplete) onComplete()
+      return
+    }
+
+    const target = targets[index]
+    const isTargetHuman = isPlayerHuman(target.owner)
+    const isTargetTapped = target.isTapped
+
+    if (isTargetHuman && !isTargetTapped) {
+      // Human defender - show defense panel using existing combat panel system
+      setCurrentRangedSplashIndex(index)
+      setRangedSplashAttackInfo({
+        attackerInstance,
+        attackerOwner: attackerInstance.owner,
+        splashDamage,
+        abilityName,
+        currentTarget: target,
+        targetIndex: index,
+        totalTargets: targets.length,
+        onComplete
+      })
+      // Use existing combat panel system for defense
+      setPendingAttack({
+        attackerInstance: attackerInstance,
+        defenderInstance: target,
+        targetInfo: { attackType: 'ranged_splash', damage: splashDamage, abilityName: abilityName },
+        isSplashDamage: true,
+        isRangedSplash: true,
+        splashSource: abilityName
+      })
+      setCombatPanelMode('defense')
+      setShowRangedSplashDefensePanel(true)
+      setRenderCounter(prev => prev + 1)
+    } else if (!isTargetHuman && !isTargetTapped) {
+      // AI defender - use 0/50/100 rule
+      handleAIRangedSplashDefense(targets, index, attackerInstance, splashDamage, abilityName, target, onComplete)
+    } else {
+      // Tapped creature - apply damage directly
+      const result = gameState.applyRangedSplashDamage(target, attackerInstance.owner, splashDamage, 0)
+      const moraleMsg = result.destroyed && result.moraleChange ? ` Morale changes: Attacker +${result.moraleChange.attacker}, Defender ${result.moraleChange.defender}` : ''
+      addToast(`${abilityName}: ${target.creature.name} takes ${result.damage} splash damage!${result.destroyed ? ' DESTROYED!' : ''}${moraleMsg}`)
+
+      // Process next target
+      processNextRangedSplashTarget(targets, index + 1, attackerInstance, splashDamage, abilityName, onComplete)
+    }
+  }
+
+  /**
+   * Handle defense selection for RANGED SPLASH damage (ACID BREATH / EXPLOSIVE BOLTS)
+   * Supports COWER, UNSTOPPABLE HORDES, IMMEDIATE cards, and skip
+   * @param {Object} defense - { type, damageReduction, moraleCost, creatures, card, creature }
+   */
+  const handleRangedSplashDefenseSelected = (defense) => {
+    if (!pendingAttack || !rangedSplashAttackInfo) {
+      return
+    }
+
+    const { currentTarget, splashDamage, attackerInstance, abilityName } = rangedSplashAttackInfo
+    const defenderInstance = currentTarget
+
+    if (defense.type === 'skip') {
+      // No defense - apply full splash damage
+      closeCombatPanel()
+      handleRangedSplashDefenseComplete({ damageReduction: 0 })
+      return
+    }
+
+    if (defense.type === 'cower') {
+      // COWER: Avoid ALL damage, pay morale, tap creature
+      const cowerResult = gameState.applyCower(
+        defenderInstance,
+        splashDamage,
+        attackerInstance.owner
+      )
+      closeCombatPanel()
+      handleRangedSplashDefenseComplete({ damageReduction: cowerResult.damageAvoided })
+      return
+    }
+
+    if (defense.type === 'unstoppable_hordes') {
+      // UNSTOPPABLE HORDES: Each Undead prevents 20 damage
+      let totalPrevented = 0
+      defense.creatures?.forEach(creature => {
+        const result = gameState.applyUnstoppableHordes(creature)
+        if (result.success) {
+          totalPrevented += result.damagePrevented
+        }
+      })
+      closeCombatPanel()
+      handleRangedSplashDefenseComplete({ damageReduction: totalPrevented })
+      return
+    }
+
+    if (defense.type === 'immediate_card') {
+      // IMMEDIATE card: Prevent damage equal to card value
+      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature)
+      closeCombatPanel()
+      handleRangedSplashDefenseComplete({ damageReduction: result.success ? result.damagePrevented : 0 })
+      return
+    }
+
+    // Fallback - no defense
+    closeCombatPanel()
+    handleRangedSplashDefenseComplete({ damageReduction: 0 })
+  }
+
+  /**
+   * Handle human player completing ranged splash defense
+   * @param {Object} defenseResult - { damageReduction: number }
+   */
+  const handleRangedSplashDefenseComplete = (defenseResult) => {
+    const { damageReduction } = defenseResult
+    const { currentTarget, splashDamage, attackerInstance, abilityName, onComplete } = rangedSplashAttackInfo
+
+    const result = gameState.applyRangedSplashDamage(
+      currentTarget,
+      attackerInstance.owner,
+      splashDamage,
+      damageReduction
+    )
+
+    if (result.insubstantialBlocked) {
+      addToast(`${abilityName}: ${currentTarget.creature.name} blocked with INSUBSTANTIAL!`)
+    } else {
+      const defended = damageReduction > 0 ? ` (defended ${damageReduction})` : ''
+      const moraleMsg = result.destroyed && result.moraleChange ? ` Morale changes: Attacker +${result.moraleChange.attacker}, Defender ${result.moraleChange.defender}` : ''
+      addToast(`${abilityName}: ${currentTarget.creature.name} takes ${result.damage} splash damage${defended}!${result.destroyed ? ' DESTROYED!' : ''}${moraleMsg}`)
+    }
+
+    setShowRangedSplashDefensePanel(false)
+
+    // Process next splash target
+    processNextRangedSplashTarget(
+      pendingRangedSplashTargets,
+      currentRangedSplashIndex + 1,
+      attackerInstance,
+      splashDamage,
+      abilityName,
+      onComplete
+    )
+  }
+
+  /**
+   * Handle AI defense against splash damage using 0/50/100 rule
+   */
+  const handleAIRangedSplashDefense = (targets, index, attackerInstance, splashDamage, abilityName, target, onComplete) => {
+    // AI 0/50/100 rule for defense - get difficulty from gameConfig like other AI handlers
+    const defenderPlayerId = target.owner
+    const playerNum = defenderPlayerId.replace('PLAYER', '')
+    const playerKey = `player${playerNum}`
+    const difficulty = gameConfig?.[playerKey]?.difficulty || 'medium'
+
+    let willDefend = false
+    if (difficulty === 'hard') willDefend = true
+    else if (difficulty === 'medium') willDefend = Math.random() < 0.5
+    // Easy = never defend (0%)
+
+    let damageReduction = 0
+    const player = gameState.players[target.owner]
+    if (willDefend) {
+      // AI attempts to find defense card
+      const defenseCards = player?.orderHand?.filter(card =>
+        card.actionType === 'IMMEDIATE' && card.damagePrevented > 0
+      ) || []
+
+      if (defenseCards.length > 0) {
+        const bestCard = defenseCards[0] // Simple: use first available
+        damageReduction = bestCard.damagePrevented || 0
+        // Discard the card
+        const cardIndex = player.orderHand.findIndex(c => c.id === bestCard.id)
+        if (cardIndex !== -1) {
+          player.orderHand.splice(cardIndex, 1)
+          player.orderDiscard.push(bestCard)
+        }
+      }
+    }
+
+    const result = gameState.applyRangedSplashDamage(target, attackerInstance.owner, splashDamage, damageReduction)
+
+    if (result.insubstantialBlocked) {
+      addToast(`${abilityName}: ${target.creature.name} (AI) blocked with INSUBSTANTIAL!`)
+    } else {
+      const defended = damageReduction > 0 ? ` (defended ${damageReduction})` : ''
+      const moraleMsg = result.destroyed && result.moraleChange ? ` Morale changes: Attacker +${result.moraleChange.attacker}, Defender ${result.moraleChange.defender}` : ''
+      addToast(`${abilityName}: ${target.creature.name} (AI) takes ${result.damage} splash damage${defended}!${result.destroyed ? ' DESTROYED!' : ''}${moraleMsg}`)
+    }
+
+    // Process next target with brief delay for readability
+    setTimeout(() => {
+      processNextRangedSplashTarget(targets, index + 1, attackerInstance, splashDamage, abilityName, onComplete)
+    }, 300)
+  }
+
+  /**
+   * Check and initiate ranged splash damage after a ranged attack
+   * Called after main ranged attack damage is resolved
+   * Applies 0/50/100 difficulty rule for AI attackers
+   * @param {Object} attackerInstance - The creature that made the ranged attack
+   * @param {Object} targetPosition - {x, y} position of the ranged attack target
+   * @param {Function} onComplete - Callback when splash processing completes (including tapping attacker)
+   * @returns {boolean} True if splash damage is being processed, false if no splash ability
+   */
+  const checkAndProcessRangedSplash = (attackerInstance, targetPosition, onComplete) => {
+    const splashDamage = gameState.getRangedSplashDamage(attackerInstance)
+    if (splashDamage <= 0) {
+      return false // No splash ability
+    }
+
+    // AI 0/50/100 rule for USING splash ability (offense)
+    const attackerOwner = attackerInstance.owner
+    const isAttackerHuman = isPlayerHuman(attackerOwner)
+
+    if (!isAttackerHuman) {
+      // AI attacker - apply 0/50/100 rule for using splash ability
+      const playerNum = attackerOwner.replace('PLAYER', '')
+      const playerKey = `player${playerNum}`
+      const difficulty = gameConfig?.[playerKey]?.difficulty || 'medium'
+
+      let useSplash = false
+      if (difficulty === 'hard') {
+        useSplash = true  // Hard AI always uses splash (100%)
+      } else if (difficulty === 'medium') {
+        useSplash = Math.random() < 0.5  // Medium AI uses 50%
+      }
+      // Easy AI never uses splash (0%)
+
+      if (!useSplash) {
+        return false // AI chose not to use splash ability
+      }
+    }
+    // Human attackers: splash always triggers (player decision was to make ranged attack)
+
+    const splashTargets = gameState.getRangedSplashTargets(attackerInstance, targetPosition)
+    if (splashTargets.length === 0) {
+      return false // No valid targets
+    }
+
+    const abilityName = gameState.getRangedSplashAbilityName(attackerInstance)
+
+    // Store splash data for sequential processing
+    setPendingRangedSplashTargets(splashTargets)
+    setCurrentRangedSplashIndex(0)
+
+    // Start processing first splash target
+    processNextRangedSplashTarget(splashTargets, 0, attackerInstance, splashDamage, abilityName, onComplete)
+    return true // Splash is being processed
   }
 
   const advancePhase = () => {

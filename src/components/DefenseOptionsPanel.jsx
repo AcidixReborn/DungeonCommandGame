@@ -67,6 +67,7 @@ function DefenseOptionsPanel({
   let originalDamage
   if (attackInfo?.damage !== undefined && (
     attackType === 'splash' ||
+    attackType === 'ranged_splash' ||
     attackType === 'flashing_blades' ||
     attackType === 'hidden_blade' ||
     attackType === 'confusion_gaze'
@@ -193,6 +194,7 @@ function DefenseOptionsPanel({
 
   // O(1) - Handle skip
   const handleSkip = () => {
+    console.log('[DefenseOptionsPanel] handleSkip called, calling onDefenseSelected({ type: skip })')
     onDefenseSelected({ type: 'skip' })
     setSelectedDefense(null)
     setSelectedUndeadCreatures([])
@@ -252,6 +254,7 @@ function DefenseOptionsPanel({
           <Badge bg={
             attackType === 'ranged' ? 'info'
             : attackType === 'splash' ? 'warning'
+            : attackType === 'ranged_splash' ? 'success'
             : attackType === 'flashing_blades' ? 'warning'
             : attackType === 'hidden_blade' ? 'secondary'
             : attackType === 'confusion_gaze' ? 'warning'
@@ -259,6 +262,7 @@ function DefenseOptionsPanel({
           }>
             {attackType === 'ranged' ? '🏹 Ranged'
              : attackType === 'splash' ? '💀 SWIRL (Splash)'
+             : attackType === 'ranged_splash' ? `🔥 ${attackInfo?.abilityName || 'Ranged Splash'}`
              : attackType === 'flashing_blades' ? '⚔️ FLASHING BLADES'
              : attackType === 'hidden_blade' ? '🗡️ HIDDEN BLADE'
              : attackType === 'confusion_gaze' ? '😵 CONFUSION GAZE'

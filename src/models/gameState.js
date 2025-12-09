@@ -1914,6 +1914,209 @@ export class GameState {
     return creatureInstance?.creature?.rangedAttack?.damage || 20
   }
 
+  // ============================================
+  // 2E: ACID BREATH / EXPLOSIVE BOLTS (Ranged Splash Damage)
+  // Copper Dragon: ACID BREATH 20 - deals 20 splash damage to adjacent enemies
+  // Half-Orc Thug: EXPLOSIVE BOLTS 10 - deals 10 splash damage to adjacent enemies
+  // ============================================
+
+  /**
+   * Check if creature has ACID BREATH ability
+   * @param {CreatureInstance} creatureInstance
+   * @returns {boolean}
+   */
+  hasAcidBreath(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      a => typeof a === 'string' && a.toUpperCase().includes('ACID BREATH')
+    )
+  }
+
+  /**
+   * Check if creature has EXPLOSIVE BOLTS ability
+   * @param {CreatureInstance} creatureInstance
+   * @returns {boolean}
+   */
+  hasExplosiveBolts(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      a => typeof a === 'string' && a.toUpperCase().includes('EXPLOSIVE BOLTS')
+    )
+  }
+
+  /**
+   * Check if creature has any ranged splash damage ability
+   * @param {CreatureInstance} creatureInstance
+   * @returns {boolean}
+   */
+  hasRangedSplashAbility(creatureInstance) {
+    const hasAcid = this.hasAcidBreath(creatureInstance)
+    const hasBolts = this.hasExplosiveBolts(creatureInstance)
+    const result = hasAcid || hasBolts
+    console.log(`[RANGED SPLASH DEBUG] hasRangedSplashAbility check for ${creatureInstance?.creature?.name}:`, {
+      hasAcidBreath: hasAcid,
+      hasExplosiveBolts: hasBolts,
+      result,
+      abilities: creatureInstance?.creature?.specialAbilities
+    })
+    return result
+  }
+
+  /**
+   * Get splash damage amount for ranged splash abilities
+   * @param {CreatureInstance} attackerInstance
+   * @returns {number} Splash damage (20 for Acid Breath, 10 for Explosive Bolts, 0 if none)
+   */
+  getRangedSplashDamage(attackerInstance) {
+    if (this.hasAcidBreath(attackerInstance)) return 20
+    if (this.hasExplosiveBolts(attackerInstance)) return 10
+    return 0
+  }
+
+  /**
+   * Get ability name for ranged splash
+   * @param {CreatureInstance} attackerInstance
+   * @returns {string|null}
+   */
+  getRangedSplashAbilityName(attackerInstance) {
+    if (this.hasAcidBreath(attackerInstance)) return 'ACID BREATH'
+    if (this.hasExplosiveBolts(attackerInstance)) return 'EXPLOSIVE BOLTS'
+    return null
+  }
+
+  /**
+   * Get all enemy creatures adjacent to the ranged attack target
+   * Uses 8-tile adjacency (includes diagonals)
+   * Includes creatures in forests (splash ignores forest protection)
+   *
+   * @param {CreatureInstance} attackerInstance - The creature making the ranged attack
+   * @param {Object} targetPosition - {x, y} position of the ranged attack target
+   * @returns {Array} Array of enemy CreatureInstances adjacent to target
+   */
+  getRangedSplashTargets(attackerInstance, targetPosition) {
+    if (!targetPosition || targetPosition.x === undefined || targetPosition.y === undefined) {
+      return []
+    }
+
+    const attackerOwner = attackerInstance.owner
+    const splashTargets = []
+
+    // 8-tile adjacency offsets
+    const adjacentOffsets = [
+      { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
+      { dx: -1, dy: 0 },                      { dx: 1, dy: 0 },
+      { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
+    ]
+
+    for (const offset of adjacentOffsets) {
+      const checkX = targetPosition.x + offset.dx
+      const checkY = targetPosition.y + offset.dy
+
+      // Bounds check
+      if (checkX < 0 || checkX >= this.boardWidth || checkY < 0 || checkY >= this.boardHeight) {
+        continue
+      }
+
+      // Search all players' creatures for one at this position
+      // Note: creaturesInPlay is on PlayerState, not GameState - iterate through this.players
+      for (const playerId in this.players) {
+        const playerCreatures = this.players[playerId].creaturesInPlay
+        if (!playerCreatures) continue
+
+        const creatureAtPos = playerCreatures.find(
+          c => c.position?.x === checkX && c.position?.y === checkY && c.currentHP > 0
+        )
+
+        if (creatureAtPos && creatureAtPos.owner !== attackerOwner) {
+          splashTargets.push(creatureAtPos)
+          break
+        }
+      }
+    }
+
+    return splashTargets
+  }
+
+  /**
+   * Apply ranged splash damage to a single target
+   * Handles INSUBSTANTIAL check
+   *
+   * @param {CreatureInstance} targetInstance - Creature receiving splash damage
+   * @param {string} attackerOwner - Owner of the attacking creature
+   * @param {number} damageAmount - Base splash damage (20 or 10)
+   * @param {number} damageReduction - Damage prevented by defense (default 0)
+   * @returns {Object} Result with damage dealt, destroyed status, insubstantial block
+   */
+  applyRangedSplashDamage(targetInstance, attackerOwner, damageAmount, damageReduction = 0) {
+    const actualDamage = Math.max(0, damageAmount - damageReduction)
+    const targetOwner = targetInstance.owner
+
+    // Check INSUBSTANTIAL
+    if (this.hasInsubstantial(targetInstance) && targetInstance.insubstantialAvailable) {
+      const blocked = this.useInsubstantial(targetInstance, actualDamage, attackerOwner)
+      if (blocked) {
+        return {
+          damage: 0,
+          destroyed: false,
+          insubstantialBlocked: true,
+          damageBlocked: actualDamage,
+          moraleChange: { attacker: 0, defender: 0 }
+        }
+      }
+    }
+
+    const previousHP = targetInstance.currentHP
+    const wasDestroyed = targetInstance.takeDamage(actualDamage)
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    // Handle creature destruction - clear tile, remove from play, add to graveyard, morale
+    if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[targetOwner]
+      if (defenderPlayer) {
+        const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+        if (index !== -1) {
+          defenderPlayer.creaturesInPlay.splice(index, 1)
+        }
+
+        // Add creature CARD to graveyard (not instance)
+        defenderPlayer.creatureGraveyard.push(targetInstance.creature)
+
+        // Defender loses morale equal to creature's level
+        defenderPlayer.loseMorale(targetInstance.creature.level)
+      }
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      if (attackerPlayer) {
+        attackerPlayer.gainMorale(1)
+      }
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level
+      }
+    }
+
+    return {
+      damage: actualDamage,
+      destroyed: wasDestroyed,
+      previousHP: previousHP,
+      remainingHP: Math.max(0, targetInstance.currentHP),
+      insubstantialBlocked: false,
+      moraleChange
+    }
+  }
+
   // ============================================================================
   // DISCIPLE OF KYUSS ABILITY METHODS
   // Passive ability: Each enemy creature takes 10 DAMAGE whenever it ends its

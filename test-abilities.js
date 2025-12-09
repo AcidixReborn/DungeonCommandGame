@@ -39,7 +39,9 @@ const CONFIG = {
     versatile: { easy: 0, medium: 0.5, hard: 1.0 },
     burrow: { easy: 0, medium: 0.5, hard: 1.0 },
     confusion_gaze: { easy: 0, medium: 0.5, hard: 1.0 },
-    summon_spider: { easy: 0, medium: 0.5, hard: 1.0 }
+    summon_spider: { easy: 0, medium: 0.5, hard: 1.0 },
+    acid_breath: { easy: 0, medium: 0.5, hard: 1.0 },
+    explosive_bolts: { easy: 0, medium: 0.5, hard: 1.0 }
   }
 }
 
@@ -225,10 +227,10 @@ const stats = {
       flashing_blades: { name: 'FLASHING BLADES', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, splashDamageDealt: 0, creatures: ['Drow Blademaster'] },
       shield_block: { name: 'SHIELD BLOCK', timesTriggered: 0, damageBlocked: 0, creatures: ['Dwarven Defender'] },
       healing_touch: { name: 'HEALING TOUCH', timesTriggered: 0, hpHealed: 0, cardsRemoved: 0, creatures: ['Dwarf Cleric'] },
-      explosive_bolts: { name: 'EXPLOSIVE BOLTS', timesTriggered: 0, splashDamageDealt: 0, creatures: ['Half-Orc Thug'] },
+      explosive_bolts: { name: 'EXPLOSIVE BOLTS', timesTriggered: 0, timesOffered: 0, splashDamageDealt: 0, targetsHit: 0, creatures: ['Half-Orc Thug'] },
       arcane_portal: { name: 'ARCANE PORTAL', timesTriggered: 0, portalDeployments: 0, creatures: ['War Wizard'] },
       flying_cormyr: { name: 'FLYING', timesTriggered: 0, terrainIgnored: 0, creatures: ['Copper Dragon'] },
-      acid_breath: { name: 'ACID BREATH', timesTriggered: 0, splashDamageDealt: 0, creatures: ['Copper Dragon'] },
+      acid_breath: { name: 'ACID BREATH', timesTriggered: 0, timesOffered: 0, splashDamageDealt: 0, targetsHit: 0, creatures: ['Copper Dragon'] },
       burrow_cormyr: { name: 'BURROW', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, mountainTilesMoved: 0, creatures: ['Earth Guardian'] },
       slam: { name: 'SLAM', timesTriggered: 0, enemiesSlid: 0, creatures: ['Earth Guardian'] }
     },
@@ -377,6 +379,22 @@ function trackCreatureAbility(factionKey, abilityKey, detail = {}) {
       }
       if (detail.declined) ability.timesDeclined++
       if (detail.damage) ability.damageDealt += detail.damage
+      break
+    case 'acid_breath':
+      if (detail.offered) ability.timesOffered = (ability.timesOffered || 0) + 1
+      if (detail.triggered) {
+        ability.timesTriggered++
+        if (detail.targetsHit) ability.targetsHit = (ability.targetsHit || 0) + detail.targetsHit
+      }
+      if (detail.splashDamage) ability.splashDamageDealt += detail.splashDamage
+      break
+    case 'explosive_bolts':
+      if (detail.offered) ability.timesOffered = (ability.timesOffered || 0) + 1
+      if (detail.triggered) {
+        ability.timesTriggered++
+        if (detail.targetsHit) ability.targetsHit = (ability.targetsHit || 0) + detail.targetsHit
+      }
+      if (detail.splashDamage) ability.splashDamageDealt += detail.splashDamage
       break
     default:
       if (detail.triggered) ability.timesTriggered++
@@ -784,6 +802,134 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
             }
           } else {
             trackCreatureAbility('lolth', 'confusion_gaze', { declined: true })
+          }
+        }
+      }
+
+      // Check for ACID BREATH ability (Copper Dragon) - only on RANGED attacks
+      if (targetInfo.attackType === 'ranged' && gameState.hasAcidBreath && gameState.hasAcidBreath(attackerInstance)) {
+        const splashTargets = gameState.getRangedSplashTargets
+          ? gameState.getRangedSplashTargets(attackerInstance, defenderInstance.position)
+          : []
+
+        if (splashTargets.length > 0) {
+          // Track that ACID BREATH was offered
+          trackCreatureAbility('cormyr', 'acid_breath', { offered: true })
+
+          // AI 0/50/100 rule for USING ACID BREATH (offense)
+          const attackerOwner = attackerInstance.owner
+          const attackerPlayer = gameState.players[attackerOwner]
+          const attackerDifficulty = attackerPlayer?.aiDifficulty || 'easy'
+
+          let useAcidBreath = false
+          if (attackerDifficulty === 'hard') {
+            useAcidBreath = true  // Hard AI always uses (100%)
+          } else if (attackerDifficulty === 'medium') {
+            useAcidBreath = Math.random() < 0.5  // Medium AI uses 50%
+          }
+          // Easy AI never uses (0%)
+
+          if (useAcidBreath) {
+            const splashDamage = 20
+            let totalSplashDamage = 0
+
+            for (const splashTarget of splashTargets) {
+              // Apply splash damage (AI uses 0/50/100 rule for defense)
+              const defenderOwner = splashTarget.owner
+              const defenderPlayer = gameState.players[defenderOwner]
+              const defenderDifficulty = defenderPlayer?.aiDifficulty || 'easy'
+
+              let damageReduction = 0
+              // AI defense decision
+              if (defenderDifficulty === 'hard') {
+                damageReduction = 30  // Assume they have defense card
+              } else if (defenderDifficulty === 'medium' && Math.random() < 0.5) {
+                damageReduction = 30
+              }
+              // Easy = no defense
+
+              const actualDamage = Math.max(0, splashDamage - damageReduction)
+              totalSplashDamage += actualDamage
+
+              if (CONFIG.VERBOSE_LOGGING) {
+                console.log(`  [ACID BREATH] ${attackerInstance.creature.name} deals ${actualDamage} splash damage to ${splashTarget.creature.name}!`)
+              }
+            }
+
+            // Track ACID BREATH usage
+            trackCreatureAbility('cormyr', 'acid_breath', {
+              triggered: true,
+              splashDamage: totalSplashDamage,
+              targetsHit: splashTargets.length
+            })
+            stats.difficultyStats[attackerDifficulty].creatureAbilitiesUsed++
+          } else {
+            // AI declined to use ACID BREATH
+            trackCreatureAbility('cormyr', 'acid_breath', { declined: true })
+          }
+        }
+      }
+
+      // Check for EXPLOSIVE BOLTS ability (Half-Orc Thug) - only on RANGED attacks
+      if (targetInfo.attackType === 'ranged' && gameState.hasExplosiveBolts && gameState.hasExplosiveBolts(attackerInstance)) {
+        const splashTargets = gameState.getRangedSplashTargets
+          ? gameState.getRangedSplashTargets(attackerInstance, defenderInstance.position)
+          : []
+
+        if (splashTargets.length > 0) {
+          // Track that EXPLOSIVE BOLTS was offered
+          trackCreatureAbility('cormyr', 'explosive_bolts', { offered: true })
+
+          // AI 0/50/100 rule for USING EXPLOSIVE BOLTS (offense)
+          const attackerOwner = attackerInstance.owner
+          const attackerPlayer = gameState.players[attackerOwner]
+          const attackerDifficulty = attackerPlayer?.aiDifficulty || 'easy'
+
+          let useExplosiveBolts = false
+          if (attackerDifficulty === 'hard') {
+            useExplosiveBolts = true  // Hard AI always uses (100%)
+          } else if (attackerDifficulty === 'medium') {
+            useExplosiveBolts = Math.random() < 0.5  // Medium AI uses 50%
+          }
+          // Easy AI never uses (0%)
+
+          if (useExplosiveBolts) {
+            const splashDamage = 10
+            let totalSplashDamage = 0
+
+            for (const splashTarget of splashTargets) {
+              // Apply splash damage (AI uses 0/50/100 rule for defense)
+              const defenderOwner = splashTarget.owner
+              const defenderPlayer = gameState.players[defenderOwner]
+              const defenderDifficulty = defenderPlayer?.aiDifficulty || 'easy'
+
+              let damageReduction = 0
+              // AI defense decision
+              if (defenderDifficulty === 'hard') {
+                damageReduction = 30  // Assume they have defense card
+              } else if (defenderDifficulty === 'medium' && Math.random() < 0.5) {
+                damageReduction = 30
+              }
+              // Easy = no defense
+
+              const actualDamage = Math.max(0, splashDamage - damageReduction)
+              totalSplashDamage += actualDamage
+
+              if (CONFIG.VERBOSE_LOGGING) {
+                console.log(`  [EXPLOSIVE BOLTS] ${attackerInstance.creature.name} deals ${actualDamage} splash damage to ${splashTarget.creature.name}!`)
+              }
+            }
+
+            // Track EXPLOSIVE BOLTS usage
+            trackCreatureAbility('cormyr', 'explosive_bolts', {
+              triggered: true,
+              splashDamage: totalSplashDamage,
+              targetsHit: splashTargets.length
+            })
+            stats.difficultyStats[attackerDifficulty].creatureAbilitiesUsed++
+          } else {
+            // AI declined to use EXPLOSIVE BOLTS
+            trackCreatureAbility('cormyr', 'explosive_bolts', { declined: true })
           }
         }
       }
@@ -1696,6 +1842,40 @@ function validateAbilityUsageRates(difficulty) {
 
     if (Math.abs(actualRate - expectedRate) > tolerance) {
       issues.push(`CONFUSION GAZE: Expected ~${(expectedRate * 100).toFixed(0)}% usage, got ${(actualRate * 100).toFixed(1)}%`)
+    }
+  }
+
+  // Validate ACID BREATH usage rate (Cormyr - Copper Dragon)
+  const acidBreath = stats.creatureAbilityStats.cormyr.acid_breath
+  if (acidBreath.timesOffered > 0) {
+    const actualRate = acidBreath.timesTriggered / acidBreath.timesOffered
+    const expectedRate = CONFIG.EXPECTED_RATES.acid_breath[difficulty]
+
+    // Allow some variance (±25% for medium, exact for easy/hard)
+    let tolerance = 0
+    if (difficulty === 'medium') {
+      tolerance = 0.25  // 25% tolerance for random 50% chance
+    }
+
+    if (Math.abs(actualRate - expectedRate) > tolerance) {
+      issues.push(`ACID BREATH: Expected ~${(expectedRate * 100).toFixed(0)}% usage, got ${(actualRate * 100).toFixed(1)}%`)
+    }
+  }
+
+  // Validate EXPLOSIVE BOLTS usage rate (Cormyr - Half-Orc Thug)
+  const explosiveBolts = stats.creatureAbilityStats.cormyr.explosive_bolts
+  if (explosiveBolts.timesOffered > 0) {
+    const actualRate = explosiveBolts.timesTriggered / explosiveBolts.timesOffered
+    const expectedRate = CONFIG.EXPECTED_RATES.explosive_bolts[difficulty]
+
+    // Allow some variance (±25% for medium, exact for easy/hard)
+    let tolerance = 0
+    if (difficulty === 'medium') {
+      tolerance = 0.25  // 25% tolerance for random 50% chance
+    }
+
+    if (Math.abs(actualRate - expectedRate) > tolerance) {
+      issues.push(`EXPLOSIVE BOLTS: Expected ~${(expectedRate * 100).toFixed(0)}% usage, got ${(actualRate * 100).toFixed(1)}%`)
     }
   }
 

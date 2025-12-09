@@ -283,6 +283,38 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, deployed: 0, moraleSaved: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, deployed: 0, moraleSaved: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, deployed: 0, moraleSaved: 0 }
+    },
+    acid_breath: {
+      name: 'ACID BREATH',
+      creature: 'Copper Dragon',
+      faction: 'Heart of Cormyr',
+      // Overall totals - ranged splash damage (0/50/100 pattern for AI offense)
+      timesOffered: 0,  // Times ranged attack had adjacent enemies to splash
+      timesTriggered: 0,  // Times splash damage was applied
+      timesDeclined: 0,  // Times AI declined (difficulty-based 0/50/100 pattern)
+      enemiesHit: 0,  // Total enemies hit by splash
+      totalDamage: 0,  // Total splash damage dealt (20 per target)
+      kills: 0,  // Creatures killed by splash
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 }
+    },
+    explosive_bolts: {
+      name: 'EXPLOSIVE BOLTS',
+      creature: 'Half-Orc Thug',
+      faction: 'Heart of Cormyr',
+      // Overall totals - ranged splash damage (0/50/100 pattern for AI offense)
+      timesOffered: 0,  // Times ranged attack had adjacent enemies to splash
+      timesTriggered: 0,  // Times splash damage was applied
+      timesDeclined: 0,  // Times AI declined (difficulty-based 0/50/100 pattern)
+      enemiesHit: 0,  // Total enemies hit by splash
+      totalDamage: 0,  // Total splash damage dealt (10 per target)
+      kills: 0,  // Creatures killed by splash
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, enemiesHit: 0, damage: 0, kills: 0 }
     }
   })
 
@@ -575,6 +607,104 @@ function AbilitiesTest() {
             } else {
               creatureAbilityStats.confusion_gaze.timesDeclined++
               creatureAbilityStats.confusion_gaze[difficulty].declined++
+            }
+          }
+        }
+
+        // Check for ACID BREATH ability (Copper Dragon) - ranged splash damage
+        if (creatureAbilityStats && targetInfo.attackType === 'ranged' && gameState.hasAcidBreath && gameState.hasAcidBreath(attackerInstance)) {
+          const splashTargets = gameState.getRangedSplashTargets
+            ? gameState.getRangedSplashTargets(attackerInstance, defenderInstance.position)
+            : []
+
+          if (splashTargets.length > 0) {
+            // Simulate AI difficulty behavior:
+            // - 33% chance: Easy AI (never uses)
+            // - 34% chance: Medium AI (50% usage)
+            // - 33% chance: Hard AI (always uses)
+            const difficultyRoll = Math.random()
+            let difficulty = 'easy'
+            let useAcidBreath = false
+
+            if (difficultyRoll < 0.33) {
+              // Easy AI - never uses creature abilities
+              difficulty = 'easy'
+              useAcidBreath = false
+            } else if (difficultyRoll < 0.67) {
+              // Medium AI - 50% chance to use
+              difficulty = 'medium'
+              useAcidBreath = Math.random() < 0.5
+            } else {
+              // Hard AI - always uses
+              difficulty = 'hard'
+              useAcidBreath = true
+            }
+
+            // Track overall stats
+            creatureAbilityStats.acid_breath.timesOffered++
+            // Track per-difficulty stats
+            creatureAbilityStats.acid_breath[difficulty].offered++
+
+            if (useAcidBreath) {
+              const splashDamage = 20  // ACID BREATH deals 20 splash damage
+              creatureAbilityStats.acid_breath.timesTriggered++
+              creatureAbilityStats.acid_breath.enemiesHit += splashTargets.length
+              creatureAbilityStats.acid_breath.totalDamage += splashDamage * splashTargets.length
+              creatureAbilityStats.acid_breath[difficulty].triggered++
+              creatureAbilityStats.acid_breath[difficulty].enemiesHit += splashTargets.length
+              creatureAbilityStats.acid_breath[difficulty].damage += splashDamage * splashTargets.length
+            } else {
+              creatureAbilityStats.acid_breath.timesDeclined++
+              creatureAbilityStats.acid_breath[difficulty].declined++
+            }
+          }
+        }
+
+        // Check for EXPLOSIVE BOLTS ability (Half-Orc Thug) - ranged splash damage
+        if (creatureAbilityStats && targetInfo.attackType === 'ranged' && gameState.hasExplosiveBolts && gameState.hasExplosiveBolts(attackerInstance)) {
+          const splashTargets = gameState.getRangedSplashTargets
+            ? gameState.getRangedSplashTargets(attackerInstance, defenderInstance.position)
+            : []
+
+          if (splashTargets.length > 0) {
+            // Simulate AI difficulty behavior:
+            // - 33% chance: Easy AI (never uses)
+            // - 34% chance: Medium AI (50% usage)
+            // - 33% chance: Hard AI (always uses)
+            const difficultyRoll = Math.random()
+            let difficulty = 'easy'
+            let useExplosiveBolts = false
+
+            if (difficultyRoll < 0.33) {
+              // Easy AI - never uses creature abilities
+              difficulty = 'easy'
+              useExplosiveBolts = false
+            } else if (difficultyRoll < 0.67) {
+              // Medium AI - 50% chance to use
+              difficulty = 'medium'
+              useExplosiveBolts = Math.random() < 0.5
+            } else {
+              // Hard AI - always uses
+              difficulty = 'hard'
+              useExplosiveBolts = true
+            }
+
+            // Track overall stats
+            creatureAbilityStats.explosive_bolts.timesOffered++
+            // Track per-difficulty stats
+            creatureAbilityStats.explosive_bolts[difficulty].offered++
+
+            if (useExplosiveBolts) {
+              const splashDamage = 10  // EXPLOSIVE BOLTS deals 10 splash damage
+              creatureAbilityStats.explosive_bolts.timesTriggered++
+              creatureAbilityStats.explosive_bolts.enemiesHit += splashTargets.length
+              creatureAbilityStats.explosive_bolts.totalDamage += splashDamage * splashTargets.length
+              creatureAbilityStats.explosive_bolts[difficulty].triggered++
+              creatureAbilityStats.explosive_bolts[difficulty].enemiesHit += splashTargets.length
+              creatureAbilityStats.explosive_bolts[difficulty].damage += splashDamage * splashTargets.length
+            } else {
+              creatureAbilityStats.explosive_bolts.timesDeclined++
+              creatureAbilityStats.explosive_bolts[difficulty].declined++
             }
           }
         }
@@ -1600,9 +1730,9 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 15 }
+    if (!creatureAbilityStats) return { working: 0, total: 18 }
     let working = 0
-    const total = 15 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL
+    const total = 18 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -1620,6 +1750,11 @@ function AbilitiesTest() {
     // Hypnotic Spirit abilities
     if (creatureAbilityStats.phasing?.timesTriggered > 0) working++
     if (creatureAbilityStats.insubstantial?.timesTriggered > 0) working++
+    // RIDER ability (Skeletal Lancer)
+    if (creatureAbilityStats.rider?.timesTriggered > 0) working++
+    // Heart of Cormyr ranged splash abilities
+    if (creatureAbilityStats.acid_breath?.timesTriggered > 0) working++
+    if (creatureAbilityStats.explosive_bolts?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -3283,6 +3418,196 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         RIDER: When Skeletal Lancer dies, deploy a Skeleton (Level 3 or lower) from hand to the same tile. Morale loss = (4 - deployed creature level). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* ACID BREATH Ability Card - Copper Dragon (Heart of Cormyr) */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🐉 ACID BREATH (Copper Dragon - Heart of Cormyr)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Ranged attack with adjacent enemies)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.acid_breath?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (Splash damage applied)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.acid_breath?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.acid_breath?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.acid_breath?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.acid_breath.timesTriggered / results.creatureAbilityStats.acid_breath.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Total Enemies Hit</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.acid_breath?.enemiesHit || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Splash Damage</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.acid_breath?.totalDamage || 0}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.acid_breath?.[diff] || {}
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        ACID BREATH 20: Whenever Copper Dragon makes a ranged attack, it deals 20 damage to each enemy creature adjacent to the target. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* EXPLOSIVE BOLTS Ability Card - Half-Orc Thug (Heart of Cormyr) */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>💥 EXPLOSIVE BOLTS (Half-Orc Thug - Heart of Cormyr)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Ranged attack with adjacent enemies)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.explosive_bolts?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (Splash damage applied)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.explosive_bolts?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.explosive_bolts?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.explosive_bolts?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.explosive_bolts.timesTriggered / results.creatureAbilityStats.explosive_bolts.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Total Enemies Hit</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.explosive_bolts?.enemiesHit || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Splash Damage</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.explosive_bolts?.totalDamage || 0}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.explosive_bolts?.[diff] || {}
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        EXPLOSIVE BOLTS 10: Whenever Half-Orc Thug makes a ranged attack, it deals 10 damage to each enemy creature adjacent to the target. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

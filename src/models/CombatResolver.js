@@ -148,9 +148,15 @@ export class CombatResolver {
     const pendingSplashAttacks = this.checkTombGuardianSplash(attackerInstance, attackType, defenderInstance)
     const hasPendingSplash = pendingSplashAttacks && pendingSplashAttacks.length > 0
 
+    // Check for RANGED SPLASH abilities (ACID BREATH / EXPLOSIVE BOLTS) - defer tapping until ability resolves
+    const hasRangedSplash = attackType === 'ranged' &&
+      this.gameState.hasRangedSplashAbility &&
+      this.gameState.hasRangedSplashAbility(attackerInstance)
+
     // Tap the creature if it has both moved AND attacked
-    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, or PENDING SPLASH (will be tapped after ability resolves)
-    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash) {
+    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, PENDING SPLASH, or RANGED SPLASH (will be tapped after ability resolves)
+    const shouldTapNow = attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash && !hasRangedSplash
+    if (shouldTapNow) {
       attackerInstance.tap()
     }
 
@@ -167,6 +173,7 @@ export class CombatResolver {
       damage,
       pendingFlashingBlades: hasFlashingBlades,
       pendingHiddenBlade: hasHiddenBlade,
+      pendingRangedSplash: hasRangedSplash,  // Flag for ACID BREATH / EXPLOSIVE BOLTS
       lifeDrain: lifeDrainResult,
       pendingSplashAttacks,
       pendingSplash: hasPendingSplash  // Flag to indicate splash needs to be resolved before tapping
@@ -216,9 +223,15 @@ export class CombatResolver {
     const pendingSplashAttacks = this.checkTombGuardianSplash(attackerInstance, attackType, defenderInstance)
     const hasPendingSplash = pendingSplashAttacks && pendingSplashAttacks.length > 0
 
+    // Check for RANGED SPLASH abilities (ACID BREATH / EXPLOSIVE BOLTS) - defer tapping until ability resolves
+    const hasRangedSplash = attackType === 'ranged' &&
+      this.gameState.hasRangedSplashAbility &&
+      this.gameState.hasRangedSplashAbility(attackerInstance)
+
     // Tap the creature if it has both moved AND attacked
-    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, or PENDING SPLASH (will be tapped after ability resolves)
-    if (attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash) {
+    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, PENDING SPLASH, or RANGED SPLASH (will be tapped after ability resolves)
+    const shouldTapNow = attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash && !hasRangedSplash
+    if (shouldTapNow) {
       attackerInstance.tap()
     }
 
@@ -238,6 +251,7 @@ export class CombatResolver {
       defenseUsed: defenseType,
       pendingFlashingBlades: hasFlashingBlades,
       pendingHiddenBlade: hasHiddenBlade,
+      pendingRangedSplash: hasRangedSplash,  // Flag for ACID BREATH / EXPLOSIVE BOLTS
       lifeDrain: lifeDrainResult,
       pendingSplashAttacks,
       pendingSplash: hasPendingSplash  // Flag to indicate splash needs to be resolved before tapping
@@ -511,7 +525,9 @@ export class CombatResolver {
       }
 
       // If there's an enemy creature on this tile, line of sight is blocked
-      if (tile?.occupant && tile.occupant.owner !== attackerOwner) {
+      // UNLESS the attacker has FLYING ability (can shoot over enemies)
+      const attackerHasFlying = this.gameState.hasFlying && this.gameState.hasFlying(attacker)
+      if (!attackerHasFlying && tile?.occupant && tile.occupant.owner !== attackerOwner) {
         return false
       }
     }
@@ -610,7 +626,10 @@ export class CombatResolver {
     const range = creatureInstance.creature.rangedAttack.range
     const attackerOwner = creatureInstance.owner
 
-    // Check if attacker is on forest (can't use ranged from forest)
+    // Check if attacker has FLYING (can shoot over enemy creatures)
+    const attackerHasFlying = this.gameState.hasFlying && this.gameState.hasFlying(creatureInstance)
+
+    // Check if attacker is on forest (can't use ranged from forest - even with FLYING)
     const attackerTile = this.gameState.getTile(pos.x, pos.y)
     const attackerOnForest = attackerTile?.terrain === TerrainTypes.FOREST
 
@@ -673,8 +692,8 @@ export class CombatResolver {
               break
             }
 
-            // Enemy creature blocks LOS
-            if (lineTile?.occupant && lineTile.occupant.owner !== attackerOwner) {
+            // Enemy creature blocks LOS (unless attacker has FLYING - can shoot over enemies)
+            if (!attackerHasFlying && lineTile?.occupant && lineTile.occupant.owner !== attackerOwner) {
               hasLOS = false
               blockReason = 'enemy_blocking'
               break
