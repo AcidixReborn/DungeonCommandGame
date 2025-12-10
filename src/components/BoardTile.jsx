@@ -59,7 +59,7 @@ const factionIcons = {
  * @param {Array} rangedLOSFactions - Array of player IDs (owners) whose ranged creatures can hit this tile
  * @param {boolean} isSelectedCreatureRangedLOS - Whether tile is in LOS of the currently selected ranged creature (brighter highlight)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSlamTile = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isArcanePortalHighlight = false, arcanePortalFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false, isOrderCardTarget = false, isWebbed = false }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSlamTile = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isArcanePortalHighlight = false, arcanePortalFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false, isOrderCardTarget = false, isWebbed = false, isHealingTouchTarget = false }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -335,6 +335,19 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
           `,
           borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`
         }
+      }
+    }
+
+    // HEALING TOUCH: Apply green/healing highlight to valid targets (self + adjacent allies)
+    if (isHealingTouchTarget) {
+      return {
+        background: 'linear-gradient(135deg, rgba(40, 167, 69, 0.4) 0%, rgba(32, 201, 151, 0.3) 100%)',
+        boxShadow: `
+          inset 0 0 0 3px rgba(40, 167, 69, 0.9),
+          inset 0 0 25px rgba(32, 201, 151, 0.5),
+          0 0 12px rgba(40, 167, 69, 0.4)
+        `,
+        borderColor: 'rgba(40, 167, 69, 0.8)'
       }
     }
 

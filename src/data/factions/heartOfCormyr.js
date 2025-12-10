@@ -149,7 +149,7 @@ export const creatures = [
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'HEALING TOUCH: ⚔ This creature or 1 adjacent ally heals 10 DAMAGE or removes 1 attached Order card. PLACEHOLDER'
+      'HEALING TOUCH: ⚔ This creature or 1 adjacent ally heals 10 DAMAGE or removes 1 attached Order card.'
     ],
     faction: FACTION_NAME,
     imageUrl: dwarfClericImg

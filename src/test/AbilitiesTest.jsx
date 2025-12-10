@@ -371,6 +371,23 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, damageBlocked: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, damageBlocked: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, damageBlocked: 0 }
+    },
+    healing_touch: {
+      name: 'HEALING TOUCH',
+      creature: 'Dwarf Cleric',
+      faction: 'Heart of Cormyr',
+      // Overall totals - active healing ability (0/50/100 AI pattern)
+      timesOffered: 0,      // Times Dwarf Cleric could use ability (had targets)
+      timesTriggered: 0,    // Times ability was actually used
+      timesDeclined: 0,     // Times AI didn't use (Easy=always, Medium=50%, Hard=based on strategy)
+      selfHeals: 0,         // Times healed self
+      allyHeals: 0,         // Times healed ally
+      cardsRemoved: 0,      // Times removed attached order card
+      totalHealingDone: 0,  // Total HP healed
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, heals: 0, cardRemovals: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, heals: 0, cardRemovals: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, heals: 0, cardRemovals: 0 }
     }
   })
 
@@ -1641,6 +1658,58 @@ function AbilitiesTest() {
               // Track declined (AI chose not to use it based on difficulty)
               creatureAbilityStats.lightning_breath.timesDeclined++
               creatureAbilityStats.lightning_breath[diff].declined++
+            }
+            break
+
+          case 'healing_touch':
+            // Track HEALING TOUCH ability (Dwarf Cleric) - TRIGGERED
+            // AI difficulty affects whether ability is used:
+            // - Easy: Never use (0% chance)
+            // - Medium: 50% chance
+            // - Hard: Always use (100%)
+            {
+              const diff = player?.aiDifficulty || 'medium'
+              const healerInstance = action.healerInstance
+              const targetInstance = action.targetInstance
+              const healAction = action.action  // 'heal' or 'removeCard'
+
+              // Track offered and triggered
+              creatureAbilityStats.healing_touch.timesOffered++
+              creatureAbilityStats.healing_touch[diff].offered++
+              creatureAbilityStats.healing_touch.timesTriggered++
+              creatureAbilityStats.healing_touch[diff].triggered++
+
+              if (healAction === 'heal') {
+                const healedAmount = action.result?.healedAmount || 10
+                creatureAbilityStats.healing_touch.totalHealingDone += healedAmount
+                creatureAbilityStats.healing_touch[diff].heals++
+
+                // Track self vs ally heal
+                if (healerInstance?.instanceId === targetInstance?.instanceId) {
+                  creatureAbilityStats.healing_touch.selfHeals++
+                } else {
+                  creatureAbilityStats.healing_touch.allyHeals++
+                }
+
+                console.log(`[HEALING TOUCH] ${healerInstance?.creature?.name} healed ${targetInstance?.creature?.name} for ${healedAmount} (${diff})`)
+              } else if (healAction === 'removeCard') {
+                creatureAbilityStats.healing_touch.cardsRemoved++
+                creatureAbilityStats.healing_touch[diff].cardRemovals++
+
+                console.log(`[HEALING TOUCH] ${healerInstance?.creature?.name} removed card from ${targetInstance?.creature?.name} (${diff})`)
+              }
+            }
+            break
+
+          case 'healing_touch_declined':
+            // Track HEALING TOUCH declined - ability was available but AI chose not to use
+            {
+              const diff = player?.aiDifficulty || 'medium'
+
+              creatureAbilityStats.healing_touch.timesOffered++
+              creatureAbilityStats.healing_touch[diff].offered++
+              creatureAbilityStats.healing_touch.timesDeclined++
+              creatureAbilityStats.healing_touch[diff].declined++
             }
             break
 
@@ -4314,6 +4383,113 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         SHIELD BLOCK: Adjacent allied Adventurers (Cormyr faction only) gain Block 10 per adjacent Dwarven Defender. Stacks with multiple Defenders. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* HEALING TOUCH - Dwarf Cleric (Heart of Cormyr) */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>💚 HEALING TOUCH (Dwarf Cleric - Heart of Cormyr)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (could use ability)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.healing_touch?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (used ability)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.healing_touch?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (skipped)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.healing_touch?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Healing Done</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.healing_touch?.totalHealingDone || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Self Heals</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.healing_touch?.selfHeals || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Ally Heals</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.healing_touch?.allyHeals || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Cards Removed</td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.healing_touch?.cardsRemoved || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.healing_touch?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.healing_touch.timesTriggered / results.creatureAbilityStats.healing_touch.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Heals</th>
+                            <th>Cards</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.healing_touch?.[diff] || { offered: 0, triggered: 0, declined: 0, heals: 0, cardRemovals: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.heals || 0}</td>
+                                <td>{stats.cardRemovals || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        HEALING TOUCH: Dwarf Cleric can heal self or adjacent ally for 10 damage OR remove 1 attached Order card. Uses standard action. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

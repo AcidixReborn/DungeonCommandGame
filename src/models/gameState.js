@@ -1279,6 +1279,154 @@ export class GameState {
   }
 
   // ============================================================================
+  // HEALING TOUCH - Dwarf Cleric Creature Ability (Heart of Cormyr)
+  // Standard action: This creature or 1 adjacent ally heals 10 DAMAGE
+  // OR removes 1 attached Order card
+  // Consumes standard action (creature taps only if already moved)
+  // ============================================================================
+
+  /**
+   * Check if creature has HEALING TOUCH ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has HEALING TOUCH
+   */
+  hasHealingTouch(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('HEALING TOUCH')
+    )
+  }
+
+  /**
+   * Get valid HEALING TOUCH targets (self + adjacent allies)
+   * Uses 8-directional adjacency
+   * @param {CreatureInstance} healerInstance - The Dwarf Cleric using the ability
+   * @returns {Array} Array of valid target CreatureInstances (includes self)
+   */
+  getHealingTouchTargets(healerInstance) {
+    if (!this.hasHealingTouch(healerInstance)) return []
+    if (!healerInstance.position) return []
+
+    const validTargets = []
+    const healerOwner = healerInstance.owner
+
+    // Self is always a valid target
+    validTargets.push(healerInstance)
+
+    // Get 8-directional adjacent tiles
+    const adjacentTiles = this.getAdjacentTiles8Dir(healerInstance.position.x, healerInstance.position.y)
+
+    for (const tile of adjacentTiles) {
+      const occupant = tile.occupant
+      if (occupant &&
+          occupant.owner === healerOwner && // Same owner (ally)
+          occupant.currentHP > 0 && // Alive
+          occupant.instanceId !== healerInstance.instanceId) { // Not self (already added)
+        validTargets.push(occupant)
+      }
+    }
+
+    return validTargets
+  }
+
+  /**
+   * Check if a creature is a valid Healing Touch target for a specific healer
+   * @param {CreatureInstance} healerInstance - The Dwarf Cleric
+   * @param {CreatureInstance} targetInstance - Potential target
+   * @returns {boolean} True if target is valid
+   */
+  isValidHealingTouchTarget(healerInstance, targetInstance) {
+    if (!this.hasHealingTouch(healerInstance)) return false
+    if (!healerInstance.position || !targetInstance.position) return false
+    if (targetInstance.currentHP <= 0) return false
+    if (targetInstance.owner !== healerInstance.owner) return false
+
+    // Self is valid
+    if (targetInstance.instanceId === healerInstance.instanceId) return true
+
+    // Check if adjacent (8-directional)
+    const dx = Math.abs(targetInstance.position.x - healerInstance.position.x)
+    const dy = Math.abs(targetInstance.position.y - healerInstance.position.y)
+    return dx <= 1 && dy <= 1
+  }
+
+  /**
+   * Execute HEALING TOUCH ability
+   * @param {CreatureInstance} healerInstance - The Dwarf Cleric using the ability
+   * @param {CreatureInstance} targetInstance - Creature to heal/remove card from
+   * @param {string} action - 'heal' or 'removeCard'
+   * @param {number} cardIndex - Index of attached card to remove (if action is 'removeCard')
+   * @returns {Object} Result { success, message, healedAmount?, removedCard? }
+   */
+  executeHealingTouch(healerInstance, targetInstance, action, cardIndex = 0) {
+    // Validate healer has the ability
+    if (!this.hasHealingTouch(healerInstance)) {
+      return { success: false, message: 'Creature does not have HEALING TOUCH ability' }
+    }
+
+    // Validate healer hasn't used standard action
+    if (healerInstance.hasAttackedThisTurn) {
+      return { success: false, message: 'Creature has already used its standard action' }
+    }
+
+    // Validate target
+    if (!this.isValidHealingTouchTarget(healerInstance, targetInstance)) {
+      return { success: false, message: 'Invalid target for HEALING TOUCH' }
+    }
+
+    let result = { success: true }
+
+    if (action === 'heal') {
+      // Heal 10 damage
+      const healAmount = 10
+      const damageBeforeHeal = targetInstance.damageTokens
+      targetInstance.heal(healAmount)
+      const actualHealed = damageBeforeHeal - targetInstance.damageTokens
+
+      result.healedAmount = actualHealed
+      result.message = actualHealed > 0
+        ? `${targetInstance.creature.name} healed ${actualHealed} damage (HP: ${targetInstance.currentHP}/${targetInstance.creature.hitPoints})`
+        : `${targetInstance.creature.name} has no damage to heal`
+
+    } else if (action === 'removeCard') {
+      // Remove attached Order card
+      if (!targetInstance.attachedCards || targetInstance.attachedCards.length === 0) {
+        return { success: false, message: 'Target has no attached cards to remove' }
+      }
+
+      if (cardIndex < 0 || cardIndex >= targetInstance.attachedCards.length) {
+        return { success: false, message: 'Invalid card index' }
+      }
+
+      // Remove the card
+      const [removedAttachment] = targetInstance.attachedCards.splice(cardIndex, 1)
+      const removedCard = removedAttachment.card
+
+      // Return card to caster's discard pile
+      const casterPlayer = this.players[removedAttachment.casterOwner]
+      if (casterPlayer) {
+        casterPlayer.orderDiscard.push(removedCard)
+      }
+
+      result.removedCard = removedCard
+      result.message = `Removed ${removedCard.name} from ${targetInstance.creature.name}`
+
+    } else {
+      return { success: false, message: 'Invalid action - must be "heal" or "removeCard"' }
+    }
+
+    // Consume standard action
+    healerInstance.hasAttackedThisTurn = true
+
+    // Tap if already moved
+    if (healerInstance.hasMovedThisTurn) {
+      healerInstance.tap()
+    }
+
+    return result
+  }
+
+  // ============================================================================
   // CONFUSION GAZE - Umber Hulk Ability (Sting of Lolth)
   // As a standard action, choose 1 enemy creature within 5 squares (with LOS)
   // and slide that creature up to 3 squares, then make a melee attack (30 damage)

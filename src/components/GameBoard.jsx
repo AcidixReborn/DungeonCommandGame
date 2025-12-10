@@ -15,6 +15,7 @@ import SimpleAI from '../ai/simpleAI'
 import { useNotifications, useSelection, useCombat } from '../hooks'
 import DamageNotificationModal from './DamageNotificationModal'
 import WebRemovalModal from './WebRemovalModal'
+import HealingTouchModal from './HealingTouchModal'
 import './GameBoard.css'
 
 /**
@@ -233,6 +234,11 @@ function GameBoard({ onTurnInfoChange }) {
   // WEB REMOVAL MODAL state - for human player to remove web from their own webbed creature
   const [showWebRemovalModal, setShowWebRemovalModal] = useState(false)
   const [webRemovalCreature, setWebRemovalCreature] = useState(null) // Creature instance with web to potentially remove
+
+  // HEALING TOUCH MODAL state - for human player to use Dwarf Cleric's healing ability
+  const [showHealingTouchModal, setShowHealingTouchModal] = useState(false)
+  const [healingTouchHealer, setHealingTouchHealer] = useState(null) // The Dwarf Cleric using the ability
+  const [healingTouchTarget, setHealingTouchTarget] = useState(null) // The creature being healed/having card removed
 
   /**
    * Faction color mapping from faction IDs to hex colors
@@ -3093,6 +3099,84 @@ function GameBoard({ onTurnInfoChange }) {
     setWebRemovalCreature(null)
   }
 
+  // ============================================
+  // HEALING TOUCH MODAL HANDLERS
+  // Handle Dwarf Cleric's healing ability
+  // ============================================
+
+  /**
+   * Handle Healing Touch Modal - Heal
+   * Heals 10 damage to the target creature
+   */
+  const handleHealingTouchHeal = () => {
+    if (!healingTouchHealer || !healingTouchTarget || !gameState) {
+      setShowHealingTouchModal(false)
+      setHealingTouchHealer(null)
+      setHealingTouchTarget(null)
+      return
+    }
+
+    const result = gameState.executeHealingTouch(healingTouchHealer, healingTouchTarget, 'heal')
+
+    if (result.success) {
+      const isSelf = healingTouchHealer.instanceId === healingTouchTarget.instanceId
+      addToast(`💚 HEALING TOUCH: ${healingTouchHealer.creature.name} healed ${isSelf ? 'itself' : healingTouchTarget.creature.name}! ${result.message}`)
+      // Clear selection so player can see the updated state
+      setSelectedBoardCreature(null)
+      setValidMoveTiles([])
+      setValidAttackTargets([])
+      setRenderCounter(prev => prev + 1)
+    } else {
+      addToast(`Healing Touch failed: ${result.message}`)
+    }
+
+    setShowHealingTouchModal(false)
+    setHealingTouchHealer(null)
+    setHealingTouchTarget(null)
+  }
+
+  /**
+   * Handle Healing Touch Modal - Remove Card
+   * Removes an attached Order card from the target creature
+   * @param {number} cardIndex - Index of the attached card to remove
+   */
+  const handleHealingTouchRemoveCard = (cardIndex) => {
+    if (!healingTouchHealer || !healingTouchTarget || !gameState) {
+      setShowHealingTouchModal(false)
+      setHealingTouchHealer(null)
+      setHealingTouchTarget(null)
+      return
+    }
+
+    const result = gameState.executeHealingTouch(healingTouchHealer, healingTouchTarget, 'removeCard', cardIndex)
+
+    if (result.success) {
+      const isSelf = healingTouchHealer.instanceId === healingTouchTarget.instanceId
+      addToast(`💚 HEALING TOUCH: ${healingTouchHealer.creature.name} removed ${result.removedCard?.name || 'card'} from ${isSelf ? 'itself' : healingTouchTarget.creature.name}!`)
+      // Clear selection so player can see the updated state
+      setSelectedBoardCreature(null)
+      setValidMoveTiles([])
+      setValidAttackTargets([])
+      setRenderCounter(prev => prev + 1)
+    } else {
+      addToast(`Healing Touch failed: ${result.message}`)
+    }
+
+    setShowHealingTouchModal(false)
+    setHealingTouchHealer(null)
+    setHealingTouchTarget(null)
+  }
+
+  /**
+   * Handle Healing Touch Modal - Cancel
+   * Closes the modal without taking action
+   */
+  const handleHealingTouchCancel = () => {
+    setShowHealingTouchModal(false)
+    setHealingTouchHealer(null)
+    setHealingTouchTarget(null)
+  }
+
   // Confirm morale collection
   const confirmCollectMorale = () => {
     if (!pendingCollection) return
@@ -4060,6 +4144,24 @@ function GameBoard({ onTurnInfoChange }) {
       })
       setShowMoveConfirm(true)
       return
+    }
+
+    // ============================================
+    // HEALING TOUCH CHECK: Before attack, check if Dwarf Cleric can use HEALING TOUCH
+    // This triggers when right-clicking self or an adjacent ally
+    // ============================================
+    if (tile.occupant &&
+        tile.occupant.owner === selectedBoardCreature.owner && // Same owner (self or ally)
+        gameState.hasHealingTouch(selectedBoardCreature) &&
+        !selectedBoardCreature.hasAttackedThisTurn) {
+      // Check if target is valid for HEALING TOUCH
+      if (gameState.isValidHealingTouchTarget(selectedBoardCreature, tile.occupant)) {
+        // Show Healing Touch modal
+        setHealingTouchHealer(selectedBoardCreature)
+        setHealingTouchTarget(tile.occupant)
+        setShowHealingTouchModal(true)
+        return
+      }
     }
 
     // CASE 2: Creature selected - check for attack
@@ -5883,6 +5985,17 @@ function GameBoard({ onTurnInfoChange }) {
                     ? lightningBreathTargets.findIndex(t => t.position?.x === x && t.position?.y === y)
                     : -1
 
+                  // ============================================
+                  // HEALING TOUCH HIGHLIGHTS: Show valid targets (self + adjacent allies)
+                  // when Dwarf Cleric is selected and hasn't used action
+                  // ============================================
+                  const isHealingTouchTarget = selectedBoardCreature &&
+                    gameState.hasHealingTouch(selectedBoardCreature) &&
+                    !selectedBoardCreature.hasAttackedThisTurn &&
+                    creature &&
+                    creature.owner === selectedBoardCreature.owner &&
+                    gameState.isValidHealingTouchTarget(selectedBoardCreature, creature)
+
                   // Check if this is the selected creature
                   const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
                                               selectedBoardCreature?.position?.y === y
@@ -6082,6 +6195,7 @@ function GameBoard({ onTurnInfoChange }) {
                       lightningBreathTargetIndex={lightningBreathTargetIndex}
                       isOrderCardTarget={isOrderCardTarget}
                       isWebbed={creature && gameState?.isWebbed?.(creature)}
+                      isHealingTouchTarget={isHealingTouchTarget}
                     />
                   )
                 })}
@@ -7027,6 +7141,16 @@ function GameBoard({ onTurnInfoChange }) {
         onKeepWeb={handleKeepWeb}
         onRemoveWeb={handleRemoveWeb}
         creatureInstance={webRemovalCreature}
+      />
+
+      {/* HEALING TOUCH MODAL - Dwarf Cleric can heal self/ally or remove attached cards */}
+      <HealingTouchModal
+        show={showHealingTouchModal}
+        onHeal={handleHealingTouchHeal}
+        onRemoveCard={handleHealingTouchRemoveCard}
+        onCancel={handleHealingTouchCancel}
+        healerInstance={healingTouchHealer}
+        targetInstance={healingTouchTarget}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}

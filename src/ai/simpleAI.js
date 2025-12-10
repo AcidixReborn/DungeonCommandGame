@@ -244,6 +244,31 @@ export class SimpleAI {
         }
       }
 
+      // ============================================
+      // HEALING TOUCH CHECK: Try to use healing ability before attacking
+      // Easy: Never use (0%), Medium: 50% chance, Hard: Always use (100%)
+      // Strategy: Heal if target <50% HP, else remove attached cards if any
+      // ============================================
+      if (!creature.hasAttackedThisTurn && this.canUseCreatureAbilities() && this.gameState.hasHealingTouch(creature)) {
+        const useChance = this.difficulty === 'hard' ? 1.0 : 0.5
+        if (Math.random() < useChance) {
+          const healingResult = this.tryHealingTouch(creature)
+          if (healingResult) {
+            actions.push(healingResult)
+            didAction = true
+            hasAttackIntention = true  // Used standard action - can't attack now
+            continue  // Move to next creature
+          }
+        } else {
+          // Track declined opportunity
+          actions.push({
+            type: 'healing_touch_declined',
+            creatureInstance: creature,
+            reason: `${this.difficulty} AI skipped (50% roll failed)`
+          })
+        }
+      }
+
       // Priority 1b - Try to attack if in range (and hasn't attacked yet) - O(E)
       // FIX: Also check hasAttackIntention to prevent duplicate attack intentions
       if (!creature.hasAttackedThisTurn && !hasAttackIntention) {
@@ -767,6 +792,72 @@ export class SimpleAI {
       }
     }
     return bestTile
+  }
+
+  /**
+   * Try to use HEALING TOUCH ability
+   * Strategy:
+   * - Prioritize healing targets with <50% HP
+   * - Otherwise remove attached cards (like Web)
+   * - Skip if no beneficial action available
+   * @param {CreatureInstance} healerInstance - The Dwarf Cleric
+   * @returns {Object|null} Action object or null if no beneficial heal
+   */
+  tryHealingTouch(healerInstance) {
+    const targets = this.gameState.getHealingTouchTargets(healerInstance)
+    if (targets.length === 0) return null
+
+    // Priority 1: Find targets that need healing (<50% HP)
+    const needsHealing = targets.filter(t => {
+      const hpPercent = t.currentHP / t.creature.hitPoints
+      return hpPercent < 0.5 && t.damageTokens > 0
+    })
+
+    if (needsHealing.length > 0) {
+      // Heal the most damaged target (lowest HP percentage)
+      const mostDamaged = needsHealing.reduce((worst, current) => {
+        const worstPercent = worst.currentHP / worst.creature.hitPoints
+        const currentPercent = current.currentHP / current.creature.hitPoints
+        return currentPercent < worstPercent ? current : worst
+      })
+
+      const result = this.gameState.executeHealingTouch(healerInstance, mostDamaged, 'heal')
+      if (result.success) {
+        console.log(`[AI] HEALING TOUCH: ${healerInstance.creature.name} healed ${mostDamaged.creature.name} - ${result.message}`)
+        return {
+          type: 'healing_touch',
+          healerInstance,
+          targetInstance: mostDamaged,
+          action: 'heal',
+          result
+        }
+      }
+    }
+
+    // Priority 2: Find targets with attached cards to remove
+    const hasAttachedCards = targets.filter(t =>
+      t.attachedCards && t.attachedCards.length > 0
+    )
+
+    if (hasAttachedCards.length > 0) {
+      // Remove card from first target with attached cards
+      const target = hasAttachedCards[0]
+      const result = this.gameState.executeHealingTouch(healerInstance, target, 'removeCard', 0)
+      if (result.success) {
+        console.log(`[AI] HEALING TOUCH: ${healerInstance.creature.name} removed ${result.removedCard?.name} from ${target.creature.name}`)
+        return {
+          type: 'healing_touch',
+          healerInstance,
+          targetInstance: target,
+          action: 'removeCard',
+          removedCard: result.removedCard,
+          result
+        }
+      }
+    }
+
+    // No beneficial action available
+    return null
   }
 
   /**
