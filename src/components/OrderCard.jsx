@@ -8,10 +8,12 @@ import './OrderCard.css'
  *
  * @param {OrderCard} order - Order card data
  * @param {Function} onClick - Click handler
+ * @param {Function} onRightClick - Right-click handler for targeting mode
  * @param {boolean} isSelected - Whether card is selected
+ * @param {boolean} isTargeting - Whether this card is in targeting mode (glowing border)
  * @param {boolean} compact - Use compact display mode
  */
-function OrderCard({ order, onClick, isSelected, compact = false }) {
+function OrderCard({ order, onClick, onRightClick, isSelected, isTargeting = false, compact = false }) {
   /**
    * Get badge color for action type
    * @returns {string} Bootstrap variant color
@@ -93,13 +95,33 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
     )
   }
 
+  /**
+   * Handle right-click on card
+   * @param {Event} e - Context menu event
+   */
+  const handleContextMenu = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (onRightClick) {
+      onRightClick(order)
+    }
+  }
+
+  // Style for targeting mode (glowing cyan border)
+  const targetingStyle = isTargeting ? {
+    boxShadow: '0 0 10px 3px #00ffff',
+    border: '2px solid #00ffff'
+  } : {}
+
   if (compact) {
     // If order has an image, show image-only view
     if (order.imageUrl) {
       return (
         <div
-          className={`order-card-compact order-card-compact-image ${isSelected ? 'selected' : ''}`}
+          className={`order-card-compact order-card-compact-image ${isSelected ? 'selected' : ''} ${isTargeting ? 'targeting' : ''}`}
           onClick={onClick}
+          onContextMenu={handleContextMenu}
+          style={targetingStyle}
         >
           <img
             src={order.imageUrl}
@@ -113,8 +135,10 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
     // Fallback: No image - show text-based compact view
     return (
       <div
-        className={`order-card-compact ${isSelected ? 'selected' : ''}`}
+        className={`order-card-compact ${isSelected ? 'selected' : ''} ${isTargeting ? 'targeting' : ''}`}
         onClick={onClick}
+        onContextMenu={handleContextMenu}
+        style={targetingStyle}
       >
         <div className="order-card-name-row">
           <span className="order-name">{order.name?.replace(/ #\d+$/, '') || order.name}</span>
@@ -132,10 +156,12 @@ function OrderCard({ order, onClick, isSelected, compact = false }) {
 
   return (
     <Card
-      className={`order-card ${isSelected ? 'selected' : ''}`}
+      className={`order-card ${isSelected ? 'selected' : ''} ${isTargeting ? 'targeting' : ''}`}
       onClick={onClick}
+      onContextMenu={handleContextMenu}
       bg="dark"
       text="white"
+      style={targetingStyle}
     >
       <Card.Header>
         <div className="d-flex justify-content-between align-items-center">

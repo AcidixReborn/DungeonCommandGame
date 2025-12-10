@@ -116,7 +116,7 @@ function AttackConfirmPanel({
         <div className="combat-creature-section attacker-section">
           <span className="combat-creature-label">Attacker</span>
           <div className="combat-creature-card">
-            <CreatureCard creature={attacker.creature} compact={true} />
+            <CreatureCard creature={attacker.creature} creatureInstance={attacker} compact={true} />
           </div>
           <span className="combat-creature-name">{attacker.creature.name}</span>
         </div>
@@ -130,7 +130,7 @@ function AttackConfirmPanel({
         <div className="combat-creature-section defender-section">
           <span className="combat-creature-label">Target</span>
           <div className="combat-creature-card">
-            <CreatureCard creature={defender.creature} compact={true} />
+            <CreatureCard creature={defender.creature} creatureInstance={defender} compact={true} />
           </div>
           <span className="combat-creature-name">{defender.creature.name}</span>
         </div>

@@ -257,7 +257,7 @@ function DefenseOptionsPanel({
         <div className="combat-creature-section attacker-section">
           <span className="combat-creature-label">Attacker</span>
           <div className="combat-creature-card">
-            <CreatureCard creature={attackerInstance.creature} compact={true} />
+            <CreatureCard creature={attackerInstance.creature} creatureInstance={attackerInstance} compact={true} />
           </div>
           <span className="combat-creature-name">{attackerInstance.creature.name}</span>
         </div>
@@ -271,7 +271,7 @@ function DefenseOptionsPanel({
         <div className="combat-creature-section defender-section">
           <span className="combat-creature-label">Your Creature</span>
           <div className="combat-creature-card">
-            <CreatureCard creature={defenderInstance.creature} compact={true} />
+            <CreatureCard creature={defenderInstance.creature} creatureInstance={defenderInstance} compact={true} />
           </div>
           <span className="combat-creature-name">{defenderInstance.creature.name}</span>
         </div>

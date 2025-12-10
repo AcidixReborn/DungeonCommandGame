@@ -374,6 +374,28 @@ function AbilitiesTest() {
     }
   })
 
+  // ============================================================================
+  // ORDER CARD STATS - Tracks AI usage of order cards (0/0/100 pattern)
+  // Order cards only used by Hard AI (not Easy/Medium)
+  // ============================================================================
+  const createOrderCardStats = () => ({
+    web_card: {
+      name: 'WEB',
+      cardType: 'Order Card (MINOR)',
+      faction: 'Sting of Lolth',
+      // Overall totals - 0/0/100 pattern (Hard only)
+      timesOffered: 0,      // Times AI had Web card in hand with valid caster
+      timesUsed: 0,         // Times AI used Web
+      timesDeclined: 0,     // Times AI had opportunity but didn't use (Easy/Medium)
+      targetsWebbed: 0,     // Total enemies webbed
+      websRemoved: 0,       // Times AI removed web from own creatures
+      // Per-difficulty breakdown (Easy=0%, Medium=0%, Hard=100%)
+      easy: { offered: 0, used: 0, declined: 0 },
+      medium: { offered: 0, used: 0, declined: 0 },
+      hard: { offered: 0, used: 0, declined: 0 }
+    }
+  })
+
   const createCreatureDeck = (faction) => {
     // Create single copy of each creature (12 total per faction)
     return sampleCreatures[faction].map(c => new Creature(c))
@@ -1109,7 +1131,7 @@ function AbilitiesTest() {
   /**
    * Execute AI turn with ability tracking
    */
-  const executeAITurn = (gameState, currentPlayerId, abilityStats, creatureAbilityStats, gameStats) => {
+  const executeAITurn = (gameState, currentPlayerId, abilityStats, creatureAbilityStats, gameStats, orderCardStats = null) => {
     // Randomize AI difficulty: 33% easy, 34% medium, 33% hard
     const difficultyRoll = Math.random()
     const aiDifficulty = difficultyRoll < 0.33 ? 'easy' : difficultyRoll < 0.67 ? 'medium' : 'hard'
@@ -1625,6 +1647,57 @@ function AbilitiesTest() {
           case 'attack_intention':
             attackIntentions.push(action)
             break
+
+          case 'web':
+            // Track WEB order card USED (Hard AI used Web)
+            {
+              const diff = player?.aiDifficulty || 'medium'
+              const caster = action.casterInstance
+              const target = action.targetInstance
+
+              if (orderCardStats?.web_card) {
+                // Track as offered AND used
+                orderCardStats.web_card.timesOffered++
+                orderCardStats.web_card[diff].offered++
+                orderCardStats.web_card.timesUsed++
+                orderCardStats.web_card.targetsWebbed++
+                orderCardStats.web_card[diff].used++
+
+                console.log(`[WEB TRACKING] ${caster?.creature?.name} webbed ${target?.creature?.name} (${diff})`)
+              }
+            }
+            break
+
+          case 'web_declined':
+            // Track WEB order card DECLINED (Easy/Medium AI had opportunity but didn't use)
+            {
+              const diff = player?.aiDifficulty || 'medium'
+              const caster = action.casterInstance
+              const target = action.targetInstance
+
+              if (orderCardStats?.web_card) {
+                // Track as offered but declined
+                orderCardStats.web_card.timesOffered++
+                orderCardStats.web_card[diff].offered++
+                orderCardStats.web_card.timesDeclined++
+                orderCardStats.web_card[diff].declined++
+
+                console.log(`[WEB TRACKING] ${diff} AI declined Web: ${caster?.creature?.name} could have webbed ${target?.creature?.name}`)
+              }
+            }
+            break
+
+          case 'web_removal':
+            // Track WEB removal by AI
+            {
+              const diff = player?.aiDifficulty || 'medium'
+
+              if (orderCardStats?.web_card) {
+                orderCardStats.web_card.websRemoved++
+                console.log(`[WEB TRACKING] AI removed Web from ${action.creatureInstance?.creature?.name} (${diff})`)
+              }
+            }
+            break
         }
       }
 
@@ -1690,7 +1763,7 @@ function AbilitiesTest() {
     return result
   }
 
-  const runSingleGame = (gameNum, abilityStats, creatureAbilityStats) => {
+  const runSingleGame = (gameNum, abilityStats, creatureAbilityStats, orderCardStats) => {
     const stats = {
       gameNum,
       turns: 0,
@@ -1757,12 +1830,12 @@ function AbilitiesTest() {
               // Check for HORDE ability - allows deployment during REFRESH phase
               // Execute AI turn BEFORE executeRefreshPhase to track HORDE deployments
               if (gameState.canDeployDuringRefresh && gameState.canDeployDuringRefresh(currentPlayerId)) {
-                executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats)
+                executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats, orderCardStats)
               }
               gameState.executeRefreshPhase()
               break
             case GamePhases.ACTIVATE:
-              executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats)
+              executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats, orderCardStats)
 
               // Track DISCIPLE OF KYUSS ability at end of ACTIVATE phase
               // This passive triggers when the current player ends their activation
@@ -1827,7 +1900,7 @@ function AbilitiesTest() {
               gameState.advancePhase()
               break
             case GamePhases.DEPLOY:
-              executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats)
+              executeAITurn(gameState, currentPlayerId, abilityStats, creatureAbilityStats, stats, orderCardStats)
               gameState.advancePhase()
               break
             case GamePhases.CLEANUP:
@@ -1882,6 +1955,7 @@ function AbilitiesTest() {
 
     const abilityStats = createAbilityStats()
     const creatureAbilityStats = createCreatureAbilityStats()
+    const orderCardStats = createOrderCardStats()
     const allResults = []
     const summary = {
       totalGames: NUM_TESTS,
@@ -1908,7 +1982,7 @@ function AbilitiesTest() {
       setCurrentTest(i + 1)
       setProgress(((i + 1) / NUM_TESTS) * 100)
 
-      const gameStats = runSingleGame(i + 1, abilityStats, creatureAbilityStats)
+      const gameStats = runSingleGame(i + 1, abilityStats, creatureAbilityStats, orderCardStats)
       allResults.push(gameStats)
 
       if (gameStats.completed) {
@@ -1966,7 +2040,7 @@ function AbilitiesTest() {
       summary.averageTurns = (summary.totalTurns / summary.completedGames).toFixed(2)
     }
 
-    setResults({ allResults, summary, abilityStats, creatureAbilityStats })
+    setResults({ allResults, summary, abilityStats, creatureAbilityStats, orderCardStats })
     setIsRunning(false)
   }
 
@@ -4243,6 +4317,107 @@ function AbilitiesTest() {
                       </small>
                     </Col>
                   </Row>
+                </Card.Body>
+              </Card>
+
+              {/* ============================================================ */}
+              {/* ORDER CARDS SECTION - Separate from Creature Abilities */}
+              {/* Order cards use 0/0/100 pattern (Hard AI only) */}
+              {/* ============================================================ */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Header>
+                  <h4>📜 Order Cards (AI Usage - 0/0/100 Pattern)</h4>
+                  <small className="text-light">Order cards are only used by Hard AI (Easy/Medium = 0%, Hard = 100%)</small>
+                </Card.Header>
+                <Card.Body>
+                  {/* WEB Order Card - Sting of Lolth */}
+                  <Card bg="dark" text="white" className="mb-3">
+                    <Card.Header className="d-flex justify-content-between align-items-center">
+                      <h5>🕸️ WEB (Sting of Lolth)</h5>
+                      <Badge bg="warning" text="dark">MINOR Action</Badge>
+                    </Card.Header>
+                    <Card.Body>
+                      <Row>
+                        <Col md={6}>
+                          <Table striped bordered variant="dark" size="sm">
+                            <thead>
+                              <tr><th colSpan={2}>Overall Stats</th></tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>Times Offered</td>
+                                <td><Badge bg="info">{results.orderCardStats?.web_card?.timesOffered || 0}</Badge></td>
+                              </tr>
+                              <tr>
+                                <td>Times Used</td>
+                                <td><Badge bg="success">{results.orderCardStats?.web_card?.timesUsed || 0}</Badge></td>
+                              </tr>
+                              <tr>
+                                <td>Times Declined</td>
+                                <td><Badge bg="secondary">{results.orderCardStats?.web_card?.timesDeclined || 0}</Badge></td>
+                              </tr>
+                              <tr>
+                                <td>Targets Webbed</td>
+                                <td><Badge bg="warning" text="dark">{results.orderCardStats?.web_card?.targetsWebbed || 0}</Badge></td>
+                              </tr>
+                              <tr>
+                                <td>Webs Removed (by AI)</td>
+                                <td><Badge bg="info">{results.orderCardStats?.web_card?.websRemoved || 0}</Badge></td>
+                              </tr>
+                            </tbody>
+                          </Table>
+                        </Col>
+                        <Col md={6}>
+                          <Table striped bordered variant="dark" size="sm">
+                            <thead>
+                              <tr>
+                                <th>Difficulty</th>
+                                <th>Offered</th>
+                                <th>Used</th>
+                                <th>Rate</th>
+                                <th>Expected</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {['easy', 'medium', 'hard'].map(diff => {
+                                const stats = results.orderCardStats?.web_card?.[diff] || { offered: 0, used: 0, declined: 0 }
+                                const rate = stats.offered > 0 ? (stats.used / stats.offered) * 100 : 0
+                                // 0/0/100 pattern: Easy=0%, Medium=0%, Hard=100%
+                                const expected = diff === 'hard' ? 100 : 0
+                                const tolerance = 5
+                                const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                                return (
+                                  <tr key={diff}>
+                                    <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                    <td>{stats.offered || 0}</td>
+                                    <td>{stats.used || 0}</td>
+                                    <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                    <td>{expected}%</td>
+                                    <td>
+                                      {stats.offered > 0 ? (
+                                        <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                      ) : (
+                                        <Badge bg="secondary">-</Badge>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </Table>
+                        </Col>
+                      </Row>
+                      <Row className="mt-2">
+                        <Col>
+                          <small className="text-muted">
+                            WEB: Attach to enemy creature within 10 squares (LOS). Target cannot move. Requires INT ability or SPIDER AFFINITY. Expected rates: Easy = 0%, Medium = 0%, Hard = 100%
+                          </small>
+                        </Col>
+                      </Row>
+                    </Card.Body>
+                  </Card>
+
                 </Card.Body>
               </Card>
 

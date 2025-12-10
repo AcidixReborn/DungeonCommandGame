@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { Card, Badge } from 'react-bootstrap'
 import './CreatureCard.css'
 
 /**
  * CreatureCard - Displays a creature card with stats and abilities
  * Supports compact and full view modes, drag and drop
+ * Now supports carousel view for attached order cards (e.g., Web)
  *
  * @param {Creature} creature - Creature data to display
+ * @param {CreatureInstance} creatureInstance - Optional creature instance with attached cards
  * @param {Function} onClick - Click handler
  * @param {boolean} isSelected - Whether card is selected
  * @param {boolean} compact - Use compact display mode
@@ -14,7 +17,31 @@ import './CreatureCard.css'
  * @param {Function} onDragEnd - Drag end handler
  * @param {number} cardIndex - Card index in hand
  */
-function CreatureCard({ creature, onClick, isSelected, compact = false, draggable = false, onDragStart, onDragEnd, cardIndex, handSize }) {
+function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact = false, draggable = false, onDragStart, onDragEnd, cardIndex, handSize }) {
+  // Carousel state: 0 = creature card, 1+ = attached cards
+  const [carouselIndex, setCarouselIndex] = useState(0)
+
+  // Get attached cards from creature instance
+  const attachedCards = creatureInstance?.attachedCards || []
+  const totalCards = 1 + attachedCards.length // 1 for creature + attached cards
+  const hasCarousel = attachedCards.length > 0
+
+  /**
+   * Navigate carousel to previous card
+   */
+  const handlePrevCard = (e) => {
+    e.stopPropagation() // Don't trigger card click
+    setCarouselIndex((prev) => (prev - 1 + totalCards) % totalCards)
+  }
+
+  /**
+   * Navigate carousel to next card
+   */
+  const handleNextCard = (e) => {
+    e.stopPropagation() // Don't trigger card click
+    setCarouselIndex((prev) => (prev + 1) % totalCards)
+  }
+
   /**
    * Render ability score badges
    * @returns {Array<JSX.Element>} Array of ability badges
@@ -45,21 +72,140 @@ function CreatureCard({ creature, onClick, isSelected, compact = false, draggabl
   }
 
   if (compact) {
-    // If creature has an image, show image-only view
-    if (creature.imageUrl) {
+    // If showing an attached card (carousel index > 0), render it instead
+    if (hasCarousel && carouselIndex > 0) {
+      const attachedCard = attachedCards[carouselIndex - 1]
+      const orderCard = attachedCard?.card
+
+      // Purple glow for Sting of Lolth faction order cards
+      const attachedCardGlowStyle = {
+        boxShadow: '0 0 8px 2px rgba(139, 0, 139, 0.7), inset 0 0 2px rgba(139, 0, 139, 0.3)',
+        border: '3px solid #8b008b'
+      }
+
       return (
         <div
-          className={`creature-card-compact creature-card-compact-image ${isSelected ? 'selected' : ''} ${draggable ? 'draggable' : ''}`}
+          className={`creature-card-compact creature-card-compact-image attached-card ${isSelected ? 'selected' : ''}`}
+          onClick={onClick}
+          style={{ position: 'relative', overflow: 'visible', ...attachedCardGlowStyle }}
+        >
+          {/* Show order card image or fallback */}
+          {orderCard?.imageUrl ? (
+            <img
+              src={orderCard.imageUrl}
+              alt={orderCard.name}
+              className="creature-card-img"
+              style={{ opacity: 0.9 }}
+            />
+          ) : (
+            <div className="attached-card-fallback" style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: '#4a4a6a',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.7rem',
+              padding: '4px'
+            }}>
+              <span style={{ fontSize: '1.2rem' }}>🕸️</span>
+              <span>{orderCard?.name || 'Attached'}</span>
+            </div>
+          )}
+
+          {/* Carousel arrows */}
+          <button
+            className="carousel-arrow carousel-arrow-left"
+            onClick={handlePrevCard}
+            title="Previous card"
+          >
+            ‹
+          </button>
+          <button
+            className="carousel-arrow carousel-arrow-right"
+            onClick={handleNextCard}
+            title="Next card"
+          >
+            ›
+          </button>
+
+          {/* Card indicator dots - positioned in the border area */}
+          <div className="carousel-indicators" style={{ bottom: '-12px' }}>
+            {Array.from({ length: totalCards }).map((_, idx) => (
+              <span
+                key={idx}
+                className={`carousel-dot ${idx === carouselIndex ? 'active' : ''}`}
+              />
+            ))}
+          </div>
+
+          {/* Web icon overlay */}
+          <div style={{
+            position: 'absolute',
+            top: '2px',
+            right: '2px',
+            fontSize: '12px',
+            textShadow: '0 0 3px black'
+          }}>
+            🕸️
+          </div>
+        </div>
+      )
+    }
+
+    // If creature has an image, show image-only view
+    if (creature.imageUrl) {
+      // Get faction color for attached card glow (Sting of Lolth = purple)
+      const attachedCardGlowStyle = hasCarousel ? {
+        boxShadow: '0 0 8px 2px rgba(139, 0, 139, 0.7), inset 0 0 2px rgba(139, 0, 139, 0.3)',
+        border: '3px solid #8b008b'
+      } : {}
+
+      return (
+        <div
+          className={`creature-card-compact creature-card-compact-image ${isSelected ? 'selected' : ''} ${draggable ? 'draggable' : ''} ${hasCarousel ? 'has-attached-cards' : ''}`}
           onClick={onClick}
           draggable={draggable}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          style={{ position: 'relative', overflow: hasCarousel ? 'visible' : 'hidden', ...attachedCardGlowStyle }}
         >
           <img
             src={creature.imageUrl}
             alt={creature.name}
             className="creature-card-img"
           />
+
+          {/* Carousel arrows (only if has attached cards) */}
+          {hasCarousel && (
+            <>
+              <button
+                className="carousel-arrow carousel-arrow-left"
+                onClick={handlePrevCard}
+                title="Previous card"
+              >
+                ‹
+              </button>
+              <button
+                className="carousel-arrow carousel-arrow-right"
+                onClick={handleNextCard}
+                title="Next card"
+              >
+                ›
+              </button>
+
+              {/* Card indicator dots - positioned in the border area */}
+              <div className="carousel-indicators" style={{ bottom: '-12px' }}>
+                {Array.from({ length: totalCards }).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`carousel-dot ${idx === carouselIndex ? 'active' : ''}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )
     }

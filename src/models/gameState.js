@@ -1964,7 +1964,240 @@ export class GameState {
   }
 
   // --------------------------------------------------------------------------
-  // 2B: ADJACENT UNDEAD DEPLOY (Lich Necromancer)
+  // 2B: WEB ORDER CARD (Sting of Lolth)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Check if a creature is webbed (has Web card attached)
+   * Big O: O(n) where n = number of attached cards (typically 0-1)
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {boolean} True if creature has Web attached
+   */
+  isWebbed(creatureInstance) {
+    if (!creatureInstance?.attachedCards) return false
+    return creatureInstance.attachedCards.some(
+      attached => attached.card?.name?.toUpperCase().includes('WEB')
+    )
+  }
+
+  /**
+   * Get the Web card attached to a creature (if any)
+   * Big O: O(n) where n = number of attached cards (typically 0-1)
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {Object|null} The attached Web card info or null
+   */
+  getAttachedWeb(creatureInstance) {
+    if (!creatureInstance?.attachedCards) return null
+    return creatureInstance.attachedCards.find(
+      attached => attached.card?.name?.toUpperCase().includes('WEB')
+    ) || null
+  }
+
+  /**
+   * Check if a creature can use a Web order card
+   * Requires INT ability OR SPIDER AFFINITY (Spider-type creatures bypass INT requirement)
+   * Big O: O(t) where t = number of creature types (typically 2-4)
+   * @param {CreatureInstance} casterInstance - The creature casting Web
+   * @param {OrderCard} webCard - The Web order card
+   * @returns {boolean} True if creature can use Web
+   */
+  canUseWebCard(casterInstance, webCard) {
+    console.log('[gameState.canUseWebCard] Called with:', {
+      casterName: casterInstance?.creature?.name,
+      casterLevel: casterInstance?.creature?.level,
+      casterTypes: casterInstance?.creature?.type,
+      casterAbilities: casterInstance?.creature?.abilities,
+      webCardLevel: webCard?.level
+    })
+
+    if (!casterInstance?.creature || !webCard) {
+      console.log('[gameState.canUseWebCard] Invalid params - returning false')
+      return false
+    }
+
+    // Check level requirement
+    if (casterInstance.creature.level < webCard.level) {
+      console.log('[gameState.canUseWebCard] Level check failed:', casterInstance.creature.level, '<', webCard.level)
+      return false
+    }
+
+    // Check if creature has INT ability
+    if (casterInstance.creature.abilities?.INT) {
+      console.log('[gameState.canUseWebCard] Has INT ability - returning true')
+      return true
+    }
+
+    // SPIDER AFFINITY: Spider-type creatures can use Web without INT
+    const creatureTypes = casterInstance.creature.type || []
+    const isSpider = creatureTypes.some(t => t.toLowerCase() === 'spider')
+    console.log('[gameState.canUseWebCard] Spider check:', { creatureTypes, isSpider })
+
+    if (isSpider) {
+      console.log('[gameState.canUseWebCard] Is Spider - returning true (SPIDER AFFINITY)')
+      return true
+    }
+
+    console.log('[gameState.canUseWebCard] No INT, not Spider - returning false')
+    return false
+  }
+
+  /**
+   * Get valid targets for Web card (enemies within 10 squares with LOS, not through forests)
+   * Big O: O(e * d^2) where e = enemy creatures, d = range (10)
+   * @param {CreatureInstance} casterInstance - The creature casting Web
+   * @param {OrderCard} webCard - The Web order card (for range, defaults to 10)
+   * @returns {Array} Array of valid target CreatureInstances
+   */
+  getWebValidTargets(casterInstance, webCard) {
+    if (!casterInstance?.position) return []
+
+    const casterPos = casterInstance.position
+    const range = 10 // Web range is always 10 squares
+    const validTargets = []
+
+    // Get all enemy creatures
+    for (const [playerId, player] of Object.entries(this.players)) {
+      if (playerId === casterInstance.owner) continue // Skip own creatures
+
+      for (const enemy of player.creaturesInPlay) {
+        if (!enemy.position) continue
+
+        // Check if already webbed (only 1 Web per creature)
+        if (this.isWebbed(enemy)) continue
+
+        // Check distance
+        const dx = Math.abs(enemy.position.x - casterPos.x)
+        const dy = Math.abs(enemy.position.y - casterPos.y)
+        const distance = Math.max(dx, dy) // Chebyshev distance for grid
+
+        if (distance > range) continue
+
+        // Check LOS (not through forests)
+        // hasLineOfSight expects creature instances (with .position), not raw positions
+        const hasLOS = this.hasLineOfSight(casterInstance, enemy, casterInstance.owner)
+        if (!hasLOS) continue
+
+        validTargets.push(enemy)
+      }
+    }
+
+    return validTargets
+  }
+
+  /**
+   * Apply Web card to target creature
+   * Attaches Web card to target and removes it from caster's hand
+   * Big O: O(h) where h = cards in hand
+   * @param {CreatureInstance} casterInstance - The creature casting Web
+   * @param {CreatureInstance} targetInstance - The target creature to Web
+   * @param {OrderCard} webCard - The Web order card
+   * @returns {Object} Result { success, reason, card }
+   */
+  applyWeb(casterInstance, targetInstance, webCard) {
+    if (!casterInstance || !targetInstance || !webCard) {
+      return { success: false, reason: 'Invalid parameters' }
+    }
+
+    // Validate target is not already webbed
+    if (this.isWebbed(targetInstance)) {
+      return { success: false, reason: 'Target is already webbed' }
+    }
+
+    // Get caster's player state
+    const casterPlayer = this.players[casterInstance.owner]
+    if (!casterPlayer) {
+      return { success: false, reason: 'Caster player not found' }
+    }
+
+    // Find and remove Web card from hand
+    const cardIndex = casterPlayer.orderHand.findIndex(c => c.id === webCard.id)
+    if (cardIndex === -1) {
+      return { success: false, reason: 'Web card not in hand' }
+    }
+
+    // Remove from hand
+    const [removedCard] = casterPlayer.orderHand.splice(cardIndex, 1)
+
+    // Attach to target creature
+    targetInstance.attachedCards.push({
+      card: removedCard,
+      casterOwner: casterInstance.owner,
+      attachedTurn: this.turnNumber
+    })
+
+    console.log(`[WEB] ${casterInstance.creature.name} applied Web to ${targetInstance.creature.name}`)
+
+    return {
+      success: true,
+      card: removedCard,
+      caster: casterInstance,
+      target: targetInstance
+    }
+  }
+
+  /**
+   * Remove Web from a creature (costs standard action)
+   * Returns Web card to caster's discard pile
+   * Big O: O(n) where n = attached cards
+   * @param {CreatureInstance} creatureInstance - The webbed creature
+   * @returns {Object} Result { success, reason, card, casterOwner }
+   */
+  removeWeb(creatureInstance) {
+    if (!creatureInstance?.attachedCards) {
+      return { success: false, reason: 'Invalid creature' }
+    }
+
+    // Find Web card
+    const webIndex = creatureInstance.attachedCards.findIndex(
+      attached => attached.card?.name?.toUpperCase().includes('WEB')
+    )
+
+    if (webIndex === -1) {
+      return { success: false, reason: 'Creature is not webbed' }
+    }
+
+    // Remove Web from creature
+    const [webAttachment] = creatureInstance.attachedCards.splice(webIndex, 1)
+    const { card, casterOwner } = webAttachment
+
+    // Add to caster's discard pile
+    const casterPlayer = this.players[casterOwner]
+    if (casterPlayer) {
+      casterPlayer.orderDiscard.push(card)
+    }
+
+    console.log(`[WEB] Web removed from ${creatureInstance.creature.name}, returned to ${casterOwner}'s discard`)
+
+    return {
+      success: true,
+      card: card,
+      casterOwner: casterOwner
+    }
+  }
+
+  /**
+   * Handle creature death - discard all attached cards to their owners' discard piles
+   * Big O: O(a) where a = attached cards
+   * @param {CreatureInstance} creatureInstance - The dying creature
+   */
+  discardAttachedCards(creatureInstance) {
+    if (!creatureInstance?.attachedCards?.length) return
+
+    for (const attachment of creatureInstance.attachedCards) {
+      const { card, casterOwner } = attachment
+      const casterPlayer = this.players[casterOwner]
+      if (casterPlayer && card) {
+        casterPlayer.orderDiscard.push(card)
+        console.log(`[ATTACHED CARD] ${card.name} discarded to ${casterOwner}'s discard pile`)
+      }
+    }
+
+    // Clear attached cards
+    creatureInstance.attachedCards = []
+  }
+
+  // --------------------------------------------------------------------------
+  // 2C: ADJACENT UNDEAD DEPLOY (Lich Necromancer)
   // --------------------------------------------------------------------------
 
   /**
@@ -2899,6 +3132,12 @@ export class GameState {
   // overrideSpeed: optional parameter to limit movement (used by VERSATILE ability)
   getValidMovementTiles(creatureInstance, overrideSpeed = null) {
     if (!creatureInstance.position) return []
+
+    // WEB: Webbed creatures cannot move at all
+    if (this.isWebbed(creatureInstance)) {
+      console.log(`[WEB] ${creatureInstance.creature.name} cannot move - webbed!`)
+      return []
+    }
 
     // Base speed + commander speed bonuses (e.g., WALLS OF WEB)
     const baseSpeed = creatureInstance.creature.speed

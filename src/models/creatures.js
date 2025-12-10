@@ -97,6 +97,8 @@ export class CreatureInstance {
     this.hasMovedThisTurn = false // Track if creature has moved this turn
     this.hasAttackedThisTurn = false // Track if creature has attacked this turn
     this.insubstantialUsed = false // INSUBSTANTIAL: Track if ability used this refresh cycle
+    this.attachedCards = [] // Order cards attached to this creature (e.g., Web)
+    // Each attached card: { card: OrderCard, casterOwner: playerId, attachedTurn: turnNumber }
   }
 
   /**

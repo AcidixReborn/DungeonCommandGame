@@ -59,7 +59,7 @@ const factionIcons = {
  * @param {Array} rangedLOSFactions - Array of player IDs (owners) whose ranged creatures can hit this tile
  * @param {boolean} isSelectedCreatureRangedLOS - Whether tile is in LOS of the currently selected ranged creature (brighter highlight)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSlamTile = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isArcanePortalHighlight = false, arcanePortalFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSlamTile = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isArcanePortalHighlight = false, arcanePortalFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false, isOrderCardTarget = false, isWebbed = false }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -520,6 +520,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         ${isSlamTile ? 'slam-tile' : ''}
         ${isAllRangedLOS ? 'all-ranged-los' : ''}
         ${isSelectedCreatureRangedLOS ? 'selected-creature-ranged-los' : ''}
+        ${isOrderCardTarget ? 'order-card-target' : ''}
         ${creature && showPreview ? 'showing-preview' : ''}`}
       style={getStartingZoneStyle()}
       onClick={() => onClick && onClick(tile)}
@@ -633,6 +634,19 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
               zIndex: 10
             }}>
               ⚡
+            </div>
+          )}
+          {/* WEB indicator - creature is webbed and cannot move */}
+          {isWebbed && (
+            <div className="webbed-indicator" style={{
+              position: 'absolute',
+              top: '-8px',
+              left: '-8px',
+              fontSize: '16px',
+              textShadow: '0 0 6px rgba(255, 255, 255, 0.9), 0 0 10px rgba(128, 128, 128, 0.8)',
+              zIndex: 10
+            }} title="Webbed - Cannot move">
+              🕸️
             </div>
           )}
         </div>

@@ -14,6 +14,7 @@ import SimpleAI from '../ai/simpleAI'
 // Import custom hooks for state management
 import { useNotifications, useSelection, useCombat } from '../hooks'
 import DamageNotificationModal from './DamageNotificationModal'
+import WebRemovalModal from './WebRemovalModal'
 import './GameBoard.css'
 
 /**
@@ -223,6 +224,16 @@ function GameBoard({ onTurnInfoChange }) {
   const [selectedGraveyardIndex, setSelectedGraveyardIndex] = useState(null)
   const [draggingFromGraveyard, setDraggingFromGraveyard] = useState(false)
 
+  // ORDER CARD TARGETING state - for Web and other targeted order cards
+  const [orderCardFilterCreature, setOrderCardFilterCreature] = useState(null) // Creature selected for filtering order cards
+  const [selectedOrderCard, setSelectedOrderCard] = useState(null) // { card, cardIndex } - order card being used
+  const [orderCardTargetingMode, setOrderCardTargetingMode] = useState(false) // True when selecting target for order card
+  const [orderCardValidTargets, setOrderCardValidTargets] = useState([]) // Valid target creatures for selected order card
+
+  // WEB REMOVAL MODAL state - for human player to remove web from their own webbed creature
+  const [showWebRemovalModal, setShowWebRemovalModal] = useState(false)
+  const [webRemovalCreature, setWebRemovalCreature] = useState(null) // Creature instance with web to potentially remove
+
   /**
    * Faction color mapping from faction IDs to hex colors
    */
@@ -406,7 +417,23 @@ function GameBoard({ onTurnInfoChange }) {
       if (tile.occupant) {
         // Select own creatures
         if (tile.occupant.owner === gameState.currentPlayer) {
+          // Check if creature is webbed - show Web Removal Modal
+          if (gameState.isWebbed && gameState.isWebbed(tile.occupant)) {
+            setWebRemovalCreature(tile.occupant)
+            setShowWebRemovalModal(true)
+            // Still select the creature for attacking
+            setOrderCardFilterCreature(tile.occupant)
+            return
+          }
           handleCreatureSelect(tile.occupant)
+          // Also set this creature as the filter for Order Card Panel
+          setOrderCardFilterCreature(tile.occupant)
+          // Clear any previous order card targeting state
+          if (orderCardTargetingMode) {
+            setSelectedOrderCard(null)
+            setOrderCardTargetingMode(false)
+            setOrderCardValidTargets([])
+          }
         }
       } else {
         // Clicking on empty tile - deselect current creature
@@ -415,6 +442,14 @@ function GameBoard({ onTurnInfoChange }) {
           setValidMoveTiles([])
           setValidAttackTargets([])
           setLineOfSightPath([])
+        }
+        // Also clear order card filter when clicking empty tile
+        setOrderCardFilterCreature(null)
+        // Clear order card targeting mode
+        if (orderCardTargetingMode) {
+          setSelectedOrderCard(null)
+          setOrderCardTargetingMode(false)
+          setOrderCardValidTargets([])
         }
       }
     }
@@ -2885,6 +2920,179 @@ function GameBoard({ onTurnInfoChange }) {
     }
   }
 
+  /**
+   * Handle right-click on order card - enters targeting mode for targeted cards like Web
+   * @param {Object} card - The order card data
+   * @param {number} cardIndex - Index in the order hand
+   */
+  const handleOrderCardRightClick = (card, cardIndex) => {
+    console.log('%c[GameBoard] handleOrderCardRightClick CALLED!', 'background: #9900cc; color: #ffffff; font-size: 16px; font-weight: bold;', {
+      cardName: card?.name,
+      cardIndex,
+      hasGameState: !!gameState,
+      orderCardFilterCreature: orderCardFilterCreature?.creature?.name
+    })
+
+    if (!gameState) {
+      console.log('[GameBoard] handleOrderCardRightClick: No gameState!')
+      return
+    }
+
+    // Must have a creature selected to use order cards
+    if (!orderCardFilterCreature) {
+      console.log('[GameBoard] handleOrderCardRightClick: No creature selected')
+      addToast('Select a creature first to use this order card')
+      return
+    }
+
+    // Check if this is a Web card - use special Web validation
+    const isWebCard = card.name.toUpperCase().includes('WEB')
+    console.log('[GameBoard] handleOrderCardRightClick: isWebCard =', isWebCard)
+
+    if (isWebCard) {
+      console.log('[GameBoard] Processing Web card...')
+      // WEB CARD: Use gameState.canUseWebCard for validation (includes SPIDER AFFINITY)
+      const canUse = gameState.canUseWebCard(orderCardFilterCreature, card)
+      console.log('[GameBoard] canUseWebCard result:', canUse)
+
+      if (!canUse) {
+        // Check specific failure reason for better toast message
+        if (card.level > orderCardFilterCreature.creature.level) {
+          addToast(`${orderCardFilterCreature.creature.name} (Level ${orderCardFilterCreature.creature.level}) cannot use Level ${card.level} cards`)
+        } else {
+          // Check if spider type (has SPIDER AFFINITY)
+          const isSpider = (orderCardFilterCreature.creature.type || []).some(t => t.toLowerCase() === 'spider')
+          if (!isSpider) {
+            addToast(`${orderCardFilterCreature.creature.name} needs INT ability or be a Spider to use Web`)
+          } else {
+            addToast(`${orderCardFilterCreature.creature.name} cannot use Web`)
+          }
+        }
+        return
+      }
+
+      // Get valid Web targets (enemies within range with LOS, not through forests, not already webbed)
+      const validTargets = gameState.getWebValidTargets(orderCardFilterCreature, card)
+      console.log('[GameBoard] getWebValidTargets result:', validTargets.length, 'targets')
+
+      if (validTargets.length === 0) {
+        addToast('No valid targets in range for Web (10 squares, LOS required, not through forests)')
+        return
+      }
+
+      // Enter targeting mode
+      console.log('[GameBoard] Entering Web targeting mode with', validTargets.length, 'targets')
+      setSelectedOrderCard({ card, cardIndex })
+      setOrderCardTargetingMode(true)
+      setOrderCardValidTargets(validTargets)
+      addToast(`🕸️ WEB targeting: Right-click on a highlighted enemy (${validTargets.length} targets)`)
+      return
+    }
+
+    // GENERIC ORDER CARDS: Standard validation
+    // Check level requirement: card level <= creature level
+    if (card.level > orderCardFilterCreature.creature.level) {
+      addToast(`${orderCardFilterCreature.creature.name} (Level ${orderCardFilterCreature.creature.level}) cannot use Level ${card.level} cards`)
+      return
+    }
+
+    // Check ability requirement
+    if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+      const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+      const hasRequiredAbility = abilities.some(ability =>
+        orderCardFilterCreature.creature.abilities?.[ability] === true
+      )
+      if (!hasRequiredAbility) {
+        addToast(`${orderCardFilterCreature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+        return
+      }
+    }
+
+    // Enter targeting mode for generic order cards
+    setSelectedOrderCard({ card, cardIndex })
+    setOrderCardTargetingMode(true)
+    // Set all enemy creatures as valid targets (generic targeting for non-Web cards)
+    const validTargets = []
+    for (const playerId of gameState.activePlayers) {
+      if (playerId === gameState.currentPlayer) continue
+      const player = gameState.players[playerId]
+      for (const enemy of player.creaturesInPlay) {
+        if (enemy.position) {
+          validTargets.push(enemy)
+        }
+      }
+    }
+    setOrderCardValidTargets(validTargets)
+    addToast(`Targeting mode: Right-click on an enemy to apply ${card.name}`)
+  }
+
+  /**
+   * Cancel order card targeting mode
+   */
+  const cancelOrderCardTargeting = () => {
+    setSelectedOrderCard(null)
+    setOrderCardTargetingMode(false)
+    setOrderCardValidTargets([])
+  }
+
+  /**
+   * Clear order card filter (toggle to show all cards)
+   */
+  const clearOrderCardFilter = () => {
+    setOrderCardFilterCreature(null)
+  }
+
+  /**
+   * Handle Web Removal Modal - Keep Web
+   * Closes the modal and allows creature to attack (but not move)
+   */
+  const handleKeepWeb = () => {
+    if (webRemovalCreature) {
+      // Select the creature so player can attack with it
+      handleCreatureSelect(webRemovalCreature)
+    }
+    setShowWebRemovalModal(false)
+    setWebRemovalCreature(null)
+  }
+
+  /**
+   * Handle Web Removal Modal - Remove Web
+   * Removes the web from creature, consumes standard action (but can still move)
+   */
+  const handleRemoveWeb = () => {
+    if (!webRemovalCreature || !gameState) {
+      setShowWebRemovalModal(false)
+      setWebRemovalCreature(null)
+      return
+    }
+
+    // Check if creature has already used its standard action (attacked)
+    if (webRemovalCreature.hasAttackedThisTurn) {
+      addToast(`${webRemovalCreature.creature.name} has already used its action and cannot remove the web!`)
+      setShowWebRemovalModal(false)
+      setWebRemovalCreature(null)
+      return
+    }
+
+    // Remove the web
+    const result = gameState.removeWeb(webRemovalCreature)
+
+    if (result.success) {
+      // Consume standard action (but creature can still move!)
+      webRemovalCreature.hasAttackedThisTurn = true
+      addToast(`🕸️ Web removed from ${webRemovalCreature.creature.name} (action used, can still move)`)
+      // Clear selection so player can re-select to move
+      setSelectedBoardCreature(null)
+      setValidMoveTiles([])
+      setValidAttackTargets([])
+    } else {
+      addToast(`Failed to remove web: ${result.reason}`)
+    }
+
+    setShowWebRemovalModal(false)
+    setWebRemovalCreature(null)
+  }
+
   // Confirm morale collection
   const confirmCollectMorale = () => {
     if (!pendingCollection) return
@@ -3593,6 +3801,46 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const handleTileRightClick = (tile) => {
     if (!gameState || gameState.gameOver) return
+
+    // ============================================
+    // ORDER CARD TARGETING MODE
+    // Handle clicking on creatures to apply order cards (Web, etc.)
+    // ============================================
+    if (orderCardTargetingMode && selectedOrderCard && orderCardFilterCreature) {
+      const target = tile.occupant
+      if (target && orderCardValidTargets.some(t => t.instanceId === target.instanceId)) {
+        // Valid target - apply the order card
+        const card = selectedOrderCard.card
+        const caster = orderCardFilterCreature
+
+        // Check if this is a Web card
+        if (card.name.toUpperCase().includes('WEB')) {
+          // Apply Web using gameState method
+          const result = gameState.applyWeb(caster, target, card)
+          if (result.success) {
+            addToast(`🕸️ WEB: ${caster.creature.name} webbed ${target.creature.name}! Target cannot move.`)
+            // Web is a MINOR action - caster doesn't get tapped
+            // (MINOR actions don't consume the standard action)
+          } else {
+            addToast(`Web failed: ${result.reason}`)
+          }
+        } else {
+          // Generic order card application (placeholder for other cards)
+          addToast(`Card applied: ${card.name} → ${target.creature.name}!`)
+        }
+
+        // Clear targeting mode
+        setSelectedOrderCard(null)
+        setOrderCardTargetingMode(false)
+        setOrderCardValidTargets([])
+        setRenderCounter(prev => prev + 1) // Force re-render to show web icon
+      } else if (target) {
+        addToast('Invalid target for this order card')
+      } else {
+        addToast('Click on an enemy creature to target')
+      }
+      return // Don't process normal right-click actions during order card targeting
+    }
 
     // ============================================
     // LIGHTNING BREATH TARGET SELECTION MODE
@@ -5159,6 +5407,10 @@ function GameBoard({ onTurnInfoChange }) {
       morale: (typeof currentPlayerState?.morale === 'number' && !isNaN(currentPlayerState?.morale)) ? currentPlayerState.morale : 0,
       startingMorale: currentPlayerState?.commander?.startingMorale || 1,
       combatPending: !!combatPanelMode,  // Let UI know combat is pending
+      // Order card targeting mode state
+      orderCardTargetingMode: orderCardTargetingMode,
+      selectedOrderCard: selectedOrderCard,
+      cancelOrderCardTargeting: cancelOrderCardTargeting,
       // Turn log for navbar display
       turnLog: turnLog,
       isLogExpanded: isLogExpanded,
@@ -5359,6 +5611,34 @@ function GameBoard({ onTurnInfoChange }) {
             addToast(`🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`)
           }
         }
+      }
+
+      // ============================================
+      // WEB CARD AI EXECUTION
+      // Process web actions - show notification to human player
+      // ============================================
+      const webActions = actions.filter(action => action.type === 'web')
+      for (const webAction of webActions) {
+        const { casterInstance, targetInstance, webCard } = webAction
+
+        // Web was already applied in simpleAI.js, just show notification
+        addToast(`🕸️ AI: ${casterInstance.creature.name} cast WEB on ${targetInstance.creature.name}! (Cannot move)`)
+
+        console.log(`[GameBoard] AI Web action: ${casterInstance.creature.name} webbed ${targetInstance.creature.name}`)
+      }
+
+      // ============================================
+      // WEB REMOVAL AI EXECUTION
+      // Process web removal actions
+      // ============================================
+      const webRemovalActions = actions.filter(action => action.type === 'web_removal')
+      for (const removalAction of webRemovalActions) {
+        const { creatureInstance, reason } = removalAction
+
+        // Web was already removed in simpleAI.js, just show notification
+        addToast(`🕸️ AI: ${creatureInstance.creature.name} removed Web ${reason}`)
+
+        console.log(`[GameBoard] AI Web removal: ${creatureInstance.creature.name} - ${reason}`)
       }
 
       // ============================================
@@ -5753,6 +6033,13 @@ function GameBoard({ onTurnInfoChange }) {
                     console.log(`[BoardTile ${x},${y}] ranged mode: isAllRangedLOS=${isAllRangedLOS}, isSelectedCreatureRangedLOS=${isSelectedCreatureRangedLOS}, factions=${rangedLOSFactions.join(',')}`)
                   }
 
+                  // ============================================
+                  // ORDER CARD TARGET HIGHLIGHT: Show valid targets for order card targeting mode
+                  // ============================================
+                  const isOrderCardTarget = orderCardTargetingMode &&
+                    creature &&
+                    orderCardValidTargets.some(t => t.instanceId === creature.instanceId)
+
                   return (
                     <BoardTile
                       key={`${x}-${y}`}
@@ -5793,6 +6080,8 @@ function GameBoard({ onTurnInfoChange }) {
                       isLightningBreathValidTarget={isLightningBreathValidTarget}
                       isLightningBreathSelected={isLightningBreathSelected}
                       lightningBreathTargetIndex={lightningBreathTargetIndex}
+                      isOrderCardTarget={isOrderCardTarget}
+                      isWebbed={creature && gameState?.isWebbed?.(creature)}
                     />
                   )
                 })}
@@ -5895,6 +6184,11 @@ function GameBoard({ onTurnInfoChange }) {
                 onGraveyardCreatureSelect={handleGraveyardCreatureSelect}
                 onGraveyardDragStart={handleGraveyardDragStart}
                 onGraveyardDragEnd={handleGraveyardDragEnd}
+                // ORDER CARD TARGETING PROPS - For Web and other targeted order cards
+                orderCardFilterCreature={orderCardFilterCreature}
+                selectedOrderCard={selectedOrderCard}
+                onOrderCardRightClick={handleOrderCardRightClick}
+                onClearOrderCardFilter={clearOrderCardFilter}
               />
             </div>
           )}
@@ -6725,6 +7019,14 @@ function GameBoard({ onTurnInfoChange }) {
         attackType={currentAiDeath?.attackType}
         abilitiesTriggered={currentAiDeath?.abilitiesTriggered || []}
         moraleChanges={currentAiDeath?.moraleChanges}
+      />
+
+      {/* WEB REMOVAL MODAL - Human player can remove web from their own creature */}
+      <WebRemovalModal
+        show={showWebRemovalModal}
+        onKeepWeb={handleKeepWeb}
+        onRemoveWeb={handleRemoveWeb}
+        creatureInstance={webRemovalCreature}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}

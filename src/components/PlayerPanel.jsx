@@ -104,7 +104,12 @@ function PlayerPanel({
   selectedGraveyardCreature = null,
   onGraveyardCreatureSelect = null,
   onGraveyardDragStart = null,
-  onGraveyardDragEnd = null
+  onGraveyardDragEnd = null,
+  // Order card targeting props - O(1) prop access
+  orderCardFilterCreature = null,
+  selectedOrderCard = null,
+  onOrderCardRightClick = null,
+  onClearOrderCardFilter = null
 }) {
   // ============================================
   // STATE: Active view for vertical nav bar - O(1) state access
@@ -392,19 +397,60 @@ function PlayerPanel({
                         )
                       )}
                       {/* Order Cards View - O(n) render where n = orders in hand */}
+                      {/* When orderCardFilterCreature is set, only show cards usable by that creature */}
                       {activeView === 'orders' && (
                         player.orderHand.length === 0 ? (
                           <small className="text-muted">No order cards in hand</small>
                         ) : (
-                          player.orderHand.map((order, idx) => (
-                            <OrderCard
-                              key={idx}
-                              order={order}
-                              compact={true}
-                              isSelected={selectedOrder === idx}
-                              onClick={() => onOrderSelect && onOrderSelect(idx)}
-                            />
-                          ))
+                          (() => {
+                            // Filter cards based on selected creature's level and abilities
+                            const filteredCards = orderCardFilterCreature
+                              ? player.orderHand.map((order, idx) => ({ order, idx })).filter(({ order }) => {
+                                  // Level check: card level <= creature level
+                                  if (order.level > orderCardFilterCreature.creature.level) return false
+                                  // Ability check (ANY always passes)
+                                  if (order.abilityRequired && order.abilityRequired !== 'ANY') {
+                                    const abilities = Array.isArray(order.abilityRequired)
+                                      ? order.abilityRequired
+                                      : [order.abilityRequired]
+                                    const hasAbility = abilities.some(ability =>
+                                      orderCardFilterCreature.creature.abilities?.[ability] === true
+                                    )
+
+                                    // SPIDER AFFINITY: Spider creatures can use cards with SPIDER AFFINITY in effect description
+                                    const hasSpiderAffinity = order.effectDescription?.toUpperCase().includes('SPIDER AFFINITY')
+                                    const isSpider = (orderCardFilterCreature.creature.type || []).some(t => t.toLowerCase() === 'spider')
+
+                                    if (!hasAbility && !(hasSpiderAffinity && isSpider)) return false
+                                  }
+                                  return true
+                                })
+                              : player.orderHand.map((order, idx) => ({ order, idx }))
+
+                            return filteredCards.length === 0 ? (
+                              <small className="text-muted">
+                                {orderCardFilterCreature
+                                  ? `No usable cards for ${orderCardFilterCreature.creature.name}`
+                                  : 'No order cards in hand'}
+                              </small>
+                            ) : (
+                              filteredCards.map(({ order, idx }) => (
+                                <OrderCard
+                                  key={idx}
+                                  order={order}
+                                  compact={true}
+                                  isSelected={selectedOrder === idx}
+                                  isTargeting={selectedOrderCard?.cardIndex === idx}
+                                  onClick={() => onOrderSelect && onOrderSelect(idx)}
+                                  onRightClick={() => {
+                                    if (onOrderCardRightClick) {
+                                      onOrderCardRightClick(order, idx)
+                                    }
+                                  }}
+                                />
+                              ))
+                            )
+                          })()
                         )
                       )}
                     </div>
@@ -424,12 +470,22 @@ function PlayerPanel({
                 <GiDragonHead size={20} />
               </button>
               <button
-                className={`player-panel-nav-btn ${activeView === 'orders' ? 'active' : ''}`}
-                onClick={() => setActiveView('orders')}
+                className={`player-panel-nav-btn ${activeView === 'orders' ? 'active' : ''} ${orderCardFilterCreature ? 'filtered' : ''}`}
+                onClick={() => {
+                  // If already on orders view and filter is set, toggle to show all cards
+                  if (activeView === 'orders' && orderCardFilterCreature && onClearOrderCardFilter) {
+                    onClearOrderCardFilter()
+                  } else {
+                    setActiveView('orders')
+                  }
+                }}
                 disabled={!isHuman}
-                title="Order Cards"
+                title={orderCardFilterCreature
+                  ? `Filtered for ${orderCardFilterCreature.creature.name} - Click to show all`
+                  : 'Order Cards'}
               >
                 <GiCardPlay size={20} />
+                {orderCardFilterCreature && <span className="filter-indicator">●</span>}
               </button>
               {/* View Mode Toggle - Switches between movement and ranged LOS view */}
               {onCreatureViewModeToggle && (

@@ -177,6 +177,18 @@ function App() {
 
                   {/* Right: Action buttons */}
                   <Nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Cancel Order Card Targeting button - shows when in targeting mode */}
+                    {turnInfo.orderCardTargetingMode && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => turnInfo.cancelOrderCardTargeting()}
+                        title={`Cancel ${turnInfo.selectedOrderCard?.name || 'order card'} targeting`}
+                      >
+                        ❌ Cancel {turnInfo.selectedOrderCard?.name || 'Targeting'}
+                      </Button>
+                    )}
+
                     {/* Phase advance button - shows disabled when combat is pending */}
                     {(turnInfo.canAdvancePhase || turnInfo.combatPending) && (
                       <Dropdown>

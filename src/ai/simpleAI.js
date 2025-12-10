@@ -90,6 +90,18 @@ export class SimpleAI {
   }
 
   /**
+   * Check if AI can use order cards (like Web, Healing Touch, etc.)
+   * Order cards use 0/0/100 pattern - only Hard AI uses them
+   * @returns {boolean} True if order cards are enabled (hard mode only)
+   */
+  canUseOrderCards() {
+    // Easy: 0% - Never uses order cards
+    // Medium: 0% - Never uses order cards
+    // Hard: 100% - Strategic use of order cards
+    return this.difficulty === 'hard'
+  }
+
+  /**
    * Execute AI turn for the current phase
    */
   executeTurn() {
@@ -141,6 +153,33 @@ export class SimpleAI {
     // O(T) - Check if there are any treasures with morale remaining on the board
     const hasTreasuresAvailable = this.gameState.treasures?.some(t => !t.isDepleted()) || false
 
+    // ============================================================================
+    // ORDER CARDS: Check for Web cards to use (0/0/100 pattern - Hard only)
+    // Web is MINOR action, so creature can still attack after using it
+    // Track opportunities for ALL difficulties, but only Hard AI actually uses them
+    // ============================================================================
+    const webOpportunities = this.checkWebOpportunities(player, availableCreatures)
+    if (webOpportunities.length > 0) {
+      if (this.canUseOrderCards()) {
+        // Hard AI: Actually use Web cards
+        const webActions = this.tryUseWebCards(player, availableCreatures)
+        if (webActions.length > 0) {
+          actions.push(...webActions)
+        }
+      } else {
+        // Easy/Medium AI: Track as declined opportunities
+        for (const opportunity of webOpportunities) {
+          actions.push({
+            type: 'web_declined',
+            casterInstance: opportunity.caster,
+            targetInstance: opportunity.target,
+            webCard: opportunity.webCard,
+            reason: `${this.difficulty} AI does not use order cards`
+          })
+        }
+      }
+    }
+
     // O(C) iterations - each creature can do BOTH move AND action
     for (const creature of availableCreatures) {
       // ============================================================================
@@ -149,6 +188,28 @@ export class SimpleAI {
       // ============================================================================
       if (!creature.position) {
         continue
+      }
+
+      // ============================================================================
+      // WEB REMOVAL CHECK: If creature is webbed and needs to move, remove web
+      // Only Hard AI removes webs (0/0/100 pattern for order cards)
+      // Removing web consumes standard action but allows movement
+      // ============================================================================
+      if (this.canUseOrderCards() && this.gameState.isWebbed && this.gameState.isWebbed(creature)) {
+        const shouldRemove = this.shouldRemoveWeb(creature, hasTreasuresAvailable)
+        if (shouldRemove && !creature.hasAttackedThisTurn) {
+          const result = this.gameState.removeWeb(creature)
+          if (result.success) {
+            creature.hasAttackedThisTurn = true // Consumes standard action
+            actions.push({
+              type: 'web_removal',
+              creatureInstance: creature,
+              reason: shouldRemove.reason
+            })
+            console.log(`[AI] Removed Web from ${creature.creature.name}: ${shouldRemove.reason}`)
+            // Creature can still move after removing web!
+          }
+        }
       }
 
       // Track if this creature performed actions for stats
@@ -1388,6 +1449,274 @@ export class SimpleAI {
       cowerInfo: null,
       hadOpportunity: decision.hadOpportunity
     }
+  }
+
+  // ============================================================================
+  // ORDER CARD METHODS
+  // ============================================================================
+
+  /**
+   * Try to use Web cards strategically
+   * Web is a MINOR action, so the caster can still attack afterward
+   *
+   * Strategy: Target high-value enemies (high level, hasn't acted yet)
+   *
+   * @param {Object} player - The AI player state
+   * @param {Array} availableCreatures - Untapped creatures that can cast
+   * @returns {Array} Array of web actions to execute
+   */
+  tryUseWebCards(player, availableCreatures) {
+    const actions = []
+
+    // Get Web cards from hand
+    const webCards = player.orderHand?.filter(card =>
+      card && card.name?.toLowerCase() === 'web'
+    ) || []
+
+    if (webCards.length === 0) return actions
+
+    console.log(`[AI] tryUseWebCards: Found ${webCards.length} Web cards in hand`)
+
+    // For each Web card, find best caster and target
+    for (const webCard of webCards) {
+      // Find creatures that can cast this Web card
+      const validCasters = availableCreatures.filter(creature =>
+        creature.position && this.gameState.canUseWebCard(creature, webCard)
+      )
+
+      if (validCasters.length === 0) continue
+
+      // For each valid caster, get their targets and score them
+      let bestAction = null
+      let bestScore = -1
+
+      for (const caster of validCasters) {
+        const targets = this.gameState.getWebValidTargets(caster, webCard)
+
+        for (const target of targets) {
+          // Score the target strategically
+          const score = this.scoreWebTarget(target)
+
+          if (score > bestScore) {
+            bestScore = score
+            bestAction = {
+              type: 'web',
+              casterInstance: caster,
+              targetInstance: target,
+              webCard: webCard
+            }
+          }
+        }
+      }
+
+      // If we found a good target, add the action
+      if (bestAction && bestScore > 0) {
+        console.log(`[AI] Web: ${bestAction.casterInstance.creature.name} targeting ${bestAction.targetInstance.creature.name} (score: ${bestScore})`)
+
+        // Apply the Web immediately
+        const result = this.gameState.applyWeb(
+          bestAction.casterInstance,
+          bestAction.targetInstance,
+          bestAction.webCard
+        )
+
+        if (result.success) {
+          actions.push(bestAction)
+          // Remove this card from consideration (it's been used)
+          break // Only use one Web card per turn for now
+        }
+      }
+    }
+
+    return actions
+  }
+
+  /**
+   * Check if Web card opportunities exist (for tracking purposes)
+   * This checks if the AI HAS the opportunity to use Web, regardless of difficulty
+   * Used to track offered/declined for the 0/0/100 pattern
+   *
+   * @param {Object} player - The AI player state
+   * @param {Array} availableCreatures - Untapped creatures that can cast
+   * @returns {Array} Array of Web opportunities { caster, target, webCard }
+   */
+  checkWebOpportunities(player, availableCreatures) {
+    const opportunities = []
+
+    // Get Web cards from hand
+    const webCards = player.orderHand?.filter(card =>
+      card && card.name?.toLowerCase() === 'web'
+    ) || []
+
+    if (webCards.length === 0) return opportunities
+
+    // For each Web card, check if there's at least one valid caster-target pair
+    for (const webCard of webCards) {
+      // Find creatures that can cast this Web card
+      const validCasters = availableCreatures.filter(creature =>
+        creature.position && this.gameState.canUseWebCard && this.gameState.canUseWebCard(creature, webCard)
+      )
+
+      for (const caster of validCasters) {
+        const targets = this.gameState.getWebValidTargets ? this.gameState.getWebValidTargets(caster, webCard) : []
+
+        if (targets.length > 0) {
+          // Found at least one opportunity - record the best target
+          let bestTarget = targets[0]
+          let bestScore = this.scoreWebTarget ? this.scoreWebTarget(targets[0]) : 0
+
+          for (const target of targets) {
+            const score = this.scoreWebTarget ? this.scoreWebTarget(target) : 0
+            if (score > bestScore) {
+              bestScore = score
+              bestTarget = target
+            }
+          }
+
+          if (bestScore > 0) {
+            opportunities.push({
+              caster: caster,
+              target: bestTarget,
+              webCard: webCard
+            })
+            break // One opportunity per Web card is enough for tracking
+          }
+        }
+      }
+    }
+
+    return opportunities
+  }
+
+  /**
+   * Decide if AI should remove Web from its own creature
+   * Strategic decision based on whether creature needs to move
+   *
+   * @param {CreatureInstance} creature - The webbed creature
+   * @param {boolean} hasTreasuresAvailable - Whether treasures exist on board
+   * @returns {Object|null} { reason: string } if should remove, null otherwise
+   */
+  shouldRemoveWeb(creature, hasTreasuresAvailable) {
+    if (!creature.position) return null
+
+    // Check if creature is near a treasure it could collect
+    if (hasTreasuresAvailable) {
+      const treasures = this.gameState.treasures || []
+      for (const treasure of treasures) {
+        if (treasure && !treasure.isDepleted()) {
+          const dx = Math.abs(creature.position.x - treasure.x)
+          const dy = Math.abs(creature.position.y - treasure.y)
+          const distance = Math.max(dx, dy)
+
+          // If within movement range of treasure
+          if (distance <= creature.creature.speed) {
+            return { reason: 'to collect nearby treasure' }
+          }
+        }
+      }
+    }
+
+    // Check if creature is in danger and needs to retreat
+    // (surrounded by enemies or at low HP)
+    const hpPercent = creature.currentHP / creature.creature.hp
+    if (hpPercent < 0.3) {
+      // Check if there are enemies nearby
+      const enemies = this.getEnemiesInRange(creature, 3)
+      if (enemies.length >= 2) {
+        return { reason: 'to escape danger (low HP, multiple enemies nearby)' }
+      }
+    }
+
+    // Check if creature is blocking an important position
+    // (e.g., on own deploy zone or blocking friendly movement)
+    const tile = this.gameState.getTile(creature.position.x, creature.position.y)
+    if (tile?.deployZone === creature.owner) {
+      return { reason: 'to clear deploy zone for reinforcements' }
+    }
+
+    // Default: don't remove - webbed creature can still attack
+    return null
+  }
+
+  /**
+   * Get enemy creatures within a certain range
+   * @param {CreatureInstance} creature - Center creature
+   * @param {number} range - Max range to check
+   * @returns {Array} Enemy creatures in range
+   */
+  getEnemiesInRange(creature, range) {
+    const enemies = []
+    for (const [playerId, player] of Object.entries(this.gameState.players)) {
+      if (playerId === creature.owner) continue
+
+      for (const enemy of player.creaturesInPlay) {
+        if (!enemy.position) continue
+        const dx = Math.abs(enemy.position.x - creature.position.x)
+        const dy = Math.abs(enemy.position.y - creature.position.y)
+        const distance = Math.max(dx, dy)
+        if (distance <= range) {
+          enemies.push(enemy)
+        }
+      }
+    }
+    return enemies
+  }
+
+  /**
+   * Score a potential Web target for strategic value
+   * Higher score = better target
+   *
+   * @param {CreatureInstance} target - The enemy creature to score
+   * @returns {number} Strategic score (0+ is valid target)
+   */
+  scoreWebTarget(target) {
+    // Safety check - ensure target has required properties
+    if (!target || !target.creature) {
+      return 0
+    }
+
+    let score = 0
+
+    // Base score: creature level (higher level = more valuable to immobilize)
+    const level = target.creature.level || 1
+    score += level * 10
+
+    // Bonus: creature hasn't acted yet (will lose its movement this turn)
+    if (!target.isTapped && !target.hasMovedThisTurn) {
+      score += 30 // Big bonus for preventing movement
+    }
+
+    // Bonus: creature hasn't attacked yet (webbing before attack means we're safe)
+    if (!target.hasAttackedThisTurn) {
+      score += 15
+    }
+
+    // Bonus: creature has high remaining HP (more value from immobilizing healthy enemies)
+    const maxHP = target.creature.hp || 1
+    const currentHP = target.currentHP || 0
+    const hpPercent = currentHP / maxHP
+    score += hpPercent * 20
+
+    // Bonus: melee creature (can't reach us if webbed)
+    const isMelee = !target.creature.abilities?.RANGED
+    if (isMelee) {
+      score += 25
+    }
+
+    // Bonus: creature is near treasure (prevent morale collection)
+    const treasures = this.gameState.treasures || []
+    for (const treasure of treasures) {
+      if (treasure && !treasure.isDepleted()) {
+        const dx = Math.abs(target.position.x - treasure.x)
+        const dy = Math.abs(target.position.y - treasure.y)
+        const distance = Math.max(dx, dy)
+        if (distance <= 3) {
+          score += 20 // Near a treasure
+        }
+      }
+    }
+
+    return score
   }
 }
 
