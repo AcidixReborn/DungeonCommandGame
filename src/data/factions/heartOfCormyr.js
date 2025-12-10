@@ -200,7 +200,7 @@ export const creatures = [
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'BURROW: This creature can burrow. PLACEHOLDER',
+      'BURROW: This creature can move through mountains (but cannot stop on them).',
       'SLAM: Whenever an adjacent creature takes damage from this creature\'s attack, slide the damaged creature up to 3 squares.'
     ],
     faction: FACTION_NAME,
@@ -248,7 +248,7 @@ export const creatures = [
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'FLANKING: This creature\'s melee attacks deal +10 DAMAGE while at least 1 ally is adjacent to the target. PLACEHOLDER'
+      'FLANKING: This creature\'s melee attacks deal +10 DAMAGE while at least 1 ally is adjacent to the target.'
     ],
     faction: FACTION_NAME,
     imageUrl: halflingSneakImg
@@ -282,7 +282,7 @@ export const creatures = [
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'FLASHING BLADES: Whenever a target takes damage from this creature\'s melee attack, this creature can deal 10 DAMAGE to 1 adjacent creature. PLACEHOLDER'
+      'FLASHING BLADES: Whenever a target takes damage from this creature\'s melee attack, this creature can deal 10 DAMAGE to 1 adjacent creature.'
     ],
     faction: FACTION_NAME,
     imageUrl: humanRangerImg

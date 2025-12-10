@@ -990,6 +990,83 @@ export class GameState {
   }
 
   // ============================================================================
+  // FLANKING - Halfling Sneak Ability (Heart of Cormyr)
+  // +10 damage on melee attacks when at least 1 ally is adjacent to the target
+  // Does NOT stack with multiple allies, does NOT apply to ability damage
+  // ============================================================================
+
+  /**
+   * Check if creature has FLANKING ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has FLANKING
+   */
+  hasFlanking(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('FLANKING')
+    )
+  }
+
+  /**
+   * Get FLANKING bonus damage for a melee attack
+   * Returns 10 if attacker has FLANKING and at least 1 friendly (non-self) creature
+   * is adjacent to the defender. Returns 0 otherwise.
+   * Applies 0/50/100 AI difficulty rule for AI players.
+   * @param {CreatureInstance} attackerInstance - The attacking creature
+   * @param {CreatureInstance} defenderInstance - The target creature
+   * @returns {number} Bonus damage (10 or 0)
+   */
+  getFlankingBonus(attackerInstance, defenderInstance) {
+    // Must have FLANKING ability
+    if (!this.hasFlanking(attackerInstance)) return 0
+
+    // Defender must exist and have a position
+    if (!defenderInstance?.position) return 0
+
+    // Get all tiles adjacent to the defender (8-directional)
+    const adjacentTiles = this.getAdjacentTiles8Dir(defenderInstance.position.x, defenderInstance.position.y)
+
+    // Check if any friendly creature (not the attacker itself) is adjacent to the defender
+    let hasAdjacentAlly = false
+    for (const tile of adjacentTiles) {
+      const occupant = tile.occupant
+      if (occupant &&
+          occupant.owner === attackerInstance.owner &&  // Same team as attacker
+          occupant.instanceId !== attackerInstance.instanceId &&  // Not the attacker itself
+          occupant.currentHP > 0) {  // Must be alive
+        hasAdjacentAlly = true
+        break
+      }
+    }
+
+    // No ally adjacent to target - no bonus possible
+    if (!hasAdjacentAlly) return 0
+
+    // AI difficulty check (0/50/100 rule) - only applies to AI attackers
+    const attackerOwner = attackerInstance.owner
+    const attackerPlayer = this.players[attackerOwner]
+
+    if (attackerPlayer && !attackerPlayer.isHuman) {
+      const aiDifficulty = attackerPlayer.aiDifficulty || 'medium'
+
+      if (aiDifficulty === 'easy') {
+        console.log(`[Flanking] Easy AI - ability disabled for ${attackerInstance.creature.name}`)
+        return 0  // Easy AI never uses FLANKING bonus
+      } else if (aiDifficulty === 'medium') {
+        if (Math.random() >= 0.5) {
+          console.log(`[Flanking] Medium AI - ability not triggered (50% roll failed) for ${attackerInstance.creature.name}`)
+          return 0  // Medium AI: 50% chance
+        }
+      }
+      // Hard AI: always use FLANKING bonus
+      console.log(`[Flanking] ${aiDifficulty} AI - +10 bonus applied for ${attackerInstance.creature.name}`)
+    }
+
+    // Human players or Hard AI - return +10 bonus
+    return 10
+  }
+
+  // ============================================================================
   // SCUTTLE - Spider Creature Ability (Demonweb Spider, Drider, Giant Spider)
   // This creature can move through other creatures for 1 speed cost per creature
   // Cannot stop on a creature - only pass through

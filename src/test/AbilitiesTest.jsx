@@ -330,6 +330,20 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, enemiesSlid: 0, damage: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, enemiesSlid: 0, damage: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, enemiesSlid: 0, damage: 0 }
+    },
+    flanking: {
+      name: 'FLANKING',
+      creature: 'Halfling Sneak',
+      faction: 'Heart of Cormyr',
+      // Overall totals - passive melee damage bonus (0/50/100 AI pattern)
+      timesOffered: 0,  // Times FLANKING could apply (ally adjacent to target during melee)
+      timesTriggered: 0,  // Times FLANKING bonus was applied
+      timesDeclined: 0,  // Times AI didn't use (Easy=always, Medium=50%, Hard=never)
+      bonusDamageDealt: 0,  // Total bonus damage dealt (+10 per trigger)
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, damage: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, damage: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, damage: 0 }
     }
   })
 
@@ -486,6 +500,45 @@ function AbilitiesTest() {
       if (attackResult.success) {
         results.attacksSuccessful++
         results.damageDealt += attackResult.damage
+
+        // Track FLANKING ability (Halfling Sneak) - 0/50/100 AI pattern for bonus damage
+        if (targetInfo.attackType === 'melee' && creatureAbilityStats && gameState.hasFlanking && gameState.hasFlanking(attackerInstance)) {
+          const potentialFlankingBonus = gameState.getFlankingBonus ? gameState.getFlankingBonus(attackerInstance, defenderInstance) : 0
+          if (potentialFlankingBonus > 0) {
+            // FLANKING conditions are met - simulate AI difficulty behavior
+            const difficultyRoll = Math.random()
+            let difficulty = 'easy'
+            let useFlanking = false
+
+            if (difficultyRoll < 0.33) {
+              // Easy AI - never uses FLANKING bonus (0%)
+              difficulty = 'easy'
+              useFlanking = false
+            } else if (difficultyRoll < 0.67) {
+              // Medium AI - 50% chance to use FLANKING
+              difficulty = 'medium'
+              useFlanking = Math.random() < 0.5
+            } else {
+              // Hard AI - always uses FLANKING (100%)
+              difficulty = 'hard'
+              useFlanking = true
+            }
+
+            // Track overall stats
+            creatureAbilityStats.flanking.timesOffered++
+            creatureAbilityStats.flanking[difficulty].offered++
+
+            if (useFlanking) {
+              creatureAbilityStats.flanking.timesTriggered++
+              creatureAbilityStats.flanking.bonusDamageDealt += potentialFlankingBonus
+              creatureAbilityStats.flanking[difficulty].triggered++
+              creatureAbilityStats.flanking[difficulty].damage += potentialFlankingBonus
+            } else {
+              creatureAbilityStats.flanking.timesDeclined++
+              creatureAbilityStats.flanking[difficulty].declined++
+            }
+          }
+        }
 
         // Check for FLASHING BLADES ability (Drow Blademaster)
         if (creatureAbilityStats && gameState.hasFlashingBlades && gameState.hasFlashingBlades(attackerInstance)) {
@@ -1807,9 +1860,9 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 19 }
+    if (!creatureAbilityStats) return { working: 0, total: 20 }
     let working = 0
-    const total = 19 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM
+    const total = 20 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -1832,8 +1885,9 @@ function AbilitiesTest() {
     // Heart of Cormyr ranged splash abilities
     if (creatureAbilityStats.acid_breath?.timesTriggered > 0) working++
     if (creatureAbilityStats.explosive_bolts?.timesTriggered > 0) working++
-    // Heart of Cormyr melee slide ability
+    // Heart of Cormyr melee abilities
     if (creatureAbilityStats.slam?.timesTriggered > 0) working++
+    if (creatureAbilityStats.flanking?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -3782,6 +3836,97 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         SLAM: After dealing melee damage to an adjacent creature, slide that creature up to 3 tiles away. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* FLANKING Ability Card - Halfling Sneak (Heart of Cormyr) */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🗡️ FLANKING (Halfling Sneak - Heart of Cormyr)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Ally adjacent to target during melee)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.flanking?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (+10 bonus applied)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.flanking?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.flanking?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.flanking?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.flanking.timesTriggered / results.creatureAbilityStats.flanking.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Total Bonus Damage Dealt</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.flanking?.bonusDamageDealt || 0}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.flanking?.[diff] || {}
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        FLANKING: +10 melee damage when at least 1 ally is adjacent to the target. Does NOT stack with multiple allies. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

@@ -223,7 +223,18 @@ const stats = {
 
     // ===== HEART OF CORMYR =====
     cormyr: {
-      flanking: { name: 'FLANKING', timesTriggered: 0, bonusDamageDealt: 0, creatures: ['Halfling Sneak'] },
+      flanking: {
+        name: 'FLANKING',
+        timesOffered: 0,
+        timesTriggered: 0,
+        timesDeclined: 0,
+        bonusDamageDealt: 0,
+        creatures: ['Halfling Sneak'],
+        // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+        easy: { offered: 0, triggered: 0, declined: 0, damage: 0 },
+        medium: { offered: 0, triggered: 0, declined: 0, damage: 0 },
+        hard: { offered: 0, triggered: 0, declined: 0, damage: 0 }
+      },
       flashing_blades: { name: 'FLASHING BLADES', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, splashDamageDealt: 0, creatures: ['Drow Blademaster'] },
       shield_block: { name: 'SHIELD BLOCK', timesTriggered: 0, damageBlocked: 0, creatures: ['Dwarven Defender'] },
       healing_touch: { name: 'HEALING TOUCH', timesTriggered: 0, hpHealed: 0, cardsRemoved: 0, creatures: ['Dwarf Cleric'] },
@@ -367,6 +378,34 @@ function trackCreatureAbility(factionKey, abilityKey, detail = {}) {
       if (detail.triggered) ability.timesTriggered++
       if (detail.declined) ability.timesDeclined++
       if (detail.damage) ability.damageDealt += detail.damage
+      break
+    case 'flanking':
+    case 'flanking_goblin':
+      // FLANKING follows 0/50/100 AI pattern for bonus damage
+      if (detail.offered) {
+        ability.timesOffered++
+        if (detail.difficulty && ability[detail.difficulty]) {
+          ability[detail.difficulty].offered++
+        }
+      }
+      if (detail.triggered) {
+        ability.timesTriggered++
+        if (detail.difficulty && ability[detail.difficulty]) {
+          ability[detail.difficulty].triggered++
+        }
+      }
+      if (detail.declined) {
+        ability.timesDeclined++
+        if (detail.difficulty && ability[detail.difficulty]) {
+          ability[detail.difficulty].declined++
+        }
+      }
+      if (detail.bonusDamage) {
+        ability.bonusDamageDealt += detail.bonusDamage
+        if (detail.difficulty && ability[detail.difficulty]) {
+          ability[detail.difficulty].damage += detail.bonusDamage
+        }
+      }
       break
     case 'shadow_stalker':
       if (detail.offered) ability.timesOffered++
@@ -687,6 +726,55 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
       stats.attacksSuccessful++
       results.damageDealt += attackResult.damage
       stats.totalDamageDealt += attackResult.damage
+
+      // Track FLANKING ability (Halfling Sneak) - 0/50/100 AI pattern for bonus damage
+      if (targetInfo.attackType === 'melee' && gameState.hasFlanking && gameState.hasFlanking(attackerInstance)) {
+        const potentialFlankingBonus = gameState.getFlankingBonus ? gameState.getFlankingBonus(attackerInstance, defenderInstance) : 0
+        if (potentialFlankingBonus > 0) {
+          // FLANKING conditions met - AI difficulty behavior (0/50/100 pattern)
+          const attackerOwner = attackerInstance.owner
+          const attackerPlayer = gameState.players[attackerOwner]
+          const attackerDifficulty = attackerPlayer?.aiDifficulty || 'easy'
+
+          let useFlanking = false
+          switch (attackerDifficulty) {
+            case 'easy':
+              useFlanking = false  // Easy AI never uses FLANKING (0%)
+              break
+            case 'medium':
+              useFlanking = Math.random() < 0.5  // Medium AI uses 50% of the time
+              break
+            case 'hard':
+              useFlanking = true  // Hard AI always uses FLANKING (100%)
+              break
+          }
+
+          // Track that FLANKING was offered
+          trackCreatureAbility('cormyr', 'flanking', {
+            offered: true,
+            difficulty: attackerDifficulty
+          })
+
+          if (useFlanking) {
+            trackCreatureAbility('cormyr', 'flanking', {
+              triggered: true,
+              bonusDamage: potentialFlankingBonus,
+              difficulty: attackerDifficulty
+            })
+            if (CONFIG.VERBOSE_LOGGING) {
+              console.log(`  [FLANKING] ${attackerInstance.creature.name} dealt +${potentialFlankingBonus} bonus damage (ally adjacent to target)`)
+            }
+          } else {
+            trackCreatureAbility('cormyr', 'flanking', {
+              declined: true,
+              difficulty: attackerDifficulty
+            })
+            if (CONFIG.VERBOSE_LOGGING) {
+              console.log(`  [FLANKING] ${attackerInstance.creature.name} declined FLANKING bonus (${attackerDifficulty} AI)`)
+            }
+          }
+        }
+      }
 
       // Check for FLASHING BLADES ability (Drow Blademaster)
       if (gameState.hasFlashingBlades && gameState.hasFlashingBlades(attackerInstance)) {

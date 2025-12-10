@@ -38,13 +38,20 @@ function AttackConfirmPanel({
   const isConfusionGaze = attackInfo.attackType === 'confusion_gaze'
   const isMeleeAttack = attackInfo.attackType === 'melee'
 
-  const damage = isFlashingBlades || isHiddenBlade
+  // Check for FLANKING bonus (only on melee primary attacks)
+  const flankingBonus = isMeleeAttack && gameState?.getFlankingBonus
+    ? gameState.getFlankingBonus(attacker, defender)
+    : 0
+
+  const baseDamage = isFlashingBlades || isHiddenBlade
     ? 10
     : isConfusionGaze
       ? attacker.creature.meleeAttack?.damage || 30
       : isMeleeAttack
         ? attacker.creature.meleeAttack?.damage || 0
         : attacker.creature.rangedAttack?.damage || 0
+
+  const damage = baseDamage + flankingBonus
 
   // Check for LIFE DRAIN ability (Vampire Stalker) - only triggers on melee attacks with damage > 0
   const hasLifeDrain = gameState?.hasLifeDrain && gameState.hasLifeDrain(attacker)
@@ -115,7 +122,17 @@ function AttackConfirmPanel({
         </div>
         <div className="combat-info-row">
           <span>Damage:</span>
-          <Badge bg="warning" text="dark">{damage}</Badge>
+          {flankingBonus > 0 ? (
+            <span>
+              <Badge bg="warning" text="dark">{baseDamage}</Badge>
+              <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
+              <span style={{ color: '#888', marginLeft: '4px' }}>(FLANKING)</span>
+              <span style={{ marginLeft: '4px' }}>=</span>
+              <Badge bg="success" style={{ marginLeft: '4px' }}>{damage}</Badge>
+            </span>
+          ) : (
+            <Badge bg="warning" text="dark">{damage}</Badge>
+          )}
         </div>
         <div className="combat-info-row">
           <span>Target HP:</span>

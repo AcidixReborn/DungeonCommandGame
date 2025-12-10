@@ -101,15 +101,24 @@ export class CombatResolver {
 
     // Calculate damage based on attack type
     let damage = 0
+    let baseDamage = 0
+    let flankingBonus = 0
+
     if (attackType === 'melee' && attackerInstance.creature.meleeAttack) {
-      damage = attackerInstance.creature.meleeAttack.damage
+      baseDamage = attackerInstance.creature.meleeAttack.damage
+      // Check for FLANKING bonus (only on melee primary attacks)
+      if (this.gameState.hasFlanking && this.gameState.getFlankingBonus) {
+        flankingBonus = this.gameState.getFlankingBonus(attackerInstance, defenderInstance)
+      }
+      damage = baseDamage + flankingBonus
     } else if (attackType === 'ranged' && attackerInstance.creature.rangedAttack) {
-      damage = attackerInstance.creature.rangedAttack.damage
+      baseDamage = attackerInstance.creature.rangedAttack.damage
+      damage = baseDamage
     } else {
       return { valid: false, error: 'Invalid attack type' }
     }
 
-    return { valid: true, damage }
+    return { valid: true, damage, baseDamage, flankingBonus }
   }
 
   /**

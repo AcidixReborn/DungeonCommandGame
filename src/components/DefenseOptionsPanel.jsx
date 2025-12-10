@@ -64,7 +64,7 @@ function DefenseOptionsPanel({
   // Calculate original damage based on attack type
   // For special abilities (splash, flashing_blades, hidden_blade, confusion_gaze), use attackInfo.damage
   // For normal attacks, calculate from creature stats
-  let originalDamage
+  let baseDamage
   if (attackInfo?.damage !== undefined && (
     attackType === 'splash' ||
     attackType === 'ranged_splash' ||
@@ -73,12 +73,20 @@ function DefenseOptionsPanel({
     attackType === 'confusion_gaze'
   )) {
     // Special ability attacks have fixed damage in attackInfo
-    originalDamage = attackInfo.damage
+    baseDamage = attackInfo.damage
   } else if (attackType === 'melee') {
-    originalDamage = attackerInstance.creature.meleeAttack?.damage || 0
+    baseDamage = attackerInstance.creature.meleeAttack?.damage || 0
   } else {
-    originalDamage = attackerInstance.creature.rangedAttack?.damage || 0
+    baseDamage = attackerInstance.creature.rangedAttack?.damage || 0
   }
+
+  // Check for FLANKING bonus (only on melee primary attacks)
+  const flankingBonus = attackType === 'melee' && gameState?.getFlankingBonus
+    ? gameState.getFlankingBonus(attackerInstance, defenderInstance)
+    : 0
+
+  // Total damage includes base + FLANKING bonus
+  const originalDamage = baseDamage + flankingBonus
 
   const incomingDamage = Math.max(0, originalDamage - accumulatedDamageReduction)
 
@@ -271,7 +279,17 @@ function DefenseOptionsPanel({
         </div>
         <div className="combat-info-row">
           <span>Damage:</span>
-          <Badge bg="warning" text="dark">{originalDamage}</Badge>
+          {flankingBonus > 0 ? (
+            <span>
+              <Badge bg="warning" text="dark">{baseDamage}</Badge>
+              <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
+              <span style={{ color: '#888', marginLeft: '4px' }}>(FLANKING)</span>
+              <span style={{ marginLeft: '4px' }}>=</span>
+              <Badge bg="success" style={{ marginLeft: '4px' }}>{originalDamage}</Badge>
+            </span>
+          ) : (
+            <Badge bg="warning" text="dark">{originalDamage}</Badge>
+          )}
         </div>
         {accumulatedDamageReduction > 0 && (
           <div className="combat-info-row">
