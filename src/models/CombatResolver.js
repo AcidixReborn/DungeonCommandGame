@@ -309,8 +309,18 @@ export class CombatResolver {
       }
     }
 
-    // Apply damage to defender
-    const wasDestroyed = defenderInstance.takeDamage(damageAmount)
+    // Check SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
+    let shieldBlockReduction = 0
+    let finalDamage = damageAmount
+    if (this.gameState.getShieldBlockReduction) {
+      shieldBlockReduction = this.gameState.getShieldBlockReduction(defenderInstance)
+      if (shieldBlockReduction > 0) {
+        finalDamage = Math.max(0, damageAmount - shieldBlockReduction)
+      }
+    }
+
+    // Apply damage to defender (with SHIELD BLOCK reduction applied)
+    const wasDestroyed = defenderInstance.takeDamage(finalDamage)
 
     if (wasDestroyed) {
       // Clear the tile occupant first
@@ -364,7 +374,9 @@ export class CombatResolver {
 
       return {
         destroyed: true,
-        damage: damageAmount,
+        damage: finalDamage,
+        originalDamage: damageAmount,
+        shieldBlockReduction: shieldBlockReduction,
         moraleChange: {
           attacker: +1,
           defender: -defenderInstance.creature.level
@@ -377,7 +389,9 @@ export class CombatResolver {
 
     return {
       destroyed: false,
-      damage: damageAmount,
+      damage: finalDamage,
+      originalDamage: damageAmount,
+      shieldBlockReduction: shieldBlockReduction,
       moraleChange: null
     }
   }

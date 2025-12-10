@@ -1184,6 +1184,101 @@ export class GameState {
   }
 
   // ============================================================================
+  // SHIELD BLOCK - Dwarven Defender Creature Ability (Heart of Cormyr)
+  // Adjacent allied Adventurers (Cormyr only) gain Block 10 per adjacent Defender
+  // Stacks with multiple adjacent Dwarven Defenders
+  // Applies 0/50/100 AI difficulty rule based on DEFENDER's owner
+  // ============================================================================
+
+  /**
+   * Check if creature has SHIELD BLOCK ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has SHIELD BLOCK
+   */
+  hasShieldBlock(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('SHIELD BLOCK')
+    )
+  }
+
+  /**
+   * Check if creature has Adventurer type
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has Adventurer type
+   */
+  isAdventurerType(creatureInstance) {
+    if (!creatureInstance?.creature?.type) return false
+    return creatureInstance.creature.type.some(
+      type => type.toUpperCase() === 'ADVENTURER'
+    )
+  }
+
+  /**
+   * Check if creature is from Cormyr faction
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature is from Heart of Cormyr faction
+   */
+  isCormyrFaction(creatureInstance) {
+    if (!creatureInstance?.creature?.faction) return false
+    const faction = creatureInstance.creature.faction.toUpperCase()
+    return faction.includes('CORMYR') || faction.includes('HEART OF CORMYR')
+  }
+
+  /**
+   * Get SHIELD BLOCK damage reduction for a defending creature
+   * Returns 10 per adjacent Dwarven Defender with SHIELD BLOCK
+   * Only applies to Cormyr faction Adventurers
+   * Applies 0/50/100 AI difficulty rule based on DEFENDER's owner
+   * Big O: O(8) = O(1) - checks 8 adjacent tiles
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @returns {number} Damage reduction amount (0, 10, 20, etc.)
+   */
+  getShieldBlockReduction(defenderInstance) {
+    // Must be Adventurer type AND Cormyr faction
+    if (!this.isAdventurerType(defenderInstance)) return 0
+    if (!this.isCormyrFaction(defenderInstance)) return 0
+    if (!defenderInstance.position) return 0
+
+    // Get all tiles adjacent to the defender (8-directional)
+    const adjacentTiles = this.getAdjacentTiles8Dir(defenderInstance.position.x, defenderInstance.position.y)
+
+    // Count adjacent Dwarven Defenders with SHIELD BLOCK (same owner)
+    let shieldBlockCount = 0
+    for (const tile of adjacentTiles) {
+      const occupant = tile.occupant
+      if (occupant &&
+          occupant.owner === defenderInstance.owner &&
+          occupant.currentHP > 0 &&
+          this.hasShieldBlock(occupant)) {
+        shieldBlockCount++
+      }
+    }
+
+    if (shieldBlockCount === 0) return 0
+
+    // AI difficulty check (0/50/100 rule) - based on DEFENDER's owner
+    const defenderOwner = defenderInstance.owner
+    const defenderPlayer = this.players[defenderOwner]
+
+    if (defenderPlayer && !defenderPlayer.isHuman) {
+      const aiDifficulty = defenderPlayer.aiDifficulty || 'medium'
+
+      if (aiDifficulty === 'easy') {
+        return 0  // Easy AI never benefits from SHIELD BLOCK
+      } else if (aiDifficulty === 'medium') {
+        if (Math.random() >= 0.5) {
+          return 0  // Medium AI: 50% chance
+        }
+      }
+      // Hard AI: always benefits from SHIELD BLOCK
+    }
+
+    // 10 damage reduction per adjacent Dwarven Defender
+    return shieldBlockCount * 10
+  }
+
+  // ============================================================================
   // CONFUSION GAZE - Umber Hulk Ability (Sting of Lolth)
   // As a standard action, choose 1 enemy creature within 5 squares (with LOS)
   // and slide that creature up to 3 squares, then make a melee attack (30 damage)
@@ -1391,8 +1486,12 @@ export class GameState {
       }
     }
 
-    // Apply damage using takeDamage
-    const wasDestroyed = targetInstance.takeDamage(CONFUSION_GAZE_DAMAGE)
+    // Check SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
+    const shieldBlockReduction = this.getShieldBlockReduction(targetInstance)
+    const finalDamage = Math.max(0, CONFUSION_GAZE_DAMAGE - shieldBlockReduction)
+
+    // Apply damage using takeDamage (with SHIELD BLOCK reduction)
+    const wasDestroyed = targetInstance.takeDamage(finalDamage)
 
     let moraleChange = { attacker: 0, defender: 0 }
 
@@ -1430,7 +1529,9 @@ export class GameState {
 
     return {
       success: true,
-      damage: CONFUSION_GAZE_DAMAGE,
+      damage: finalDamage,
+      originalDamage: CONFUSION_GAZE_DAMAGE,
+      shieldBlockReduction,
       destroyed: wasDestroyed,
       moraleChange,
       remainingHP: Math.max(0, targetInstance.currentHP)
@@ -1483,8 +1584,25 @@ export class GameState {
       }
     }
 
-    // Apply damage using takeDamage
-    const wasDestroyed = targetInstance.takeDamage(actualDamage)
+    // Check SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
+    const shieldBlockReduction = this.getShieldBlockReduction(targetInstance)
+    const finalDamage = Math.max(0, actualDamage - shieldBlockReduction)
+
+    // If all damage was prevented by SHIELD BLOCK, no effect
+    if (finalDamage <= 0) {
+      return {
+        success: true,
+        damage: 0,
+        destroyed: false,
+        moraleChange: { attacker: 0, defender: 0 },
+        remainingHP: targetInstance.currentHP,
+        damageReduced: damageReduction,
+        shieldBlockReduction
+      }
+    }
+
+    // Apply damage using takeDamage (with SHIELD BLOCK reduction)
+    const wasDestroyed = targetInstance.takeDamage(finalDamage)
 
     let moraleChange = { attacker: 0, defender: 0 }
 
@@ -1522,11 +1640,13 @@ export class GameState {
 
     return {
       success: true,
-      damage: actualDamage,
+      damage: finalDamage,
+      originalDamage: BASE_DAMAGE,
       destroyed: wasDestroyed,
       moraleChange,
       remainingHP: Math.max(0, targetInstance.currentHP),
-      damageReduced: damageReduction
+      damageReduced: damageReduction,
+      shieldBlockReduction
     }
   }
 

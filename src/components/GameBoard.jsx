@@ -2508,11 +2508,43 @@ function GameBoard({ onTurnInfoChange }) {
     setValidAttackTargets([])
   }
 
-  // Handler when player declines CONFUSION GAZE
+  // Handler when player declines CONFUSION GAZE - initiate normal attack
   const handleConfusionGazeDecline = () => {
+    if (!confusionGazePending) {
+      setShowConfusionGazeModal(false)
+      return
+    }
+
+    const { attacker, target } = confusionGazePending
+
     setShowConfusionGazeModal(false)
     setConfusionGazePending(null)
-    // Player can still do normal attack if target is in melee/ranged range
+
+    // Check if the target is in melee or ranged range for a normal attack
+    const validAttackTargets = gameState.getValidAttackTargets(attacker)
+    const targetInfo = validAttackTargets.find(t => t.creature.instanceId === target.instanceId)
+
+    if (targetInfo) {
+      // Valid normal attack - show attack confirmation panel using pendingRightClickAttack (same as normal right-click attack)
+      const attackInfo = {
+        attackType: targetInfo.attackType,
+        damage: targetInfo.attackType === 'melee'
+          ? attacker.creature.meleeAttack?.damage || 0
+          : attacker.creature.rangedAttack?.damage || 0
+      }
+      setPendingRightClickAttack({
+        attacker: attacker,
+        target: target,
+        attackInfo: attackInfo
+      })
+      setCombatPanelMode('attack')
+      setCombatHighlightCreatures({
+        attacker: attacker.instanceId,
+        defender: target.instanceId
+      })
+    } else {
+      addToast('Target is not in range for a normal attack')
+    }
   }
 
   // Handler when slide destination is selected (during slide mode)

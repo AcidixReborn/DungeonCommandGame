@@ -28,7 +28,24 @@ function AttackConfirmPanel({
   onCancel,
   onLightningBreath
 }) {
-  if (!attacker || !defender || !attackInfo) return null
+  // DEBUG: Log panel render and props
+  console.log('[AttackConfirmPanel DEBUG] Render called with:', {
+    hasAttacker: !!attacker,
+    hasDefender: !!defender,
+    hasAttackInfo: !!attackInfo,
+    attackerName: attacker?.creature?.name,
+    defenderName: defender?.creature?.name,
+    attackInfo: attackInfo
+  })
+
+  if (!attacker || !defender || !attackInfo) {
+    console.log('[AttackConfirmPanel DEBUG] Returning null - missing props:', {
+      attacker: !!attacker,
+      defender: !!defender,
+      attackInfo: !!attackInfo
+    })
+    return null
+  }
 
   // O(1) - Calculate damage based on attack type
   // FLASHING BLADES and HIDDEN BLADE splash damage is always 10
@@ -65,6 +82,13 @@ function AttackConfirmPanel({
   const isRangedAttack = attackInfo.attackType === 'ranged'
   const canUseLightningBreath = isRangedAttack && gameState?.canUseLightningBreath && gameState.canUseLightningBreath(attacker)
   const lightningBreathDamage = canUseLightningBreath ? (gameState?.getLightningBreathDamage?.(attacker) || 20) : 0
+
+  // Check for SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
+  // Note: This is a preview - actual reduction happens in CombatResolver
+  const shieldBlockReduction = gameState?.getShieldBlockReduction
+    ? gameState.getShieldBlockReduction(defender)
+    : 0
+  const damageAfterShieldBlock = Math.max(0, damage - shieldBlockReduction)
 
   // Debug log for Lightning Breath availability
   if (isRangedAttack && gameState?.hasLightningBreath?.(attacker)) {
@@ -156,6 +180,15 @@ function AttackConfirmPanel({
         {lifeDrainApplies && (
           <div style={{ fontSize: '0.75rem', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
             * Heals only if damage is dealt (blocked = no heal)
+          </div>
+        )}
+        {/* SHIELD BLOCK preview - shows damage reduction from adjacent Dwarven Defender */}
+        {shieldBlockReduction > 0 && (
+          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+            <span style={{ color: '#2196f3' }}>SHIELD BLOCK:</span>
+            <span style={{ color: '#2196f3' }}>
+              Block {shieldBlockReduction} ({damage} → {damageAfterShieldBlock})
+            </span>
           </div>
         )}
       </div>

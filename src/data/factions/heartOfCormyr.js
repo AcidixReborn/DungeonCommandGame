@@ -166,7 +166,7 @@ export const creatures = [
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature). PLACEHOLDER'
+      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature).'
     ],
     faction: FACTION_NAME,
     imageUrl: dwarvenDefender4Img
@@ -183,7 +183,7 @@ export const creatures = [
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature). PLACEHOLDER'
+      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature).'
     ],
     faction: FACTION_NAME,
     imageUrl: dwarvenDefender5Img

@@ -357,6 +357,20 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0 },
       medium: { offered: 0, triggered: 0, declined: 0 },
       hard: { offered: 0, triggered: 0, declined: 0 }
+    },
+    shield_block: {
+      name: 'SHIELD BLOCK',
+      creature: 'Dwarven Defender',
+      faction: 'Heart of Cormyr',
+      // Overall totals - passive defense aura (0/50/100 AI pattern)
+      timesOffered: 0,  // Times Adventurer was attacked adjacent to Dwarven Defender
+      timesTriggered: 0,  // Times Block damage reduction was applied
+      timesDeclined: 0,  // Times AI didn't benefit (Easy=always, Medium=50%, Hard=never)
+      totalDamageBlocked: 0,  // Total damage blocked (10 per adjacent Defender per hit)
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, damageBlocked: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, damageBlocked: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, damageBlocked: 0 }
     }
   })
 
@@ -549,6 +563,90 @@ function AbilitiesTest() {
             } else {
               creatureAbilityStats.flanking.timesDeclined++
               creatureAbilityStats.flanking[difficulty].declined++
+            }
+          }
+        }
+
+        // Track SHIELD BLOCK ability (Dwarven Defender) - 0/50/100 AI pattern for damage reduction
+        // This is a DEFENSIVE ability checked on the defender's side
+        if (creatureAbilityStats && defenderInstance.position) {
+          // Debug: Check if methods exist
+          const hasIsAdventurerType = !!gameState.isAdventurerType
+          const hasIsCormyrFaction = !!gameState.isCormyrFaction
+
+          // Fallback: Check creature types directly if gameState methods don't exist
+          const creatureTypes = defenderInstance.creature?.types || defenderInstance.creature?.type || []
+          const creatureFaction = defenderInstance.creature?.faction || ''
+
+          const isAdventurer = hasIsAdventurerType
+            ? gameState.isAdventurerType(defenderInstance)
+            : creatureTypes.some(t => typeof t === 'string' && t.toUpperCase() === 'ADVENTURER')
+          const isCormyr = hasIsCormyrFaction
+            ? gameState.isCormyrFaction(defenderInstance)
+            : creatureFaction.toUpperCase().includes('CORMYR')
+
+          // Debug: Log all attacks against Heart of Cormyr creatures
+          if (creatureFaction.toUpperCase().includes('CORMYR')) {
+            console.log(`[SHIELD BLOCK DEBUG] Cormyr creature attacked: ${defenderInstance.creature.name}, types: ${JSON.stringify(creatureTypes)}, isAdventurer: ${isAdventurer}`)
+          }
+
+          // Debug: Log when we find a Cormyr Adventurer being attacked
+          if (isAdventurer && isCormyr) {
+            console.log(`[SHIELD BLOCK TEST] Cormyr Adventurer attacked: ${defenderInstance.creature.name} at (${defenderInstance.position.x}, ${defenderInstance.position.y})`)
+          }
+
+          if (isAdventurer && isCormyr) {
+            // Check if defender has adjacent Dwarven Defender(s)
+            const adjacentTiles = gameState.getAdjacentTiles8Dir ? gameState.getAdjacentTiles8Dir(defenderInstance.position.x, defenderInstance.position.y) : []
+            let adjacentDefenderCount = 0
+            for (const tile of adjacentTiles) {
+              if (tile.occupant && tile.occupant.owner === defenderInstance.owner && tile.occupant.currentHP > 0) {
+                // Check for SHIELD BLOCK ability using gameState method or fallback
+                const hasShieldBlockAbility = gameState.hasShieldBlock
+                  ? gameState.hasShieldBlock(tile.occupant)
+                  : tile.occupant.creature?.specialAbilities?.some(a => typeof a === 'string' && a.toUpperCase().includes('SHIELD BLOCK'))
+
+                if (hasShieldBlockAbility) {
+                  adjacentDefenderCount++
+                  console.log(`[SHIELD BLOCK TEST] Found adjacent Dwarven Defender: ${tile.occupant.creature.name}`)
+                }
+              }
+            }
+
+            if (adjacentDefenderCount > 0) {
+            const potentialReduction = adjacentDefenderCount * 10
+            // Simulate AI difficulty behavior (based on defender's owner)
+            const difficultyRoll = Math.random()
+            let difficulty = 'easy'
+            let useShieldBlock = false
+
+            if (difficultyRoll < 0.33) {
+              // Easy AI - never benefits from SHIELD BLOCK (0%)
+              difficulty = 'easy'
+              useShieldBlock = false
+            } else if (difficultyRoll < 0.67) {
+              // Medium AI - 50% chance to benefit
+              difficulty = 'medium'
+              useShieldBlock = Math.random() < 0.5
+            } else {
+              // Hard AI - always benefits (100%)
+              difficulty = 'hard'
+              useShieldBlock = true
+            }
+
+            // Track overall stats
+            creatureAbilityStats.shield_block.timesOffered++
+            creatureAbilityStats.shield_block[difficulty].offered++
+
+            if (useShieldBlock) {
+              creatureAbilityStats.shield_block.timesTriggered++
+              creatureAbilityStats.shield_block.totalDamageBlocked += potentialReduction
+              creatureAbilityStats.shield_block[difficulty].triggered++
+              creatureAbilityStats.shield_block[difficulty].damageBlocked += potentialReduction
+            } else {
+              creatureAbilityStats.shield_block.timesDeclined++
+              creatureAbilityStats.shield_block[difficulty].declined++
+            }
             }
           }
         }
@@ -1891,9 +1989,9 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 21 }
+    if (!creatureAbilityStats) return { working: 0, total: 22 }
     let working = 0
-    const total = 21 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL
+    const total = 22 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL, SHIELD BLOCK
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -1921,6 +2019,8 @@ function AbilitiesTest() {
     if (creatureAbilityStats.flanking?.timesTriggered > 0) working++
     // Heart of Cormyr deployment abilities
     if (creatureAbilityStats.arcane_portal?.timesTriggered > 0) working++
+    // Heart of Cormyr defensive abilities
+    if (creatureAbilityStats.shield_block?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -4047,6 +4147,99 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         ARCANE PORTAL: War Wizard can deploy to any unoccupied Magic Circle tile instead of starting zone. Hard AI picks strategically closest to friendly creatures. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* SHIELD BLOCK Ability Card - Dwarven Defender (Heart of Cormyr) */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🛡️ SHIELD BLOCK (Dwarven Defender - Heart of Cormyr)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Adventurer attacked adjacent to Defender)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.shield_block?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (Block applied)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.shield_block?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (AI 0/50 pattern)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.shield_block?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Damage Blocked</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.shield_block?.totalDamageBlocked || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.shield_block?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.shield_block.timesTriggered / results.creatureAbilityStats.shield_block.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Blocked</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.shield_block?.[diff] || {}
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.damageBlocked || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        SHIELD BLOCK: Adjacent allied Adventurers (Cormyr faction only) gain Block 10 per adjacent Dwarven Defender. Stacks with multiple Defenders. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

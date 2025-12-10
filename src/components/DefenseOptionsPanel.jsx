@@ -56,7 +56,25 @@ function DefenseOptionsPanel({
     setSelectedCardCreature(null)
   }, [defenderInstance?.instanceId])
 
-  if (!defenderPlayerState || !defenderInstance || !attackerInstance) return null
+  // DEBUG: Log panel render and props
+  console.log('[DefenseOptionsPanel DEBUG] Render called with:', {
+    hasAttacker: !!attackerInstance,
+    hasDefender: !!defenderInstance,
+    hasDefenderPlayerState: !!defenderPlayerState,
+    attackerName: attackerInstance?.creature?.name,
+    defenderName: defenderInstance?.creature?.name,
+    attackInfo: attackInfo,
+    accumulatedDamageReduction
+  })
+
+  if (!defenderPlayerState || !defenderInstance || !attackerInstance) {
+    console.log('[DefenseOptionsPanel DEBUG] Returning null - missing props:', {
+      defenderPlayerState: !!defenderPlayerState,
+      defenderInstance: !!defenderInstance,
+      attackerInstance: !!attackerInstance
+    })
+    return null
+  }
 
   // O(1) - Calculate incoming damage using attackInfo prop
   const attackType = attackInfo?.attackType || 'melee'
@@ -88,7 +106,11 @@ function DefenseOptionsPanel({
   // Total damage includes base + FLANKING bonus
   const originalDamage = baseDamage + flankingBonus
 
-  const incomingDamage = Math.max(0, originalDamage - accumulatedDamageReduction)
+  // Check for SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
+  const shieldBlockReduction = gameState?.getShieldBlockReduction
+    ? gameState.getShieldBlockReduction(defenderInstance)
+    : 0
+  const incomingDamage = Math.max(0, originalDamage - accumulatedDamageReduction - shieldBlockReduction)
 
   // O(n) - Get defense options from gameState
   const defenseOptions = gameState?.getDefenseOptions
@@ -295,6 +317,14 @@ function DefenseOptionsPanel({
           <div className="combat-info-row">
             <span>Already Prevented:</span>
             <Badge bg="success">{accumulatedDamageReduction}</Badge>
+          </div>
+        )}
+        {shieldBlockReduction > 0 && (
+          <div className="combat-info-row">
+            <span style={{ color: '#2196f3' }}>SHIELD BLOCK:</span>
+            <span style={{ color: '#2196f3' }}>
+              Block {shieldBlockReduction} ({originalDamage} → {Math.max(0, originalDamage - shieldBlockReduction)})
+            </span>
           </div>
         )}
         <div className="combat-info-row">
