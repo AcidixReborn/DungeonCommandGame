@@ -201,7 +201,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [
       'BURROW: This creature can burrow. PLACEHOLDER',
-      'SLAM: Whenever an adjacent creature takes damage from this creature\'s attack, slide the damaged creature 3 squares. PLACEHOLDER'
+      'SLAM: Whenever an adjacent creature takes damage from this creature\'s attack, slide the damaged creature up to 3 squares.'
     ],
     faction: FACTION_NAME,
     imageUrl: earthGuardianImg

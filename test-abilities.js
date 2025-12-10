@@ -232,7 +232,19 @@ const stats = {
       flying_cormyr: { name: 'FLYING', timesTriggered: 0, terrainIgnored: 0, creatures: ['Copper Dragon'] },
       acid_breath: { name: 'ACID BREATH', timesTriggered: 0, timesOffered: 0, splashDamageDealt: 0, targetsHit: 0, creatures: ['Copper Dragon'] },
       burrow_cormyr: { name: 'BURROW', timesTriggered: 0, timesOffered: 0, timesDeclined: 0, mountainTilesMoved: 0, creatures: ['Earth Guardian'] },
-      slam: { name: 'SLAM', timesTriggered: 0, enemiesSlid: 0, creatures: ['Earth Guardian'] }
+      slam: {
+        name: 'SLAM',
+        timesTriggered: 0,
+        timesOffered: 0,
+        timesDeclined: 0,
+        enemiesSlid: 0,
+        damageDealt: 0,
+        creatures: ['Earth Guardian'],
+        // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+        easy: { offered: 0, triggered: 0, declined: 0, enemiesSlid: 0, damage: 0 },
+        medium: { offered: 0, triggered: 0, declined: 0, enemiesSlid: 0, damage: 0 },
+        hard: { offered: 0, triggered: 0, declined: 0, enemiesSlid: 0, damage: 0 }
+      }
     },
 
     // ===== BLOOD OF GRUUMSH =====
@@ -370,6 +382,34 @@ function trackCreatureAbility(factionKey, abilityKey, detail = {}) {
       if (detail.triggered) ability.timesTriggered++
       if (detail.declined) ability.timesDeclined++
       if (detail.mountainTiles) ability.mountainTilesMoved += detail.mountainTiles
+      break
+    case 'slam':
+      if (detail.offered) {
+        ability.timesOffered++
+        if (detail.difficulty && ability[detail.difficulty]) {
+          ability[detail.difficulty].offered++
+        }
+      }
+      if (detail.triggered) {
+        ability.timesTriggered++
+        ability.enemiesSlid++
+        if (detail.difficulty && ability[detail.difficulty]) {
+          ability[detail.difficulty].triggered++
+          ability[detail.difficulty].enemiesSlid++
+        }
+      }
+      if (detail.declined) {
+        ability.timesDeclined++
+        if (detail.difficulty && ability[detail.difficulty]) {
+          ability[detail.difficulty].declined++
+        }
+      }
+      if (detail.damage) {
+        ability.damageDealt += detail.damage
+        if (detail.difficulty && ability[detail.difficulty]) {
+          ability[detail.difficulty].damage += detail.damage
+        }
+      }
       break
     case 'confusion_gaze':
       if (detail.offered) ability.timesOffered++
@@ -802,6 +842,64 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
             }
           } else {
             trackCreatureAbility('lolth', 'confusion_gaze', { declined: true })
+          }
+        }
+      }
+
+      // Check for SLAM ability (Earth Guardian) - only on MELEE attacks
+      // SLAM triggers after melee damage dealt to an adjacent creature that survives
+      if (targetInfo.attackType === 'melee' && gameState.hasSlam && gameState.hasSlam(attackerInstance)) {
+        // Check if target survived and damage was dealt
+        const targetSurvived = defenderInstance.currentHP > 0
+        const damageDealt = attackerInstance.creature.meleeAttack?.damage || 30
+
+        if (targetSurvived && damageDealt > 0) {
+          // Get valid slam destinations (up to 3 tiles away)
+          const slamTargets = gameState.getValidSlamTiles
+            ? gameState.getValidSlamTiles(defenderInstance, 3)
+            : []
+
+          if (slamTargets.length > 0) {
+            // AI 0/50/100 rule for USING SLAM (offense)
+            const attackerOwner = attackerInstance.owner
+            const attackerPlayer = gameState.players[attackerOwner]
+            const attackerDifficulty = attackerPlayer?.aiDifficulty || 'easy'
+
+            // Track that SLAM was offered (with difficulty)
+            trackCreatureAbility('cormyr', 'slam', { offered: true, difficulty: attackerDifficulty })
+
+            let useSlam = false
+            if (attackerDifficulty === 'hard') {
+              useSlam = true  // Hard AI always uses (100%)
+            } else if (attackerDifficulty === 'medium') {
+              useSlam = Math.random() < 0.5  // Medium AI uses 50%
+            }
+            // Easy AI never uses (0%)
+
+            if (useSlam) {
+              // Execute slam - pick a random valid tile
+              const randomTile = slamTargets[Math.floor(Math.random() * slamTargets.length)]
+
+              if (gameState.executeSlamSlide) {
+                gameState.executeSlamSlide(defenderInstance, randomTile)
+              }
+
+              // Track SLAM usage (with difficulty)
+              trackCreatureAbility('cormyr', 'slam', {
+                triggered: true,
+                damage: damageDealt,
+                difficulty: attackerDifficulty
+              })
+
+              // Track difficulty-specific usage
+              stats.difficultyStats[attackerDifficulty].creatureAbilitiesUsed++
+
+              if (CONFIG.VERBOSE_LOGGING) {
+                console.log(`  [SLAM] ${attackerInstance.creature.name} slams ${defenderInstance.creature.name} to (${randomTile.x}, ${randomTile.y})!`)
+              }
+            } else {
+              trackCreatureAbility('cormyr', 'slam', { declined: true, difficulty: attackerDifficulty })
+            }
           }
         }
       }

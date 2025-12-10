@@ -165,6 +165,14 @@ function GameBoard({ onTurnInfoChange }) {
   const [confusionGazePending, setConfusionGazePending] = useState(null)
   // { attacker, target, validSlideTiles, slideDestination, attackTargets }
 
+  // SLAM ability state (Earth Guardian - slide enemy after melee damage)
+  const [slamMode, setSlamMode] = useState(false) // True when selecting slam destination
+  const [slamPending, setSlamPending] = useState(null) // { attackerInstance, targetInstance }
+  const [slamValidTiles, setSlamValidTiles] = useState([]) // Valid slam destinations
+  const [showSlamModal, setShowSlamModal] = useState(false) // Decision modal (Slide/Skip)
+  const [showSlamConfirmModal, setShowSlamConfirmModal] = useState(false) // Confirm destination
+  const [slamSelectedTile, setSlamSelectedTile] = useState(null) // { x, y } selected destination
+
   // TOMB GUARDIAN SWIRL ability state - queue of splash attacks after melee
   const [pendingSplashAttacks, setPendingSplashAttacks] = useState([]) // Array of { attackerInstance, targetInstance, damage }
   const [currentSplashIndex, setCurrentSplashIndex] = useState(0) // Index into pendingSplashAttacks
@@ -1287,6 +1295,40 @@ function GameBoard({ onTurnInfoChange }) {
           setRenderCounter(prev => prev + 1)
           return
         }
+
+        // Check for SLAM trigger after defense (Earth Guardian - melee attacks only)
+        // SLAM triggers if: damage dealt > 0, target NOT destroyed, attacker has SLAM, melee attack
+        if (targetInfo.attackType === 'melee' &&
+            result.damage > 0 &&
+            !result.destroyed &&
+            defenderInstance.currentHP > 0 &&
+            gameState.hasSlam(attackerInstance)) {
+          const validSlamTiles = gameState.getValidSlamTiles(defenderInstance, 3)
+
+          if (validSlamTiles.length > 0) {
+            const isAttackerHuman = isPlayerHuman(attackerInstance.owner)
+
+            if (isAttackerHuman) {
+              // Human attacker - show SLAM decision modal
+              setSlamPending({ attackerInstance, targetInstance: defenderInstance })
+              setSlamValidTiles(validSlamTiles)
+              setShowSlamModal(true)
+              setRenderCounter(prev => prev + 1)
+              return // Wait for modal decision
+            } else {
+              // AI attacker - use 0/50/100 rule
+              handleAISlamDecision(attackerInstance, defenderInstance, validSlamTiles)
+              // Clear state and continue
+              setSelectedBoardCreature(null)
+              setValidMoveTiles([])
+              setValidAttackTargets([])
+              setPendingAttack(null)
+              setRenderCounter(prev => prev + 1)
+              setProcessingAIAction(false)
+              return
+            }
+          }
+        }
       }
 
       // Check for RANGED SPLASH DAMAGE (ACID BREATH / EXPLOSIVE BOLTS)
@@ -1706,6 +1748,40 @@ function GameBoard({ onTurnInfoChange }) {
           // Modal shown - don't clear state yet, wait for modal response
           setRenderCounter(prev => prev + 1)
           return
+        }
+
+        // Check for SLAM trigger after reactions (Earth Guardian - melee attacks only)
+        // SLAM triggers if: damage dealt > 0, target NOT destroyed, attacker has SLAM, melee attack
+        if (targetInfo.attackType === 'melee' &&
+            result.damage > 0 &&
+            !result.destroyed &&
+            defenderInstance.currentHP > 0 &&
+            gameState.hasSlam(attackerInstance)) {
+          const validSlamTiles = gameState.getValidSlamTiles(defenderInstance, 3)
+
+          if (validSlamTiles.length > 0) {
+            const isAttackerHuman = isPlayerHuman(attackerInstance.owner)
+
+            if (isAttackerHuman) {
+              // Human attacker - show SLAM decision modal
+              setSlamPending({ attackerInstance, targetInstance: defenderInstance })
+              setSlamValidTiles(validSlamTiles)
+              setShowSlamModal(true)
+              setRenderCounter(prev => prev + 1)
+              return // Wait for modal decision
+            } else {
+              // AI attacker - use 0/50/100 rule
+              handleAISlamDecision(attackerInstance, defenderInstance, validSlamTiles)
+              // Clear state and continue
+              setSelectedBoardCreature(null)
+              setValidMoveTiles([])
+              setValidAttackTargets([])
+              setPendingAttack(null)
+              setRenderCounter(prev => prev + 1)
+              setProcessingAIAction(false)
+              return
+            }
+          }
         }
       }
 
@@ -2627,6 +2703,124 @@ function GameBoard({ onTurnInfoChange }) {
     setRenderCounter(prev => prev + 1)
   }
 
+  // ============================================================================
+  // SLAM ability handlers (Earth Guardian - slide enemy after melee damage)
+  // ============================================================================
+
+  // Skip SLAM - decline and tap attacker
+  const handleSlamSkip = () => {
+    if (!slamPending) return
+    const { attackerInstance } = slamPending
+
+    // Clear SLAM state
+    setShowSlamModal(false)
+    setSlamMode(false)
+    setSlamPending(null)
+    setSlamValidTiles([])
+
+    // Tap the attacker (consume action)
+    attackerInstance.tap()
+    setRenderCounter(prev => prev + 1)
+    addToast(`${attackerInstance.creature.name} chose not to slam.`)
+  }
+
+  // Accept SLAM - enter tile selection mode
+  const handleSlamAccept = () => {
+    if (!slamPending) return
+
+    setShowSlamModal(false)
+    setSlamMode(true)
+    addToast(`Right-click a highlighted tile to slam ${slamPending.targetInstance.creature.name}`)
+    setRenderCounter(prev => prev + 1) // Force re-render to show tile highlights
+  }
+
+  // Right-click on valid SLAM tile - show confirmation
+  const handleSlamTileSelect = (x, y) => {
+    if (!slamMode || !slamPending) return
+
+    // Verify tile is valid
+    const isValid = slamValidTiles.some(t => t.x === x && t.y === y)
+    if (!isValid) return
+
+    setSlamSelectedTile({ x, y })
+    setShowSlamConfirmModal(true)
+  }
+
+  // Cancel confirmation - allow picking different tile
+  const handleSlamConfirmCancel = () => {
+    setShowSlamConfirmModal(false)
+    setSlamSelectedTile(null)
+    // Stay in slamMode so user can pick different tile
+  }
+
+  // Confirm - execute the slam
+  const handleSlamConfirmExecute = () => {
+    if (!slamPending || !slamSelectedTile) return
+
+    const { attackerInstance, targetInstance } = slamPending
+
+    // Execute the slam
+    const result = gameState.executeSlamSlide(targetInstance, slamSelectedTile)
+
+    // Clear SLAM state
+    setShowSlamConfirmModal(false)
+    setSlamMode(false)
+    setSlamPending(null)
+    setSlamValidTiles([])
+    setSlamSelectedTile(null)
+
+    // Tap the attacker (consume action)
+    attackerInstance.tap()
+
+    addToast(`SLAM: ${targetInstance.creature.name} was slammed to (${slamSelectedTile.x}, ${slamSelectedTile.y})!`)
+    setRenderCounter(prev => prev + 1)
+  }
+
+  // AI decides whether to use SLAM (0/50/100 rule)
+  const handleAISlamDecision = (attackerInstance, targetInstance, validTiles) => {
+    const attackerOwner = attackerInstance.owner
+    const playerNum = attackerOwner.replace('PLAYER', '')
+    const playerKey = `player${playerNum}`
+    const difficulty = gameConfig?.[playerKey]?.difficulty || 'medium'
+
+    let willSlam = false
+    if (difficulty === 'hard') {
+      willSlam = true // Hard AI always slams (100%)
+    } else if (difficulty === 'medium') {
+      willSlam = Math.random() < 0.5 // Medium AI slams 50%
+    }
+    // Easy AI never slams (0%)
+
+    if (!willSlam) {
+      // AI declines - tap attacker
+      attackerInstance.tap()
+      setRenderCounter(prev => prev + 1)
+      return
+    }
+
+    // AI picks random valid tile
+    const randomTile = validTiles[Math.floor(Math.random() * validTiles.length)]
+
+    // Execute slam
+    gameState.executeSlamSlide(targetInstance, randomTile)
+
+    // Tap attacker
+    attackerInstance.tap()
+
+    // Show notification (toast + modal like AI kill notification)
+    addToast(`SLAM: ${attackerInstance.creature.name} slammed ${targetInstance.creature.name}!`)
+
+    // Queue AI action modal
+    setAiDeathQueue(prev => [...prev, {
+      title: 'SLAM!',
+      message: `${attackerInstance.creature.name} used SLAM to push ${targetInstance.creature.name} to a new position!`,
+      creatureName: attackerInstance.creature.name,
+      isSlam: true
+    }])
+
+    setRenderCounter(prev => prev + 1)
+  }
+
   // SCROLLBOOK ability - discard selected order card to draw a new one
   const handleScrollbookUse = (cardIndex) => {
     if (!gameState || cardIndex === null) return
@@ -3533,6 +3727,15 @@ function GameBoard({ onTurnInfoChange }) {
       }
     }
 
+    // Handle SLAM tile selection (right-click on valid slam destination)
+    if (slamMode && slamValidTiles.length > 0) {
+      const isValidSlamTile = slamValidTiles.some(t => t.x === tile.x && t.y === tile.y)
+      if (isValidSlamTile) {
+        handleSlamTileSelect(tile.x, tile.y)
+        return
+      }
+    }
+
     // Must have a creature selected (via left-click) to use right-click actions
     if (!selectedBoardCreature) return
 
@@ -4078,7 +4281,32 @@ function GameBoard({ onTurnInfoChange }) {
 
     if (pendingPhaseAdvance) {
       setPendingPhaseAdvance(false)
-      gameState.advancePhase()
+      console.log(`[WATER DEBUG] advancePhase() called after Kyuss damage - transitioning from ACTIVATE phase`)
+      console.log(`[WATER DEBUG] Current player: ${gameState.currentPlayer}`)
+
+      const advanceResult = gameState.advancePhase()
+
+      console.log(`[WATER DEBUG] advancePhase() returned:`, advanceResult)
+
+      // Display water damage toasts if any creatures took water damage
+      if (advanceResult?.waterDamageResults?.length > 0) {
+        console.log(`[WATER DEBUG] Water damage results:`, advanceResult.waterDamageResults)
+        for (const waterResult of advanceResult.waterDamageResults) {
+          if (waterResult.destroyed) {
+            addToast(`🌊 WATER DAMAGE: ${waterResult.creature} was destroyed by drowning! (10 damage)`)
+          } else {
+            addToast(`🌊 WATER DAMAGE: ${waterResult.creature} takes 10 damage from water!`)
+          }
+        }
+
+        // Check for game over after water deaths
+        const hasDeaths = advanceResult.waterDamageResults.some(r => r.destroyed)
+        if (hasDeaths) {
+          gameState.checkGameOver()
+        }
+      } else {
+        console.log(`[WATER DEBUG] No water damage this phase`)
+      }
     }
 
     setRenderCounter(prev => prev + 1)
@@ -4712,6 +4940,15 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // ============================================
+    // SLAM LOCK: Block phase advancement during ability - O(1)
+    // User must complete slam or skip before advancing
+    // ============================================
+    if (showSlamModal || slamMode) {
+      addToast('⚠️ You must complete the SLAM ability or skip before advancing the phase.')
+      return
+    }
+
     switch (gameState.currentPhase) {
       case GamePhases.REFRESH:
         // If HORDE refresh was already executed, just advance (don't redo refresh actions)
@@ -4751,7 +4988,32 @@ function GameBoard({ onTurnInfoChange }) {
             }
           } else {
             // No Disciples or no adjacent creatures - advance normally
-            gameState.advancePhase()
+            console.log(`[WATER DEBUG] advancePhase() called - transitioning from ACTIVATE phase`)
+            console.log(`[WATER DEBUG] Current player: ${gameState.currentPlayer}`)
+
+            const advanceResult = gameState.advancePhase()
+
+            console.log(`[WATER DEBUG] advancePhase() returned:`, advanceResult)
+
+            // Display water damage toasts if any creatures took water damage
+            if (advanceResult?.waterDamageResults?.length > 0) {
+              console.log(`[WATER DEBUG] Water damage results:`, advanceResult.waterDamageResults)
+              for (const waterResult of advanceResult.waterDamageResults) {
+                if (waterResult.destroyed) {
+                  addToast(`🌊 WATER DAMAGE: ${waterResult.creature} was destroyed by drowning! (10 damage)`)
+                } else {
+                  addToast(`🌊 WATER DAMAGE: ${waterResult.creature} takes 10 damage from water!`)
+                }
+              }
+
+              // Check for game over after water deaths
+              const hasDeaths = advanceResult.waterDamageResults.some(r => r.destroyed)
+              if (hasDeaths) {
+                gameState.checkGameOver()
+              }
+            } else {
+              console.log(`[WATER DEBUG] No water damage this phase`)
+            }
           }
         }
         break
@@ -4839,7 +5101,15 @@ function GameBoard({ onTurnInfoChange }) {
       // Turn log for navbar display
       turnLog: turnLog,
       isLogExpanded: isLogExpanded,
-      setIsLogExpanded: setIsLogExpanded
+      setIsLogExpanded: setIsLogExpanded,
+      // TEST ONLY: Fill current player's hand with all cards
+      fillAllCardsForCurrentPlayer: () => {
+        const currentPlayer = gameState.getCurrentPlayerState()
+        if (currentPlayer) {
+          currentPlayer.fillAllCards()
+          setRenderCounter(prev => prev + 1) // Force re-render
+        }
+      }
     })
   }, [gameState, gameConfig, isAIThinking, selectedBoardCreature, renderCounter, onTurnInfoChange, combatPanelMode, turnLog, isLogExpanded])
 
@@ -5252,6 +5522,12 @@ function GameBoard({ onTurnInfoChange }) {
                     )
 
                   // ============================================
+                  // SLAM HIGHLIGHTS: Show valid slam destinations (uses movement color)
+                  // ============================================
+                  const isSlamTile = slamMode &&
+                    slamValidTiles.some(t => t.x === x && t.y === y)
+
+                  // ============================================
                   // LIGHTNING BREATH HIGHLIGHTS: Show valid targets and selected targets
                   // ============================================
                   const isLightningBreathValidTarget = lightningBreathMode &&
@@ -5423,6 +5699,7 @@ function GameBoard({ onTurnInfoChange }) {
                       isShadowStalkerHighlight={isShadowStalkerHighlight}
                       isConfusionGazeSlide={isConfusionGazeSlide}
                       isConfusionGazeAttack={isConfusionGazeAttack}
+                      isSlamTile={isSlamTile}
                       isSummonSpiderHighlight={isSummonSpiderHighlight}
                       summonSpiderFactionColor={summonSpiderFactionColor}
                       isLichNecromancerHighlight={isLichNecromancerHighlight}
@@ -6002,6 +6279,69 @@ function GameBoard({ onTurnInfoChange }) {
           </Button>
           <Button variant="secondary" size="lg" onClick={handleConfusionGazeDecline}>
             Normal Attack
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* SLAM Decision Modal - Choose to slide the damaged creature */}
+      <Modal
+        show={showSlamModal}
+        onHide={handleSlamSkip}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header style={{ backgroundColor: '#8B4513', color: 'white' }}>
+          <Modal.Title>SLAM!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {slamPending && (
+            <div>
+              <p>
+                <strong>{slamPending.attackerInstance.creature.name}</strong> can slam{' '}
+                <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>{slamPending.targetInstance.creature.name}</span>{' '}
+                up to <strong>3 tiles</strong>!
+              </p>
+              <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
+                Click <strong>Slide</strong> to choose where to slam the creature, or <strong>Skip</strong> to end your attack.
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
+          <Button variant="warning" size="lg" onClick={handleSlamAccept}>
+            Slide
+          </Button>
+          <Button variant="secondary" size="lg" onClick={handleSlamSkip}>
+            Skip
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* SLAM Confirmation Modal - Confirm the selected destination */}
+      <Modal
+        show={showSlamConfirmModal}
+        onHide={handleSlamConfirmCancel}
+        centered
+      >
+        <Modal.Header style={{ backgroundColor: '#8B4513', color: 'white' }}>
+          <Modal.Title>Confirm Slam Location</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {slamPending && slamSelectedTile && (
+            <div>
+              <p>
+                Slam <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>{slamPending.targetInstance.creature.name}</span>{' '}
+                to position <strong>({slamSelectedTile.x}, {slamSelectedTile.y})</strong>?
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
+          <Button variant="success" size="lg" onClick={handleSlamConfirmExecute}>
+            Confirm
+          </Button>
+          <Button variant="secondary" size="lg" onClick={handleSlamConfirmCancel}>
+            Cancel
           </Button>
         </Modal.Footer>
       </Modal>

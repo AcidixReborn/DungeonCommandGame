@@ -153,9 +153,14 @@ export class CombatResolver {
       this.gameState.hasRangedSplashAbility &&
       this.gameState.hasRangedSplashAbility(attackerInstance)
 
+    // Check if creature has SLAM ability (melee only) - defer tapping until ability resolves
+    const hasSlam = attackType === 'melee' &&
+      this.gameState.hasSlam &&
+      this.gameState.hasSlam(attackerInstance)
+
     // Tap the creature if it has both moved AND attacked
-    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, PENDING SPLASH, or RANGED SPLASH (will be tapped after ability resolves)
-    const shouldTapNow = attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash && !hasRangedSplash
+    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, PENDING SPLASH, RANGED SPLASH, or SLAM (will be tapped after ability resolves)
+    const shouldTapNow = attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash && !hasRangedSplash && !hasSlam
     if (shouldTapNow) {
       attackerInstance.tap()
     }
@@ -174,6 +179,7 @@ export class CombatResolver {
       pendingFlashingBlades: hasFlashingBlades,
       pendingHiddenBlade: hasHiddenBlade,
       pendingRangedSplash: hasRangedSplash,  // Flag for ACID BREATH / EXPLOSIVE BOLTS
+      pendingSlam: hasSlam,  // Flag for SLAM ability (Earth Guardian)
       lifeDrain: lifeDrainResult,
       pendingSplashAttacks,
       pendingSplash: hasPendingSplash  // Flag to indicate splash needs to be resolved before tapping
@@ -228,9 +234,14 @@ export class CombatResolver {
       this.gameState.hasRangedSplashAbility &&
       this.gameState.hasRangedSplashAbility(attackerInstance)
 
+    // Check if creature has SLAM ability (melee only) - defer tapping until ability resolves
+    const hasSlam = attackType === 'melee' &&
+      this.gameState.hasSlam &&
+      this.gameState.hasSlam(attackerInstance)
+
     // Tap the creature if it has both moved AND attacked
-    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, PENDING SPLASH, or RANGED SPLASH (will be tapped after ability resolves)
-    const shouldTapNow = attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash && !hasRangedSplash
+    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, PENDING SPLASH, RANGED SPLASH, or SLAM (will be tapped after ability resolves)
+    const shouldTapNow = attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash && !hasRangedSplash && !hasSlam
     if (shouldTapNow) {
       attackerInstance.tap()
     }
@@ -252,6 +263,7 @@ export class CombatResolver {
       pendingFlashingBlades: hasFlashingBlades,
       pendingHiddenBlade: hasHiddenBlade,
       pendingRangedSplash: hasRangedSplash,  // Flag for ACID BREATH / EXPLOSIVE BOLTS
+      pendingSlam: hasSlam,  // Flag for SLAM ability (Earth Guardian)
       lifeDrain: lifeDrainResult,
       pendingSplashAttacks,
       pendingSplash: hasPendingSplash  // Flag to indicate splash needs to be resolved before tapping

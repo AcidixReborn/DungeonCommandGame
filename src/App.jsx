@@ -232,6 +232,17 @@ function App() {
                         <Dropdown.Item active={currentView === 'data'} onClick={() => setCurrentView('data')}>Data Entry</Dropdown.Item>
                         <Dropdown.Item active={currentView === 'test'} onClick={() => setCurrentView('test')}>Game Test</Dropdown.Item>
                         <Dropdown.Item active={currentView === 'abilities'} onClick={() => setCurrentView('abilities')}>Abilities Test</Dropdown.Item>
+                        <Dropdown.Divider />
+                        <Dropdown.Item
+                          onClick={() => {
+                            if (turnInfo?.fillAllCardsForCurrentPlayer) {
+                              turnInfo.fillAllCardsForCurrentPlayer()
+                            }
+                          }}
+                          className="text-warning"
+                        >
+                          🧪 Test: Fill All Cards
+                        </Dropdown.Item>
                       </Dropdown.Menu>
                     </Dropdown>
                   </Nav>

@@ -157,6 +157,20 @@ export class PlayerState {
   }
 
   /**
+   * TEST ONLY: Fill hand with all remaining cards from deck
+   * Moves all creature cards and order cards from decks to hands
+   */
+  fillAllCards() {
+    // Move all creatures from deck to hand
+    this.creatureHand = [...this.creatureHand, ...this.creatureDeck]
+    this.creatureDeck = []
+
+    // Move all orders from deck to hand
+    this.orderHand = [...this.orderHand, ...this.orderDeck]
+    this.orderDeck = []
+  }
+
+  /**
    * Shuffle creature deck using Fisher-Yates algorithm
    */
   shuffleCreatureDeck() {
@@ -1390,6 +1404,108 @@ export class GameState {
       remainingHP: Math.max(0, targetInstance.currentHP),
       damageReduced: damageReduction
     }
+  }
+
+  // ============================================================================
+  // SLAM - Earth Guardian Ability (Heart of Cormyr)
+  // Whenever an adjacent creature takes damage from this creature's attack,
+  // slide the damaged creature up to 3 squares
+  // ============================================================================
+
+  /**
+   * Check if creature has SLAM ability (Earth Guardian)
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has SLAM ability
+   */
+  hasSlam(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('SLAM')
+    )
+  }
+
+  /**
+   * Get valid tiles where a creature can be slammed to
+   * Uses BFS - mountains block, all other tiles cost 1
+   * Cannot stop on occupied tiles
+   *
+   * @param {CreatureInstance} targetInstance - Creature being slammed
+   * @param {number} maxDistance - Maximum slide distance (default 3)
+   * @returns {Array} Array of {x, y} valid destinations
+   */
+  getValidSlamTiles(targetInstance, maxDistance = 3) {
+    if (!targetInstance?.position) return []
+
+    const validTiles = []
+    const startPos = targetInstance.position
+
+    // BFS to find all reachable tiles within maxDistance
+    const visited = new Set()
+    const queue = [{ pos: startPos, cost: 0 }]
+    visited.add(`${startPos.x},${startPos.y}`)
+
+    while (queue.length > 0) {
+      const { pos, cost } = queue.shift()
+
+      // 8-directional movement (includes diagonals)
+      const directions = [
+        { dx: 0, dy: -1 }, { dx: 1, dy: -1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 },
+        { dx: 0, dy: 1 }, { dx: -1, dy: 1 }, { dx: -1, dy: 0 }, { dx: -1, dy: -1 }
+      ]
+
+      for (const dir of directions) {
+        const newX = pos.x + dir.dx
+        const newY = pos.y + dir.dy
+        const key = `${newX},${newY}`
+
+        if (visited.has(key)) continue
+        visited.add(key)
+
+        const tile = this.getTile(newX, newY)
+        if (!tile) continue // Off board
+
+        // Mountains block completely (cannot pass through or stop)
+        if (tile.terrain === 'MOUNTAIN') continue
+
+        const newCost = cost + 1
+        if (newCost > maxDistance) continue
+
+        // Can pass through occupied tiles but cannot stop on them
+        if (!tile.occupant) {
+          validTiles.push({ x: newX, y: newY })
+        }
+
+        // Continue BFS even through occupied tiles (can pass through)
+        queue.push({ pos: { x: newX, y: newY }, cost: newCost })
+      }
+    }
+
+    return validTiles
+  }
+
+  /**
+   * Execute SLAM slide - move creature to new position
+   * @param {CreatureInstance} targetInstance - Creature being slammed
+   * @param {Object} destination - {x, y} destination position
+   * @returns {Object} Result with oldPosition and newPosition
+   */
+  executeSlamSlide(targetInstance, destination) {
+    const oldPosition = { ...targetInstance.position }
+    const oldTile = this.getTile(oldPosition.x, oldPosition.y)
+    const newTile = this.getTile(destination.x, destination.y)
+
+    // Clear old tile
+    if (oldTile) {
+      oldTile.occupant = null
+    }
+
+    // Move creature to new tile
+    if (newTile) {
+      newTile.occupant = targetInstance
+    }
+    targetInstance.position = { x: destination.x, y: destination.y }
+
+    return { oldPosition, newPosition: { x: destination.x, y: destination.y } }
   }
 
   // ============================================================================
