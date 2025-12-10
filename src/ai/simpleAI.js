@@ -584,7 +584,39 @@ export class SimpleAI {
         }
       }
 
-      // Fall back to starting zone if not using SHADOW STALKER/SUMMON SPIDER/LICH NECROMANCER or no valid tiles
+      // ARCANE PORTAL: Check if War Wizard can deploy to any Magic Circle tile
+      let isArcanePortalDeploy = false
+      if (!deployTile && this.gameState.hasArcanePortal && this.gameState.hasArcanePortal(creatureCard)) {
+        // Difficulty-based decision to use ARCANE PORTAL (0/50/100 pattern)
+        let useArcanePortal = false
+        switch (this.difficulty) {
+          case 'easy':
+            useArcanePortal = false  // Easy AI never uses ARCANE PORTAL (0%)
+            break
+          case 'medium':
+            useArcanePortal = Math.random() < 0.5  // Medium AI uses 50% of the time
+            break
+          case 'hard':
+            useArcanePortal = true  // Hard AI always uses ARCANE PORTAL (100%)
+            break
+        }
+
+        if (useArcanePortal && this.gameState.getArcanePortalValidTiles) {
+          const portalTiles = this.gameState.getArcanePortalValidTiles()
+          if (portalTiles.length > 0) {
+            // Hard AI: Pick Magic Circle closest to friendly creatures
+            if (this.difficulty === 'hard') {
+              deployTile = this.getStrategicArcanePortalTile(portalTiles)
+            } else {
+              // Medium AI: Random Magic Circle tile
+              deployTile = portalTiles[Math.floor(Math.random() * portalTiles.length)]
+            }
+            isArcanePortalDeploy = true
+          }
+        }
+      }
+
+      // Fall back to starting zone if not using SHADOW STALKER/SUMMON SPIDER/LICH NECROMANCER/ARCANE PORTAL or no valid tiles
       if (!deployTile) {
         if (startingZoneTiles.length === 0) {
           break // No more empty tiles
@@ -612,7 +644,8 @@ export class SimpleAI {
         isHordeDeploy: isHordeDeploy,
         isShadowStalker: isShadowStalkerDeploy,
         isSummonSpider: isSummonSpiderDeploy,
-        isLichNecromancer: isLichNecromancerDeploy
+        isLichNecromancer: isLichNecromancerDeploy,
+        isArcanePortalDeploy: isArcanePortalDeploy
       })
     }
 
@@ -639,6 +672,40 @@ export class SimpleAI {
       const currentHP = current.creature.currentHP
       return currentHP < weakestHP ? current : weakest
     })
+  }
+
+  /**
+   * Get strategic Magic Circle tile for ARCANE PORTAL deployment (Hard AI)
+   * Picks the Magic Circle tile closest to friendly creatures
+   * @param {Array} portalTiles - Array of valid Magic Circle tiles
+   * @returns {Object} Best tile for deployment
+   */
+  getStrategicArcanePortalTile(portalTiles) {
+    const friendlyCreatures = this.gameState.players[this.playerId].creaturesInPlay
+
+    // If no friendly creatures on board, pick random tile
+    if (friendlyCreatures.length === 0) {
+      return portalTiles[Math.floor(Math.random() * portalTiles.length)]
+    }
+
+    // Find tile closest to average position of friendly creatures
+    let bestTile = portalTiles[0]
+    let bestDistance = Infinity
+
+    for (const tile of portalTiles) {
+      let totalDist = 0
+      for (const creature of friendlyCreatures) {
+        if (creature.position) {
+          // Manhattan distance
+          totalDist += Math.abs(tile.x - creature.position.x) + Math.abs(tile.y - creature.position.y)
+        }
+      }
+      if (totalDist < bestDistance) {
+        bestDistance = totalDist
+        bestTile = tile
+      }
+    }
+    return bestTile
   }
 
   /**

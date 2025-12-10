@@ -3335,7 +3335,13 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
-      if ((isInStartingZone || isOrcScoutValid || isShadowStalkerValid || isSummonSpiderValid) && !tile.occupant) {
+      // ARCANE PORTAL: Allow dragging War Wizard to any unoccupied Magic Circle tile
+      const isArcanePortalValid = gameState.hasArcanePortal &&
+                                  gameState.hasArcanePortal(creatureCard) &&
+                                  !tile.occupant &&
+                                  tile.terrain === 'MAGIC_CIRCLE'
+
+      if ((isInStartingZone || isOrcScoutValid || isShadowStalkerValid || isSummonSpiderValid || isArcanePortalValid) && !tile.occupant) {
         setDragOverTile(tile)
       } else {
         setDragOverTile(null)
@@ -3446,13 +3452,21 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy) {
+      // ARCANE PORTAL: Check if deploying War Wizard to any unoccupied Magic Circle tile
+      const isArcanePortalDeploy = gameState.hasArcanePortal &&
+                                   gameState.hasArcanePortal(creatureCard) &&
+                                   !tile.occupant &&
+                                   tile.terrain === 'MAGIC_CIRCLE'
+
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy && !isArcanePortalDeploy) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
         } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
           addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
         } else if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) && gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)) {
           addToast('LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!')
+        } else if (gameState.hasArcanePortal && gameState.hasArcanePortal(creatureCard)) {
+          addToast('ARCANE PORTAL: Deploy to starting zone or any unoccupied Magic Circle tile!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
           addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
         } else {
@@ -3485,6 +3499,7 @@ function GameBoard({ onTurnInfoChange }) {
           isShadowStalkerDeploy,
           isSummonSpiderDeploy,
           isLichNecromancerDeploy,
+          isArcanePortalDeploy,
           isInStartingZone
         })
         setShowDeployConfirm(true)
@@ -3515,6 +3530,8 @@ function GameBoard({ onTurnInfoChange }) {
           addToast(`SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else if (isLichNecromancerDeploy && !isInStartingZone) {
           addToast(`LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isArcanePortalDeploy && !isInStartingZone) {
+          addToast(`ARCANE PORTAL: ${creatureCard.name} deployed to Magic Circle at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else {
           addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
         }
@@ -3605,13 +3622,21 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy) {
+      // ARCANE PORTAL: Check if deploying War Wizard to any unoccupied Magic Circle tile
+      const isArcanePortalDeploy = gameState.hasArcanePortal &&
+                                   gameState.hasArcanePortal(creatureCard) &&
+                                   !tile.occupant &&
+                                   tile.terrain === 'MAGIC_CIRCLE'
+
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy && !isArcanePortalDeploy) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
         } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
           addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
         } else if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) && gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)) {
           addToast('LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!')
+        } else if (gameState.hasArcanePortal && gameState.hasArcanePortal(creatureCard)) {
+          addToast('ARCANE PORTAL: Deploy to starting zone or any unoccupied Magic Circle tile!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer) && tile.treasure) {
           addToast('ORC SCOUT: Only Orc creatures can be deployed to treasure tiles!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
@@ -3642,6 +3667,7 @@ function GameBoard({ onTurnInfoChange }) {
           isShadowStalkerDeploy,
           isSummonSpiderDeploy,
           isLichNecromancerDeploy,
+          isArcanePortalDeploy,
           isInStartingZone
         })
         setShowDeployConfirm(true)
@@ -3675,6 +3701,9 @@ function GameBoard({ onTurnInfoChange }) {
         } else if (isLichNecromancerDeploy && !isInStartingZone) {
           setSelectedCreatureIndex(null)
           addToast(`LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isArcanePortalDeploy && !isInStartingZone) {
+          setSelectedCreatureIndex(null)
+          addToast(`ARCANE PORTAL: ${creatureCard.name} deployed to Magic Circle at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else {
           setSelectedCreatureIndex(null)
           addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
@@ -5638,6 +5667,29 @@ function GameBoard({ onTurnInfoChange }) {
                   }
 
                   // ============================================
+                  // ARCANE PORTAL HIGHLIGHT: Show Magic Circle tiles for War Wizard deployment
+                  // When War Wizard is selected from hand during deploy phase,
+                  // highlight Magic Circle tiles with faction color
+                  // ============================================
+                  let isArcanePortalHighlight = false
+                  let arcanePortalFactionColor = null
+
+                  if (canDeployInCurrentPhase() &&
+                      selectedCreatureCard &&
+                      gameState.hasArcanePortal &&
+                      gameState.hasArcanePortal(selectedCreatureCard) &&
+                      !tile.occupant &&
+                      tile.terrain === 'MAGIC_CIRCLE') {
+                    // Don't highlight if already in starting zone (it already has the highlight)
+                    const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
+                                             tile.startingZoneOwner === gameState.currentPlayer
+                    if (!isInStartingZone) {
+                      isArcanePortalHighlight = true
+                      arcanePortalFactionColor = playerFactionColors?.[gameState.currentPlayer]
+                    }
+                  }
+
+                  // ============================================
                   // RANGED LOS HIGHLIGHT: Faction-colored tiles showing ranged attack coverage
                   // When creature SELECTED: Show ONLY that creature's LOS (cyan highlight)
                   // When NO creature selected: Show ALL ranged LOS with faction colors
@@ -5704,6 +5756,8 @@ function GameBoard({ onTurnInfoChange }) {
                       summonSpiderFactionColor={summonSpiderFactionColor}
                       isLichNecromancerHighlight={isLichNecromancerHighlight}
                       lichNecromancerFactionColor={lichNecromancerFactionColor}
+                      isArcanePortalHighlight={isArcanePortalHighlight}
+                      arcanePortalFactionColor={arcanePortalFactionColor}
                       isLightningBreathValidTarget={isLightningBreathValidTarget}
                       isLightningBreathSelected={isLightningBreathSelected}
                       lightningBreathTargetIndex={lightningBreathTargetIndex}

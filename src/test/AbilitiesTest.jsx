@@ -344,6 +344,19 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, damage: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, damage: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, damage: 0 }
+    },
+    arcane_portal: {
+      name: 'ARCANE PORTAL',
+      creature: 'War Wizard',
+      faction: 'Heart of Cormyr',
+      // Overall totals - deployment ability (0/50/100 AI pattern)
+      timesOffered: 0,  // Times War Wizard was deployed (could have used ability)
+      timesTriggered: 0,  // Times deployed to Magic Circle tile
+      timesDeclined: 0,  // Times deployed to starting zone instead
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0 }
     }
   })
 
@@ -1106,6 +1119,24 @@ function AbilitiesTest() {
                 }
               }
             }
+
+            // Track ARCANE PORTAL ability (War Wizard deployed to Magic Circle)
+            if (action.creature && action.creature.includes('War Wizard')) {
+              const diff = player?.aiDifficulty || 'medium'
+              // War Wizard deployed - check if ARCANE PORTAL was used
+              if (action.isArcanePortalDeploy) {
+                creatureAbilityStats.arcane_portal.timesOffered++
+                creatureAbilityStats.arcane_portal.timesTriggered++
+                creatureAbilityStats.arcane_portal[diff].offered++
+                creatureAbilityStats.arcane_portal[diff].triggered++
+              } else {
+                // War Wizard deployed to starting zone (ability offered but not used)
+                creatureAbilityStats.arcane_portal.timesOffered++
+                creatureAbilityStats.arcane_portal.timesDeclined++
+                creatureAbilityStats.arcane_portal[diff].offered++
+                creatureAbilityStats.arcane_portal[diff].declined++
+              }
+            }
             break
 
           case 'graveyardDeclined':
@@ -1860,9 +1891,9 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 20 }
+    if (!creatureAbilityStats) return { working: 0, total: 21 }
     let working = 0
-    const total = 20 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING
+    const total = 21 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -1888,6 +1919,8 @@ function AbilitiesTest() {
     // Heart of Cormyr melee abilities
     if (creatureAbilityStats.slam?.timesTriggered > 0) working++
     if (creatureAbilityStats.flanking?.timesTriggered > 0) working++
+    // Heart of Cormyr deployment abilities
+    if (creatureAbilityStats.arcane_portal?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -3927,6 +3960,93 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         FLANKING: +10 melee damage when at least 1 ally is adjacent to the target. Does NOT stack with multiple allies. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* ARCANE PORTAL Ability Card - War Wizard (Heart of Cormyr) */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🔮 ARCANE PORTAL (War Wizard - Heart of Cormyr)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (War Wizard deployed)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.arcane_portal?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (Deployed to Magic Circle)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.arcane_portal?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (Deployed to Starting Zone)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.arcane_portal?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.arcane_portal?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.arcane_portal.timesTriggered / results.creatureAbilityStats.arcane_portal.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.arcane_portal?.[diff] || {}
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        ARCANE PORTAL: War Wizard can deploy to any unoccupied Magic Circle tile instead of starting zone. Hard AI picks strategically closest to friendly creatures. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

@@ -1137,6 +1137,53 @@ export class GameState {
   }
 
   // ============================================================================
+  // ARCANE PORTAL - War Wizard Creature Ability (Heart of Cormyr)
+  // When deploying, can place on any unoccupied Magic Circle tile
+  // ============================================================================
+
+  /**
+   * Check if creature CARD has ARCANE PORTAL ability
+   * Note: Takes a creature CARD, not instance (used during deployment from hand)
+   * @param {Object} creatureCard - The creature card to check
+   * @returns {boolean} True if creature has ARCANE PORTAL
+   */
+  hasArcanePortal(creatureCard) {
+    if (!creatureCard?.specialAbilities) return false
+    return creatureCard.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('ARCANE PORTAL')
+    )
+  }
+
+  /**
+   * Get valid deployment tiles for ARCANE PORTAL ability
+   * Returns tiles that are:
+   * - MAGIC_CIRCLE terrain type
+   * - Unoccupied
+   * Big O: O(W*H) where W=width, H=height - scans entire board
+   * @returns {Array} Array of valid tiles
+   */
+  getArcanePortalValidTiles() {
+    const validTiles = []
+
+    for (let y = 0; y < this.boardHeight; y++) {
+      for (let x = 0; x < this.boardWidth; x++) {
+        const tile = this.getTile(x, y)
+        if (!tile) continue
+
+        // Must be unoccupied
+        if (tile.occupant) continue
+
+        // Must be a Magic Circle
+        if (tile.terrain === 'MAGIC_CIRCLE') {
+          validTiles.push(tile)
+        }
+      }
+    }
+
+    return validTiles
+  }
+
+  // ============================================================================
   // CONFUSION GAZE - Umber Hulk Ability (Sting of Lolth)
   // As a standard action, choose 1 enemy creature within 5 squares (with LOS)
   // and slide that creature up to 3 squares, then make a melee attack (30 damage)

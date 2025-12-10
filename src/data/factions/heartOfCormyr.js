@@ -299,7 +299,7 @@ export const creatures = [
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: { damage: 30, range: 10 },
     specialAbilities: [
-      'ARCANE PORTAL: When deploying this creature, you can place it in any unoccupied Magic Circle square. PLACEHOLDER'
+      'ARCANE PORTAL: When deploying this creature, you can place it in any unoccupied Magic Circle square.'
     ],
     faction: FACTION_NAME,
     imageUrl: warWizardImg
