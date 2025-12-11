@@ -268,13 +268,17 @@ export class GameState {
 
     playerSetups.forEach(setup => {
       // Pass isHuman and aiDifficulty to PlayerState for AI behavior configuration
+      // Human players should have aiDifficulty = null (not 'easy')
+      const isHuman = setup.isHuman !== false // Default to human if not specified
+      const aiDifficulty = isHuman ? null : (setup.aiDifficulty || 'easy')
+
       this.players[setup.playerId] = new PlayerState(
         setup.commander,
         setup.creatures,
         setup.orders,
         setup.faction,
-        setup.isHuman !== false, // Default to human if not specified
-        setup.aiDifficulty || 'easy' // Default AI difficulty to 'easy'
+        isHuman,
+        aiDifficulty
       )
       this.activePlayers.push(setup.playerId)
     })
@@ -513,6 +517,42 @@ export class GameState {
   }
 
   // ============================================================================
+  // REGENERATE 10 - Feral Troll Creature Ability
+  // At the start of controller's REFRESH phase, heal 10 damage
+  // Works regardless of tap state, does NOT consume action
+  // ============================================================================
+
+  /**
+   * Check if creature has REGENERATE ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has REGENERATE
+   */
+  hasRegenerate(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('REGENERATE')
+    )
+  }
+
+  /**
+   * Get the regeneration amount for a creature
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {number} Amount to regenerate (10 for REGENERATE 10, 0 if no ability)
+   */
+  getRegenerateAmount(creatureInstance) {
+    if (!this.hasRegenerate(creatureInstance)) return 0
+    // Parse amount from ability text if needed, default to 10
+    const ability = creatureInstance.creature.specialAbilities.find(
+      a => typeof a === 'string' && a.toUpperCase().includes('REGENERATE')
+    )
+    if (ability) {
+      const match = ability.match(/REGENERATE\s*(\d+)/i)
+      if (match) return parseInt(match[1], 10)
+    }
+    return 10 // Default
+  }
+
+  // ============================================================================
   // RIDER - Skeletal Lancer Creature Ability
   // When creature is destroyed, deploy a Skeleton (Level 3 or lower) from hand to same tile
   // Morale loss = (destroyed creature level - deployed creature level)
@@ -671,6 +711,19 @@ export class GameState {
         attacker: +1,
         defender: -targetInstance.creature.level
       }
+
+      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
+      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
+        const untapResult = this.checkUntapOnAdjacentKill(
+          targetInstance.position,
+          defenderOwner,
+          attackerOwner,
+          false // Not killed by Bugbear directly
+        )
+        if (untapResult?.triggered) {
+          console.log(`[FLASHING BLADES] ${untapResult.bugbearName} untapped from adjacent splash kill!`)
+        }
+      }
     }
 
     return {
@@ -761,6 +814,19 @@ export class GameState {
       moraleChange = {
         attacker: +1,
         defender: -targetInstance.creature.level
+      }
+
+      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
+      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
+        const untapResult = this.checkUntapOnAdjacentKill(
+          targetInstance.position,
+          defenderOwner,
+          attackerOwner,
+          false // Not killed by Bugbear directly
+        )
+        if (untapResult?.triggered) {
+          console.log(`[FLASHING BLADES W/DEFENSE] ${untapResult.bugbearName} untapped from adjacent splash kill!`)
+        }
       }
     }
 
@@ -886,6 +952,19 @@ export class GameState {
         attacker: +1,
         defender: -targetInstance.creature.level
       }
+
+      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
+      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
+        const untapResult = this.checkUntapOnAdjacentKill(
+          targetInstance.position,
+          defenderOwner,
+          attackerOwner,
+          false // Not killed by Bugbear directly
+        )
+        if (untapResult?.triggered) {
+          console.log(`[HIDDEN BLADE] ${untapResult.bugbearName} untapped from adjacent kill!`)
+        }
+      }
     }
 
     return {
@@ -977,6 +1056,19 @@ export class GameState {
         attacker: +1,
         defender: -targetInstance.creature.level
       }
+
+      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
+      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
+        const untapResult = this.checkUntapOnAdjacentKill(
+          targetInstance.position,
+          defenderOwner,
+          attackerOwner,
+          false // Not killed by Bugbear directly
+        )
+        if (untapResult?.triggered) {
+          console.log(`[HIDDEN BLADE W/DEFENSE] ${untapResult.bugbearName} untapped from adjacent kill!`)
+        }
+      }
     }
 
     return {
@@ -1064,6 +1156,127 @@ export class GameState {
 
     // Human players or Hard AI - return +10 bonus
     return 10
+  }
+
+  // ============================================================================
+  // UNTAP ON KILL - Bugbear Berserker Ability (Tyranny of Goblins)
+  // Whenever an adjacent enemy creature is destroyed, untap this creature.
+  // Only triggers during the Bugbear's faction's turn.
+  // AI difficulty: 0/50/100 rule (Easy never, Medium 50%, Hard always)
+  // ============================================================================
+
+  /**
+   * Check if creature has UNTAP ON KILL ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has UNTAP ON KILL
+   */
+  hasUntapOnAdjacentKill(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => (typeof ability === 'object' && ability.id === 'untap_on_adjacent_kill') ||
+                 (typeof ability === 'string' && ability.toUpperCase().includes('UNTAP'))
+    )
+  }
+
+  /**
+   * Check for and trigger UNTAP ON KILL ability when a creature dies
+   * Should be called after any creature death during combat
+   * @param {Object} destroyedPosition - {x, y} position where creature died
+   * @param {string} destroyedOwner - Player ID of the destroyed creature's owner
+   * @param {string} killerOwner - Player ID of the creature that killed (attacker's owner)
+   * @param {boolean} wasKilledByBugbear - True if a Bugbear Berserker made the killing blow
+   * @returns {Object|null} Untap result data or null if no untap occurred
+   */
+  checkUntapOnAdjacentKill(destroyedPosition, destroyedOwner, killerOwner, wasKilledByBugbear = false) {
+    // Only trigger during the current turn player's turn
+    const currentTurnPlayer = this.currentPlayer
+    if (!currentTurnPlayer) {
+      console.log(`[UNTAP ON KILL CHECK] No current player - skipping`)
+      return null
+    }
+
+    // Find Bugbear Berserkers belonging to the current turn's player
+    const currentPlayer = this.players[currentTurnPlayer]
+    if (!currentPlayer) {
+      console.log(`[UNTAP ON KILL CHECK] Player ${currentTurnPlayer} not found - skipping`)
+      return null
+    }
+
+    // Get all Bugbear Berserkers in play for the current turn player
+    const bugbears = currentPlayer.creaturesInPlay.filter(creature =>
+      this.hasUntapOnAdjacentKill(creature) && creature.currentHP > 0
+    )
+
+    console.log(`[UNTAP ON KILL CHECK] Current player: ${currentTurnPlayer}, Faction: ${currentPlayer.commander?.faction}, Bugbears found: ${bugbears.length}, Destroyed at (${destroyedPosition?.x}, ${destroyedPosition?.y})`)
+
+    if (bugbears.length === 0) return null
+
+    // Check each Bugbear for adjacency to the destroyed creature
+    for (const bugbear of bugbears) {
+      if (!bugbear.position) continue
+
+      // Destroyed creature must be an enemy (different owner than Bugbear)
+      if (destroyedOwner === bugbear.owner) continue
+
+      // Check 8-directional adjacency
+      const dx = Math.abs(destroyedPosition.x - bugbear.position.x)
+      const dy = Math.abs(destroyedPosition.y - bugbear.position.y)
+      const isAdjacent = dx <= 1 && dy <= 1 && !(dx === 0 && dy === 0)
+
+      if (!isAdjacent) continue
+
+      // Adjacent enemy died - check AI difficulty rules
+      const aiDifficulty = currentPlayer.aiDifficulty || 'medium'
+      const isHuman = currentPlayer.isHuman
+
+      // Determine if untap should trigger (AI 0/50/100 rule)
+      let shouldUntap = true
+      let wasDeclined = false
+
+      if (!isHuman) {
+        if (aiDifficulty === 'easy') {
+          // Easy AI: never untap (0%)
+          shouldUntap = false
+          wasDeclined = true
+          console.log(`[UNTAP ON KILL] Easy AI - ability disabled for ${bugbear.creature.name}`)
+        } else if (aiDifficulty === 'medium') {
+          // Medium AI: 50% chance
+          if (Math.random() >= 0.5) {
+            shouldUntap = false
+            wasDeclined = true
+            console.log(`[UNTAP ON KILL] Medium AI - ability not triggered (50% roll failed) for ${bugbear.creature.name}`)
+          }
+        }
+        // Hard AI: always untap (100%)
+      }
+
+      if (shouldUntap) {
+        // Untap the Bugbear
+        bugbear.isTapped = false
+        console.log(`[UNTAP ON KILL] ${bugbear.creature.name} untaps from adjacent enemy death!`)
+
+        return {
+          triggered: true,
+          bugbearInstanceId: bugbear.instanceId,
+          bugbearName: bugbear.creature.name,
+          destroyedPosition,
+          wasKilledByBugbear,
+          difficulty: isHuman ? 'human' : aiDifficulty
+        }
+      } else {
+        return {
+          triggered: false,
+          declined: true,
+          bugbearInstanceId: bugbear.instanceId,
+          bugbearName: bugbear.creature.name,
+          destroyedPosition,
+          wasKilledByBugbear,
+          difficulty: aiDifficulty
+        }
+      }
+    }
+
+    return null
   }
 
   // ============================================================================
@@ -1673,6 +1886,19 @@ export class GameState {
         attacker: +1,
         defender: -targetInstance.creature.level
       }
+
+      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
+      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
+        const untapResult = this.checkUntapOnAdjacentKill(
+          targetInstance.position,
+          defenderOwner,
+          attackerOwner,
+          false // Not killed by Bugbear directly
+        )
+        if (untapResult?.triggered) {
+          console.log(`[CONFUSION GAZE] ${untapResult.bugbearName} untapped from adjacent kill!`)
+        }
+      }
     }
 
     return {
@@ -1783,6 +2009,19 @@ export class GameState {
       moraleChange = {
         attacker: +1,
         defender: -targetInstance.creature.level
+      }
+
+      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
+      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
+        const untapResult = this.checkUntapOnAdjacentKill(
+          targetInstance.position,
+          defenderOwner,
+          attackerOwner,
+          false // Not killed by Bugbear directly
+        )
+        if (untapResult?.triggered) {
+          console.log(`[CONFUSION GAZE W/DEFENSE] ${untapResult.bugbearName} untapped from adjacent kill!`)
+        }
       }
     }
 
@@ -2528,6 +2767,19 @@ export class GameState {
         attacker: +1,
         defender: -targetInstance.creature.level
       }
+
+      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
+      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
+        const untapResult = this.checkUntapOnAdjacentKill(
+          targetInstance.position,
+          defenderOwner,
+          attackerOwner,
+          false // Not killed by Bugbear directly
+        )
+        if (untapResult?.triggered) {
+          console.log(`[TOMB GUARDIAN SPLASH] ${untapResult.bugbearName} untapped from adjacent kill!`)
+        }
+      }
     }
 
     return {
@@ -2845,6 +3097,19 @@ export class GameState {
       moraleChange = {
         attacker: +1,
         defender: -targetInstance.creature.level
+      }
+
+      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
+      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
+        const untapResult = this.checkUntapOnAdjacentKill(
+          targetInstance.position,
+          targetOwner,
+          attackerOwner,
+          false // Not killed by Bugbear directly
+        )
+        if (untapResult?.triggered) {
+          console.log(`[ACID BREATH/EXPLOSIVE BOLTS] ${untapResult.bugbearName} untapped from adjacent kill!`)
+        }
       }
     }
 

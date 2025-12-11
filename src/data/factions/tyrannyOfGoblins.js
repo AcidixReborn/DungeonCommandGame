@@ -120,7 +120,12 @@ export const creatures = [
     abilities: { STR: true, DEX: true, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: Whenever an adjacent enemy creature is destroyed, untap this creature.'],
+    specialAbilities: [{
+      id: 'untap_on_adjacent_kill',
+      name: 'UNTAP ON KILL',
+      type: 'PASSIVE',
+      description: 'Whenever an adjacent enemy creature is destroyed, untap this creature.'
+    }],
     faction: FACTION_NAME,
     imageUrl: bugbearBerserkerImg
   },
@@ -135,7 +140,7 @@ export const creatures = [
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: REGENERATE 10 - At the start of its controllers turn, this creature heals 10 damage.'],
+    specialAbilities: ['REGENERATE 10: At the start of its controller\'s turn, this creature heals 10 damage.'],
     faction: FACTION_NAME,
     imageUrl: feralTrollImg
   },
@@ -165,7 +170,7 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: FLANKING - This creatures melee attacks deal +10 damage while at least 1 allied creature is adjacent to the target.'],
+    specialAbilities: ['FLANKING: This creature\'s melee attacks deal +10 DAMAGE while at least 1 ally is adjacent to the target.'],
     faction: FACTION_NAME,
     imageUrl: goblinChampionImg
   },

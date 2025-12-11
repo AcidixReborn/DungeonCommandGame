@@ -102,6 +102,19 @@ export class SimpleAI {
   }
 
   /**
+   * Determine if AI should use REGENERATE ability
+   * @returns {boolean} True if regeneration should be applied
+   */
+  shouldUseRegenerate() {
+    // Easy AI: Never regenerates (0%)
+    if (this.difficulty === 'easy') return false
+    // Hard AI: Always regenerates (100%)
+    if (this.difficulty === 'hard') return true
+    // Medium AI: 50% chance
+    return Math.random() < 0.5
+  }
+
+  /**
    * Execute AI turn for the current phase
    */
   executeTurn() {
@@ -109,11 +122,46 @@ export class SimpleAI {
 
     switch (phase) {
       case GamePhases.REFRESH:
-        // Check for HORDE ability - allows deployment during REFRESH phase
-        if (this.gameState.canDeployDuringRefresh && this.gameState.canDeployDuringRefresh(this.playerId)) {
-          return this.executeDeployPhase(true) // Pass true to indicate HORDE deployment
+        {
+          const actions = []
+
+          // Track REGENERATE 10 for creatures with the ability
+          // This happens during REFRESH phase before advancing
+          const player = this.gameState.players[this.playerId]
+          if (player && player.creaturesInPlay) {
+            player.creaturesInPlay.forEach(creature => {
+              if (this.gameState.hasRegenerate && this.gameState.hasRegenerate(creature) && creature.damageTokens > 0) {
+                // AI difficulty check (0/50/100 pattern)
+                const shouldRegenerate = this.shouldUseRegenerate()
+
+                if (shouldRegenerate) {
+                  const healAmount = Math.min(this.gameState.getRegenerateAmount(creature), creature.damageTokens)
+                  actions.push({
+                    type: 'regenerate_10',
+                    creatureInstance: creature,
+                    result: { healedAmount: healAmount }
+                  })
+                } else {
+                  actions.push({
+                    type: 'regenerate_10_declined',
+                    creatureInstance: creature
+                  })
+                }
+              }
+            })
+          }
+
+          // Check for HORDE ability - allows deployment during REFRESH phase
+          if (this.gameState.canDeployDuringRefresh && this.gameState.canDeployDuringRefresh(this.playerId)) {
+            const hordeResult = this.executeDeployPhase(true) // Pass true to indicate HORDE deployment
+            if (hordeResult.actions) {
+              actions.push(...hordeResult.actions)
+            }
+            return { action: 'advance', message: 'AI refreshed with HORDE deployment', actions }
+          }
+
+          return { action: 'advance', message: 'AI refreshed', actions }
         }
-        return { action: 'advance', message: 'AI refreshed' }
 
       case GamePhases.ACTIVATE:
         return this.executeActivatePhase()
@@ -747,12 +795,62 @@ export class SimpleAI {
   }
 
   /**
-   * Select the weakest target from available attack targets
-   * Prioritizes low HP targets for efficient kills
+   * Select the best target from available attack targets
+   * Prioritizes:
+   * 1. Kills that would untap a tapped Bugbear Berserker (Hard AI only)
+   * 2. Low HP targets for efficient kills
    * @param {Array} targets - Array of attack target objects
-   * @returns {Object} Weakest target
+   * @returns {Object} Best target
    */
   selectWeakestTarget(targets) {
+    // Hard AI: Consider UNTAP ON KILL when selecting targets
+    if (this.difficulty === 'hard' && this.gameState.hasUntapOnAdjacentKill) {
+      // Find any tapped Bugbear Berserkers we control
+      const player = this.gameState.players[this.playerId]
+      const tappedBugbears = player.creaturesInPlay.filter(c =>
+        c.isTapped && this.gameState.hasUntapOnAdjacentKill(c)
+      )
+
+      if (tappedBugbears.length > 0) {
+        // Score each target based on potential untap benefit
+        const scoredTargets = targets.map(target => {
+          let score = 0
+          const targetPos = target.creature.position
+
+          // Check if killing this target would untap a Bugbear
+          for (const bugbear of tappedBugbears) {
+            if (!bugbear.position || !targetPos) continue
+            const dx = Math.abs(targetPos.x - bugbear.position.x)
+            const dy = Math.abs(targetPos.y - bugbear.position.y)
+            const isAdjacent = dx <= 1 && dy <= 1 && !(dx === 0 && dy === 0)
+
+            if (isAdjacent) {
+              // Bonus for untapping a Bugbear - higher bonus if target can be killed
+              score += 50 // Base bonus for adjacent to tapped Bugbear
+            }
+          }
+
+          // Factor in HP - lower HP = higher kill chance = higher score
+          // Invert HP so lower HP gives higher score
+          score += (200 - target.creature.currentHP)
+
+          return { target, score }
+        })
+
+        // Sort by score (highest first) and return best target
+        scoredTargets.sort((a, b) => b.score - a.score)
+
+        if (scoredTargets.length > 0 && scoredTargets[0].score > 0) {
+          const bestTarget = scoredTargets[0]
+          if (bestTarget.score >= 50) {
+            console.log(`[AI HARD] UNTAP ON KILL: Prioritizing target ${bestTarget.target.creature.creature.name} adjacent to tapped Bugbear (score: ${bestTarget.score})`)
+          }
+          return bestTarget.target
+        }
+      }
+    }
+
+    // Default behavior: select weakest target
     return targets.reduce((weakest, current) => {
       const weakestHP = weakest.creature.currentHP
       const currentHP = current.creature.currentHP

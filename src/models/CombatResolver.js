@@ -372,6 +372,23 @@ export class CombatResolver {
         console.log(`[RIDER] ${defenderInstance.creature.name} destroyed - RIDER ability may trigger at position (${riderData.position?.x}, ${riderData.position?.y})`)
       }
 
+      // UNTAP ON KILL ability: Check if a Bugbear Berserker should untap
+      // Triggers when adjacent enemy dies during Bugbear's faction's turn
+      let untapOnKillData = null
+      if (defenderInstance.position && this.gameState.checkUntapOnAdjacentKill) {
+        const wasKilledByBugbear = this.gameState.hasUntapOnAdjacentKill &&
+                                   this.gameState.hasUntapOnAdjacentKill(attackerInstance)
+        untapOnKillData = this.gameState.checkUntapOnAdjacentKill(
+          defenderInstance.position,
+          defenderOwner,
+          attackerOwner,
+          wasKilledByBugbear
+        )
+        if (untapOnKillData?.triggered) {
+          console.log(`[UNTAP ON KILL] ${untapOnKillData.bugbearName} untapped after adjacent enemy death!`)
+        }
+      }
+
       return {
         destroyed: true,
         damage: finalDamage,
@@ -383,7 +400,9 @@ export class CombatResolver {
         },
         bloodthirsty: leadershipGained > 0 ? { leadershipGained } : null,
         riderTriggered: riderData !== null,
-        riderData: riderData
+        riderData: riderData,
+        untapOnKillTriggered: untapOnKillData?.triggered || false,
+        untapOnKillData: untapOnKillData
       }
     }
 

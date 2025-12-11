@@ -826,8 +826,17 @@ function GameBoard({ onTurnInfoChange }) {
           if (result.bloodthirsty) {
             message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
           }
+          // UNTAP ON KILL ability notification
+          if (result.untapOnKillTriggered && result.untapOnKillData) {
+            message += ` ⚔️ ${result.untapOnKillData.bugbearName} UNTAPS from adjacent kill!`
+          }
         } else {
           message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
+        }
+
+        // UNTAP ON KILL toast notification (separate toast for visibility)
+        if (result.untapOnKillTriggered && result.untapOnKillData) {
+          addToast(`⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`)
         }
 
         addToast(message)
@@ -1227,6 +1236,10 @@ function GameBoard({ onTurnInfoChange }) {
         if (result.riderTriggered) {
           message += ` 🐴 RIDER ability may trigger!`
         }
+        // UNTAP ON KILL ability notification
+        if (result.untapOnKillTriggered && result.untapOnKillData) {
+          message += ` ⚔️ ${result.untapOnKillData.bugbearName} UNTAPS from adjacent kill!`
+        }
       } else {
         message += ` ${defenderInstance.creature.name} has ${result.remainingHP || defenderInstance.currentHP} HP remaining.`
       }
@@ -1234,6 +1247,11 @@ function GameBoard({ onTurnInfoChange }) {
       // LIFE DRAIN toast notification
       if (result.lifeDrain?.triggered) {
         addToast(`🧛 LIFE DRAIN: ${result.lifeDrain.creatureName} healed ${result.lifeDrain.healAmount} HP! (${result.lifeDrain.currentHP}/${result.lifeDrain.maxHP})`)
+      }
+
+      // UNTAP ON KILL toast notification (separate toast for visibility)
+      if (result.untapOnKillTriggered && result.untapOnKillData) {
+        addToast(`⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`)
       }
 
       addToast(message)
@@ -1681,6 +1699,10 @@ function GameBoard({ onTurnInfoChange }) {
         if (result.riderTriggered) {
           message += ` 🐴 RIDER ability may trigger!`
         }
+        // UNTAP ON KILL ability notification
+        if (result.untapOnKillTriggered && result.untapOnKillData) {
+          message += ` ⚔️ ${result.untapOnKillData.bugbearName} UNTAPS from adjacent kill!`
+        }
       } else {
         message += ` ${defenderInstance.creature.name} has ${result.remainingHP || defenderInstance.currentHP} HP remaining.`
       }
@@ -1688,6 +1710,11 @@ function GameBoard({ onTurnInfoChange }) {
       // LIFE DRAIN toast notification
       if (result.lifeDrain?.triggered) {
         addToast(`🧛 LIFE DRAIN: ${result.lifeDrain.creatureName} healed ${result.lifeDrain.healAmount} HP! (${result.lifeDrain.currentHP}/${result.lifeDrain.maxHP})`)
+      }
+
+      // UNTAP ON KILL toast notification (separate toast for visibility)
+      if (result.untapOnKillTriggered && result.untapOnKillData) {
+        addToast(`⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`)
       }
 
       addToast(message)
@@ -3430,6 +3457,10 @@ function GameBoard({ onTurnInfoChange }) {
           if (result.bloodthirsty) {
             message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
           }
+          // UNTAP ON KILL ability notification
+          if (result.untapOnKillTriggered && result.untapOnKillData) {
+            message += ` ⚔️ ${result.untapOnKillData.bugbearName} UNTAPS from adjacent kill!`
+          }
 
           // Queue AI death modal for visibility
           const abilitiesTriggered = []
@@ -3438,6 +3469,9 @@ function GameBoard({ onTurnInfoChange }) {
           }
           if (result.bloodthirsty) {
             abilitiesTriggered.push(`Bloodthirsty: +${result.bloodthirsty.leadershipGained} Leadership`)
+          }
+          if (result.untapOnKillTriggered && result.untapOnKillData) {
+            abilitiesTriggered.push(`Untap on Kill: ${result.untapOnKillData.bugbearName} untaps`)
           }
 
           queueAiDeathModal({
@@ -3450,6 +3484,11 @@ function GameBoard({ onTurnInfoChange }) {
           })
         } else {
           message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
+        }
+
+        // UNTAP ON KILL toast notification (separate toast for visibility)
+        if (result.untapOnKillTriggered && result.untapOnKillData) {
+          addToast(`⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`)
         }
 
         addToast(message)
@@ -5375,6 +5414,14 @@ function GameBoard({ onTurnInfoChange }) {
           gameState.advancePhase()
         } else {
           gameState.executeRefreshPhase()
+
+          // Check for REGENERATE results and show toast
+          if (gameState.lastRegenerateResult?.length > 0) {
+            for (const { creature, healAmount } of gameState.lastRegenerateResult) {
+              addToast(`🩹 REGENERATE: ${creature.creature.name} regenerated ${healAmount} HP!`)
+            }
+            gameState.lastRegenerateResult = null // Clear after showing
+          }
         }
         break
       case GamePhases.ACTIVATE:

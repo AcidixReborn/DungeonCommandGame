@@ -329,8 +329,46 @@ export class PhaseManager {
       })
     }
 
+    // REGENERATE: Heal creatures with Regenerate ability at start of refresh
+    // AI difficulty affects whether regeneration is applied (0/50/100 pattern)
+    const regeneratedCreatures = []
+    player.creaturesInPlay.forEach(creature => {
+      if (gs.hasRegenerate(creature) && creature.damageTokens > 0) {
+        // AI difficulty check (0/50/100 pattern)
+        // Human players (no aiDifficulty) always regenerate
+        const shouldRegenerate = this.shouldUseRegenerate(player.aiDifficulty)
+
+        if (shouldRegenerate) {
+          const healAmount = Math.min(gs.getRegenerateAmount(creature), creature.damageTokens)
+          creature.heal(gs.getRegenerateAmount(creature))
+          regeneratedCreatures.push({ creature, healAmount })
+        }
+      }
+    })
+
+    // Store for UI notification
+    if (regeneratedCreatures.length > 0) {
+      gs.lastRegenerateResult = regeneratedCreatures
+    }
+
     // Auto-advance to activate phase
     this.advancePhase()
+  }
+
+  /**
+   * Determine if AI should use REGENERATE based on difficulty
+   * @param {string} aiDifficulty - 'easy', 'medium', 'hard', or undefined for human
+   * @returns {boolean} True if regeneration should be applied
+   */
+  shouldUseRegenerate(aiDifficulty) {
+    // Human players (no aiDifficulty) always regenerate
+    if (!aiDifficulty) return true
+    // Easy AI never regenerates (0%)
+    if (aiDifficulty === 'easy') return false
+    // Hard AI always regenerates (100%)
+    if (aiDifficulty === 'hard') return true
+    // Medium AI: 50% chance
+    return Math.random() < 0.5
   }
 
   /**

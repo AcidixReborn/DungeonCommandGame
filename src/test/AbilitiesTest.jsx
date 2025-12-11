@@ -388,6 +388,35 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, heals: 0, cardRemovals: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, heals: 0, cardRemovals: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, heals: 0, cardRemovals: 0 }
+    },
+    regenerate_10: {
+      name: 'REGENERATE 10',
+      creature: 'Feral Troll',
+      faction: 'Tyranny of Goblins',
+      // Overall totals - passive healing ability at start of refresh (0/50/100 AI pattern)
+      timesOffered: 0,        // Times creature had damage and could regenerate
+      timesTriggered: 0,      // Times regeneration was actually applied
+      timesDeclined: 0,       // Times AI didn't regenerate (Easy=always, Medium=50%)
+      totalHealingRestored: 0,// Total HP restored through regeneration
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, healingRestored: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, healingRestored: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, healingRestored: 0 }
+    },
+    untap_on_adjacent_kill: {
+      name: 'UNTAP ON KILL',
+      creature: 'Bugbear Berserker',
+      faction: 'Tyranny of Goblins',
+      // Overall totals - passive untap when adjacent enemy dies (0/50/100 AI pattern)
+      timesOffered: 0,        // Times adjacent enemy died during Bugbear's faction turn
+      timesTriggered: 0,      // Times Bugbear actually untapped
+      timesDeclined: 0,       // Times AI didn't untap (Easy=always, Medium=50%)
+      selfKills: 0,           // Times Bugbear itself killed the adjacent enemy
+      allyKills: 0,           // Times ally killed adjacent enemy (proving ability works)
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0 }
     }
   })
 
@@ -1135,6 +1164,39 @@ function AbilitiesTest() {
               }
             }
           }
+
+          // Check for UNTAP ON KILL ability (Bugbear Berserker)
+          // This triggers when an adjacent enemy is killed during the Bugbear's faction's turn
+          if (attackResult.untapOnKillTriggered && attackResult.untapOnKillData) {
+            const untapData = attackResult.untapOnKillData
+            const difficulty = untapData.difficulty === 'human' ? 'hard' : untapData.difficulty
+
+            // Track offered and triggered
+            creatureAbilityStats.untap_on_adjacent_kill.timesOffered++
+            creatureAbilityStats.untap_on_adjacent_kill[difficulty].offered++
+            creatureAbilityStats.untap_on_adjacent_kill.timesTriggered++
+            creatureAbilityStats.untap_on_adjacent_kill[difficulty].triggered++
+
+            // Track self-kill vs ally-kill
+            if (untapData.wasKilledByBugbear) {
+              creatureAbilityStats.untap_on_adjacent_kill.selfKills++
+            } else {
+              creatureAbilityStats.untap_on_adjacent_kill.allyKills++
+            }
+
+            console.log(`[UNTAP ON KILL TEST] ${untapData.bugbearName} untapped from adjacent kill (${difficulty}, selfKill: ${untapData.wasKilledByBugbear})`)
+          } else if (attackResult.untapOnKillData && attackResult.untapOnKillData.declined) {
+            // UNTAP ON KILL was offered but declined (Easy or Medium AI)
+            const untapData = attackResult.untapOnKillData
+            const difficulty = untapData.difficulty || 'medium'
+
+            creatureAbilityStats.untap_on_adjacent_kill.timesOffered++
+            creatureAbilityStats.untap_on_adjacent_kill[difficulty].offered++
+            creatureAbilityStats.untap_on_adjacent_kill.timesDeclined++
+            creatureAbilityStats.untap_on_adjacent_kill[difficulty].declined++
+
+            console.log(`[UNTAP ON KILL TEST] ${untapData.bugbearName} untap declined (${difficulty})`)
+          }
         }
 
         // Check for immediate elimination of defender after attack
@@ -1713,6 +1775,88 @@ function AbilitiesTest() {
             }
             break
 
+          case 'regenerate_10':
+            // Track REGENERATE 10 ability (Feral Troll) - TRIGGERED
+            // AI difficulty affects whether regeneration is applied:
+            // - Easy: Never regenerate (0%)
+            // - Medium: 50% chance
+            // - Hard: Always regenerate (100%)
+            {
+              const diff = player?.aiDifficulty || 'medium'
+              const healAmount = action.result?.healedAmount || 10
+              const creatureInstance = action.creatureInstance
+
+              // Track offered and triggered
+              creatureAbilityStats.regenerate_10.timesOffered++
+              creatureAbilityStats.regenerate_10[diff].offered++
+              creatureAbilityStats.regenerate_10.timesTriggered++
+              creatureAbilityStats.regenerate_10[diff].triggered++
+
+              // Track healing amount
+              creatureAbilityStats.regenerate_10.totalHealingRestored += healAmount
+              creatureAbilityStats.regenerate_10[diff].healingRestored += healAmount
+
+              console.log(`[REGENERATE 10] ${creatureInstance?.creature?.name} regenerated ${healAmount} HP (${diff})`)
+            }
+            break
+
+          case 'regenerate_10_declined':
+            // Track REGENERATE 10 declined - creature had damage but AI chose not to regenerate
+            {
+              const diff = player?.aiDifficulty || 'medium'
+
+              creatureAbilityStats.regenerate_10.timesOffered++
+              creatureAbilityStats.regenerate_10[diff].offered++
+              creatureAbilityStats.regenerate_10.timesDeclined++
+              creatureAbilityStats.regenerate_10[diff].declined++
+
+              console.log(`[REGENERATE 10] ${action.creatureInstance?.creature?.name} regeneration declined (${diff})`)
+            }
+            break
+
+          case 'untap_on_adjacent_kill':
+            // Track UNTAP ON KILL ability (Bugbear Berserker) - TRIGGERED
+            // AI difficulty affects whether untap is applied:
+            // - Easy: Never untap (0%)
+            // - Medium: 50% chance
+            // - Hard: Always untap (100%)
+            {
+              const diff = action.difficulty || player?.aiDifficulty || 'medium'
+              const bugbearName = action.bugbearName || 'Bugbear Berserker'
+              const wasKilledByBugbear = action.wasKilledByBugbear || false
+
+              // Track offered and triggered
+              creatureAbilityStats.untap_on_adjacent_kill.timesOffered++
+              creatureAbilityStats.untap_on_adjacent_kill[diff].offered++
+              creatureAbilityStats.untap_on_adjacent_kill.timesTriggered++
+              creatureAbilityStats.untap_on_adjacent_kill[diff].triggered++
+
+              // Track self-kill vs ally-kill
+              if (wasKilledByBugbear) {
+                creatureAbilityStats.untap_on_adjacent_kill.selfKills++
+              } else {
+                creatureAbilityStats.untap_on_adjacent_kill.allyKills++
+              }
+
+              console.log(`[UNTAP ON KILL] ${bugbearName} untapped from adjacent kill (${diff}, selfKill: ${wasKilledByBugbear})`)
+            }
+            break
+
+          case 'untap_on_adjacent_kill_declined':
+            // Track UNTAP ON KILL declined - adjacent enemy died but AI chose not to untap
+            {
+              const diff = action.difficulty || player?.aiDifficulty || 'medium'
+              const bugbearName = action.bugbearName || 'Bugbear Berserker'
+
+              creatureAbilityStats.untap_on_adjacent_kill.timesOffered++
+              creatureAbilityStats.untap_on_adjacent_kill[diff].offered++
+              creatureAbilityStats.untap_on_adjacent_kill.timesDeclined++
+              creatureAbilityStats.untap_on_adjacent_kill[diff].declined++
+
+              console.log(`[UNTAP ON KILL] ${bugbearName} untap declined (${diff})`)
+            }
+            break
+
           case 'attack_intention':
             attackIntentions.push(action)
             break
@@ -2132,9 +2276,9 @@ function AbilitiesTest() {
 
   // Count working creature abilities
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
-    if (!creatureAbilityStats) return { working: 0, total: 22 }
+    if (!creatureAbilityStats) return { working: 0, total: 25 }
     let working = 0
-    const total = 22 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL, SHIELD BLOCK
+    const total = 25 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL, SHIELD BLOCK, HEALING TOUCH, REGENERATE 10, UNTAP ON KILL
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -2162,8 +2306,12 @@ function AbilitiesTest() {
     if (creatureAbilityStats.flanking?.timesTriggered > 0) working++
     // Heart of Cormyr deployment abilities
     if (creatureAbilityStats.arcane_portal?.timesTriggered > 0) working++
-    // Heart of Cormyr defensive abilities
+    // Heart of Cormyr defensive/healing abilities
     if (creatureAbilityStats.shield_block?.timesTriggered > 0) working++
+    if (creatureAbilityStats.healing_touch?.timesTriggered > 0) working++
+    // Tyranny of Goblins abilities
+    if (creatureAbilityStats.regenerate_10?.timesTriggered > 0) working++
+    if (creatureAbilityStats.untap_on_adjacent_kill?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -4490,6 +4638,194 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         HEALING TOUCH: Dwarf Cleric can heal self or adjacent ally for 10 damage OR remove 1 attached Order card. Uses standard action. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* REGENERATE 10 - Feral Troll (Tyranny of Goblins) */}
+              <Card bg="dark" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🩹 REGENERATE 10 (Feral Troll - Tyranny of Goblins)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (creature damaged)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.regenerate_10?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (regenerated)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.regenerate_10?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (skipped)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.regenerate_10?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Healing Restored</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.regenerate_10?.totalHealingRestored || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.regenerate_10?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.regenerate_10.timesTriggered / results.creatureAbilityStats.regenerate_10.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Healed</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.regenerate_10?.[diff] || { offered: 0, triggered: 0, declined: 0, healingRestored: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered}</td>
+                                <td>{stats.triggered}</td>
+                                <td>{stats.declined}</td>
+                                <td>{stats.healingRestored}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        REGENERATE 10: Feral Troll heals 10 damage at the start of its controller's REFRESH phase. Does NOT consume action. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* UNTAP ON KILL - Bugbear Berserker (Tyranny of Goblins) */}
+              <Card bg="dark" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>⚔️ UNTAP ON KILL (Bugbear Berserker - Tyranny of Goblins)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (adjacent enemy died)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.untap_on_adjacent_kill?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (untapped)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.untap_on_adjacent_kill?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (skipped)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.untap_on_adjacent_kill?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Self Kills (Bugbear killed enemy)</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.untap_on_adjacent_kill?.selfKills || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Ally Kills (ally killed adjacent enemy)</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.untap_on_adjacent_kill?.allyKills || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.untap_on_adjacent_kill?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.untap_on_adjacent_kill.timesTriggered / results.creatureAbilityStats.untap_on_adjacent_kill.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.untap_on_adjacent_kill?.[diff] || { offered: 0, triggered: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered}</td>
+                                <td>{stats.triggered}</td>
+                                <td>{stats.declined}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        UNTAP ON KILL: Bugbear Berserker untaps whenever an adjacent enemy creature is destroyed during its faction's turn. Works with self-kills AND ally kills. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>
