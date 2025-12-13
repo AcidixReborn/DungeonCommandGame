@@ -275,10 +275,22 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 40, range: 1 },
     rangedAttack: null,
+    reach: 2, // REACH 2: Can melee attack at range 1 OR 2
+    tapOnHit: true, // TAP ON HIT: Target is tapped if it takes any damage from melee attack
     specialAbilities: [
       'FLYING: This creature ignores difficult terrain and can move over mountains (but cannot stop on them).',
-      'PLACEHOLDER: REACH 2 - Creatures 2 spaces away count as adjacent to this creature.',
-      'PLACEHOLDER: As a standard action, make a melee attack. If the target takes damage from this attack, tap it.'
+      {
+        id: 'reach_2',
+        name: 'REACH 2',
+        type: 'PASSIVE',
+        description: 'This creature can make melee attacks against creatures up to 2 spaces away.'
+      },
+      {
+        id: 'tap_on_hit',
+        name: 'TAP ON HIT',
+        type: 'PASSIVE',
+        description: 'Whenever this creature deals melee damage, tap the target.'
+      }
     ],
     faction: FACTION_NAME,
     imageUrl: hornedDevilImg
@@ -294,7 +306,13 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: Whenever a target creature takes damage from this creatures melee attack, tap the target.'],
+    tapOnHit: true, // TAP ON HIT: Target is tapped if it takes any damage from melee attack
+    specialAbilities: [{
+      id: 'tap_on_hit',
+      name: 'TAP ON HIT',
+      type: 'PASSIVE',
+      description: 'Whenever this creature deals melee damage, tap the target.'
+    }],
     faction: FACTION_NAME,
     imageUrl: wolfImg
   }

@@ -16,6 +16,8 @@ export class Creature {
    * @param {Array} specialAbilities - Special ability text descriptions
    * @param {string} faction - Faction name
    * @param {string} imageUrl - Creature image URL
+   * @param {number} reach - Extended melee attack range (0 = default, 2 = can melee at range 2)
+   * @param {boolean} tapOnHit - If true, target is tapped when taking any melee damage
    */
   constructor({
     id,
@@ -29,7 +31,9 @@ export class Creature {
     rangedAttack = null, // { damage: number, range: number }
     specialAbilities = [], // Array of special ability descriptions
     faction = '', // Sting of Lolth, Heart of Cormyr, etc.
-    imageUrl = null
+    imageUrl = null,
+    reach = 0, // REACH: Extended melee attack range (e.g., 2 = can attack 2 tiles away)
+    tapOnHit = false // TAP ON HIT: Target is tapped when taking damage from melee attack
   }) {
     this.id = id
     this.name = name
@@ -43,6 +47,8 @@ export class Creature {
     this.specialAbilities = specialAbilities
     this.faction = faction
     this.imageUrl = imageUrl
+    this.reach = reach // REACH 2: Horned Devil can melee attack at range 1 OR 2
+    this.tapOnHit = tapOnHit // TAP ON HIT: Horned Devil, Wolf tap target on melee damage
   }
 
   /**

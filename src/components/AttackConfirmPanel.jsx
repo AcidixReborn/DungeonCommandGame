@@ -90,6 +90,32 @@ function AttackConfirmPanel({
     : 0
   const damageAfterShieldBlock = Math.max(0, damage - shieldBlockReduction)
 
+  // Check for TAP ON HIT ability (Horned Devil, Wolf) - only on melee attacks
+  const hasTapOnHit = gameState?.hasTapOnHit && gameState.hasTapOnHit(attacker)
+  const tapOnHitApplies = hasTapOnHit && isMeleeAttack
+  const defenderAlreadyTapped = defender?.isTapped
+
+  // Check for REACH 2 attack (Horned Devil attacking from range 2)
+  const isReachAttack = attackInfo?.isReachAttack || false
+  const reachDistance = attackInfo?.reachDistance || attackInfo?.distance || 1
+
+  // DEBUG: Log TAP ON HIT and REACH status
+  console.log('[AttackConfirmPanel DEBUG] TAP ON HIT check:', {
+    hasTapOnHit,
+    isMeleeAttack,
+    tapOnHitApplies,
+    defenderAlreadyTapped,
+    attackerName: attacker?.creature?.name,
+    defenderName: defender?.creature?.name
+  })
+
+  console.log('[AttackConfirmPanel DEBUG] REACH 2 check:', {
+    isReachAttack,
+    reachDistance,
+    attackerReach: attacker?.creature?.reach,
+    attackerName: attacker?.creature?.name
+  })
+
   // Debug log for Lightning Breath availability
   if (isRangedAttack && gameState?.hasLightningBreath?.(attacker)) {
     console.log(`[AttackConfirmPanel] LIGHTNING BREATH check:`, {
@@ -189,6 +215,32 @@ function AttackConfirmPanel({
             <span style={{ color: '#2196f3' }}>
               Block {shieldBlockReduction} ({damage} → {damageAfterShieldBlock})
             </span>
+          </div>
+        )}
+        {/* REACH 2 indicator - shows when attacking from extended range */}
+        {isReachAttack && (
+          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+            <span style={{ color: '#ff9800' }}>🗡️ REACH 2:</span>
+            <span style={{ color: '#ff9800' }}>
+              Attacking from range {reachDistance} (extended melee)
+            </span>
+          </div>
+        )}
+        {/* TAP ON HIT preview - shows that target will be tapped if damage is dealt */}
+        {tapOnHitApplies && (
+          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+            <span style={{ color: '#e91e63' }}>💫 TAP ON HIT:</span>
+            <span style={{ color: '#e91e63' }}>
+              {defenderAlreadyTapped
+                ? 'Target already tapped (no additional effect)'
+                : 'Target will be TAPPED if damage is dealt'
+              }
+            </span>
+          </div>
+        )}
+        {tapOnHitApplies && !defenderAlreadyTapped && (
+          <div style={{ fontSize: '0.75rem', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
+            * Tap only occurs if target takes any damage (fully blocked = no tap)
           </div>
         )}
       </div>

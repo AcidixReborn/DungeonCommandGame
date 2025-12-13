@@ -417,6 +417,37 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0 },
       medium: { offered: 0, triggered: 0, declined: 0 },
       hard: { offered: 0, triggered: 0, declined: 0 }
+    },
+    reach_2: {
+      name: 'REACH 2',
+      creature: 'Horned Devil',
+      faction: 'Tyranny of Goblins',
+      // Overall totals - melee attacks at range 2 (0/50/100 AI pattern for target selection)
+      timesOffered: 0,        // Times reach attack was available
+      timesTriggered: 0,      // Times reach attack was performed (at range 2)
+      timesDeclined: 0,       // Times AI chose adjacent target over reach target
+      totalDamageDealt: 0,    // Total damage dealt from reach attacks
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100% for preferring reach)
+      easy: { offered: 0, triggered: 0, declined: 0, damageDealt: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, damageDealt: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, damageDealt: 0 }
+    },
+    tap_on_hit: {
+      name: 'TAP ON HIT',
+      creature: 'Horned Devil, Wolf',
+      faction: 'Tyranny of Goblins',
+      // Overall totals - tap target when dealing melee damage (passive ability)
+      timesOffered: 0,        // Times creature with tapOnHit attacked
+      timesTriggered: 0,      // Times target was tapped from attack
+      timesAlreadyTapped: 0,  // Times target was already tapped (no additional effect)
+      timesNoDamage: 0,       // Times attack dealt 0 damage (no tap)
+      // Per-difficulty breakdown (AI target selection 0/50/100 for untapped targets)
+      easy: { offered: 0, triggered: 0, alreadyTapped: 0 },
+      medium: { offered: 0, triggered: 0, alreadyTapped: 0 },
+      hard: { offered: 0, triggered: 0, alreadyTapped: 0 },
+      // Per-creature stats to track Wolf vs Horned Devil separately
+      wolfStats: { attacks: 0, kills: 0, triggers: 0, totalDefenderHP: 0 },
+      hornedDevilStats: { attacks: 0, kills: 0, triggers: 0, totalDefenderHP: 0 }
     }
   })
 
@@ -581,6 +612,12 @@ function AbilitiesTest() {
           }
         }
       }
+
+      // CRITICAL FIX: Capture defender HP BEFORE attack executes
+      // This is needed for accurate TAP ON HIT statistics
+      // The old calculation was wrong because it read damageTokens AFTER the attack modified them
+      const defenderHPBeforeAttack = defenderInstance.currentHP
+      const defenderWasTappedBefore = defenderInstance.isTapped
 
       // Execute the attack with or without damage reduction
       let attackResult
@@ -1197,6 +1234,118 @@ function AbilitiesTest() {
 
             console.log(`[UNTAP ON KILL TEST] ${untapData.bugbearName} untap declined (${difficulty})`)
           }
+        }
+        // END of if (attackResult.destroyed) block
+        // CRITICAL FIX: TAP ON HIT and REACH tracking must be OUTSIDE the destroyed block
+        // because they apply to ALL attacks, not just kills!
+
+        // Check for TAP ON HIT ability (Horned Devil, Wolf)
+        // Track whenever creature with TAP ON HIT makes a melee attack
+        const attackerHasTapOnHitCheck = gameState.hasTapOnHit && gameState.hasTapOnHit(attackerInstance)
+        const attackerHasTapOnHit = targetInfo.attackType === 'melee' && attackerHasTapOnHitCheck
+
+        if (attackerHasTapOnHit && attackResult.success) {
+          const attackerPlayer = gameState.players[attackerOwner]
+          const difficulty = attackerPlayer?.aiDifficulty || 'medium'
+          const attackerName = attackerInstance.creature.name
+
+          // Always count as "offered" when creature with TAP ON HIT attacks
+          creatureAbilityStats.tap_on_hit.timesOffered++
+          creatureAbilityStats.tap_on_hit[difficulty].offered++
+
+          // Track per-creature stats (Wolf vs Horned Devil)
+          // NOTE: defenderHPBeforeAttack is captured BEFORE executeAttack (line ~637)
+          // The old formula (maxHP - damageTokens + damage) was WRONG because damageTokens
+          // was already modified by the attack when this code runs
+          const creatureStats = attackerName === 'Wolf'
+            ? creatureAbilityStats.tap_on_hit.wolfStats
+            : attackerName === 'Horned Devil'
+              ? creatureAbilityStats.tap_on_hit.hornedDevilStats
+              : null
+
+          if (creatureStats) {
+            creatureStats.attacks++
+            creatureStats.totalDefenderHP += defenderHPBeforeAttack
+
+            if (attackResult.destroyed) {
+              creatureStats.kills++
+            } else if (attackResult.tapOnHitTriggered && !attackResult.tapOnHitData?.alreadyTapped) {
+              // Only count as trigger if target wasn't already tapped
+              creatureStats.triggers++
+            }
+          }
+
+          // Check what happened with the attack
+          if (attackResult.tapOnHitTriggered && attackResult.tapOnHitData) {
+            const tapData = attackResult.tapOnHitData
+            if (tapData.alreadyTapped) {
+              creatureAbilityStats.tap_on_hit.timesAlreadyTapped++
+              creatureAbilityStats.tap_on_hit[difficulty].alreadyTapped++
+            } else {
+              creatureAbilityStats.tap_on_hit.timesTriggered++
+              creatureAbilityStats.tap_on_hit[difficulty].triggered++
+            }
+          } else if (attackResult.destroyed) {
+            // Target was killed - TAP ON HIT doesn't apply to dead creatures
+            if (!creatureAbilityStats.tap_on_hit.timesKilled) {
+              creatureAbilityStats.tap_on_hit.timesKilled = 0
+            }
+            creatureAbilityStats.tap_on_hit.timesKilled++
+            if (!creatureAbilityStats.tap_on_hit[difficulty].killed) {
+              creatureAbilityStats.tap_on_hit[difficulty].killed = 0
+            }
+            creatureAbilityStats.tap_on_hit[difficulty].killed++
+          } else if (attackResult.damage === 0) {
+            // No damage dealt (fully blocked) - TAP ON HIT doesn't trigger
+            creatureAbilityStats.tap_on_hit.timesNoDamage++
+            if (!creatureAbilityStats.tap_on_hit[difficulty].noDamage) {
+              creatureAbilityStats.tap_on_hit[difficulty].noDamage = 0
+            }
+            creatureAbilityStats.tap_on_hit[difficulty].noDamage++
+          } else {
+            // Unexpected case - damage dealt, not destroyed, but no tapOnHitTriggered
+            if (!creatureAbilityStats.tap_on_hit.timesUnexpected) {
+              creatureAbilityStats.tap_on_hit.timesUnexpected = 0
+            }
+            creatureAbilityStats.tap_on_hit.timesUnexpected++
+            if (!creatureAbilityStats.tap_on_hit[difficulty].unexpected) {
+              creatureAbilityStats.tap_on_hit[difficulty].unexpected = 0
+            }
+            creatureAbilityStats.tap_on_hit[difficulty].unexpected++
+          }
+        }
+
+        // Check for REACH decision tracking (AI had choice between reach and adjacent)
+        // reachDecision is added by AI.selectWeakestTarget when both options available
+        if (targetInfo?.reachDecision && attackResult.success) {
+          const decision = targetInfo.reachDecision
+          const difficulty = decision.difficulty || 'medium'
+
+          // Always increment "offered" when AI had a choice
+          creatureAbilityStats.reach_2.timesOffered++
+          creatureAbilityStats.reach_2[difficulty].offered++
+
+          if (decision.triggered) {
+            // AI chose to use reach attack
+            creatureAbilityStats.reach_2.timesTriggered++
+            creatureAbilityStats.reach_2[difficulty].triggered++
+            creatureAbilityStats.reach_2.totalDamageDealt += (attackResult.damage || 0)
+            creatureAbilityStats.reach_2[difficulty].damageDealt += (attackResult.damage || 0)
+          } else if (decision.declined) {
+            // AI chose adjacent target over reach
+            creatureAbilityStats.reach_2.timesDeclined++
+            creatureAbilityStats.reach_2[difficulty].declined++
+          }
+        } else if (targetInfo?.isReachAttack && attackResult.success && !targetInfo?.reachDecision) {
+          // Fallback: Track reach attacks that didn't have a decision (only reach targets available)
+          const attackerPlayer = gameState.players[attackerOwner]
+          const difficulty = attackerPlayer?.aiDifficulty || 'medium'
+          creatureAbilityStats.reach_2.timesOffered++
+          creatureAbilityStats.reach_2[difficulty].offered++
+          creatureAbilityStats.reach_2.timesTriggered++
+          creatureAbilityStats.reach_2[difficulty].triggered++
+          creatureAbilityStats.reach_2.totalDamageDealt += (attackResult.damage || 0)
+          creatureAbilityStats.reach_2[difficulty].damageDealt += (attackResult.damage || 0)
         }
 
         // Check for immediate elimination of defender after attack
@@ -1857,6 +2006,37 @@ function AbilitiesTest() {
             }
             break
 
+          case 'tap_on_hit':
+            // Track TAP ON HIT ability (Horned Devil, Wolf) - TRIGGERED
+            {
+              const diff = action.difficulty || player?.aiDifficulty || 'medium'
+              const attackerName = action.attackerName || 'Unknown'
+              const defenderName = action.defenderName || 'Unknown'
+
+              creatureAbilityStats.tap_on_hit.timesOffered++
+              creatureAbilityStats.tap_on_hit[diff].offered++
+              creatureAbilityStats.tap_on_hit.timesTriggered++
+              creatureAbilityStats.tap_on_hit[diff].triggered++
+            }
+            break
+
+          case 'tap_on_hit_already_tapped':
+            // Track TAP ON HIT when target was already tapped
+            {
+              const diff = action.difficulty || player?.aiDifficulty || 'medium'
+              const attackerName = action.attackerName || 'Unknown'
+              const defenderName = action.defenderName || 'Unknown'
+
+              creatureAbilityStats.tap_on_hit.timesOffered++
+              creatureAbilityStats.tap_on_hit[diff].offered++
+              creatureAbilityStats.tap_on_hit.timesAlreadyTapped++
+              creatureAbilityStats.tap_on_hit[diff].alreadyTapped++
+            }
+            break
+
+          // NOTE: 'reach_2_attack' case removed - REACH tracking is now handled in processAttackQueue
+          // via targetInfo.reachDecision (when AI had a choice) and targetInfo.isReachAttack (fallback)
+
           case 'attack_intention':
             attackIntentions.push(action)
             break
@@ -1915,7 +2095,18 @@ function AbilitiesTest() {
       }
 
       // Process attack queue with ability tracking
+      // IMPORTANT: Sort so TAP ON HIT creatures attack FIRST
+      // This ensures they can tap high-HP targets before other creatures damage them
       if (attackIntentions.length > 0) {
+        // Sort to prioritize TAP ON HIT creatures (they attack first)
+        attackIntentions.sort((a, b) => {
+          const aHasTapOnHit = gameState.hasTapOnHit && gameState.hasTapOnHit(a.attackerInstance)
+          const bHasTapOnHit = gameState.hasTapOnHit && gameState.hasTapOnHit(b.attackerInstance)
+          if (aHasTapOnHit && !bHasTapOnHit) return -1  // a goes first
+          if (!aHasTapOnHit && bHasTapOnHit) return 1   // b goes first
+          return 0  // maintain original order for ties
+        })
+
         const attackResults = processAttackQueue(attackIntentions, gameState, abilityStats, creatureAbilityStats)
         result.attackActions = attackResults.attacksSuccessful
         gameStats.totalDamageDealt += attackResults.damageDealt
@@ -2312,6 +2503,8 @@ function AbilitiesTest() {
     // Tyranny of Goblins abilities
     if (creatureAbilityStats.regenerate_10?.timesTriggered > 0) working++
     if (creatureAbilityStats.untap_on_adjacent_kill?.timesTriggered > 0) working++
+    if (creatureAbilityStats.reach_2?.timesTriggered > 0) working++
+    if (creatureAbilityStats.tap_on_hit?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -4826,6 +5019,249 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         UNTAP ON KILL: Bugbear Berserker untaps whenever an adjacent enemy creature is destroyed during its faction's turn. Works with self-kills AND ally kills. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* REACH 2 - Horned Devil (Tyranny of Goblins) */}
+              <Card bg="dark" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🗡️ REACH 2 (Horned Devil - Tyranny of Goblins)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (reach attack available)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.reach_2?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (attacked at range 2)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.reach_2?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (chose adjacent)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.reach_2?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Damage Dealt (from reach)</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.reach_2?.totalDamageDealt || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.reach_2?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.reach_2.timesTriggered / results.creatureAbilityStats.reach_2.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Damage</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.reach_2?.[diff] || { offered: 0, triggered: 0, declined: 0, damageDealt: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered}</td>
+                                <td>{stats.triggered}</td>
+                                <td>{stats.damageDealt}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        REACH 2: Horned Devil can make melee attacks at range 1 OR 2. AI difficulty affects target selection when both options available. Expected rates: Easy = 0% (prefers adjacent), Medium = ~50%, Hard = 100% (prefers reach for safety)
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* TAP ON HIT - Horned Devil, Wolf (Tyranny of Goblins) */}
+              <Card bg="dark" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>💫 TAP ON HIT (Horned Devil, Wolf - Tyranny of Goblins)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (melee attack made)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.tap_on_hit?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (target tapped)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.tap_on_hit?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Target Killed (no tap - dead)</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.tap_on_hit?.timesKilled || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Already Tapped (no additional effect)</td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.tap_on_hit?.timesAlreadyTapped || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>No Damage (target not tapped)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.tap_on_hit?.timesNoDamage || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Unexpected (survived but not tracked)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.tap_on_hit?.timesUnexpected || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate (tapped / survived)</td>
+                            <td>
+                              {(() => {
+                                const stats = results.creatureAbilityStats?.tap_on_hit
+                                if (!stats || stats.timesOffered === 0) return 'N/A'
+                                const survived = stats.timesOffered - (stats.timesKilled || 0)
+                                if (survived === 0) return <span style={{color: '#ffc107'}}>100% killed</span>
+                                return `${((stats.timesTriggered / survived) * 100).toFixed(1)}%`
+                              })()}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Diff</th>
+                            <th>Offered</th>
+                            <th>Tapped</th>
+                            <th>Killed</th>
+                            <th>Already</th>
+                            <th>NoDmg</th>
+                            <th>Bug?</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.tap_on_hit?.[diff] || { offered: 0, triggered: 0, killed: 0, alreadyTapped: 0, noDamage: 0, unexpected: 0 }
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered}</td>
+                                <td><Badge bg="success">{stats.triggered}</Badge></td>
+                                <td><Badge bg="warning">{stats.killed || 0}</Badge></td>
+                                <td>{stats.alreadyTapped || 0}</td>
+                                <td>{stats.noDamage || 0}</td>
+                                <td><Badge bg={stats.unexpected > 0 ? 'danger' : 'secondary'}>{stats.unexpected || 0}</Badge></td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  {/* Wolf vs Horned Devil Per-Creature Breakdown */}
+                  <Row className="mt-3">
+                    <Col>
+                      <h6 className="text-light">Per-Creature Analysis (Wolf vs Horned Devil)</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Creature</th>
+                            <th>Dmg</th>
+                            <th>Attacks</th>
+                            <th>Kills</th>
+                            <th>Triggers</th>
+                            <th>Kill Rate</th>
+                            <th>Avg Target HP</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const wolfStats = results.creatureAbilityStats?.tap_on_hit?.wolfStats || { attacks: 0, kills: 0, triggers: 0, totalDefenderHP: 0 }
+                            const hornedDevilStats = results.creatureAbilityStats?.tap_on_hit?.hornedDevilStats || { attacks: 0, kills: 0, triggers: 0, totalDefenderHP: 0 }
+                            const wolfAvgHP = wolfStats.attacks > 0 ? Math.round(wolfStats.totalDefenderHP / wolfStats.attacks) : 'N/A'
+                            const hornedDevilAvgHP = hornedDevilStats.attacks > 0 ? Math.round(hornedDevilStats.totalDefenderHP / hornedDevilStats.attacks) : 'N/A'
+                            const wolfKillRate = wolfStats.attacks > 0 ? ((wolfStats.kills / wolfStats.attacks) * 100).toFixed(1) : 'N/A'
+                            const hornedDevilKillRate = hornedDevilStats.attacks > 0 ? ((hornedDevilStats.kills / hornedDevilStats.attacks) * 100).toFixed(1) : 'N/A'
+                            return (
+                              <>
+                                <tr>
+                                  <td>🐺 Wolf</td>
+                                  <td>10</td>
+                                  <td>{wolfStats.attacks}</td>
+                                  <td><Badge bg="warning">{wolfStats.kills}</Badge></td>
+                                  <td><Badge bg="success">{wolfStats.triggers}</Badge></td>
+                                  <td>{wolfKillRate !== 'N/A' ? `${wolfKillRate}%` : wolfKillRate}</td>
+                                  <td><Badge bg={wolfAvgHP !== 'N/A' && wolfAvgHP <= 10 ? 'info' : 'danger'}>{wolfAvgHP}</Badge></td>
+                                </tr>
+                                <tr>
+                                  <td>😈 Horned Devil</td>
+                                  <td>40</td>
+                                  <td>{hornedDevilStats.attacks}</td>
+                                  <td><Badge bg="warning">{hornedDevilStats.kills}</Badge></td>
+                                  <td><Badge bg="success">{hornedDevilStats.triggers}</Badge></td>
+                                  <td>{hornedDevilKillRate !== 'N/A' ? `${hornedDevilKillRate}%` : hornedDevilKillRate}</td>
+                                  <td><Badge bg={hornedDevilAvgHP !== 'N/A' && hornedDevilAvgHP <= 40 ? 'info' : 'danger'}>{hornedDevilAvgHP}</Badge></td>
+                                </tr>
+                              </>
+                            )
+                          })()}
+                        </tbody>
+                      </Table>
+                      <small className="text-muted">
+                        <strong>Avg Target HP</strong> = Average HP of target BEFORE attack. If ≤ creature damage, high kill rate is expected (AI targets weakest enemies).
+                        {' '}<Badge bg="info">Blue</Badge> = Target HP ≤ damage (kills expected). <Badge bg="danger">Red</Badge> = Target HP &gt; damage (bug if 100% kills).
+                      </small>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        TAP ON HIT: Whenever Horned Devil or Wolf deals melee damage, the target is automatically tapped (passive ability).
+                        <strong> Triggered</strong> = target survived and was tapped.
+                        <strong> Killed</strong> = target died (can't tap dead creatures).
+                        <strong> No Dmg</strong> = damage was fully blocked.
+                        Note: High kill rate is expected since AI always targets the weakest (most damaged) enemy creatures.
                       </small>
                     </Col>
                   </Row>

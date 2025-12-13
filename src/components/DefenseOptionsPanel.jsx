@@ -120,6 +120,31 @@ function DefenseOptionsPanel({
   const { cower: cowerInfo, unstoppableHordes: unstoppableInfo, adjacentUndead, immediateCards } = defenseOptions
   const defenderCanUseUnstoppable = unstoppableInfo?.canUse
 
+  // Check for TAP ON HIT ability (Horned Devil, Wolf) - attacker will tap defender if damage dealt
+  const attackerHasTapOnHit = gameState?.hasTapOnHit && gameState.hasTapOnHit(attackerInstance)
+  const tapOnHitApplies = attackerHasTapOnHit && attackType === 'melee'
+  const defenderAlreadyTapped = defenderInstance?.isTapped
+
+  // Check for REACH 2 attack
+  const isReachAttack = attackInfo?.isReachAttack || false
+  const reachDistance = attackInfo?.reachDistance || attackInfo?.distance || 1
+
+  // DEBUG: Log TAP ON HIT and REACH status for defense
+  console.log('[DefenseOptionsPanel DEBUG] TAP ON HIT check:', {
+    attackerHasTapOnHit,
+    attackType,
+    tapOnHitApplies,
+    defenderAlreadyTapped,
+    attackerName: attackerInstance?.creature?.name,
+    defenderName: defenderInstance?.creature?.name
+  })
+
+  console.log('[DefenseOptionsPanel DEBUG] REACH 2 check:', {
+    isReachAttack,
+    reachDistance,
+    attackInfo
+  })
+
   // O(n) - Toggle Undead creature selection
   const toggleUndeadCreature = (creature) => {
     setSelectedUndeadCreatures(prev => {
@@ -337,6 +362,32 @@ function DefenseOptionsPanel({
             {defenderInstance.currentHP}/{defenderInstance.creature.hitPoints}
           </span>
         </div>
+        {/* REACH 2 indicator - shows when being attacked from extended range */}
+        {isReachAttack && (
+          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+            <span style={{ color: '#ff9800' }}>🗡️ REACH 2:</span>
+            <span style={{ color: '#ff9800' }}>
+              Being attacked from range {reachDistance}
+            </span>
+          </div>
+        )}
+        {/* TAP ON HIT warning - shows that your creature will be tapped if damage is taken */}
+        {tapOnHitApplies && (
+          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+            <span style={{ color: '#e91e63' }}>⚠️ TAP ON HIT:</span>
+            <span style={{ color: '#e91e63' }}>
+              {defenderAlreadyTapped
+                ? 'Your creature is already tapped'
+                : 'Your creature will be TAPPED if it takes damage!'
+              }
+            </span>
+          </div>
+        )}
+        {tapOnHitApplies && !defenderAlreadyTapped && (
+          <div style={{ fontSize: '0.75rem', color: '#e91e63', fontStyle: 'italic', marginTop: '4px', backgroundColor: 'rgba(233,30,99,0.1)', padding: '4px', borderRadius: '4px' }}>
+            💡 Tip: Block ALL damage (Cower/Immediate) to prevent being tapped!
+          </div>
+        )}
       </div>
 
       {/* Scrollable Defense Options */}

@@ -475,6 +475,26 @@ function trackCreatureAbility(factionKey, abilityKey, detail = {}) {
       }
       if (detail.splashDamage) ability.splashDamageDealt += detail.splashDamage
       break
+    case 'reach':
+    case 'reach_2':
+      // REACH 2 ability - melee attacks at range 2 (Horned Devil)
+      if (detail.offered) ability.timesOffered = (ability.timesOffered || 0) + 1
+      if (detail.triggered) {
+        ability.timesTriggered++
+        if (detail.attackDistance) ability.attacksFromDistance = (ability.attacksFromDistance || 0) + 1
+      }
+      if (detail.damage) ability.damageDealt = (ability.damageDealt || 0) + detail.damage
+      break
+    case 'tap_on_hit':
+      // TAP ON HIT ability - tap target when dealing melee damage (Horned Devil, Wolf)
+      if (detail.offered) ability.timesOffered = (ability.timesOffered || 0) + 1
+      if (detail.triggered) {
+        ability.timesTriggered++
+        if (!detail.alreadyTapped) {
+          ability.creaturesTapped = (ability.creaturesTapped || 0) + 1
+        }
+      }
+      break
     default:
       if (detail.triggered) ability.timesTriggered++
       break
@@ -1134,6 +1154,43 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
 
           if (CONFIG.VERBOSE_LOGGING) {
             console.log(`  [BLOODTHIRSTY] +1 Leadership for killing ${defenderInstance.creature.name}`)
+          }
+        }
+      }
+
+      // Track TAP ON HIT ability (Wolf, Horned Devil)
+      // TAP ON HIT is a PASSIVE ability - triggers automatically when melee damage is dealt
+      if (targetInfo.attackType === 'melee' &&
+          gameState.hasTapOnHit && gameState.hasTapOnHit(attackerInstance)) {
+
+        // Track that TAP ON HIT creature attacked (offered)
+        trackCreatureAbility('goblins', 'tap_on_hit', { offered: true })
+
+        if (attackResult.tapOnHitTriggered && attackResult.tapOnHitData) {
+          const tapData = attackResult.tapOnHitData
+          if (tapData.alreadyTapped) {
+            // Target was already tapped
+            trackCreatureAbility('goblins', 'tap_on_hit', {
+              triggered: true,
+              alreadyTapped: true
+            })
+            if (CONFIG.VERBOSE_LOGGING) {
+              console.log(`  [TAP ON HIT] ${attackerInstance.creature.name} hit ${defenderInstance.creature.name} but already tapped`)
+            }
+          } else {
+            // Successfully tapped the target
+            trackCreatureAbility('goblins', 'tap_on_hit', {
+              triggered: true,
+              alreadyTapped: false
+            })
+            if (CONFIG.VERBOSE_LOGGING) {
+              console.log(`  [TAP ON HIT] ${attackerInstance.creature.name} tapped ${defenderInstance.creature.name}`)
+            }
+          }
+        } else if (attackResult.destroyed) {
+          // Target was killed - can't tap dead creatures (not counted as triggered)
+          if (CONFIG.VERBOSE_LOGGING) {
+            console.log(`  [TAP ON HIT] ${attackerInstance.creature.name} killed ${defenderInstance.creature.name} - no tap (destroyed)`)
           }
         }
       }

@@ -38,7 +38,9 @@
       "Bash(findstr:*)",
       "Bash(timeout 180 npx vite-node:*)",
       "Bash(del test-abilities-temp.js)",
-      "Bash(timeout 10 npm run dev:*)"
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(del \"c:\\Users\\dougl\\Desktop\\GitRepository\\DungeonCommandGame\\test-tapOnHit.js\")",
+      "Bash(timeout 60 npx vite-node:*)"
     ],
     "deny": [],
     "ask": []

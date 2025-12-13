@@ -57,10 +57,26 @@ export class CombatResolver {
       return { valid: false, error: 'Cannot attack: creature has already attacked this turn' }
     }
 
-    // Validate melee attack: must be adjacent (distance <= meleeRange, default 1)
+    // Validate melee attack: must be within melee range (including REACH ability)
     if (attackType === 'melee') {
       const distance = this.gameState.getDistance(attackerInstance.position, defenderInstance.position)
-      const meleeRange = attackerInstance.creature.meleeAttack?.range || COMBAT.MELEE_RANGE
+      const baseMeleeRange = attackerInstance.creature.meleeAttack?.range || COMBAT.MELEE_RANGE
+      // REACH ability: Creatures with reach property can melee attack at extended range
+      // e.g., reach: 2 allows melee attacks at range 1 OR 2
+      const creatureReach = attackerInstance.creature.reach || 0
+      const meleeRange = Math.max(baseMeleeRange, creatureReach)
+
+      // DEBUG: Log REACH calculation in validateAttack
+      if (creatureReach > 0) {
+        console.log(`[validateAttack] REACH 2 - Creature has REACH:`, {
+          creatureName: attackerInstance.creature.name,
+          creatureReach,
+          baseMeleeRange,
+          effectiveMeleeRange: meleeRange,
+          distance
+        })
+      }
+
       if (distance > meleeRange) {
         console.log(`[validateAttack] BLOCKED: Melee attack invalid - distance ${distance} > meleeRange ${meleeRange}`)
         return { valid: false, error: 'Cannot attack: target is not in melee range' }
@@ -406,12 +422,40 @@ export class CombatResolver {
       }
     }
 
+    // TAP ON HIT ability: If attacker has tapOnHit and dealt damage, tap the defender
+    let tapOnHitData = null
+    const hasTapOnHitAbility = this.gameState.hasTapOnHit && this.gameState.hasTapOnHit(attackerInstance)
+
+    if (finalDamage > 0 && hasTapOnHitAbility) {
+      // Only tap if defender is not already tapped
+      if (!defenderInstance.isTapped) {
+        defenderInstance.tap()
+        tapOnHitData = {
+          triggered: true,
+          attackerName: attackerInstance.creature.name,
+          defenderName: defenderInstance.creature.name,
+          damageDealt: finalDamage
+        }
+      } else {
+        // Defender was already tapped, ability triggered but had no effect
+        tapOnHitData = {
+          triggered: true,
+          alreadyTapped: true,
+          attackerName: attackerInstance.creature.name,
+          defenderName: defenderInstance.creature.name,
+          damageDealt: finalDamage
+        }
+      }
+    }
+
     return {
       destroyed: false,
       damage: finalDamage,
       originalDamage: damageAmount,
       shieldBlockReduction: shieldBlockReduction,
-      moraleChange: null
+      moraleChange: null,
+      tapOnHitTriggered: tapOnHitData?.triggered || false,
+      tapOnHitData: tapOnHitData
     }
   }
 
@@ -466,7 +510,21 @@ export class CombatResolver {
     const hasMelee = creatureInstance.creature.meleeAttack !== null
     const hasRanged = creatureInstance.creature.rangedAttack !== null
     const rangedRange = hasRanged ? creatureInstance.creature.rangedAttack.range : 0
-    const meleeRange = hasMelee ? (creatureInstance.creature.meleeAttack.range || 1) : 0
+    // REACH ability: Creatures with reach property can melee attack at extended range
+    // e.g., reach: 2 allows melee attacks at range 1 OR 2
+    const creatureReach = creatureInstance.creature.reach || 0
+    const meleeRange = hasMelee ? Math.max(creatureInstance.creature.meleeAttack.range || 1, creatureReach) : 0
+
+    // DEBUG: Log REACH 2 calculation
+    if (creatureReach > 0) {
+      console.log(`[REACH 2 DEBUG] getValidAttackTargets - Creature has REACH:`, {
+        creatureName: creatureInstance.creature.name,
+        creatureReach,
+        baseMeleeRange: creatureInstance.creature.meleeAttack?.range || 1,
+        effectiveMeleeRange: meleeRange,
+        position: creatureInstance.position
+      })
+    }
 
     // Ranged restriction #1: Check if attacker is on forest
     const attackerTile = this.gameState.getTile(creatureInstance.position.x, creatureInstance.position.y)
@@ -490,13 +548,41 @@ export class CombatResolver {
         const targetTile = this.gameState.getTile(enemyCreature.position.x, enemyCreature.position.y)
         const targetOnForest = targetTile?.terrain === TerrainTypes.FOREST
 
-        // Melee attack: adjacent range only
+        // Melee attack: check melee range (includes REACH ability if present)
         if (hasMelee && distance <= meleeRange) {
+          // Track if this is a REACH attack (distance > 1 using reach ability)
+          const isReachAttack = distance > 1 && creatureReach >= distance
+
+          // DEBUG: Log REACH 2 target found
+          if (creatureReach > 0) {
+            console.log(`[REACH 2 DEBUG] Valid melee target found:`, {
+              attackerName: creatureInstance.creature.name,
+              targetName: enemyCreature.creature.name,
+              distance,
+              isReachAttack,
+              creatureReach,
+              attackerPos: creatureInstance.position,
+              targetPos: enemyCreature.position
+            })
+          }
+
           targets.push({
             creature: enemyCreature,
             attackType: 'melee',
-            distance
+            distance,
+            isReachAttack, // True if attacking at range 2+ using REACH ability
+            reachDistance: isReachAttack ? distance : null
           })
+          // Track reach attacks for stats
+          if (isReachAttack && trackStats) {
+            trackStats.reachAttacksAvailable = (trackStats.reachAttacksAvailable || 0) + 1
+            console.log(`[REACH 2 DEBUG] REACH attack option tracked:`, {
+              attackerName: creatureInstance.creature.name,
+              targetName: enemyCreature.creature.name,
+              reachDistance: distance,
+              totalReachAttacksAvailable: trackStats.reachAttacksAvailable
+            })
+          }
         }
 
         // Ranged attack: check all restrictions

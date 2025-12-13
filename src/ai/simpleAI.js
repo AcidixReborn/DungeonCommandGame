@@ -115,6 +115,34 @@ export class SimpleAI {
   }
 
   /**
+   * Determine if AI should prioritize REACH attacks (attacking from range 2)
+   * REACH allows melee attacks at extended range - harder AI uses this strategically
+   * @returns {boolean} True if AI should consider reach attack options
+   */
+  shouldUseReach() {
+    // Easy AI: Never considers reach attacks (0%)
+    if (this.difficulty === 'easy') return false
+    // Hard AI: Always considers reach attacks (100%)
+    if (this.difficulty === 'hard') return true
+    // Medium AI: 50% chance
+    return Math.random() < 0.5
+  }
+
+  /**
+   * Determine if AI should value TAP ON HIT ability when choosing targets
+   * TAP ON HIT taps the target if damage is dealt - useful for disabling threats
+   * @returns {boolean} True if AI should prioritize targets that benefit from tapping
+   */
+  shouldUseTapOnHit() {
+    // Easy AI: Never considers tap value (0%)
+    if (this.difficulty === 'easy') return false
+    // Hard AI: Always considers tap value (100%)
+    if (this.difficulty === 'hard') return true
+    // Medium AI: 50% chance
+    return Math.random() < 0.5
+  }
+
+  /**
    * Execute AI turn for the current phase
    */
   executeTurn() {
@@ -196,7 +224,18 @@ export class SimpleAI {
     const actions = []
 
     // O(C) - Get all untapped creatures
-    const availableCreatures = player.creaturesInPlay.filter(c => !c.isTapped)
+    // STRATEGIC: Sort creatures so TAP ON HIT creatures attack FIRST
+    // This allows them to disable high-threat enemies before other creatures attack
+    const availableCreatures = player.creaturesInPlay
+      .filter(c => !c.isTapped)
+      .sort((a, b) => {
+        // TAP ON HIT creatures should act first (higher priority)
+        const aHasTapOnHit = this.gameState.hasTapOnHit && this.gameState.hasTapOnHit(a)
+        const bHasTapOnHit = this.gameState.hasTapOnHit && this.gameState.hasTapOnHit(b)
+        if (aHasTapOnHit && !bHasTapOnHit) return -1  // a goes first
+        if (!aHasTapOnHit && bHasTapOnHit) return 1   // b goes first
+        return 0  // maintain original order for ties
+      })
 
     // O(T) - Check if there are any treasures with morale remaining on the board
     const hasTreasuresAvailable = this.gameState.treasures?.some(t => !t.isDepleted()) || false
@@ -396,7 +435,7 @@ export class SimpleAI {
 
         const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
         if (attackTargets.length > 0) {
-          const target = this.selectWeakestTarget(attackTargets)
+          const target = this.selectWeakestTarget(attackTargets, creature)
           actions.push({
             type: 'attack_intention',
             attackerInstance: creature,
@@ -448,7 +487,7 @@ export class SimpleAI {
       if (!creature.hasAttackedThisTurn && didMove && !hasAttackIntention) {
         const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
         if (attackTargets.length > 0) {
-          const target = this.selectWeakestTarget(attackTargets)
+          const target = this.selectWeakestTarget(attackTargets, creature)
           actions.push({
             type: 'attack_intention',
             attackerInstance: creature,
@@ -802,7 +841,7 @@ export class SimpleAI {
    * @param {Array} targets - Array of attack target objects
    * @returns {Object} Best target
    */
-  selectWeakestTarget(targets) {
+  selectWeakestTarget(targets, attackerInstance = null) {
     // Hard AI: Consider UNTAP ON KILL when selecting targets
     if (this.difficulty === 'hard' && this.gameState.hasUntapOnAdjacentKill) {
       // Find any tapped Bugbear Berserkers we control
@@ -850,7 +889,169 @@ export class SimpleAI {
       }
     }
 
-    // Default behavior: select weakest target
+    // TAP ON HIT consideration: When attacking with a creature that has tapOnHit,
+    // STRATEGIC PRIORITY: Attack the STRONGEST untapped target that will SURVIVE the attack!
+    // Reason: TAP ON HIT is automatic - tapping a high-HP threat neutralizes them.
+    // Killing a low-HP target wastes the tap effect since dead creatures can't be tapped.
+    const attackerHasTapOnHit = attackerInstance &&
+      this.gameState.hasTapOnHit &&
+      this.gameState.hasTapOnHit(attackerInstance)
+
+    // TAP ON HIT targeting is ALWAYS enabled for creatures with the ability
+    // Unlike other abilities, this is automatic and the strategic value is inherent
+    // AI difficulty affects whether to prioritize SURVIVING targets vs killable targets
+    const shouldUseTapOnHitAbility = attackerHasTapOnHit && this.shouldUseTapOnHit()
+
+    // Only log for TAP ON HIT creatures to reduce console noise
+    if (attackerHasTapOnHit) {
+      console.log(`%c[TAP ON HIT] 🐺😈 ${attackerInstance.creature.name} is selecting target!`, 'background: #e91e63; color: white; font-size: 14px; padding: 4px;', {
+        difficulty: this.difficulty,
+        shouldUseTapOnHitAbility,
+        targetCount: targets.length,
+        untappedTargetCount: targets.filter(t => !t.creature.isTapped).length
+      })
+    }
+
+    if (attackerHasTapOnHit && targets.length > 0) {
+      // Get attacker's melee damage
+      const attackerDamage = attackerInstance.creature.meleeAttack?.damage || 0
+
+      // Filter to untapped targets - tapping already-tapped targets has no value
+      const untappedTargets = targets.filter(t => !t.creature.isTapped)
+
+      // Further filter to targets that will SURVIVE the attack (HP > damage)
+      // This ensures TAP ON HIT actually triggers (taps the target)
+      const survivingTargets = untappedTargets.filter(t => t.creature.currentHP > attackerDamage)
+
+      // CRITICAL DEBUG: Log every TAP ON HIT target selection
+      console.log(`%c[TAP ON HIT TARGET SELECTION] ${attackerInstance.creature.name}`, 'background: #e91e63; color: white; padding: 2px 4px;', {
+        difficulty: this.difficulty,
+        shouldUseTapOnHitAbility,
+        attackerDamage,
+        allTargets: targets.map(t => ({ name: t.creature.creature.name, hp: t.creature.currentHP, tapped: t.creature.isTapped })),
+        untappedCount: untappedTargets.length,
+        survivingCount: survivingTargets.length,
+        survivingTargets: survivingTargets.map(t => ({ name: t.creature.creature.name, hp: t.creature.currentHP }))
+      })
+
+      if (shouldUseTapOnHitAbility && survivingTargets.length > 0) {
+        // Hard/Medium AI: Pick the STRONGEST surviving target to maximize tap value
+        const selectedTarget = survivingTargets.reduce((strongest, current) => {
+          const strongestHP = strongest.creature.currentHP
+          const currentHP = current.creature.currentHP
+          return currentHP > strongestHP ? current : strongest
+        })
+        console.log(`%c[TAP ON HIT] ${this.difficulty.toUpperCase()}: SELECTED SURVIVING TARGET`, 'background: #4caf50; color: white;', {
+          selected: selectedTarget.creature.creature.name,
+          targetHP: selectedTarget.creature.currentHP,
+          attackerDamage,
+          willSurvive: true,
+          reason: 'Hard/Medium AI targets strongest surviving enemy'
+        })
+        return selectedTarget
+      } else if (attackerHasTapOnHit && untappedTargets.length > 0) {
+        // Easy AI or no surviving targets: Still prefer untapped targets
+        // Pick weakest untapped (more likely to kill, but tap is wasted)
+        const selectedTarget = untappedTargets.reduce((weakest, current) => {
+          const weakestHP = weakest.creature.currentHP
+          const currentHP = current.creature.currentHP
+          return currentHP < weakestHP ? current : weakest
+        })
+        const willSurvive = selectedTarget.creature.currentHP > attackerDamage
+        console.log(`%c[TAP ON HIT] ${this.difficulty.toUpperCase()}: SELECTED WEAKEST TARGET`, willSurvive ? 'background: #ff9800; color: white;' : 'background: #f44336; color: white;', {
+          selected: selectedTarget.creature.creature.name,
+          targetHP: selectedTarget.creature.currentHP,
+          attackerDamage,
+          willSurvive,
+          reason: survivingTargets.length === 0 ? 'NO SURVIVING TARGETS - all would die' : 'Easy AI prefers kills over taps'
+        })
+        return selectedTarget
+      }
+    }
+
+    // REACH consideration: When attacking with reach, apply 0/50/100 AI difficulty pattern
+    // Easy AI (0%) = always prefers adjacent, Medium AI (50%) = random, Hard AI (100%) = prefers reach for safety
+    const shouldUseReachAbility = this.shouldUseReach()
+    const reachTargets = targets.filter(t => t.isReachAttack)
+    const adjacentTargets = targets.filter(t => !t.isReachAttack)
+
+    // Only log for Horned Devil (REACH 2 creature) to reduce noise
+    const attackerHasReach = attackerInstance?.creature?.reach > 0
+    if (attackerHasReach) {
+      console.log(`%c[REACH 2 DEBUG] ${attackerInstance.creature.name} target selection:`, 'background: #9c27b0; color: white; font-size: 12px; padding: 2px 4px;', {
+        difficulty: this.difficulty,
+        shouldUseReachAbility,
+        totalTargets: targets.length,
+        reachTargetCount: reachTargets.length,
+        adjacentTargetCount: adjacentTargets.length,
+        hasChoice: reachTargets.length > 0 && adjacentTargets.length > 0,
+        reachTargets: reachTargets.map(t => ({ name: t.creature.creature.name, distance: t.distance, isReach: t.isReachAttack })),
+        adjacentTargets: adjacentTargets.map(t => ({ name: t.creature.creature.name, distance: t.distance }))
+      })
+    }
+
+    // Only apply REACH preference logic if we have BOTH reach and adjacent options
+    if (reachTargets.length > 0 && adjacentTargets.length > 0) {
+      const weakestReach = reachTargets.reduce((w, c) => c.creature.currentHP < w.creature.currentHP ? c : w)
+      const weakestAdjacent = adjacentTargets.reduce((w, c) => c.creature.currentHP < w.creature.currentHP ? c : w)
+
+      console.log(`[AI DEBUG] REACH 2 comparison:`, {
+        weakestReachTarget: weakestReach.creature.creature.name,
+        weakestReachHP: weakestReach.creature.currentHP,
+        weakestAdjacentTarget: weakestAdjacent.creature.creature.name,
+        weakestAdjacentHP: weakestAdjacent.creature.currentHP,
+        hpDifference: weakestAdjacent.creature.currentHP - weakestReach.creature.currentHP,
+        threshold: 30
+      })
+
+      if (shouldUseReachAbility) {
+        // Hard/Medium AI: Prefer reach for safety (if targets have similar HP)
+        if (weakestReach.creature.currentHP <= weakestAdjacent.creature.currentHP + 30) {
+          console.log(`[AI ${this.difficulty.toUpperCase()}] REACH 2: Attacking from range 2 for safety:`, {
+            selectedTarget: weakestReach.creature.creature.name,
+            distance: weakestReach.distance,
+            isReachAttack: weakestReach.isReachAttack
+          })
+          // Add reachDecision metadata to track AI decision
+          weakestReach.reachDecision = {
+            offered: true,
+            triggered: true,
+            declined: false,
+            difficulty: this.difficulty
+          }
+          return weakestReach
+        } else {
+          console.log(`[AI ${this.difficulty.toUpperCase()}] REACH 2: Adjacent target has significantly lower HP, preferring adjacent attack`)
+          // Reach was offered but HP difference led to declining reach
+          weakestAdjacent.reachDecision = {
+            offered: true,
+            triggered: false,
+            declined: true,
+            difficulty: this.difficulty,
+            reason: 'hp_difference'
+          }
+          return weakestAdjacent
+        }
+      } else {
+        // Easy AI (0%): Always prefer adjacent targets over reach targets
+        console.log(`[AI ${this.difficulty.toUpperCase()}] REACH 2: Preferring adjacent attack (0% reach usage):`, {
+          selectedTarget: weakestAdjacent.creature.creature.name,
+          distance: weakestAdjacent.distance || 1,
+          reason: 'Easy AI does not use reach strategically'
+        })
+        // Reach was offered but Easy AI declined (0% rule)
+        weakestAdjacent.reachDecision = {
+          offered: true,
+          triggered: false,
+          declined: true,
+          difficulty: this.difficulty,
+          reason: 'easy_ai_0_percent'
+        }
+        return weakestAdjacent
+      }
+    }
+
+    // Default behavior: select weakest target (when no reach/adjacent choice exists)
     return targets.reduce((weakest, current) => {
       const weakestHP = weakest.creature.currentHP
       const currentHP = current.creature.currentHP

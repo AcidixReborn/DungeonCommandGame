@@ -2351,6 +2351,75 @@ export class GameState {
   }
 
   // --------------------------------------------------------------------------
+  // 2A-2: TAP ON HIT (Horned Devil, Wolf - Tyranny of Goblins)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Check if creature has TAP ON HIT ability
+   * TAP ON HIT: Whenever this creature deals melee damage, tap the target
+   * Big O: O(1) - checks direct property on creature
+   * @param {Object} creatureInstance - The creature instance to check
+   * @returns {boolean} True if creature has TAP ON HIT ability
+   */
+  hasTapOnHit(creatureInstance) {
+    if (!creatureInstance?.creature) {
+      return false
+    }
+    // Check direct property first (most efficient)
+    if (creatureInstance.creature.tapOnHit === true) {
+      return true
+    }
+    // Fallback: check specialAbilities array
+    if (!creatureInstance.creature.specialAbilities) {
+      return false
+    }
+    return creatureInstance.creature.specialAbilities.some(
+      ability => (typeof ability === 'object' && ability.id === 'tap_on_hit') ||
+                 (typeof ability === 'string' && ability.toUpperCase().includes('TAP') && ability.toUpperCase().includes('HIT'))
+    )
+  }
+
+  /**
+   * Check if creature has REACH ability and return reach distance
+   * REACH: Creature can make melee attacks at extended range
+   * Big O: O(1) - checks direct property on creature
+   * @param {Object} creatureInstance - The creature instance to check
+   * @returns {number} Reach distance (0 if no reach ability)
+   */
+  getCreatureReach(creatureInstance) {
+    if (!creatureInstance?.creature) {
+      console.log(`[REACH 2 DEBUG] getCreatureReach - No creature instance`)
+      return 0
+    }
+    const reach = creatureInstance.creature.reach || 0
+    if (reach > 0) {
+      console.log(`[REACH 2 DEBUG] getCreatureReach - Found REACH:`, {
+        creatureName: creatureInstance.creature.name,
+        reach
+      })
+    }
+    return reach
+  }
+
+  /**
+   * Check if creature has any REACH ability
+   * Big O: O(1) - checks direct property on creature
+   * @param {Object} creatureInstance - The creature instance to check
+   * @returns {boolean} True if creature has REACH ability
+   */
+  hasReach(creatureInstance) {
+    const reach = this.getCreatureReach(creatureInstance)
+    const hasReachAbility = reach > 1
+    if (hasReachAbility) {
+      console.log(`[REACH 2 DEBUG] hasReach - TRUE:`, {
+        creatureName: creatureInstance?.creature?.name,
+        reach
+      })
+    }
+    return hasReachAbility
+  }
+
+  // --------------------------------------------------------------------------
   // 2B: WEB ORDER CARD (Sting of Lolth)
   // --------------------------------------------------------------------------
 
