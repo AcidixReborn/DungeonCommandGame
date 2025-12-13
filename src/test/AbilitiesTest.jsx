@@ -270,12 +270,27 @@ function AbilitiesTest() {
       hard: { offered: 0, triggered: 0, declined: 0, blocked: 0 }
     },
     rider: {
-      name: 'RIDER',
+      name: 'RIDER (Skeleton)',
       creature: 'Skeletal Lancer',
       faction: 'Curse of Undeath',
       // Overall totals - on death, deploy Skeleton creature from hand
       timesOffered: 0,  // Times Skeletal Lancer was destroyed with eligible Skeleton in hand
       timesTriggered: 0,  // Times a Skeleton was deployed via RIDER
+      timesDeclined: 0,  // Times AI declined (difficulty-based 0/50/100 pattern)
+      creaturesDeployed: 0,  // Total creatures deployed
+      totalMoraleSaved: 0,  // Total morale saved (deployed creature level)
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, deployed: 0, moraleSaved: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, deployed: 0, moraleSaved: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, deployed: 0, moraleSaved: 0 }
+    },
+    riderGoblin: {
+      name: 'RIDER (Goblin/Wolf)',
+      creature: 'Goblin Wolf Rider',
+      faction: 'Tyranny of Goblins',
+      // Overall totals - on death, deploy Goblin or Wolf creature from hand
+      timesOffered: 0,  // Times Goblin Wolf Rider was destroyed with eligible creature in hand
+      timesTriggered: 0,  // Times a Goblin/Wolf was deployed via RIDER
       timesDeclined: 0,  // Times AI declined (difficulty-based 0/50/100 pattern)
       creaturesDeployed: 0,  // Total creatures deployed
       totalMoraleSaved: 0,  // Total morale saved (deployed creature level)
@@ -1126,20 +1141,24 @@ function AbilitiesTest() {
             }
           }
 
-          // Check for RIDER ability (Skeletal Lancer dies)
+          // Check for RIDER ability (Skeletal Lancer or Goblin Wolf Rider dies)
+          // Supports both Curse of Undeath (Skeleton) and Tyranny of Goblins (Goblin/Wolf)
           if (attackResult.riderTriggered && attackResult.riderData) {
-            const { ownerPlayerId, creatureLevel, position } = attackResult.riderData
+            const { ownerPlayerId, creatureLevel, position, faction } = attackResult.riderData
             const defenderPlayer = gameState.players[ownerPlayerId]
             const difficulty = defenderPlayer?.aiDifficulty || 'medium'
 
-            // Check if there are eligible Skeleton creatures in hand
-            const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3)
+            // Determine which stats key to use based on faction
+            const statsKey = faction === 'Tyranny of Goblins' ? 'riderGoblin' : 'rider'
+
+            // Check if there are eligible creatures in hand (faction-specific filtering)
+            const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3, faction)
 
             if (eligibleCreatures.length > 0) {
               // Track that RIDER was offered
-              creatureAbilityStats.rider.timesOffered++
-              if (creatureAbilityStats.rider[difficulty]) {
-                creatureAbilityStats.rider[difficulty].offered++
+              creatureAbilityStats[statsKey].timesOffered++
+              if (creatureAbilityStats[statsKey][difficulty]) {
+                creatureAbilityStats[statsKey][difficulty].offered++
               }
 
               // Apply 0/50/100 difficulty rule
@@ -1184,19 +1203,19 @@ function AbilitiesTest() {
                 defenderPlayer.creaturesInPlay.push(creatureInstance)
 
                 // Track triggered
-                creatureAbilityStats.rider.timesTriggered++
-                creatureAbilityStats.rider.creaturesDeployed++
-                creatureAbilityStats.rider.totalMoraleSaved += moraleSaved
-                if (creatureAbilityStats.rider[difficulty]) {
-                  creatureAbilityStats.rider[difficulty].triggered++
-                  creatureAbilityStats.rider[difficulty].deployed++
-                  creatureAbilityStats.rider[difficulty].moraleSaved += moraleSaved
+                creatureAbilityStats[statsKey].timesTriggered++
+                creatureAbilityStats[statsKey].creaturesDeployed++
+                creatureAbilityStats[statsKey].totalMoraleSaved += moraleSaved
+                if (creatureAbilityStats[statsKey][difficulty]) {
+                  creatureAbilityStats[statsKey][difficulty].triggered++
+                  creatureAbilityStats[statsKey][difficulty].deployed++
+                  creatureAbilityStats[statsKey][difficulty].moraleSaved += moraleSaved
                 }
               } else {
                 // Track declined
-                creatureAbilityStats.rider.timesDeclined++
-                if (creatureAbilityStats.rider[difficulty]) {
-                  creatureAbilityStats.rider[difficulty].declined++
+                creatureAbilityStats[statsKey].timesDeclined++
+                if (creatureAbilityStats[statsKey][difficulty]) {
+                  creatureAbilityStats[statsKey][difficulty].declined++
                 }
               }
             }
@@ -4168,6 +4187,101 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         RIDER: When Skeletal Lancer dies, deploy a Skeleton (Level 3 or lower) from hand to the same tile. Morale loss = (4 - deployed creature level). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* RIDER Ability Card - Goblin Wolf Rider */}
+              <Card bg="secondary" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🐴 RIDER (Goblin Wolf Rider - Tyranny of Goblins)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Goblin Wolf Rider destroyed with eligible creature in hand)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.riderGoblin?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (Goblin/Wolf deployed)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.riderGoblin?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.riderGoblin?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.riderGoblin?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.riderGoblin.timesTriggered / results.creatureAbilityStats.riderGoblin.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Total Creatures Deployed</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.riderGoblin?.creaturesDeployed || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Morale Saved</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.riderGoblin?.totalMoraleSaved || 0}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.riderGoblin?.[diff] || {}
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        RIDER: When Goblin Wolf Rider dies, deploy a Goblin or Wolf creature (Level 3 or lower) from hand to the same tile. Morale loss = (4 - deployed creature level). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

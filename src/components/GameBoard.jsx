@@ -1258,9 +1258,10 @@ function GameBoard({ onTurnInfoChange }) {
       gameState.checkGameOver()
 
       // RIDER ability check - must be processed BEFORE other follow-up attacks
+      // Supports both Curse of Undeath (Skeleton) and Tyranny of Goblins (Goblin/Wolf)
       if (result.riderTriggered && result.riderData) {
-        const { position, ownerPlayerId, creatureLevel, creatureName } = result.riderData
-        const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3)
+        const { position, ownerPlayerId, creatureLevel, creatureName, faction } = result.riderData
+        const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3, faction)
 
         if (eligibleCreatures.length > 0) {
           // Check if the RIDER owner is a human player (not AI)
@@ -1272,6 +1273,7 @@ function GameBoard({ onTurnInfoChange }) {
             setRiderData({
               destroyedCreature: creatureName,
               creatureLevel: creatureLevel,
+              faction: faction,
               position: position,
               ownerPlayerId: ownerPlayerId,
               eligibleCreatures: eligibleCreatures
@@ -1284,7 +1286,7 @@ function GameBoard({ onTurnInfoChange }) {
             return // Wait for modal selection
           } else {
             // AI handles RIDER
-            handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, null)
+            handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, faction, null)
           }
         }
       }
@@ -1723,9 +1725,10 @@ function GameBoard({ onTurnInfoChange }) {
       gameState.checkGameOver()
 
       // RIDER ability check - must be processed BEFORE other follow-up attacks
+      // Supports both Curse of Undeath (Skeleton) and Tyranny of Goblins (Goblin/Wolf)
       if (result.riderTriggered && result.riderData) {
-        const { position, ownerPlayerId, creatureLevel, creatureName } = result.riderData
-        const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3)
+        const { position, ownerPlayerId, creatureLevel, creatureName, faction } = result.riderData
+        const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3, faction)
 
         if (eligibleCreatures.length > 0) {
           // Check if the RIDER owner is a human player (not AI)
@@ -1737,6 +1740,7 @@ function GameBoard({ onTurnInfoChange }) {
             setRiderData({
               destroyedCreature: creatureName,
               creatureLevel: creatureLevel,
+              faction: faction,
               position: position,
               ownerPlayerId: ownerPlayerId,
               eligibleCreatures: eligibleCreatures
@@ -1749,7 +1753,7 @@ function GameBoard({ onTurnInfoChange }) {
             return // Wait for modal selection
           } else {
             // AI handles RIDER
-            handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, null)
+            handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, faction, null)
           }
         }
       }
@@ -3496,21 +3500,23 @@ function GameBoard({ onTurnInfoChange }) {
         // Check for game over
         gameState.checkGameOver()
 
-        // RIDER ability check - when AI-defended Skeletal Lancer is destroyed
-        // This handles: Human attacks AI's Skeletal Lancer, or AI attacks AI's Skeletal Lancer
+        // RIDER ability check - when AI-defended RIDER creature is destroyed
+        // This handles: Human attacks AI's Skeletal Lancer/Goblin Wolf Rider, or AI attacks AI's RIDER creature
+        // Supports both Curse of Undeath (Skeleton) and Tyranny of Goblins (Goblin/Wolf)
         if (result.destroyed && result.riderTriggered && result.riderData) {
-          const { position, ownerPlayerId, creatureLevel, creatureName } = result.riderData
-          const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3)
+          const { position, ownerPlayerId, creatureLevel, creatureName, faction } = result.riderData
+          const eligibleCreatures = gameState.getEligibleRiderCreatures(ownerPlayerId, 3, faction)
 
           if (eligibleCreatures.length > 0) {
             // Check if RIDER owner is human or AI
             const isRiderOwnerHuman = isPlayerHuman(ownerPlayerId)
 
             if (isRiderOwnerHuman) {
-              // Human's Skeletal Lancer killed by AI - show modal for human
+              // Human's RIDER creature killed by AI - show modal for human
               setRiderData({
                 destroyedCreature: creatureName,
                 creatureLevel: creatureLevel,
+                faction: faction,
                 position: position,
                 ownerPlayerId: ownerPlayerId,
                 eligibleCreatures: eligibleCreatures
@@ -3519,8 +3525,8 @@ function GameBoard({ onTurnInfoChange }) {
               setProcessingAIAction(false)
               return // Wait for modal selection before continuing
             } else {
-              // AI's Skeletal Lancer killed - AI decides on RIDER
-              handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, () => {
+              // AI's RIDER creature killed - AI decides on RIDER
+              handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, faction, () => {
                 setProcessingAIAction(false)
               })
               return
@@ -4939,14 +4945,16 @@ function GameBoard({ onTurnInfoChange }) {
   /**
    * Handle AI RIDER ability decision
    * Applies 0/50/100 difficulty rule
+   * Supports both Curse of Undeath (Skeleton) and Tyranny of Goblins (Goblin/Wolf)
    * @param {string} playerId - AI player ID
    * @param {Array} eligibleCreatures - Eligible creatures from hand
    * @param {Object} position - Position where creature died
    * @param {number} creatureLevel - Level of destroyed creature
    * @param {string} destroyedCreature - Name of destroyed creature
+   * @param {string} faction - Faction of destroyed creature (for tracking)
    * @param {Function} callback - Callback to execute after RIDER resolution
    */
-  const handleAIRiderDecision = (playerId, eligibleCreatures, position, creatureLevel, destroyedCreature, callback) => {
+  const handleAIRiderDecision = (playerId, eligibleCreatures, position, creatureLevel, destroyedCreature, faction, callback) => {
     const player = gameState.players[playerId]
     if (!player) {
       if (callback) callback()
@@ -4955,10 +4963,14 @@ function GameBoard({ onTurnInfoChange }) {
 
     const aiDifficulty = player.aiDifficulty || 'medium'
 
+    // Determine which stats key to use based on faction
+    const statsKey = faction === 'Tyranny of Goblins' ? 'riderGoblin' : 'rider'
+
     // Track that RIDER was offered
     if (window.trackAbility) {
-      window.trackAbility('rider', 'offered', aiDifficulty, {
+      window.trackAbility(statsKey, 'offered', aiDifficulty, {
         destroyedCreature: destroyedCreature,
+        faction: faction,
         eligibleCount: eligibleCreatures.length
       })
     }
@@ -4980,10 +4992,10 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     if (!shouldDeploy) {
-      console.log(`[RIDER] AI (${aiDifficulty}) declined to deploy replacement for ${destroyedCreature}`)
       if (window.trackAbility) {
-        window.trackAbility('rider', 'declined', aiDifficulty, {
+        window.trackAbility(statsKey, 'declined', aiDifficulty, {
           destroyedCreature: destroyedCreature,
+          faction: faction,
           moraleLost: creatureLevel
         })
       }
@@ -5023,15 +5035,15 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Track for abilities test
     if (window.trackAbility) {
-      window.trackAbility('rider', 'triggered', aiDifficulty, {
+      window.trackAbility(statsKey, 'triggered', aiDifficulty, {
         deployedCreature: selectedCreature.name,
         deployedLevel: selectedCreature.level,
+        faction: faction,
         moraleCost: moraleCost,
         moraleSaved: selectedCreature.level
       })
     }
 
-    console.log(`[RIDER] AI (${aiDifficulty}) deployed ${selectedCreature.name} (Level ${selectedCreature.level}). Lost ${moraleCost} morale.`)
     addToast(`AI RIDER: Deployed ${selectedCreature.name}. Lost ${moraleCost} morale.`, 'info')
 
     if (callback) callback()
@@ -7281,13 +7293,17 @@ function GameBoard({ onTurnInfoChange }) {
             const riderOwner = gameState?.players[riderData.ownerPlayerId]
             const currentLeadership = riderOwner?.leadership || 0
             const currentMorale = riderOwner?.morale || 0
+            // Faction-specific creature type text
+            const creatureTypeText = riderData.faction === 'Tyranny of Goblins'
+              ? 'Goblin or Wolf'
+              : 'Skeleton'
             return (
             <>
               {/* Explanation Alert */}
               <Alert variant="info" style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}>
                 <strong>{riderData.destroyedCreature}</strong> was destroyed!
                 <br />
-                You may deploy a Skeleton creature (Level 3 or lower) from your hand to tile ({riderData.position?.x}, {riderData.position?.y}).
+                You may deploy a {creatureTypeText} creature (Level 3 or lower) from your hand to tile ({riderData.position?.x}, {riderData.position?.y}).
               </Alert>
 
               {/* Current Player Stats */}
@@ -7316,7 +7332,7 @@ function GameBoard({ onTurnInfoChange }) {
               </div>
 
               {/* Creature Selection Cards */}
-              <p className="mb-3"><strong>Select a Skeleton to deploy:</strong></p>
+              <p className="mb-3"><strong>Select a {creatureTypeText} to deploy:</strong></p>
               <Row className="g-3 justify-content-center">
                 {riderData.eligibleCreatures.map((creature, index) => {
                   const moraleCost = riderData.creatureLevel - creature.level

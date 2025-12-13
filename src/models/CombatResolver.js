@@ -376,16 +376,17 @@ export class CombatResolver {
       // RIDER ability: Check if destroyed creature can deploy replacement
       // NOTE: We must capture position BEFORE the creature is removed from the tile
       // The actual deployment happens in GameBoard.jsx after this result is processed
+      // Supports both Curse of Undeath (Skeleton) and Tyranny of Goblins (Goblin/Wolf)
       let riderData = null
       if (this.gameState.hasRider(defenderInstance)) {
         // Store the position where the creature died for RIDER deployment
         riderData = {
           creatureName: defenderInstance.creature.name,
           creatureLevel: defenderInstance.creature.level,
+          faction: defenderInstance.creature.faction,
           position: defenderInstance.position ? { ...defenderInstance.position } : null,
           ownerPlayerId: defenderOwner
         }
-        console.log(`[RIDER] ${defenderInstance.creature.name} destroyed - RIDER ability may trigger at position (${riderData.position?.x}, ${riderData.position?.y})`)
       }
 
       // UNTAP ON KILL ability: Check if a Bugbear Berserker should untap

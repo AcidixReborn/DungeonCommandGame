@@ -571,23 +571,36 @@ export class GameState {
   }
 
   /**
-   * Get eligible Skeleton creatures from player's hand for RIDER deployment
+   * Get eligible creatures from player's hand for RIDER deployment
+   * Faction-specific filtering:
+   * - Curse of Undeath: Skeleton type only
+   * - Tyranny of Goblins: Goblin or Wolf type only
    * @param {string} playerId - Player ID to check
    * @param {number} maxLevel - Maximum level allowed (default 3)
+   * @param {string} faction - Faction of the destroyed RIDER creature (for type filtering)
    * @returns {Array} Array of eligible creature cards
    */
-  getEligibleRiderCreatures(playerId, maxLevel = 3) {
+  getEligibleRiderCreatures(playerId, maxLevel = 3, faction = null) {
     const player = this.players[playerId]
     if (!player) return []
 
     return player.creatureHand.filter(creature => {
-      // Must be Skeleton type
-      const isSkeleton = creature.type && creature.type.includes('Skeleton')
       // Must be at or below max level
       const validLevel = creature.level <= maxLevel
       // Must have enough leadership to deploy
       const hasLeadership = player.leadership >= creature.level
-      return isSkeleton && validLevel && hasLeadership
+
+      // Faction-specific type check
+      let validType = false
+      if (faction === 'Tyranny of Goblins') {
+        // Goblin Wolf Rider: Can deploy Goblin or Wolf creatures
+        validType = creature.type?.includes('Goblin') || creature.type?.includes('Wolf')
+      } else {
+        // Default: Curse of Undeath - Skeletal Lancer deploys Skeleton creatures
+        validType = creature.type?.includes('Skeleton')
+      }
+
+      return validType && validLevel && hasLeadership
     })
   }
 
@@ -595,10 +608,11 @@ export class GameState {
    * Check if RIDER ability can trigger (has eligible creatures to deploy)
    * @param {string} playerId - Player ID to check
    * @param {number} maxLevel - Maximum level allowed (default 3)
+   * @param {string} faction - Faction of the destroyed RIDER creature (for type filtering)
    * @returns {boolean} True if RIDER can trigger
    */
-  canTriggerRider(playerId, maxLevel = 3) {
-    return this.getEligibleRiderCreatures(playerId, maxLevel).length > 0
+  canTriggerRider(playerId, maxLevel = 3, faction = null) {
+    return this.getEligibleRiderCreatures(playerId, maxLevel, faction).length > 0
   }
 
   // ============================================================================

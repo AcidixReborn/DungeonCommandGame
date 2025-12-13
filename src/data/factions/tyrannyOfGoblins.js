@@ -215,7 +215,7 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: RIDER - When this creature is destroyed, you can immediately deploy 1 Goblin or Wolf creature of Level 3 or lower in the square it occupied.'],
+    specialAbilities: ['RIDER: When this creature is destroyed, you may deploy 1 Goblin or Wolf creature (Level 3 or lower) from your hand to this tile. Morale loss = (destroyed creature level - deployed creature level).'],
     faction: FACTION_NAME,
     imageUrl: goblinWolfRiderImg
   },
