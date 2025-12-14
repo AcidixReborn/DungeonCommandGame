@@ -185,7 +185,7 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: This creatures melee attacks deal +10 damage against tapped creatures.'],
+    specialAbilities: ['CUTTER: This creature\'s melee attacks deal +10 damage against tapped creatures.'],
     faction: FACTION_NAME,
     imageUrl: goblinCutter1Img
   },
@@ -200,7 +200,7 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PLACEHOLDER: This creatures melee attacks deal +10 damage against tapped creatures.'],
+    specialAbilities: ['CUTTER: This creature\'s melee attacks deal +10 damage against tapped creatures.'],
     faction: FACTION_NAME,
     imageUrl: goblinCutter2Img
   },

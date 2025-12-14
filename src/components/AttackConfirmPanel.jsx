@@ -60,6 +60,11 @@ function AttackConfirmPanel({
     ? gameState.getFlankingBonus(attacker, defender)
     : 0
 
+  // Check for CUTTER bonus (+10 vs tapped creatures)
+  const cutterBonus = isMeleeAttack && gameState?.getCutterBonus
+    ? gameState.getCutterBonus(attacker, defender)
+    : 0
+
   const baseDamage = isFlashingBlades || isHiddenBlade
     ? 10
     : isConfusionGaze
@@ -68,7 +73,7 @@ function AttackConfirmPanel({
         ? attacker.creature.meleeAttack?.damage || 0
         : attacker.creature.rangedAttack?.damage || 0
 
-  const damage = baseDamage + flankingBonus
+  const damage = baseDamage + flankingBonus + cutterBonus
 
   // Check for LIFE DRAIN ability (Vampire Stalker) - only triggers on melee attacks with damage > 0
   const hasLifeDrain = gameState?.hasLifeDrain && gameState.hasLifeDrain(attacker)
@@ -180,11 +185,21 @@ function AttackConfirmPanel({
         </div>
         <div className="combat-info-row">
           <span>Damage:</span>
-          {flankingBonus > 0 ? (
+          {cutterBonus > 0 || flankingBonus > 0 ? (
             <span>
               <Badge bg="warning" text="dark">{baseDamage}</Badge>
-              <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
-              <span style={{ color: '#888', marginLeft: '4px' }}>(FLANKING)</span>
+              {flankingBonus > 0 && (
+                <>
+                  <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
+                  <span style={{ color: '#888', marginLeft: '4px' }}>(FLANKING)</span>
+                </>
+              )}
+              {cutterBonus > 0 && (
+                <>
+                  <span style={{ color: '#ff5722', marginLeft: '4px' }}>+{cutterBonus}</span>
+                  <span style={{ color: '#888', marginLeft: '4px' }}>(CUTTER)</span>
+                </>
+              )}
               <span style={{ marginLeft: '4px' }}>=</span>
               <Badge bg="success" style={{ marginLeft: '4px' }}>{damage}</Badge>
             </span>

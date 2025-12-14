@@ -1173,6 +1173,62 @@ export class GameState {
   }
 
   // ============================================================================
+  // CUTTER - Goblin Cutter Creature Ability (Tyranny of Goblins)
+  // +10 melee damage against tapped creatures
+  // AI difficulty: 0/50/100 rule (Easy never, Medium 50%, Hard always)
+  // ============================================================================
+
+  /**
+   * Check if creature has CUTTER ability
+   * Big O: O(a) where a = number of special abilities (typically 1-3)
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has CUTTER ability
+   */
+  hasCutter(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('CUTTER')
+    )
+  }
+
+  /**
+   * Get CUTTER bonus damage (+10 if attacker has CUTTER and defender is tapped)
+   * Applies 0/50/100 AI difficulty rule based on ATTACKER's owner
+   * Big O: O(1) - constant time check
+   * @param {CreatureInstance} attackerInstance - Creature making the attack
+   * @param {CreatureInstance} defenderInstance - Target of the attack
+   * @returns {number} Bonus damage (10 or 0)
+   */
+  getCutterBonus(attackerInstance, defenderInstance) {
+    // Must have CUTTER ability
+    if (!this.hasCutter(attackerInstance)) return 0
+
+    // Defender must exist and be tapped
+    if (!defenderInstance) return 0
+    if (!defenderInstance.isTapped) return 0
+
+    // AI difficulty check (0/50/100 rule) - based on ATTACKER's owner
+    const attackerOwner = attackerInstance.owner
+    const attackerPlayer = this.players[attackerOwner]
+
+    if (attackerPlayer && !attackerPlayer.isHuman) {
+      const aiDifficulty = attackerPlayer.aiDifficulty || 'medium'
+
+      if (aiDifficulty === 'easy') {
+        return 0  // Easy AI never uses CUTTER bonus
+      } else if (aiDifficulty === 'medium') {
+        if (Math.random() >= 0.5) {
+          return 0  // Medium AI: 50% chance
+        }
+      }
+      // Hard AI: always use CUTTER bonus
+    }
+
+    // Human players or Hard AI - return +10 bonus
+    return 10
+  }
+
+  // ============================================================================
   // UNTAP ON KILL - Bugbear Berserker Ability (Tyranny of Goblins)
   // Whenever an adjacent enemy creature is destroyed, untap this creature.
   // Only triggers during the Bugbear's faction's turn.

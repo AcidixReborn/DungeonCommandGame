@@ -103,8 +103,13 @@ function DefenseOptionsPanel({
     ? gameState.getFlankingBonus(attackerInstance, defenderInstance)
     : 0
 
-  // Total damage includes base + FLANKING bonus
-  const originalDamage = baseDamage + flankingBonus
+  // Check for CUTTER bonus (+10 vs tapped creatures)
+  const cutterBonus = attackType === 'melee' && gameState?.getCutterBonus
+    ? gameState.getCutterBonus(attackerInstance, defenderInstance)
+    : 0
+
+  // Total damage includes base + FLANKING + CUTTER bonuses
+  const originalDamage = baseDamage + flankingBonus + cutterBonus
 
   // Check for MAGIC CIRCLE AURA passive (Hobgoblin Sorcerer on Magic Circle)
   // This is the FIRST damage reduction - prevents 10 damage for Goblin/Hobgoblin/Bugbear
@@ -333,11 +338,21 @@ function DefenseOptionsPanel({
         </div>
         <div className="combat-info-row">
           <span>Damage:</span>
-          {flankingBonus > 0 ? (
+          {cutterBonus > 0 || flankingBonus > 0 ? (
             <span>
               <Badge bg="warning" text="dark">{baseDamage}</Badge>
-              <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
-              <span style={{ color: '#888', marginLeft: '4px' }}>(FLANKING)</span>
+              {flankingBonus > 0 && (
+                <>
+                  <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
+                  <span style={{ color: '#888', marginLeft: '4px' }}>(FLANKING)</span>
+                </>
+              )}
+              {cutterBonus > 0 && (
+                <>
+                  <span style={{ color: '#ff5722', marginLeft: '4px' }}>+{cutterBonus}</span>
+                  <span style={{ color: '#888', marginLeft: '4px' }}>(CUTTER)</span>
+                </>
+              )}
               <span style={{ marginLeft: '4px' }}>=</span>
               <Badge bg="success" style={{ marginLeft: '4px' }}>{originalDamage}</Badge>
             </span>

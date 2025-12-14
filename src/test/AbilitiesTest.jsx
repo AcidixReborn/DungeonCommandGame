@@ -479,6 +479,20 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, blocked: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, blocked: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, blocked: 0 }
+    },
+    cutter: {
+      name: 'CUTTER',
+      creature: 'Goblin Cutter',
+      faction: 'Tyranny of Goblins',
+      // Overall totals - passive melee damage bonus vs tapped creatures
+      timesOffered: 0,      // Times CUTTER could apply (target was tapped during melee)
+      timesTriggered: 0,    // Times CUTTER bonus was applied
+      timesDeclined: 0,     // Times AI didn't use (Easy=always, Medium=50%, Hard=never)
+      bonusDamageDealt: 0,  // Total bonus damage dealt (+10 per trigger)
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, damage: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, damage: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, damage: 0 }
     }
   })
 
@@ -699,6 +713,46 @@ function AbilitiesTest() {
             } else {
               creatureAbilityStats.flanking.timesDeclined++
               creatureAbilityStats.flanking[difficulty].declined++
+            }
+          }
+        }
+
+        // Track CUTTER ability (Goblin Cutter) - 0/50/100 AI pattern for +10 damage vs tapped creatures
+        if (targetInfo.attackType === 'melee' && creatureAbilityStats && gameState.hasCutter && gameState.hasCutter(attackerInstance)) {
+          // Check if defender is tapped
+          if (defenderInstance.isTapped) {
+            // Defender is tapped - CUTTER conditions are met
+            const difficultyRoll = Math.random()
+            let difficulty = 'easy'
+            let useCutter = false
+
+            if (difficultyRoll < 0.33) {
+              // Easy AI - never uses CUTTER bonus (0%)
+              difficulty = 'easy'
+              useCutter = false
+            } else if (difficultyRoll < 0.67) {
+              // Medium AI - 50% chance to use CUTTER
+              difficulty = 'medium'
+              useCutter = Math.random() < 0.5
+            } else {
+              // Hard AI - always uses CUTTER (100%)
+              difficulty = 'hard'
+              useCutter = true
+            }
+
+            // Track overall stats
+            creatureAbilityStats.cutter.timesOffered++
+            creatureAbilityStats.cutter[difficulty].offered++
+
+            if (useCutter) {
+              const cutterBonus = 10 // CUTTER is always +10
+              creatureAbilityStats.cutter.timesTriggered++
+              creatureAbilityStats.cutter.bonusDamageDealt += cutterBonus
+              creatureAbilityStats.cutter[difficulty].triggered++
+              creatureAbilityStats.cutter[difficulty].damage += cutterBonus
+            } else {
+              creatureAbilityStats.cutter.timesDeclined++
+              creatureAbilityStats.cutter[difficulty].declined++
             }
           }
         }
@@ -2573,7 +2627,7 @@ function AbilitiesTest() {
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
     if (!creatureAbilityStats) return { working: 0, total: 25 }
     let working = 0
-    const total = 26 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL, SHIELD BLOCK, HEALING TOUCH, REGENERATE 10, UNTAP ON KILL, MAGIC CIRCLE AURA
+    const total = 27 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL, SHIELD BLOCK, HEALING TOUCH, REGENERATE 10, UNTAP ON KILL, MAGIC CIRCLE AURA, CUTTER
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -2610,6 +2664,7 @@ function AbilitiesTest() {
     if (creatureAbilityStats.reach_2?.timesTriggered > 0) working++
     if (creatureAbilityStats.tap_on_hit?.timesTriggered > 0) working++
     if (creatureAbilityStats.magic_circle_aura?.timesTriggered > 0) working++
+    if (creatureAbilityStats.cutter?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -5320,6 +5375,97 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         MAGIC CIRCLE AURA: While Hobgoblin Sorcerer is on a Magic Circle tile, all Goblins, Hobgoblins, and Bugbears you control gain "Prevent 10 damage from 1 source" once per turn. Shield resets each turn. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* CUTTER - Goblin Cutter (Tyranny of Goblins) */}
+              <Card bg="dark" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🗡️ CUTTER (Goblin Cutter - Tyranny of Goblins)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (target was tapped during melee)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.cutter?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (+10 bonus applied)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.cutter?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.cutter?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.cutter?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.cutter.timesTriggered / results.creatureAbilityStats.cutter.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td>Total Bonus Damage Dealt</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.cutter?.bonusDamageDealt || 0}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.cutter?.[diff] || { offered: 0, triggered: 0, declined: 0, damage: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        CUTTER: +10 melee damage against tapped creatures. Synergizes with TAP ON HIT abilities (Wolf, Horned Devil). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

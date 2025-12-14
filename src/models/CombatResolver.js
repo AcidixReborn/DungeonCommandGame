@@ -119,6 +119,7 @@ export class CombatResolver {
     let damage = 0
     let baseDamage = 0
     let flankingBonus = 0
+    let cutterBonus = 0
 
     if (attackType === 'melee' && attackerInstance.creature.meleeAttack) {
       baseDamage = attackerInstance.creature.meleeAttack.damage
@@ -126,7 +127,11 @@ export class CombatResolver {
       if (this.gameState.hasFlanking && this.gameState.getFlankingBonus) {
         flankingBonus = this.gameState.getFlankingBonus(attackerInstance, defenderInstance)
       }
-      damage = baseDamage + flankingBonus
+      // Check for CUTTER bonus (+10 vs tapped creatures)
+      if (this.gameState.hasCutter && this.gameState.getCutterBonus) {
+        cutterBonus = this.gameState.getCutterBonus(attackerInstance, defenderInstance)
+      }
+      damage = baseDamage + flankingBonus + cutterBonus
     } else if (attackType === 'ranged' && attackerInstance.creature.rangedAttack) {
       baseDamage = attackerInstance.creature.rangedAttack.damage
       damage = baseDamage
@@ -134,7 +139,7 @@ export class CombatResolver {
       return { valid: false, error: 'Invalid attack type' }
     }
 
-    return { valid: true, damage, baseDamage, flankingBonus }
+    return { valid: true, damage, baseDamage, flankingBonus, cutterBonus }
   }
 
   /**
