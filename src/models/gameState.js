@@ -3909,6 +3909,13 @@ export class GameState {
   }
 
   /**
+   * Check if OGRE DEPLOY MORALE ability should trigger - delegates to abilityManager
+   */
+  shouldTriggerOgreDeployMorale(creatureInstance) {
+    return this.abilityManager.shouldTriggerOgreDeployMorale(creatureInstance)
+  }
+
+  /**
    * Get eligible Orcs for CHIEFTAIN CALL - delegates to abilityManager
    */
   getEligibleOrcsForChieftainCall(playerId) {

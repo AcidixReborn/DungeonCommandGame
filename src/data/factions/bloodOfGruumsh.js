@@ -135,9 +135,16 @@ export const creatures = [
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 50, range: 1 },
     rangedAttack: null,
-    specialAbilities: [
-      'When you deploy this creature, gain 1 MORALE. PLACEHOLDER'
-    ],
+    specialAbilities: [{
+      id: 'ogre_deploy_morale',
+      name: 'DEPLOY: GAIN 1 MORALE',
+      type: 'ON_DEPLOY',
+      description: 'When you deploy this creature, gain 1 MORALE.',
+      effect: {
+        trigger: 'deploy',
+        gainMorale: 1
+      }
+    }],
     faction: FACTION_NAME,
     imageUrl: ogreImg
   },

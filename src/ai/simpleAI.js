@@ -168,6 +168,26 @@ export class SimpleAI {
   }
 
   /**
+   * Decide if AI should gain morale from OGRE DEPLOY MORALE ability
+   * Uses 0/50/100 rule based on difficulty
+   * @returns {boolean} True if AI should gain morale
+   */
+  decideOgreDeployMorale() {
+    // Easy AI (0%): Never gain morale from Ogre
+    if (this.difficulty === 'easy') {
+      return false
+    }
+
+    // Medium AI (50%): 50% chance to gain morale
+    if (this.difficulty === 'medium') {
+      return Math.random() >= 0.5
+    }
+
+    // Hard AI (100%): Always gain morale
+    return true
+  }
+
+  /**
    * Execute AI turn for the current phase
    */
   executeTurn() {
@@ -994,6 +1014,55 @@ export class SimpleAI {
             const diffKey = this.difficulty
             if (chieftainStats[diffKey]) {
               chieftainStats[diffKey].declined++
+            }
+          }
+        }
+      }
+
+      // ============================================
+      // OGRE DEPLOY MORALE - Ogre's on-deploy ability
+      // Gains 1 MORALE when deployed (uses 0/50/100 rule)
+      // ============================================
+      if (this.gameState.shouldTriggerOgreDeployMorale && this.gameState.shouldTriggerOgreDeployMorale(creatureInstance)) {
+        const ogreStats = this.trackStats?.gruumsh?.ogre_deploy_morale
+          || this.trackStats?.ogre_deploy_morale
+
+        // Track ability offer for statistics
+        if (ogreStats) {
+          ogreStats.timesOffered++
+          const diffKey = this.difficulty
+          if (ogreStats[diffKey]) {
+            ogreStats[diffKey].offered++
+          }
+        }
+
+        const shouldGainMorale = this.decideOgreDeployMorale()
+
+        if (shouldGainMorale) {
+          player.gainMorale(1)
+
+          actions.push({
+            type: 'ogre_deploy_morale',
+            creature: creatureCard.name,
+            moraleGained: 1
+          })
+
+          // Track ability usage for statistics
+          if (ogreStats) {
+            ogreStats.timesTriggered++
+            ogreStats.totalMoraleGained = (ogreStats.totalMoraleGained || 0) + 1
+            const diffKey = this.difficulty
+            if (ogreStats[diffKey]) {
+              ogreStats[diffKey].triggered++
+            }
+          }
+        } else {
+          // AI chose to decline (easy/medium difficulty)
+          if (ogreStats) {
+            ogreStats.timesDeclined++
+            const diffKey = this.difficulty
+            if (ogreStats[diffKey]) {
+              ogreStats[diffKey].declined++
             }
           }
         }

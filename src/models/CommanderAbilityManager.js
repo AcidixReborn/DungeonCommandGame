@@ -143,6 +143,17 @@ export class CommanderAbilityManager {
   }
 
   /**
+   * Check if OGRE DEPLOY MORALE ability should trigger
+   * (Ogre was just deployed - player gains 1 MORALE)
+   * @param {Object} creatureInstance - The creature that was deployed
+   * @returns {boolean} True if creature is Ogre
+   */
+  shouldTriggerOgreDeployMorale(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.creature) return false
+    return creatureInstance.creature.name === 'Ogre'
+  }
+
+  /**
    * Get eligible Orcs from player's hand for CHIEFTAIN CALL
    * (Orc creatures with Level 3 or lower)
    * @param {string} playerId - The player whose hand to check

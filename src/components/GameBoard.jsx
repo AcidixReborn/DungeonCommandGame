@@ -17,6 +17,7 @@ import DamageNotificationModal from './DamageNotificationModal'
 import WebRemovalModal from './WebRemovalModal'
 import HealingTouchModal from './HealingTouchModal'
 import ChieftainCallModal from './ChieftainCallModal'
+import OgreDeployMoraleModal from './OgreDeployMoraleModal'
 import './GameBoard.css'
 
 /**
@@ -251,6 +252,10 @@ function GameBoard({ onTurnInfoChange }) {
   // CHIEFTAIN CALL MODAL state - Orc Chieftain's on-deploy ability
   const [showChieftainCallModal, setShowChieftainCallModal] = useState(false)
   const [chieftainCallPending, setChieftainCallPending] = useState(null) // { chieftainInstance, eligibleOrcs, playerId }
+
+  // OGRE DEPLOY MORALE MODAL state - Ogre's on-deploy ability (+1 morale)
+  const [showOgreDeployMoraleModal, setShowOgreDeployMoraleModal] = useState(false)
+  const [ogreDeployMoraleResult, setOgreDeployMoraleResult] = useState(null) // { creatureInstance, oldMorale, newMorale, playerId }
 
   /**
    * Faction color mapping from faction IDs to hex colors
@@ -2395,6 +2400,25 @@ function GameBoard({ onTurnInfoChange }) {
         playerId: gameState.currentPlayer
       })
       setShowChieftainCallModal(true)
+    }
+
+    // Check for OGRE DEPLOY MORALE ability trigger (Ogre deployed - gain 1 morale)
+    if (gameState.shouldTriggerOgreDeployMorale(creatureInstance)) {
+      const player = gameState.players[gameState.currentPlayer]
+      const oldMorale = player.morale
+      player.gainMorale(1)
+
+      // Show toast notification (logged)
+      addToast(`${creatureInstance.creature.name} deployed! Gained 1 MORALE (${oldMorale} → ${player.morale})`, 'success')
+
+      // Show informational modal for human player
+      setOgreDeployMoraleResult({
+        creatureInstance,
+        oldMorale,
+        newMorale: player.morale,
+        playerId: gameState.currentPlayer
+      })
+      setShowOgreDeployMoraleModal(true)
     }
 
     // Force re-render to show newly deployed creature on board
@@ -7539,6 +7563,13 @@ function GameBoard({ onTurnInfoChange }) {
         chieftainInstance={chieftainCallPending?.chieftainInstance}
         eligibleOrcs={chieftainCallPending?.eligibleOrcs || []}
         gameState={gameState}
+      />
+
+      {/* OGRE DEPLOY MORALE MODAL - Ogre's on-deploy ability (+1 morale) */}
+      <OgreDeployMoraleModal
+        show={showOgreDeployMoraleModal}
+        onDismiss={() => setShowOgreDeployMoraleModal(false)}
+        result={ogreDeployMoraleResult}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}
