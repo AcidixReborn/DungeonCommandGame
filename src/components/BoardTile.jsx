@@ -49,6 +49,8 @@ const factionIcons = {
  * @param {string} summonSpiderFactionColor - Faction color to use for SUMMON SPIDER highlight
  * @param {boolean} isLichNecromancerHighlight - Whether tile is valid for LICH NECROMANCER Undead deployment
  * @param {string} lichNecromancerFactionColor - Faction color to use for LICH NECROMANCER highlight (purple)
+ * @param {boolean} isOrcDruidHighlight - Whether tile is valid for ORC DRUID Beast/Elemental deployment
+ * @param {string} orcDruidFactionColor - Faction color to use for ORC DRUID highlight (Blood of Gruumsh)
  * @param {boolean} isArcanePortalHighlight - Whether tile is valid for ARCANE PORTAL deployment (Magic Circle)
  * @param {string} arcanePortalFactionColor - Faction color to use for ARCANE PORTAL highlight
  * @param {boolean} isLightningBreathValidTarget - Whether creature on tile is valid target for LIGHTNING BREATH
@@ -59,7 +61,7 @@ const factionIcons = {
  * @param {Array} rangedLOSFactions - Array of player IDs (owners) whose ranged creatures can hit this tile
  * @param {boolean} isSelectedCreatureRangedLOS - Whether tile is in LOS of the currently selected ranged creature (brighter highlight)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSlamTile = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isArcanePortalHighlight = false, arcanePortalFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false, isOrderCardTarget = false, isWebbed = false, isHealingTouchTarget = false }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSlamTile = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isOrcDruidHighlight = false, orcDruidFactionColor = null, isArcanePortalHighlight = false, arcanePortalFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false, isOrderCardTarget = false, isWebbed = false, isHealingTouchTarget = false }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -302,6 +304,30 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
 
         // Purple necromancer theme highlight
+        return {
+          background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.40) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.30) 100%)`,
+          boxShadow: `
+            inset 0 0 0 3px rgba(${brightRgb.r}, ${brightRgb.g}, ${brightRgb.b}, 0.95),
+            inset 0 0 25px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6),
+            inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)
+          `,
+          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`
+        }
+      }
+    }
+
+    // ORC DRUID: Apply faction-colored highlight to tiles adjacent to Orc Druid for Beast/Elemental deployment
+    if (isOrcDruidHighlight && orcDruidFactionColor) {
+      const rgb = hexToRgb(orcDruidFactionColor)
+      if (rgb) {
+        const brightenColor = (r, g, b, factor = 1.4) => ({
+          r: Math.min(255, Math.floor(r * factor)),
+          g: Math.min(255, Math.floor(g * factor)),
+          b: Math.min(255, Math.floor(b * factor))
+        })
+        const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
+
+        // Blood of Gruumsh faction theme highlight for Beast/Elemental deployment
         return {
           background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.40) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.30) 100%)`,
           boxShadow: `

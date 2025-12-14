@@ -527,6 +527,19 @@ function AbilitiesTest() {
       // Per-creature stats
       boarStats: { offered: 0, triggered: 0, attackerKilled: 0 },
       wereboarStats: { offered: 0, triggered: 0, attackerKilled: 0 }
+    },
+    orc_druid_deploy: {
+      name: 'BEAST/ELEMENTAL DEPLOY',
+      creature: 'Orc Druid',
+      faction: 'Blood of Gruumsh',
+      // Overall totals - deploy Beast/Elemental adjacent to Orc Druid (0/50/100 AI pattern)
+      timesOffered: 0,  // Times Beast/Elemental deployed when Orc Druid in play
+      timesUsed: 0,     // Times deployed adjacent to Orc Druid
+      timesDeclined: 0, // Times deployed to starting zone instead
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, used: 0, declined: 0 },
+      medium: { offered: 0, used: 0, declined: 0 },
+      hard: { offered: 0, used: 0, declined: 0 }
     }
   })
 
@@ -1690,6 +1703,29 @@ function AbilitiesTest() {
                 creatureAbilityStats.arcane_portal[diff].declined++
               }
             }
+
+            // Track ORC DRUID DEPLOY ability (Beast/Elemental deployed adjacent to Orc Druid)
+            if (action.creatureTypes && action.creatureTypes.some(t =>
+              t.toLowerCase() === 'beast' || t.toLowerCase() === 'elemental'
+            )) {
+              // Check if Orc Druid was in play when Beast/Elemental was deployed
+              const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(currentPlayerId)
+              if (druid) {
+                const diff = player?.aiDifficulty || 'medium'
+                if (action.isOrcDruid) {
+                  creatureAbilityStats.orc_druid_deploy.timesOffered++
+                  creatureAbilityStats.orc_druid_deploy.timesUsed++
+                  creatureAbilityStats.orc_druid_deploy[diff].offered++
+                  creatureAbilityStats.orc_druid_deploy[diff].used++
+                } else {
+                  // Beast/Elemental deployed to starting zone when Orc Druid was available
+                  creatureAbilityStats.orc_druid_deploy.timesOffered++
+                  creatureAbilityStats.orc_druid_deploy.timesDeclined++
+                  creatureAbilityStats.orc_druid_deploy[diff].offered++
+                  creatureAbilityStats.orc_druid_deploy[diff].declined++
+                }
+              }
+            }
             break
 
           case 'graveyardDeclined':
@@ -2713,7 +2749,7 @@ function AbilitiesTest() {
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
     if (!creatureAbilityStats) return { working: 0, total: 25 }
     let working = 0
-    const total = 27 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL, SHIELD BLOCK, HEALING TOUCH, REGENERATE 10, UNTAP ON KILL, MAGIC CIRCLE AURA, CUTTER
+    const total = 28 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL, SHIELD BLOCK, HEALING TOUCH, REGENERATE 10, UNTAP ON KILL, MAGIC CIRCLE AURA, CUTTER, ORC DRUID DEPLOY
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -2753,6 +2789,7 @@ function AbilitiesTest() {
     if (creatureAbilityStats.cutter?.timesTriggered > 0) working++
     // Blood of Gruumsh abilities
     if (creatureAbilityStats.death_strike?.timesTriggered > 0) working++
+    if (creatureAbilityStats.orc_druid_deploy?.timesUsed > 0) working++
     return { working, total }
   }
 
@@ -5395,6 +5432,93 @@ function AbilitiesTest() {
                     <Col md={6}>
                       <small className="text-muted">
                         DEATH STRIKE: When this creature would be destroyed by an adjacent melee attack, it first deals its melee damage to the attacker. If the attacker dies, the defender survives (attack never completes). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* ORC DRUID DEPLOY - Beast/Elemental Adjacent Deploy (Blood of Gruumsh) */}
+              <Card bg="success" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🌿 ORC DRUID DEPLOY (Beast/Elemental - Blood of Gruumsh)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Beast/Elemental with Druid)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.orc_druid_deploy?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Used (adjacent deploy)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.orc_druid_deploy?.timesUsed || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (starting zone)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.orc_druid_deploy?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Usage Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.orc_druid_deploy?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.orc_druid_deploy.timesUsed / results.creatureAbilityStats.orc_druid_deploy.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Used</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.orc_druid_deploy?.[diff] || { offered: 0, used: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.used / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.used || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        ORC DRUID DEPLOY: When deploying a Beast or Elemental creature (Blood of Gruumsh faction only: Boar, Owlbear, Wereboar), you can place it adjacent to the Orc Druid instead of in your starting zone. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

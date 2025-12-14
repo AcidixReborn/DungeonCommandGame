@@ -782,6 +782,77 @@ export class SimpleAI {
         }
       }
 
+      // ORC DRUID: Check if Beast/Elemental creature can deploy adjacent to Orc Druid
+      let isOrcDruidDeploy = false
+      if (!deployTile && this.gameState.isBeastOrElementalCreature && this.gameState.isBeastOrElementalCreature(creatureCard)) {
+        const druid = this.gameState.hasOrcDruidDeploy && this.gameState.hasOrcDruidDeploy(this.playerId)
+        if (druid) {
+          // Track ability offer for statistics
+          // Note: CLI test uses gruumsh.orc_druid_deploy, UI test uses orc_druid_deploy directly
+          const druidStats = this.trackStats?.gruumsh?.orc_druid_deploy
+            || this.trackStats?.orc_druid_deploy
+          if (druidStats) {
+            druidStats.timesOffered++
+            const diffKey = this.difficulty
+            if (druidStats[diffKey]) {
+              druidStats[diffKey].offered++
+            }
+          }
+
+          // Difficulty-based decision to use ORC DRUID deploy
+          let useDruidDeploy = false
+          switch (this.difficulty) {
+            case 'easy':
+              useDruidDeploy = false  // Easy AI never uses ORC DRUID deploy (0%)
+              break
+            case 'medium':
+              useDruidDeploy = Math.random() < 0.5  // Medium AI uses 50% of the time
+              break
+            case 'hard':
+              useDruidDeploy = true  // Hard AI always uses ORC DRUID deploy (100%)
+              break
+          }
+
+          if (useDruidDeploy && this.gameState.getOrcDruidDeployTiles) {
+            let druidTiles = this.gameState.getOrcDruidDeployTiles(druid)
+
+            // Hard AI: Avoid water and difficult terrain
+            if (this.difficulty === 'hard' && druidTiles.length > 0) {
+              const safeTiles = druidTiles.filter(t =>
+                t.tile.terrain !== 'WATER' && t.tile.terrain !== 'DIFFICULT'
+              )
+              if (safeTiles.length > 0) {
+                druidTiles = safeTiles
+              }
+              // If no safe tiles, still use ability but with available tiles
+            }
+
+            if (druidTiles.length > 0) {
+              // Pick a random tile adjacent to Orc Druid
+              const randomTile = druidTiles[Math.floor(Math.random() * druidTiles.length)]
+              deployTile = randomTile.tile
+              isOrcDruidDeploy = true
+
+              // Track ability usage for statistics
+              if (druidStats) {
+                druidStats.timesUsed++
+                const diffKey = this.difficulty
+                if (druidStats[diffKey]) {
+                  druidStats[diffKey].used++
+                }
+              }
+            }
+          } else if (druidStats) {
+            // AI decided not to use or couldn't use the ability
+            druidStats.timesDeclined++
+            const diffKey = this.difficulty
+            if (druidStats[diffKey]) {
+              druidStats[diffKey].declined++
+            }
+          }
+        }
+      }
+
       // ARCANE PORTAL: Check if War Wizard can deploy to any Magic Circle tile
       let isArcanePortalDeploy = false
       if (!deployTile && this.gameState.hasArcanePortal && this.gameState.hasArcanePortal(creatureCard)) {
@@ -814,7 +885,7 @@ export class SimpleAI {
         }
       }
 
-      // Fall back to starting zone if not using SHADOW STALKER/SUMMON SPIDER/LICH NECROMANCER/ARCANE PORTAL or no valid tiles
+      // Fall back to starting zone if not using SHADOW STALKER/SUMMON SPIDER/LICH NECROMANCER/ORC DRUID/ARCANE PORTAL or no valid tiles
       if (!deployTile) {
         if (startingZoneTiles.length === 0) {
           break // No more empty tiles
@@ -843,6 +914,7 @@ export class SimpleAI {
         isShadowStalker: isShadowStalkerDeploy,
         isSummonSpider: isSummonSpiderDeploy,
         isLichNecromancer: isLichNecromancerDeploy,
+        isOrcDruid: isOrcDruidDeploy,
         isArcanePortalDeploy: isArcanePortalDeploy
       })
 

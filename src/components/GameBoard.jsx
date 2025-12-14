@@ -2312,7 +2312,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (!pendingDeployment) return
 
     const { creature, tile, creatureIndex, isFromGraveyard, source,
-            isOrcScoutDeploy, isShadowStalkerDeploy, isSummonSpiderDeploy, isLichNecromancerDeploy, isInStartingZone } = pendingDeployment
+            isOrcScoutDeploy, isShadowStalkerDeploy, isSummonSpiderDeploy, isLichNecromancerDeploy, isOrcDruidDeploy, isInStartingZone } = pendingDeployment
 
     const currentPlayer = gameState.getCurrentPlayerState()
 
@@ -2361,6 +2361,8 @@ function GameBoard({ onTurnInfoChange }) {
       addToast(`SUMMON SPIDER: ${creature.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
     } else if (isLichNecromancerDeploy && !isInStartingZone) {
       addToast(`LICH NECROMANCER: ${creature.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+    } else if (isOrcDruidDeploy && !isInStartingZone) {
+      addToast(`ORC DRUID: ${creature.name} deployed adjacent to Orc Druid at (${tile.x}, ${tile.y})! Protected until your next turn!`)
     } else if (isFromGraveyard) {
       addToast(`GRAVEYARD DEPLOY: ${creature.name} resurrected at (${tile.x}, ${tile.y})! Protected until your next turn!`)
     } else {
@@ -3920,7 +3922,33 @@ function GameBoard({ onTurnInfoChange }) {
                                   !tile.occupant &&
                                   tile.terrain === 'MAGIC_CIRCLE'
 
-      if ((isInStartingZone || isOrcScoutValid || isShadowStalkerValid || isSummonSpiderValid || isArcanePortalValid) && !tile.occupant) {
+      // LICH NECROMANCER: Allow dragging Undead creatures to tiles adjacent to Lich Necromancer
+      let isLichNecromancerValid = false
+      if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) &&
+          !tile.occupant &&
+          tile.terrain !== 'MOUNTAIN') {
+        const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+        if (lich?.position) {
+          const dx = Math.abs(tile.x - lich.position.x)
+          const dy = Math.abs(tile.y - lich.position.y)
+          isLichNecromancerValid = Math.max(dx, dy) === 1
+        }
+      }
+
+      // ORC DRUID: Allow dragging Beast/Elemental creatures to tiles adjacent to Orc Druid
+      let isOrcDruidValid = false
+      if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) &&
+          !tile.occupant &&
+          tile.terrain !== 'MOUNTAIN') {
+        const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+        if (druid?.position) {
+          const dx = Math.abs(tile.x - druid.position.x)
+          const dy = Math.abs(tile.y - druid.position.y)
+          isOrcDruidValid = Math.max(dx, dy) === 1
+        }
+      }
+
+      if ((isInStartingZone || isOrcScoutValid || isShadowStalkerValid || isSummonSpiderValid || isLichNecromancerValid || isOrcDruidValid || isArcanePortalValid) && !tile.occupant) {
         setDragOverTile(tile)
       } else {
         setDragOverTile(null)
@@ -4031,19 +4059,34 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
+      // ORC DRUID: Check if deploying Beast/Elemental creature adjacent to Orc Druid
+      let isOrcDruidDeploy = false
+      if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) &&
+          !tile.occupant &&
+          tile.terrain !== 'MOUNTAIN') {
+        const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+        if (druid?.position) {
+          const dx = Math.abs(tile.x - druid.position.x)
+          const dy = Math.abs(tile.y - druid.position.y)
+          isOrcDruidDeploy = Math.max(dx, dy) === 1 // Adjacent only (range 1)
+        }
+      }
+
       // ARCANE PORTAL: Check if deploying War Wizard to any unoccupied Magic Circle tile
       const isArcanePortalDeploy = gameState.hasArcanePortal &&
                                    gameState.hasArcanePortal(creatureCard) &&
                                    !tile.occupant &&
                                    tile.terrain === 'MAGIC_CIRCLE'
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy && !isArcanePortalDeploy) {
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy && !isOrcDruidDeploy && !isArcanePortalDeploy) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
         } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
           addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
         } else if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) && gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)) {
           addToast('LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!')
+        } else if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) && gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)) {
+          addToast('ORC DRUID: Deploy Beast/Elemental to starting zone or adjacent to Orc Druid!')
         } else if (gameState.hasArcanePortal && gameState.hasArcanePortal(creatureCard)) {
           addToast('ARCANE PORTAL: Deploy to starting zone or any unoccupied Magic Circle tile!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
@@ -4078,6 +4121,7 @@ function GameBoard({ onTurnInfoChange }) {
           isShadowStalkerDeploy,
           isSummonSpiderDeploy,
           isLichNecromancerDeploy,
+          isOrcDruidDeploy,
           isArcanePortalDeploy,
           isInStartingZone
         })
@@ -4109,6 +4153,8 @@ function GameBoard({ onTurnInfoChange }) {
           addToast(`SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else if (isLichNecromancerDeploy && !isInStartingZone) {
           addToast(`LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isOrcDruidDeploy && !isInStartingZone) {
+          addToast(`ORC DRUID: ${creatureCard.name} deployed adjacent to Orc Druid at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else if (isArcanePortalDeploy && !isInStartingZone) {
           addToast(`ARCANE PORTAL: ${creatureCard.name} deployed to Magic Circle at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else {
@@ -4241,19 +4287,34 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
+      // ORC DRUID: Check if deploying Beast/Elemental creature adjacent to Orc Druid
+      let isOrcDruidDeploy = false
+      if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) &&
+          !tile.occupant &&
+          tile.terrain !== 'MOUNTAIN') {
+        const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+        if (druid?.position) {
+          const dx = Math.abs(tile.x - druid.position.x)
+          const dy = Math.abs(tile.y - druid.position.y)
+          isOrcDruidDeploy = Math.max(dx, dy) === 1 // Adjacent only (range 1)
+        }
+      }
+
       // ARCANE PORTAL: Check if deploying War Wizard to any unoccupied Magic Circle tile
       const isArcanePortalDeploy = gameState.hasArcanePortal &&
                                    gameState.hasArcanePortal(creatureCard) &&
                                    !tile.occupant &&
                                    tile.terrain === 'MAGIC_CIRCLE'
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy && !isArcanePortalDeploy) {
+      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy && !isOrcDruidDeploy && !isArcanePortalDeploy) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
         } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
           addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
         } else if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) && gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)) {
           addToast('LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!')
+        } else if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) && gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)) {
+          addToast('ORC DRUID: Deploy Beast/Elemental to starting zone or adjacent to Orc Druid!')
         } else if (gameState.hasArcanePortal && gameState.hasArcanePortal(creatureCard)) {
           addToast('ARCANE PORTAL: Deploy to starting zone or any unoccupied Magic Circle tile!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer) && tile.treasure) {
@@ -4286,6 +4347,7 @@ function GameBoard({ onTurnInfoChange }) {
           isShadowStalkerDeploy,
           isSummonSpiderDeploy,
           isLichNecromancerDeploy,
+          isOrcDruidDeploy,
           isArcanePortalDeploy,
           isInStartingZone
         })
@@ -4320,6 +4382,9 @@ function GameBoard({ onTurnInfoChange }) {
         } else if (isLichNecromancerDeploy && !isInStartingZone) {
           setSelectedCreatureIndex(null)
           addToast(`LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+        } else if (isOrcDruidDeploy && !isInStartingZone) {
+          setSelectedCreatureIndex(null)
+          addToast(`ORC DRUID: ${creatureCard.name} deployed adjacent to Orc Druid at (${tile.x}, ${tile.y})! Protected until your next turn!`)
         } else if (isArcanePortalDeploy && !isInStartingZone) {
           setSelectedCreatureIndex(null)
           addToast(`ARCANE PORTAL: ${creatureCard.name} deployed to Magic Circle at (${tile.x}, ${tile.y})! Protected until your next turn!`)
@@ -6374,6 +6439,35 @@ function GameBoard({ onTurnInfoChange }) {
                   }
 
                   // ============================================
+                  // ORC DRUID HIGHLIGHT: Show valid deployment tiles for Beast/Elemental creatures
+                  // during deploy phase when Orc Druid is in play
+                  // Tiles adjacent to Orc Druid (range 1) get Gruumsh faction color
+                  // Always show during deploy phase so players know where they can deploy Beasts
+                  // ============================================
+                  let isOrcDruidHighlight = false
+                  let orcDruidFactionColor = null
+
+                  if (canDeployInCurrentPhase() &&
+                      !tile.occupant &&
+                      tile.terrain !== 'MOUNTAIN') {
+                    const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+                    if (druid?.position) {
+                      // Check if tile is adjacent to Orc Druid (range 1, 8-directional)
+                      const dx = Math.abs(x - druid.position.x)
+                      const dy = Math.abs(y - druid.position.y)
+                      if (Math.max(dx, dy) === 1) {
+                        // Don't highlight if already in starting zone (it already has the highlight)
+                        const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
+                                                 tile.startingZoneOwner === gameState.currentPlayer
+                        if (!isInStartingZone) {
+                          isOrcDruidHighlight = true
+                          orcDruidFactionColor = playerFactionColors?.[gameState.currentPlayer]
+                        }
+                      }
+                    }
+                  }
+
+                  // ============================================
                   // ARCANE PORTAL HIGHLIGHT: Show Magic Circle tiles for War Wizard deployment
                   // When War Wizard is selected from hand during deploy phase,
                   // highlight Magic Circle tiles with faction color
@@ -6470,6 +6564,8 @@ function GameBoard({ onTurnInfoChange }) {
                       summonSpiderFactionColor={summonSpiderFactionColor}
                       isLichNecromancerHighlight={isLichNecromancerHighlight}
                       lichNecromancerFactionColor={lichNecromancerFactionColor}
+                      isOrcDruidHighlight={isOrcDruidHighlight}
+                      orcDruidFactionColor={orcDruidFactionColor}
                       isArcanePortalHighlight={isArcanePortalHighlight}
                       arcanePortalFactionColor={arcanePortalFactionColor}
                       isLightningBreathValidTarget={isLightningBreathValidTarget}

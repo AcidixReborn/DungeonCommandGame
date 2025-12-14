@@ -277,9 +277,12 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: [
-      'When deploying any Beast or Elemental creature, you can place it in any unoccupied square adjacent to this creature. PLACEHOLDER'
-    ],
+    specialAbilities: [{
+      id: 'beast_elemental_deploy',
+      name: 'BEAST/ELEMENTAL DEPLOY',
+      type: 'PASSIVE',
+      description: 'When deploying any Beast or Elemental creature, you can place it in any unoccupied square adjacent to this creature.'
+    }],
     faction: FACTION_NAME,
     imageUrl: orcDruidImg
   },

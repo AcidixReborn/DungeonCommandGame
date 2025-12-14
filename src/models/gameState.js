@@ -3090,6 +3090,75 @@ export class GameState {
   }
 
   // --------------------------------------------------------------------------
+  // 2D: ORC DRUID - BEAST/ELEMENTAL DEPLOY (Blood of Gruumsh)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Check if creature is Beast or Elemental AND from Blood of Gruumsh faction
+   * Only Beast/Elemental from Blood of Gruumsh can be deployed adjacent to Orc Druid
+   * Big O: O(t) where t = number of types (typically 2-4)
+   * @param {Object} creature - The creature card to check
+   * @returns {boolean} True if creature is Beast/Elemental from Blood of Gruumsh
+   */
+  isBeastOrElementalCreature(creature) {
+    if (!creature?.type) return false
+    if (creature.faction !== 'Blood of Gruumsh') return false
+    return creature.type.some(t =>
+      t.toLowerCase() === 'beast' || t.toLowerCase() === 'elemental'
+    )
+  }
+
+  /**
+   * Check if player has Orc Druid in play
+   * Returns the Orc Druid instance if found, null otherwise
+   * Big O: O(c) where c = creatures in play
+   * @param {string} playerId - The player ID
+   * @returns {Object|null} The Orc Druid instance or null if not found
+   */
+  hasOrcDruidDeploy(playerId) {
+    const player = this.players[playerId]
+    if (!player) return null
+
+    for (const creature of player.creaturesInPlay) {
+      if (creature.creature.name === 'Orc Druid') {
+        return creature
+      }
+    }
+    return null
+  }
+
+  /**
+   * Get valid tiles adjacent to Orc Druid for Beast/Elemental deployment
+   * Big O: O(9) - checks at most 9 tiles (8 adjacent + center skip)
+   * @param {Object} druidInstance - The Orc Druid creature instance
+   * @returns {Array} Array of valid tile objects with {x, y, tile}
+   */
+  getOrcDruidDeployTiles(druidInstance) {
+    if (!druidInstance?.position) return []
+
+    const validTiles = []
+    const pos = druidInstance.position
+
+    // 8-directional adjacency (range = 1)
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (dx === 0 && dy === 0) continue // Skip Druid's own tile
+        const x = pos.x + dx
+        const y = pos.y + dy
+
+        const tile = this.getTile(x, y)
+        if (!tile) continue
+        if (tile.terrain === 'MOUNTAIN') continue
+        if (tile.occupant) continue
+
+        validTiles.push({ x, y, tile })
+      }
+    }
+
+    return validTiles
+  }
+
+  // --------------------------------------------------------------------------
   // 2C: SWIRL/SPLASH DAMAGE (Skeletal Tomb Guardian)
   // --------------------------------------------------------------------------
 
