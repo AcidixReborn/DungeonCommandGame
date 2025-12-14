@@ -338,5 +338,5 @@ Whether you're a veteran player revisiting fond memories or a newcomer experienc
 ---
 
 **Version:** Alpha 1.0
-**Last Updated:** November 2024
+**Last Updated:** December 2024
 **Status:** Playable, under active development

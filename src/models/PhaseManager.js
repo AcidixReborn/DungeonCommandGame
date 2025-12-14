@@ -32,47 +32,24 @@ export class PhaseManager {
     const gs = this.gameState
     const currentPlayer = gs.currentPlayer
 
-    // Count creatures on water for debugging
-    let creaturesOnWater = 0
-    let flyingOnWater = 0
-    let enemyCreaturesSkipped = 0
-
-    console.log(`[WATER DEBUG] ========================================`)
-    console.log(`[WATER DEBUG] Phase: END OF ACTIVATE for ${currentPlayer}`)
-    console.log(`[WATER DEBUG] Checking water damage for ${currentPlayer}'s creatures only`)
-
     // Check all tiles for creatures standing on water
     gs.getAllTiles().forEach(tile => {
       if (tile.terrain === TerrainTypes.WATER && tile.occupant) {
         const creature = tile.occupant
 
-        console.log(`[WATER DEBUG] Found creature on water: ${creature.creature.name} (Owner: ${creature.owner}) at (${tile.x}, ${tile.y})`)
-
         // Only apply water damage to creatures owned by the current player
         // Enemy creatures take damage when THEIR faction ends their activate phase
         if (creature.owner !== currentPlayer) {
-          console.log(`[WATER DEBUG] SKIPPED - ${creature.creature.name} owned by ${creature.owner}, not ${currentPlayer}`)
-          enemyCreaturesSkipped++
           return
         }
-
-        creaturesOnWater++
 
         // Flying and Phasing creatures are immune to water damage
         if (gs.hasFlying(creature) || gs.hasPhasing(creature)) {
-          const immunityType = gs.hasFlying(creature) ? 'Flying' : 'Phasing'
-          console.log(`[WATER DEBUG] IMMUNE - ${creature.creature.name} has ${immunityType}`)
-          flyingOnWater++
           return
         }
 
-        const hpBefore = creature.currentHP
-        console.log(`[WATER DEBUG] APPLYING 10 DAMAGE to ${creature.creature.name} (HP before: ${hpBefore})`)
-
         // Apply water damage to non-flying creatures
         const damageTaken = creature.takeDamage(TERRAIN.WATER_DAMAGE)
-
-        console.log(`[WATER DEBUG] RESULT: ${creature.creature.name} now has ${creature.currentHP} HP${creature.currentHP <= 0 ? ' - DESTROYED!' : ''}`)
 
         damageResults.push({
           creature: creature.creature.name,
@@ -99,9 +76,6 @@ export class PhaseManager {
         }
       }
     })
-
-    console.log(`[WATER DEBUG] Summary: ${creaturesOnWater} own creatures on water, ${flyingOnWater} immune (flying/phasing), ${damageResults.length} took damage, ${enemyCreaturesSkipped} enemy creatures skipped`)
-    console.log(`[WATER DEBUG] ========================================`)
 
     return damageResults
   }
@@ -337,7 +311,6 @@ export class PhaseManager {
           creature.magicCircleShieldUsed = false
         }
       })
-      console.log(`[Magic Circle Aura] Shields reset for ${player.name || player.id}'s creatures`)
     }
 
     // REGENERATE: Heal creatures with Regenerate ability at start of refresh

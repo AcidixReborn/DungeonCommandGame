@@ -318,17 +318,7 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const allRangedLOSTiles = useMemo(() => {
     if (creatureViewMode !== 'ranged' || !gameState) return []
-    // Debug: Check what creaturesInPlay contains from GameBoard
-    console.log('[GameBoard] useMemo DEBUG - gameState.creaturesInPlay:', gameState.creaturesInPlay)
-    console.log('[GameBoard] useMemo DEBUG - gameState type:', typeof gameState, gameState.constructor?.name)
-    console.log('[GameBoard] useMemo DEBUG - renderCounter:', renderCounter)
-    const tiles = gameState.getAllRangedLOSTiles()
-    console.log('[GameBoard] allRangedLOSTiles computed:', {
-      mode: creatureViewMode,
-      tilesCount: tiles.length,
-      creaturesInPlay: gameState.creaturesInPlay?.length
-    })
-    return tiles
+    return gameState.getAllRangedLOSTiles()
   }, [creatureViewMode, gameState, renderCounter])
 
   /**
@@ -338,15 +328,11 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const isPlayerHuman = (playerId) => {
     if (!gameConfig) {
-      console.log('[isPlayerHuman] No gameConfig available')
       return false
     }
     const playerNum = playerId.replace('PLAYER', '')
     const playerKey = `player${playerNum}`
-    const isHuman = gameConfig[playerKey]?.isHuman || false
-    console.log(`[isPlayerHuman] playerId: ${playerId}, playerNum: ${playerNum}, playerKey: ${playerKey}, isHuman: ${isHuman}`)
-    console.log(`[isPlayerHuman] gameConfig[${playerKey}]:`, gameConfig[playerKey])
-    return isHuman
+    return gameConfig[playerKey]?.isHuman || false
   }
 
   /**
@@ -500,9 +486,7 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} config - Faction configuration for both players
    */
   const handleFactionSelected = (config) => {
-    console.log('handleFactionSelected called with config:', config)
     setFactionConfig(config)
-    console.log('factionConfig updated')
   }
 
   /**
@@ -512,7 +496,6 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const startNewGame = (config) => {
     // Store the final game configuration (with commanders selected)
-    console.log('[startNewGame] Received config:', config)
     setGameConfig(config)
 
     // Create 12 unique creature cards (one of each)
@@ -1009,27 +992,15 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Check for RANGED SPLASH DAMAGE (ACID BREATH / EXPLOSIVE BOLTS)
         // Only triggers on ranged attacks, and splash happens AFTER main attack resolves
-        console.log(`[GAMEBOARD DEBUG - AI DEFENDER PATH] Checking ranged splash:`, {
-          pendingRangedSplash: result.pendingRangedSplash,
-          attackType: targetInfo.attackType,
-          isRangedAttack: targetInfo.attackType === 'ranged',
-          shouldCheckSplash: result.pendingRangedSplash && targetInfo.attackType === 'ranged',
-          attackerName: attackerInstance?.creature?.name,
-          defenderName: defenderInstance?.creature?.name,
-          defenderPosition: defenderInstance?.position
-        })
         if (result.pendingRangedSplash && targetInfo.attackType === 'ranged') {
           const defenderPosition = defenderInstance.position
-          console.log(`[GAMEBOARD DEBUG - AI DEFENDER PATH] Ranged splash condition met, calling checkAndProcessRangedSplash`)
           const hasSplash = checkAndProcessRangedSplash(attackerInstance, defenderPosition, () => {
             // Callback when splash processing completes
-            console.log(`[GAMEBOARD DEBUG - AI DEFENDER PATH] Ranged splash processing completed`)
             setSelectedBoardCreature(null)
             setValidMoveTiles([])
             setValidAttackTargets([])
             setRenderCounter(prev => prev + 1)
           })
-          console.log(`[GAMEBOARD DEBUG - AI DEFENDER PATH] checkAndProcessRangedSplash returned:`, hasSplash)
           if (hasSplash) {
             // Splash is being processed - don't clear state yet
             setRenderCounter(prev => prev + 1)
@@ -1065,7 +1036,6 @@ function GameBoard({ onTurnInfoChange }) {
       defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
 
       // TODO: Apply card effects (will be implemented in Step 8)
-      console.log(`Reaction played: ${reaction.card.name} by ${reaction.creature.creature.name}`)
     })
 
     // Close modal/panel and execute the attack
@@ -1091,9 +1061,6 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} defense - { type: 'cower' | 'unstoppable_hordes' | 'immediate_card' | 'skip', damageReduction, moraleCost, creatures, card, creature }
    */
   const handleDefenseSelected = (defense) => {
-    console.log('[DEFENSE SELECTED] handleDefenseSelected called with:', defense)
-    console.log('[DEFENSE SELECTED] pendingAttack:', pendingAttack)
-
     if (!pendingAttack) return
 
     const { attackerInstance, defenderInstance, targetInfo, isSplashDamage, isLightningBreath } = pendingAttack
@@ -1101,7 +1068,6 @@ function GameBoard({ onTurnInfoChange }) {
     // Route RANGED SPLASH defense to dedicated handler (ACID BREATH / EXPLOSIVE BOLTS)
     // IMPORTANT: Check this BEFORE generic splash, since ranged splash also sets isSplashDamage
     if (pendingAttack.isRangedSplash || targetInfo.attackType === 'ranged_splash') {
-      console.log('[DEFENSE SELECTED] Routing to handleRangedSplashDefenseSelected')
       handleRangedSplashDefenseSelected(defense)
       return
     }
@@ -1549,21 +1515,10 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Check for RANGED SPLASH DAMAGE (ACID BREATH / EXPLOSIVE BOLTS)
       // Only triggers on ranged attacks, and splash happens AFTER main attack resolves
-      console.log(`[GAMEBOARD DEBUG] Checking ranged splash:`, {
-        pendingRangedSplash: result.pendingRangedSplash,
-        attackType: targetInfo.attackType,
-        isRangedAttack: targetInfo.attackType === 'ranged',
-        shouldCheckSplash: result.pendingRangedSplash && targetInfo.attackType === 'ranged',
-        attackerName: attackerInstance?.creature?.name,
-        defenderName: defenderInstance?.creature?.name,
-        defenderPosition: defenderInstance?.position
-      })
       if (result.pendingRangedSplash && targetInfo.attackType === 'ranged') {
         const defenderPosition = defenderInstance.position
-        console.log(`[GAMEBOARD DEBUG] Ranged splash condition met, calling checkAndProcessRangedSplash`)
         const hasSplash = checkAndProcessRangedSplash(attackerInstance, defenderPosition, () => {
           // Callback when splash processing completes
-          console.log(`[GAMEBOARD DEBUG] Ranged splash processing completed`)
           setSelectedBoardCreature(null)
           setValidMoveTiles([])
           setValidAttackTargets([])
@@ -1571,7 +1526,6 @@ function GameBoard({ onTurnInfoChange }) {
           setRenderCounter(prev => prev + 1)
           setProcessingAIAction(false)
         })
-        console.log(`[GAMEBOARD DEBUG] checkAndProcessRangedSplash returned:`, hasSplash)
         if (hasSplash) {
           // Splash is being processed - don't clear state yet
           setRenderCounter(prev => prev + 1)
@@ -2014,21 +1968,10 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Check for RANGED SPLASH DAMAGE (ACID BREATH / EXPLOSIVE BOLTS)
       // Only triggers on ranged attacks, and splash happens AFTER main attack resolves
-      console.log(`[GAMEBOARD DEBUG] Checking ranged splash:`, {
-        pendingRangedSplash: result.pendingRangedSplash,
-        attackType: targetInfo.attackType,
-        isRangedAttack: targetInfo.attackType === 'ranged',
-        shouldCheckSplash: result.pendingRangedSplash && targetInfo.attackType === 'ranged',
-        attackerName: attackerInstance?.creature?.name,
-        defenderName: defenderInstance?.creature?.name,
-        defenderPosition: defenderInstance?.position
-      })
       if (result.pendingRangedSplash && targetInfo.attackType === 'ranged') {
         const defenderPosition = defenderInstance.position
-        console.log(`[GAMEBOARD DEBUG] Ranged splash condition met, calling checkAndProcessRangedSplash`)
         const hasSplash = checkAndProcessRangedSplash(attackerInstance, defenderPosition, () => {
           // Callback when splash processing completes
-          console.log(`[GAMEBOARD DEBUG] Ranged splash processing completed`)
           setSelectedBoardCreature(null)
           setValidMoveTiles([])
           setValidAttackTargets([])
@@ -2036,7 +1979,6 @@ function GameBoard({ onTurnInfoChange }) {
           setRenderCounter(prev => prev + 1)
           setProcessingAIAction(false)
         })
-        console.log(`[GAMEBOARD DEBUG] checkAndProcessRangedSplash returned:`, hasSplash)
         if (hasSplash) {
           // Splash is being processed - don't clear state yet
           setRenderCounter(prev => prev + 1)
@@ -3226,34 +3168,22 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {number} cardIndex - Index in the order hand
    */
   const handleOrderCardRightClick = (card, cardIndex) => {
-    console.log('%c[GameBoard] handleOrderCardRightClick CALLED!', 'background: #9900cc; color: #ffffff; font-size: 16px; font-weight: bold;', {
-      cardName: card?.name,
-      cardIndex,
-      hasGameState: !!gameState,
-      orderCardFilterCreature: orderCardFilterCreature?.creature?.name
-    })
-
     if (!gameState) {
-      console.log('[GameBoard] handleOrderCardRightClick: No gameState!')
       return
     }
 
     // Must have a creature selected to use order cards
     if (!orderCardFilterCreature) {
-      console.log('[GameBoard] handleOrderCardRightClick: No creature selected')
       addToast('Select a creature first to use this order card')
       return
     }
 
     // Check if this is a Web card - use special Web validation
     const isWebCard = card.name.toUpperCase().includes('WEB')
-    console.log('[GameBoard] handleOrderCardRightClick: isWebCard =', isWebCard)
 
     if (isWebCard) {
-      console.log('[GameBoard] Processing Web card...')
       // WEB CARD: Use gameState.canUseWebCard for validation (includes SPIDER AFFINITY)
       const canUse = gameState.canUseWebCard(orderCardFilterCreature, card)
-      console.log('[GameBoard] canUseWebCard result:', canUse)
 
       if (!canUse) {
         // Check specific failure reason for better toast message
@@ -3273,7 +3203,6 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Get valid Web targets (enemies within range with LOS, not through forests, not already webbed)
       const validTargets = gameState.getWebValidTargets(orderCardFilterCreature, card)
-      console.log('[GameBoard] getWebValidTargets result:', validTargets.length, 'targets')
 
       if (validTargets.length === 0) {
         addToast('No valid targets in range for Web (10 squares, LOS required, not through forests)')
@@ -3281,7 +3210,6 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // Enter targeting mode
-      console.log('[GameBoard] Entering Web targeting mode with', validTargets.length, 'targets')
       setSelectedOrderCard({ card, cardIndex })
       setOrderCardTargetingMode(true)
       setOrderCardValidTargets(validTargets)
@@ -3503,21 +3431,18 @@ function GameBoard({ onTurnInfoChange }) {
 
     // VALIDATION: Skip attack if defender's owner is already eliminated
     if (!gameState.activePlayers.includes(defenderInstance.owner)) {
-      console.log(`[AI Attack] Skipping attack - defender's owner ${defenderInstance.owner} is already eliminated`)
       setProcessingAIAction(false)
       return
     }
 
     // VALIDATION: Skip attack if target is already dead (killed by previous attack in queue)
     if (defenderInstance.isDestroyed() || !defenderInstance.position) {
-      console.log(`[AI Attack] Skipping attack - target ${defenderInstance.creature.name} is already dead`)
       setProcessingAIAction(false)
       return
     }
 
     // VALIDATION: Skip attack if attacker is already dead (e.g., killed by reaction)
     if (attackerInstance.isDestroyed() || !attackerInstance.position) {
-      console.log(`[AI Attack] Skipping attack - attacker ${attackerInstance.creature.name} is already dead`)
       setProcessingAIAction(false)
       return
     }
@@ -3535,7 +3460,6 @@ function GameBoard({ onTurnInfoChange }) {
     )
 
     if (!isStillValidTarget) {
-      console.log(`[AI Attack] Skipping attack - ${targetInfo.attackType} attack on ${defenderInstance.creature.name} is no longer valid from current position`)
       setProcessingAIAction(false)
       return
     }
@@ -4645,14 +4569,8 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} firstTarget - The initially right-clicked target (pre-selected)
    */
   const handleLightningBreathStart = (attacker, firstTarget) => {
-    console.log('[handleLightningBreathStart] Starting Lightning Breath mode', {
-      attacker: attacker.creature.name,
-      firstTarget: firstTarget.creature.name
-    })
-
     // Get all valid targets
     const validTargets = gameState.getLightningBreathTargets(attacker)
-    console.log('[handleLightningBreathStart] Valid targets:', validTargets.map(t => t.creature.name))
 
     // Clear the normal attack state
     setPendingRightClickAttack(null)
@@ -4679,7 +4597,6 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if target is already selected - if so, deselect it (toggle behavior)
     if (lightningBreathTargets.some(t => t.instanceId === target.instanceId)) {
-      console.log('[handleLightningBreathTargetSelect] Deselecting target:', target.creature.name)
       const newTargets = lightningBreathTargets.filter(t => t.instanceId !== target.instanceId)
       setLightningBreathTargets(newTargets)
       addToast(`Removed ${target.creature.name} from targets (${newTargets.length}/3)`)
@@ -4688,14 +4605,12 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if target is valid
     if (!lightningBreathValidTargets.some(t => t.instanceId === target.instanceId)) {
-      console.log('[handleLightningBreathTargetSelect] Target not valid:', target.creature.name)
       addToast(`${target.creature.name} is not a valid target!`)
       return
     }
 
     // Check if we already have 3 targets
     if (lightningBreathTargets.length >= 3) {
-      console.log('[handleLightningBreathTargetSelect] Already have 3 targets')
       addToast(`Maximum 3 targets selected! Click "Confirm" to attack.`)
       return
     }
@@ -4703,7 +4618,6 @@ function GameBoard({ onTurnInfoChange }) {
     // Add target
     const newTargets = [...lightningBreathTargets, target]
     setLightningBreathTargets(newTargets)
-    console.log('[handleLightningBreathTargetSelect] Added target:', target.creature.name, 'Total:', newTargets.length)
     addToast(`⚡ Target ${newTargets.length}/3 selected: ${target.creature.name}`)
   }
 
@@ -4713,13 +4627,9 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const handleLightningBreathConfirm = () => {
     if (!lightningBreathMode || !lightningBreathAttacker || lightningBreathTargets.length < 2) {
-      console.log('[handleLightningBreathConfirm] Invalid state - need at least 2 targets')
       addToast(`Select at least 2 targets for Lightning Breath!`)
       return
     }
-
-    console.log('[handleLightningBreathConfirm] Confirming Lightning Breath with targets:',
-      lightningBreathTargets.map(t => t.creature.name))
 
     addToast(`⚡ ${lightningBreathAttacker.creature.name} unleashes LIGHTNING BREATH on ${lightningBreathTargets.length} targets!`)
 
@@ -4784,8 +4694,6 @@ function GameBoard({ onTurnInfoChange }) {
    * Called when player clicks "Cancel" during target selection
    */
   const handleLightningBreathCancel = () => {
-    console.log('[handleLightningBreathCancel] Cancelling Lightning Breath')
-
     setLightningBreathMode(false)
     setLightningBreathAttacker(null)
     setLightningBreathTargets([])
@@ -4805,12 +4713,6 @@ function GameBoard({ onTurnInfoChange }) {
     const currentIndex = lightningBreathCurrentAttackIndex
     const targets = lightningBreathTargets
     const attacker = lightningBreathAttacker
-
-    console.log('[handleLightningBreathAttackResolved] Attack resolved:', {
-      index: currentIndex,
-      target: targets[currentIndex]?.creature.name,
-      result
-    })
 
     // Store result
     const newResults = [...lightningBreathResults, result]
@@ -4904,12 +4806,6 @@ function GameBoard({ onTurnInfoChange }) {
     const attacker = lightningBreathAttacker
     const targets = lightningBreathTargets
 
-    console.log('[handleLightningBreathComplete] All attacks resolved:', {
-      attacker: attacker?.creature.name,
-      targetCount: targets.length,
-      results
-    })
-
     // Calculate totals for summary
     const totalDamage = results.reduce((sum, r) => sum + (r.damage || 0), 0)
     const kills = results.filter(r => r.destroyed).length
@@ -4955,12 +4851,6 @@ function GameBoard({ onTurnInfoChange }) {
     const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
     const damage = targetInfo.damage || gameState.getLightningBreathDamage(attackerInstance)
 
-    console.log('[handleLightningBreathDefenseSelected] Defense selected:', {
-      defense: defense.type,
-      target: defenderInstance.creature.name,
-      damage
-    })
-
     let damageAfterDefense = damage
     let defenseResult = { type: defense.type, success: false }
 
@@ -4995,13 +4885,6 @@ function GameBoard({ onTurnInfoChange }) {
     const previousHP = defenderInstance.currentHP
     defenderInstance.currentHP -= damageAfterDefense
     const destroyed = defenderInstance.currentHP <= 0
-
-    console.log('[handleLightningBreathDefenseSelected] Damage applied:', {
-      damage: damageAfterDefense,
-      previousHP,
-      newHP: defenderInstance.currentHP,
-      destroyed
-    })
 
     // Handle destruction
     let moraleChange = { attacker: 0, defender: 0 }
@@ -5063,16 +4946,11 @@ function GameBoard({ onTurnInfoChange }) {
 
     if (pendingPhaseAdvance) {
       setPendingPhaseAdvance(false)
-      console.log(`[WATER DEBUG] advancePhase() called after Kyuss damage - transitioning from ACTIVATE phase`)
-      console.log(`[WATER DEBUG] Current player: ${gameState.currentPlayer}`)
 
       const advanceResult = gameState.advancePhase()
 
-      console.log(`[WATER DEBUG] advancePhase() returned:`, advanceResult)
-
       // Display water damage toasts if any creatures took water damage
       if (advanceResult?.waterDamageResults?.length > 0) {
-        console.log(`[WATER DEBUG] Water damage results:`, advanceResult.waterDamageResults)
         for (const waterResult of advanceResult.waterDamageResults) {
           if (waterResult.destroyed) {
             addToast(`🌊 WATER DAMAGE: ${waterResult.creature} was destroyed by drowning! (10 damage)`)
@@ -5086,8 +4964,6 @@ function GameBoard({ onTurnInfoChange }) {
         if (hasDeaths) {
           gameState.checkGameOver()
         }
-      } else {
-        console.log(`[WATER DEBUG] No water damage this phase`)
       }
     }
 
@@ -5216,8 +5092,6 @@ function GameBoard({ onTurnInfoChange }) {
       })
     }
 
-    console.log(`[RIDER] Deployed ${selectedCreature.name} (Level ${selectedCreature.level}). Lost ${moraleCost} morale instead of ${creatureLevel}.`)
-
     // Close modal and clear state
     setShowRiderModal(false)
     setRiderData(null)
@@ -5250,8 +5124,6 @@ function GameBoard({ onTurnInfoChange }) {
         moraleLost: creatureLevel
       })
     }
-
-    console.log(`[RIDER] Declined - ${destroyedCreature} destroyed. Full morale loss of ${creatureLevel}.`)
 
     // Close modal and clear state
     setShowRiderModal(false)
@@ -5784,16 +5656,10 @@ function GameBoard({ onTurnInfoChange }) {
             }
           } else {
             // No Disciples or no adjacent creatures - advance normally
-            console.log(`[WATER DEBUG] advancePhase() called - transitioning from ACTIVATE phase`)
-            console.log(`[WATER DEBUG] Current player: ${gameState.currentPlayer}`)
-
             const advanceResult = gameState.advancePhase()
-
-            console.log(`[WATER DEBUG] advancePhase() returned:`, advanceResult)
 
             // Display water damage toasts if any creatures took water damage
             if (advanceResult?.waterDamageResults?.length > 0) {
-              console.log(`[WATER DEBUG] Water damage results:`, advanceResult.waterDamageResults)
               for (const waterResult of advanceResult.waterDamageResults) {
                 if (waterResult.destroyed) {
                   addToast(`🌊 WATER DAMAGE: ${waterResult.creature} was destroyed by drowning! (10 damage)`)
@@ -5807,8 +5673,6 @@ function GameBoard({ onTurnInfoChange }) {
               if (hasDeaths) {
                 gameState.checkGameOver()
               }
-            } else {
-              console.log(`[WATER DEBUG] No water damage this phase`)
             }
           }
         }
@@ -5951,16 +5815,11 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if current player is AI
     const currentPlayerId = gameState.currentPlayer
-    console.log(`[AI Turn Logic] Current Player: ${currentPlayerId}, Phase: ${gameState.currentPhase}`)
     const isCurrentPlayerAI = !isPlayerHuman(currentPlayerId)
-    console.log(`[AI Turn Logic] Is current player AI? ${isCurrentPlayerAI}`)
 
     if (!isCurrentPlayerAI) {
-      console.log(`[AI Turn Logic] Player ${currentPlayerId} is human, skipping AI execution`)
       return
     }
-
-    console.log(`[AI Turn Logic] Executing AI turn for ${currentPlayerId}`)
     // AI should take its turn
     const executeAITurn = async () => {
       setIsAIThinking(true)
@@ -6026,8 +5885,6 @@ function GameBoard({ onTurnInfoChange }) {
       for (const lbAction of lightningBreathActions) {
         const { attackerInstance, targets, damage } = lbAction
 
-        console.log(`[AI] Executing LIGHTNING BREATH: ${attackerInstance.creature.name} attacking ${targets.length} targets`)
-
         let totalDamage = 0
         let kills = 0
 
@@ -6040,8 +5897,6 @@ function GameBoard({ onTurnInfoChange }) {
           target.currentHP -= damage
           const destroyed = target.currentHP <= 0
           totalDamage += damage
-
-          console.log(`[AI] Lightning Breath hit ${target.creature.name}: ${damage} damage, ${previousHP} -> ${target.currentHP} HP`)
 
           if (destroyed) {
             kills++
@@ -6110,8 +5965,6 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Web was already applied in simpleAI.js, just show notification
         addToast(`🕸️ AI: ${casterInstance.creature.name} cast WEB on ${targetInstance.creature.name}! (Cannot move)`)
-
-        console.log(`[GameBoard] AI Web action: ${casterInstance.creature.name} webbed ${targetInstance.creature.name}`)
       }
 
       // ============================================
@@ -6124,8 +5977,6 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Web was already removed in simpleAI.js, just show notification
         addToast(`🕸️ AI: ${creatureInstance.creature.name} removed Web ${reason}`)
-
-        console.log(`[GameBoard] AI Web removal: ${creatureInstance.creature.name} - ${reason}`)
       }
 
       // ============================================
@@ -6178,11 +6029,9 @@ function GameBoard({ onTurnInfoChange }) {
 
     const currentPlayerId = gameState.currentPlayer
     const isCurrentPlayerAI = !isPlayerHuman(currentPlayerId)
-    console.log(`[Auto-execute phases] Player: ${currentPlayerId}, Is AI: ${isCurrentPlayerAI}, Phase: ${gameState.currentPhase}`)
 
     // Don't auto-execute if it's AI's turn (AI logic handles its own phases)
     if (isCurrentPlayerAI) {
-      console.log(`[Auto-execute phases] Skipping auto-execution for AI player ${currentPlayerId}`)
       return
     }
 
@@ -6239,7 +6088,6 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Only trigger at the start of ACTIVATE phase for human players
     if (gameState.currentPhase === GamePhases.ACTIVATE && isPlayerHuman(gameState.currentPlayer)) {
-      console.log(`[Magic Circle Aura] Checking pending notifications for ${gameState.currentPlayer}`)
       checkPendingMagicCircleNotifications()
     }
   }, [gameState?.currentPhase, gameState?.currentPlayer])
@@ -6317,8 +6165,6 @@ function GameBoard({ onTurnInfoChange }) {
         {/* Battlefield - Left Side (no Card wrapper, just the grid) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <div className="board-grid" style={{ flex: 1 }}>
-            {/* Debug log for ranged LOS at render time */}
-            {console.log('[GameBoard RENDER] creatureViewMode:', creatureViewMode, '| allRangedLOSTiles count:', allRangedLOSTiles.length)}
             {Array.from({ length: gameState.boardHeight }).map((_, y) => (
               <div key={y} className="board-row">
                 {Array.from({ length: gameState.boardWidth }).map((_, x) => {
@@ -6568,11 +6414,6 @@ function GameBoard({ onTurnInfoChange }) {
                     }
                   }
 
-                  // Debug log for first few tiles with ranged LOS
-                  if ((isAllRangedLOS || isSelectedCreatureRangedLOS) && x < 3 && y < 3) {
-                    console.log(`[BoardTile ${x},${y}] ranged mode: isAllRangedLOS=${isAllRangedLOS}, isSelectedCreatureRangedLOS=${isSelectedCreatureRangedLOS}, factions=${rangedLOSFactions.join(',')}`)
-                  }
-
                   // ============================================
                   // ORDER CARD TARGET HIGHLIGHT: Show valid targets for order card targeting mode
                   // ============================================
@@ -6715,11 +6556,7 @@ function GameBoard({ onTurnInfoChange }) {
                 // VIEW MODE TOGGLE - For switching between movement and ranged preview
                 creatureViewMode={creatureViewMode}
                 onCreatureViewModeToggle={() => {
-                  setCreatureViewMode(mode => {
-                    const newMode = mode === 'movement' ? 'ranged' : 'movement'
-                    console.log(`[GameBoard] creatureViewMode toggled: ${mode} -> ${newMode}`)
-                    return newMode
-                  })
+                  setCreatureViewMode(mode => mode === 'movement' ? 'ranged' : 'movement')
                 }}
                 selectedBoardCreature={selectedBoardCreature}
                 // GRAVEYARD PROPS - For resurrection
@@ -7057,7 +6894,6 @@ function GameBoard({ onTurnInfoChange }) {
                 style={{ margin: '2px 4px', fontSize: '0.9rem', cursor: 'pointer' }}
                 onClick={() => {
                   // Remove this target from selection
-                  console.log('[LightningBreath] Deselecting target:', target.creature.name)
                   setLightningBreathTargets(prev => prev.filter(t => t.instanceId !== target.instanceId))
                   addToast(`Removed ${target.creature.name} from Lightning Breath targets`)
                 }}

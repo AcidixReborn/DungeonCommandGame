@@ -587,7 +587,6 @@ export class Board {
     if (possiblePositions.length > 0) {
       const firstIndex = Math.floor(Math.random() * possiblePositions.length)
       positions.push(possiblePositions[firstIndex])
-      console.log(`Player 1 starting zone: ${positions[0].edge} edge at (${positions[0].startX}, ${positions[0].startY})`)
     }
 
     // For subsequent players, maximize distance
@@ -615,7 +614,6 @@ export class Board {
       const selected = topCandidates[selectedIndex].position
 
       positions.push(selected)
-      console.log(`Player ${positions.length} starting zone: ${selected.edge} edge at (${selected.startX}, ${selected.startY}) - distance score: ${topCandidates[selectedIndex].totalDistance}`)
     }
 
     // Fallback to corners
@@ -658,8 +656,6 @@ export class Board {
     const shuffledPlayers = [...activePlayers].sort(() => Math.random() - 0.5)
     const selectedPlayers = shuffledPlayers.slice(0, numCircles)
 
-    console.log(`Placing magic circles for ${numCircles} out of ${activePlayers.length} players: ${selectedPlayers.join(', ')}`)
-
     selectedPlayers.forEach(playerId => {
       if (availableTiles.length === 0) return
 
@@ -701,8 +697,6 @@ export class Board {
           break
         }
       }
-
-      console.log(`Placed ${placed}-tile magic circle cluster for ${playerId}`)
     })
   }
 
@@ -812,20 +806,10 @@ export class Board {
             candidateTile.treasure = treasure
             placedSuccessfully = true
             this.treasurePlacementStats.relaxedSpacing++
-            console.log(`Relaxed treasure spacing constraint (attempt ${attempts})`)
           }
-        }
-
-        if (!placedSuccessfully) {
-          console.warn(`Failed to place treasure with value ${moraleValue} for ${playerId}`)
         }
       })
     })
-
-    console.log(`Placed ${this.treasures.length} treasures on board`)
-    if (this.treasurePlacementStats.relaxedSpacing > 0) {
-      console.log(`Relaxed spacing constraint ${this.treasurePlacementStats.relaxedSpacing} times`)
-    }
   }
 }
 

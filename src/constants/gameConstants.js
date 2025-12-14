@@ -13,8 +13,10 @@
 // ============================================================================
 
 export const BOARD = {
-  /** Base board size for 2 players - scales with player count */
-  BASE_SIZE: 16,
+  /** Base board size before player scaling (formula: BASE_SIZE + numPlayers * PLAYER_SIZE_INCREMENT) */
+  BASE_SIZE: 12,
+  /** Size increment per player (2 players = 20x20, 3 players = 24x24, etc.) */
+  PLAYER_SIZE_INCREMENT: 4,
   /** Minimum tiles between starting zone edges */
   MIN_STARTING_ZONE_DISTANCE: 10,
   /** Starting zone dimensions (horizontal: 3x2, vertical: 2x3) */
@@ -119,6 +121,48 @@ export const MAGIC_CIRCLE = {
   MIN_CIRCLES: 1
 }
 
+// ============================================================================
+// CREATURE ABILITY DAMAGE VALUES
+// ============================================================================
+
+export const ABILITIES = {
+  /** FLASHING BLADES: Damage to additional adjacent enemies */
+  FLASHING_BLADES_DAMAGE: 10,
+  /** HIDDEN BLADE: Damage when attacking from adjacent position */
+  HIDDEN_BLADE_DAMAGE: 10,
+  /** TOMB GUARDIAN SPLASH: Splash damage to adjacent enemies */
+  TOMB_GUARDIAN_SPLASH_DAMAGE: 20,
+  /** HEALING TOUCH: HP restored to adjacent ally */
+  HEALING_TOUCH_AMOUNT: 10,
+  /** REGENERATE: Default HP restored at start of turn */
+  REGENERATE_DEFAULT: 10,
+  /** LIFE DRAIN: HP healed on successful attack */
+  LIFE_DRAIN_HEAL: 10,
+  /** CONFUSION GAZE: Slide distance for target */
+  CONFUSION_GAZE_SLIDE_DISTANCE: 3,
+  /** DISCIPLE OF KYUSS: Damage to adjacent enemies at end of Activate phase */
+  DISCIPLE_OF_KYUSS_DAMAGE: 10,
+  /** ACID BREATH: Splash damage to adjacent enemies on ranged attack */
+  ACID_BREATH_SPLASH_DAMAGE: 20,
+  /** EXPLOSIVE BOLTS: Splash damage to adjacent enemies on ranged attack */
+  EXPLOSIVE_BOLTS_SPLASH_DAMAGE: 10
+}
+
+// ============================================================================
+// UI CONFIGURATION
+// ============================================================================
+
+export const UI = {
+  /** Duration for toast notifications in milliseconds */
+  TOAST_DURATION_MS: 3000,
+  /** Maximum visible toasts at once */
+  MAX_VISIBLE_TOASTS: 10,
+  /** AI thinking delay in milliseconds */
+  AI_THINKING_DELAY_MS: 500,
+  /** Hover preview delay in milliseconds */
+  HOVER_PREVIEW_DELAY_MS: 300
+}
+
 // Default export for convenient importing
 export default {
   BOARD,
@@ -128,5 +172,7 @@ export default {
   TREASURE,
   GAME_RULES,
   VISION,
-  MAGIC_CIRCLE
+  MAGIC_CIRCLE,
+  ABILITIES,
+  UI
 }

@@ -23,8 +23,8 @@ Defeat your opponent by reducing their **Morale** to 0, or eliminate all their c
 ## 📊 Understanding the Interface
 
 ### Game Board
-- **16×16 grid** with varied terrain types
-- **Terrain symbols**: 🌲 Forest, ⛰️ Mountain, 🟫 Difficult Terrain, ⭐ Magic Circle, 🏠 Starting Zone
+- **Dynamic grid size**: 20×20 for 2 players (+4 tiles per additional player)
+- **Terrain symbols**: 🌲 Forest, ⛰️ Mountain, 🟫 Difficult Terrain, ⭐ Magic Circle, 🏠 Starting Zone, 🌊 Water
 - **Treasure tokens**: 💎 Morale tokens scattered across the board
 - **Creatures**: Colored tokens representing your creatures on the board
 
@@ -169,6 +169,7 @@ Order cards provide special actions and effects:
 - **Normal**: 1 movement point per tile
 - **Forest** 🌲: 2 movement points per tile
 - **Difficult** 🟫: 2 movement points per tile
+- **Water** 🌊: 2 movement points per tile (non-flying creatures take 10 damage at end of ACTIVATE phase!)
 - **Mountain** ⛰️: Impassable (flying creatures can't land on them)
 - **Magic Circle** ⭐: 1 movement point
 - **Starting Zone** 🏠: 1 movement point

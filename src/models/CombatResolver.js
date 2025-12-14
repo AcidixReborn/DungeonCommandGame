@@ -66,19 +66,7 @@ export class CombatResolver {
       const creatureReach = attackerInstance.creature.reach || 0
       const meleeRange = Math.max(baseMeleeRange, creatureReach)
 
-      // DEBUG: Log REACH calculation in validateAttack
-      if (creatureReach > 0) {
-        console.log(`[validateAttack] REACH 2 - Creature has REACH:`, {
-          creatureName: attackerInstance.creature.name,
-          creatureReach,
-          baseMeleeRange,
-          effectiveMeleeRange: meleeRange,
-          distance
-        })
-      }
-
       if (distance > meleeRange) {
-        console.log(`[validateAttack] BLOCKED: Melee attack invalid - distance ${distance} > meleeRange ${meleeRange}`)
         return { valid: false, error: 'Cannot attack: target is not in melee range' }
       }
     }
@@ -90,27 +78,23 @@ export class CombatResolver {
 
       // Check distance is within range
       if (distance > rangedRange) {
-        console.log(`[validateAttack] BLOCKED: Ranged attack invalid - distance ${distance} > rangedRange ${rangedRange}`)
         return { valid: false, error: 'Cannot attack: target is out of range' }
       }
 
       // Check forest restrictions - cannot shoot FROM forest
       const attackerTile = this.gameState.getTile(attackerInstance.position.x, attackerInstance.position.y)
       if (attackerTile?.terrain === TerrainTypes.FOREST) {
-        console.log(`[validateAttack] BLOCKED: Cannot make ranged attack from forest`)
         return { valid: false, error: 'Cannot make ranged attack from forest' }
       }
 
       // Check forest restrictions - cannot shoot AT target in forest
       const targetTile = this.gameState.getTile(defenderInstance.position.x, defenderInstance.position.y)
       if (targetTile?.terrain === TerrainTypes.FOREST) {
-        console.log(`[validateAttack] BLOCKED: Cannot make ranged attack at target in forest`)
         return { valid: false, error: 'Cannot make ranged attack at target in forest' }
       }
 
       // Check line of sight - O(n) where n = tiles between attacker and target
       if (!this.hasLineOfSight(attackerInstance, defenderInstance, attackerInstance.owner)) {
-        console.log(`[validateAttack] BLOCKED: No line of sight to target`)
         return { valid: false, error: 'Cannot attack: no line of sight to target' }
       }
     }
@@ -732,17 +716,6 @@ export class CombatResolver {
     const creatureReach = creatureInstance.creature.reach || 0
     const meleeRange = hasMelee ? Math.max(creatureInstance.creature.meleeAttack.range || 1, creatureReach) : 0
 
-    // DEBUG: Log REACH 2 calculation
-    if (creatureReach > 0) {
-      console.log(`[REACH 2 DEBUG] getValidAttackTargets - Creature has REACH:`, {
-        creatureName: creatureInstance.creature.name,
-        creatureReach,
-        baseMeleeRange: creatureInstance.creature.meleeAttack?.range || 1,
-        effectiveMeleeRange: meleeRange,
-        position: creatureInstance.position
-      })
-    }
-
     // Ranged restriction #1: Check if attacker is on forest
     const attackerTile = this.gameState.getTile(creatureInstance.position.x, creatureInstance.position.y)
     const attackerOnForest = attackerTile?.terrain === TerrainTypes.FOREST
@@ -770,19 +743,6 @@ export class CombatResolver {
           // Track if this is a REACH attack (distance > 1 using reach ability)
           const isReachAttack = distance > 1 && creatureReach >= distance
 
-          // DEBUG: Log REACH 2 target found
-          if (creatureReach > 0) {
-            console.log(`[REACH 2 DEBUG] Valid melee target found:`, {
-              attackerName: creatureInstance.creature.name,
-              targetName: enemyCreature.creature.name,
-              distance,
-              isReachAttack,
-              creatureReach,
-              attackerPos: creatureInstance.position,
-              targetPos: enemyCreature.position
-            })
-          }
-
           targets.push({
             creature: enemyCreature,
             attackType: 'melee',
@@ -793,12 +753,6 @@ export class CombatResolver {
           // Track reach attacks for stats
           if (isReachAttack && trackStats) {
             trackStats.reachAttacksAvailable = (trackStats.reachAttacksAvailable || 0) + 1
-            console.log(`[REACH 2 DEBUG] REACH attack option tracked:`, {
-              attackerName: creatureInstance.creature.name,
-              targetName: enemyCreature.creature.name,
-              reachDistance: distance,
-              totalReachAttacksAvailable: trackStats.reachAttacksAvailable
-            })
           }
         }
 

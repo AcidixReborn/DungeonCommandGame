@@ -290,7 +290,7 @@ export class GameState {
     this.winner = null
 
     // Board state - Dynamic sizing based on number of players
-    // 2 players: 16×16, 3 players: 20×20, 4 players: 24×24, 5 players: 28×28
+    // Formula: 12 + (numPlayers * 4) = 2 players: 20×20, 3 players: 24×24, 4 players: 28×28, 5 players: 32×32
     const numPlayers = this.activePlayers.length
     const baseSize = 12 + (numPlayers * 4)
 
@@ -485,11 +485,9 @@ export class GameState {
       const aiDifficulty = defenderPlayer.aiDifficulty || 'medium'
 
       if (aiDifficulty === 'easy') {
-        console.log(`[Insubstantial] Easy AI - ability disabled for ${creatureInstance.creature.name}`)
         return false  // Easy AI never uses ability
       } else if (aiDifficulty === 'medium') {
         if (Math.random() >= 0.5) {
-          console.log(`[Insubstantial] Medium AI - ability not triggered (50% roll failed) for ${creatureInstance.creature.name}`)
           return false  // Medium AI: 50% chance
         }
       }
@@ -498,7 +496,6 @@ export class GameState {
 
     // Mark ability as used
     creatureInstance.insubstantialUsed = true
-    console.log(`[Insubstantial] ${creatureInstance.creature.name} blocked ${incomingDamage} damage!`)
     return true  // Damage blocked
   }
 
@@ -734,9 +731,6 @@ export class GameState {
           attackerOwner,
           false // Not killed by Bugbear directly
         )
-        if (untapResult?.triggered) {
-          console.log(`[FLASHING BLADES] ${untapResult.bugbearName} untapped from adjacent splash kill!`)
-        }
       }
     }
 
@@ -838,9 +832,6 @@ export class GameState {
           attackerOwner,
           false // Not killed by Bugbear directly
         )
-        if (untapResult?.triggered) {
-          console.log(`[FLASHING BLADES W/DEFENSE] ${untapResult.bugbearName} untapped from adjacent splash kill!`)
-        }
       }
     }
 
@@ -975,9 +966,6 @@ export class GameState {
           attackerOwner,
           false // Not killed by Bugbear directly
         )
-        if (untapResult?.triggered) {
-          console.log(`[HIDDEN BLADE] ${untapResult.bugbearName} untapped from adjacent kill!`)
-        }
       }
     }
 
@@ -1079,9 +1067,6 @@ export class GameState {
           attackerOwner,
           false // Not killed by Bugbear directly
         )
-        if (untapResult?.triggered) {
-          console.log(`[HIDDEN BLADE W/DEFENSE] ${untapResult.bugbearName} untapped from adjacent kill!`)
-        }
       }
     }
 
@@ -1156,16 +1141,13 @@ export class GameState {
       const aiDifficulty = attackerPlayer.aiDifficulty || 'medium'
 
       if (aiDifficulty === 'easy') {
-        console.log(`[Flanking] Easy AI - ability disabled for ${attackerInstance.creature.name}`)
         return 0  // Easy AI never uses FLANKING bonus
       } else if (aiDifficulty === 'medium') {
         if (Math.random() >= 0.5) {
-          console.log(`[Flanking] Medium AI - ability not triggered (50% roll failed) for ${attackerInstance.creature.name}`)
           return 0  // Medium AI: 50% chance
         }
       }
       // Hard AI: always use FLANKING bonus
-      console.log(`[Flanking] ${aiDifficulty} AI - +10 bonus applied for ${attackerInstance.creature.name}`)
     }
 
     // Human players or Hard AI - return +10 bonus
@@ -1688,7 +1670,6 @@ export class GameState {
   getMagicCircleDamageReduction(defenderInstance, preventionBlocked = false) {
     // Future-proof: Check if damage prevention is blocked by attacker effect
     if (preventionBlocked) {
-      console.log(`[Magic Circle Aura] Damage prevention is blocked for this attack`)
       return 0
     }
 
@@ -1709,7 +1690,6 @@ export class GameState {
       }
 
       if (aiDifficulty === 'easy') {
-        console.log(`[Magic Circle Aura] Easy AI - shield declined for ${defenderInstance.creature.name}`)
         // Track declined
         if (window.trackAbility) {
           window.trackAbility('magic_circle_aura', 'declined', aiDifficulty, {
@@ -1719,7 +1699,6 @@ export class GameState {
         return 0  // Easy AI never benefits from Magic Circle Aura
       } else if (aiDifficulty === 'medium') {
         if (Math.random() >= 0.5) {
-          console.log(`[Magic Circle Aura] Medium AI - shield declined (50% roll) for ${defenderInstance.creature.name}`)
           // Track declined
           if (window.trackAbility) {
             window.trackAbility('magic_circle_aura', 'declined', aiDifficulty, {
@@ -1731,8 +1710,6 @@ export class GameState {
       }
       // Hard AI: always benefits from Magic Circle Aura
     }
-
-    console.log(`[Magic Circle Aura] ${defenderInstance.creature.name} will block 10 damage`)
 
     // Track triggered for AbilitiesTest
     if (window.trackAbility) {
@@ -1756,7 +1733,6 @@ export class GameState {
     if (!this.hasMagicCircleProtection(defenderInstance)) return false
 
     defenderInstance.magicCircleShieldUsed = true
-    console.log(`[Magic Circle Aura] ${defenderInstance.creature.name} blocked ${damageReduced} damage (shield used for this turn)`)
     return true
   }
 
@@ -1778,8 +1754,6 @@ export class GameState {
     const isOnMagicCircle = newTile?.terrain === 'MAGIC_CIRCLE'
 
     if (!wasOnMagicCircle && isOnMagicCircle) {
-      console.log(`[Magic Circle Aura] Sorcerer entered Magic Circle - aura ACTIVATED for ${creatureInstance.owner}`)
-
       // Track aura activation for AbilitiesTest
       if (window.trackAbility) {
         window.trackAbility('magic_circle_aura', 'aura_activated', 'n/a', {
@@ -1811,8 +1785,6 @@ export class GameState {
     const isOnMagicCircle = newTile?.terrain === 'MAGIC_CIRCLE'
 
     if (wasOnMagicCircle && !isOnMagicCircle) {
-      console.log(`[Magic Circle Aura] Sorcerer left Magic Circle - aura DEACTIVATED for ${creatureInstance.owner}`)
-
       // Track aura deactivation for AbilitiesTest
       if (window.trackAbility) {
         window.trackAbility('magic_circle_aura', 'aura_deactivated', 'n/a', {
@@ -1839,8 +1811,6 @@ export class GameState {
 
     const tile = this.getTile(creatureInstance.position.x, creatureInstance.position.y)
     if (tile?.terrain === 'MAGIC_CIRCLE') {
-      console.log(`[Magic Circle Aura] Sorcerer died on Magic Circle - aura DEACTIVATED for ${creatureInstance.owner}`)
-
       // Track aura deactivation for AbilitiesTest
       if (window.trackAbility) {
         window.trackAbility('magic_circle_aura', 'aura_deactivated', 'n/a', {
@@ -2259,9 +2229,6 @@ export class GameState {
           attackerOwner,
           false // Not killed by Bugbear directly
         )
-        if (untapResult?.triggered) {
-          console.log(`[CONFUSION GAZE] ${untapResult.bugbearName} untapped from adjacent kill!`)
-        }
       }
     }
 
@@ -2383,9 +2350,6 @@ export class GameState {
           attackerOwner,
           false // Not killed by Bugbear directly
         )
-        if (untapResult?.triggered) {
-          console.log(`[CONFUSION GAZE W/DEFENSE] ${untapResult.bugbearName} untapped from adjacent kill!`)
-        }
       }
     }
 
@@ -2752,17 +2716,9 @@ export class GameState {
    */
   getCreatureReach(creatureInstance) {
     if (!creatureInstance?.creature) {
-      console.log(`[REACH 2 DEBUG] getCreatureReach - No creature instance`)
       return 0
     }
-    const reach = creatureInstance.creature.reach || 0
-    if (reach > 0) {
-      console.log(`[REACH 2 DEBUG] getCreatureReach - Found REACH:`, {
-        creatureName: creatureInstance.creature.name,
-        reach
-      })
-    }
-    return reach
+    return creatureInstance.creature.reach || 0
   }
 
   /**
@@ -2772,15 +2728,7 @@ export class GameState {
    * @returns {boolean} True if creature has REACH ability
    */
   hasReach(creatureInstance) {
-    const reach = this.getCreatureReach(creatureInstance)
-    const hasReachAbility = reach > 1
-    if (hasReachAbility) {
-      console.log(`[REACH 2 DEBUG] hasReach - TRUE:`, {
-        creatureName: creatureInstance?.creature?.name,
-        reach
-      })
-    }
-    return hasReachAbility
+    return this.getCreatureReach(creatureInstance) > 1
   }
 
   // --------------------------------------------------------------------------
@@ -2822,43 +2770,25 @@ export class GameState {
    * @returns {boolean} True if creature can use Web
    */
   canUseWebCard(casterInstance, webCard) {
-    console.log('[gameState.canUseWebCard] Called with:', {
-      casterName: casterInstance?.creature?.name,
-      casterLevel: casterInstance?.creature?.level,
-      casterTypes: casterInstance?.creature?.type,
-      casterAbilities: casterInstance?.creature?.abilities,
-      webCardLevel: webCard?.level
-    })
-
     if (!casterInstance?.creature || !webCard) {
-      console.log('[gameState.canUseWebCard] Invalid params - returning false')
       return false
     }
 
     // Check level requirement
     if (casterInstance.creature.level < webCard.level) {
-      console.log('[gameState.canUseWebCard] Level check failed:', casterInstance.creature.level, '<', webCard.level)
       return false
     }
 
     // Check if creature has INT ability
     if (casterInstance.creature.abilities?.INT) {
-      console.log('[gameState.canUseWebCard] Has INT ability - returning true')
       return true
     }
 
     // SPIDER AFFINITY: Spider-type creatures can use Web without INT
     const creatureTypes = casterInstance.creature.type || []
     const isSpider = creatureTypes.some(t => t.toLowerCase() === 'spider')
-    console.log('[gameState.canUseWebCard] Spider check:', { creatureTypes, isSpider })
 
-    if (isSpider) {
-      console.log('[gameState.canUseWebCard] Is Spider - returning true (SPIDER AFFINITY)')
-      return true
-    }
-
-    console.log('[gameState.canUseWebCard] No INT, not Spider - returning false')
-    return false
+    return isSpider
   }
 
   /**
@@ -2945,8 +2875,6 @@ export class GameState {
       attachedTurn: this.turnNumber
     })
 
-    console.log(`[WEB] ${casterInstance.creature.name} applied Web to ${targetInstance.creature.name}`)
-
     return {
       success: true,
       card: removedCard,
@@ -2986,8 +2914,6 @@ export class GameState {
       casterPlayer.orderDiscard.push(card)
     }
 
-    console.log(`[WEB] Web removed from ${creatureInstance.creature.name}, returned to ${casterOwner}'s discard`)
-
     return {
       success: true,
       card: card,
@@ -3008,7 +2934,6 @@ export class GameState {
       const casterPlayer = this.players[casterOwner]
       if (casterPlayer && card) {
         casterPlayer.orderDiscard.push(card)
-        console.log(`[ATTACHED CARD] ${card.name} discarded to ${casterOwner}'s discard pile`)
       }
     }
 
@@ -3278,9 +3203,6 @@ export class GameState {
           attackerOwner,
           false // Not killed by Bugbear directly
         )
-        if (untapResult?.triggered) {
-          console.log(`[TOMB GUARDIAN SPLASH] ${untapResult.bugbearName} untapped from adjacent kill!`)
-        }
       }
     }
 
@@ -3347,7 +3269,6 @@ export class GameState {
     // Check if attacker is in FOREST (cannot shoot from forest)
     const attackerTile = this.getTile(attackerPos.x, attackerPos.y)
     if (attackerTile?.terrain === 'FOREST') {
-      console.log('[getLightningBreathTargets] Attacker in FOREST - cannot use Lightning Breath')
       return []
     }
 
@@ -3366,37 +3287,22 @@ export class GameState {
         const distance = this.getDistance(attackerPos, targetPos)
 
         // Must be within range
-        if (distance > rangedRange) {
-          console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} out of range (${distance} > ${rangedRange})`)
-          continue
-        }
+        if (distance > rangedRange) continue
 
         // Cannot target adjacent creatures (ranged attacks only)
-        if (distance <= 1) {
-          console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} is adjacent - cannot target with ranged`)
-          continue
-        }
+        if (distance <= 1) continue
 
         // Check if target is in FOREST (cannot attack creatures hiding in forest)
         const targetTile = this.getTile(targetPos.x, targetPos.y)
-        if (targetTile?.terrain === 'FOREST') {
-          console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} in FOREST - cannot target`)
-          continue
-        }
+        if (targetTile?.terrain === 'FOREST') continue
 
         // Check line of sight (blocked by mountains and enemy creatures)
-        if (!this.hasLineOfSight(creatureInstance, enemyCreature, attackerOwner)) {
-          console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} - no line of sight`)
-          continue
-        }
+        if (!this.hasLineOfSight(creatureInstance, enemyCreature, attackerOwner)) continue
 
-        // Valid target!
-        console.log(`[getLightningBreathTargets] ${enemyCreature.creature.name} is a valid target`)
         validTargets.push(enemyCreature)
       }
     }
 
-    console.log(`[getLightningBreathTargets] Found ${validTargets.length} valid targets for Lightning Breath`)
     return validTargets
   }
 
@@ -3445,16 +3351,7 @@ export class GameState {
    * @returns {boolean}
    */
   hasRangedSplashAbility(creatureInstance) {
-    const hasAcid = this.hasAcidBreath(creatureInstance)
-    const hasBolts = this.hasExplosiveBolts(creatureInstance)
-    const result = hasAcid || hasBolts
-    console.log(`[RANGED SPLASH DEBUG] hasRangedSplashAbility check for ${creatureInstance?.creature?.name}:`, {
-      hasAcidBreath: hasAcid,
-      hasExplosiveBolts: hasBolts,
-      result,
-      abilities: creatureInstance?.creature?.specialAbilities
-    })
-    return result
+    return this.hasAcidBreath(creatureInstance) || this.hasExplosiveBolts(creatureInstance)
   }
 
   /**
@@ -3609,9 +3506,6 @@ export class GameState {
           attackerOwner,
           false // Not killed by Bugbear directly
         )
-        if (untapResult?.triggered) {
-          console.log(`[ACID BREATH/EXPLOSIVE BOLTS] ${untapResult.bugbearName} untapped from adjacent kill!`)
-        }
       }
     }
 
@@ -3710,8 +3604,6 @@ export class GameState {
     const disciples = this.getEnemyDisciplesOfKyuss(endingPlayerId)
     if (disciples.length === 0) return { damageEvents, deaths, sourceCreature }
 
-    console.log(`[Disciple of Kyuss] Found ${disciples.length} enemy Disciple(s) - checking for adjacent creatures`)
-
     // Track creatures already damaged (avoid double-damage if somehow adjacent to multiple Disciples)
     const damagedCreatureIds = new Set()
 
@@ -3728,22 +3620,17 @@ export class GameState {
 
         if (aiDifficulty === 'easy') {
           // Easy AI: Never trigger Disciple of Kyuss (0%)
-          console.log(`[Disciple of Kyuss] Easy AI - ability disabled for ${disciple.creature.name}`)
           continue // Skip this Disciple
         } else if (aiDifficulty === 'medium') {
           // Medium AI: 50% chance to trigger
           if (Math.random() >= 0.5) {
-            console.log(`[Disciple of Kyuss] Medium AI - ability not triggered (50% roll failed) for ${disciple.creature.name}`)
             continue // Skip this Disciple
           }
-          console.log(`[Disciple of Kyuss] Medium AI - ability triggered (50% roll passed) for ${disciple.creature.name}`)
         }
         // Hard AI: Always trigger (100%) - no early continue
       }
 
       const adjacentCreatures = this.getCreaturesAdjacentToDisciple(endingPlayerId, disciple)
-
-      console.log(`[Disciple of Kyuss] ${disciple.creature.name} has ${adjacentCreatures.length} adjacent enemy creature(s)`)
 
       for (const creature of adjacentCreatures) {
         // Skip if already damaged by another Disciple
@@ -3780,8 +3667,6 @@ export class GameState {
         creature.currentHP = Math.max(0, creature.currentHP - damageAmount)
         const wasDestroyed = creature.currentHP <= 0
 
-        console.log(`[Disciple of Kyuss] ${creature.creature.name} takes ${damageAmount} damage: ${previousHP} -> ${creature.currentHP}${wasDestroyed ? ' (DESTROYED!)' : ''}`)
-
         const event = {
           creatureName: creature.creature.name,
           creatureOwner: endingPlayerId,
@@ -3802,10 +3687,6 @@ export class GameState {
 
         damageEvents.push(event)
       }
-    }
-
-    if (damageEvents.length > 0) {
-      console.log(`[Disciple of Kyuss] Phase end damage complete: ${damageEvents.length} creature(s) damaged, ${deaths.length} killed`)
     }
 
     return { damageEvents, deaths, sourceCreature }
@@ -3843,8 +3724,6 @@ export class GameState {
     if (killerOwner && this.players[killerOwner]) {
       this.players[killerOwner].gainMorale(1)
     }
-
-    console.log(`[Disciple of Kyuss] ${creature.creature.name} destroyed - ${owner} loses ${creature.creature.level} morale, ${killerOwner} gains 1 morale`)
   }
 
   // ============================================================================
@@ -4085,7 +3964,6 @@ export class GameState {
 
     // WEB: Webbed creatures cannot move at all
     if (this.isWebbed(creatureInstance)) {
-      console.log(`[WEB] ${creatureInstance.creature.name} cannot move - webbed!`)
       return []
     }
 
@@ -4243,13 +4121,11 @@ export class GameState {
 
     // Cannot move if tapped
     if (creatureInstance.isTapped) {
-      console.log('Cannot move: creature is tapped')
       return false
     }
 
     // Cannot move if already moved this turn (unless using VERSATILE ability)
     if (creatureInstance.hasMovedThisTurn && !creatureInstance.usingVersatileMove) {
-      console.log('Cannot move: creature has already moved this turn')
       return false
     }
 
@@ -4275,7 +4151,6 @@ export class GameState {
     // Reveal treasure if creature moves onto it - O(1)
     if (targetTile.treasure && !targetTile.treasure.isRevealed) {
       targetTile.treasure.reveal()
-      console.log(`Treasure revealed at (${targetTile.x}, ${targetTile.y}): ${targetTile.treasure.getDisplayString()}`)
     }
 
     // Mark as moved
@@ -4360,19 +4235,13 @@ export class GameState {
       }
     }
 
-    console.log(`[getAllRangedLOSTiles] DEBUG - found ${allCreatures.length} total creatures from ${this.activePlayers.length} players`)
-
     // Safety check - return empty if no creatures in play
     if (allCreatures.length === 0) {
-      console.log('[getAllRangedLOSTiles] No creatures on board - returning empty')
       return []
     }
 
     // Get ALL creatures on board (from all players) that have ranged attacks
     const allRangedCreatures = allCreatures.filter(c => c.creature.rangedAttack)
-    console.log(`[getAllRangedLOSTiles] Found ${allRangedCreatures.length} ranged creatures:`,
-      allRangedCreatures.map(c => ({ name: c.creature.name, owner: c.owner, pos: c.position }))
-    )
 
     // For each ranged creature, get its LOS tiles
     for (const creature of allRangedCreatures) {
