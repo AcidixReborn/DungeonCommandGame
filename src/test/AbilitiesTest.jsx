@@ -1338,8 +1338,8 @@ function AbilitiesTest() {
             }
           }
 
-          // Check for UNTAP ON KILL ability (Bugbear Berserker)
-          // This triggers when an adjacent enemy is killed during the Bugbear's faction's turn
+          // Check for UNTAP ON KILL ability (Bugbear Berserker / Orc Barbarian)
+          // This triggers when an adjacent enemy is killed during the creature's faction's turn
           if (attackResult.untapOnKillTriggered && attackResult.untapOnKillData) {
             const untapData = attackResult.untapOnKillData
             const difficulty = untapData.difficulty === 'human' ? 'hard' : untapData.difficulty
@@ -2100,7 +2100,7 @@ function AbilitiesTest() {
             break
 
           case 'untap_on_adjacent_kill':
-            // Track UNTAP ON KILL ability (Bugbear Berserker) - TRIGGERED
+            // Track UNTAP ON KILL ability (Bugbear Berserker / Orc Barbarian) - TRIGGERED
             // AI difficulty affects whether untap is applied:
             // - Easy: Never untap (0%)
             // - Medium: 50% chance
@@ -5297,10 +5297,10 @@ function AbilitiesTest() {
                 </Card.Body>
               </Card>
 
-              {/* UNTAP ON KILL - Bugbear Berserker (Tyranny of Goblins) */}
+              {/* UNTAP ON KILL - Bugbear Berserker / Orc Barbarian */}
               <Card bg="dark" text="white" className="mb-3">
                 <Card.Header>
-                  <h5>⚔️ UNTAP ON KILL (Bugbear Berserker - Tyranny of Goblins)</h5>
+                  <h5>⚔️ UNTAP ON KILL (Bugbear Berserker / Orc Barbarian)</h5>
                 </Card.Header>
                 <Card.Body>
                   <Row>
@@ -5321,7 +5321,7 @@ function AbilitiesTest() {
                             <td><Badge bg="danger">{results.creatureAbilityStats?.untap_on_adjacent_kill?.timesDeclined || 0}</Badge></td>
                           </tr>
                           <tr>
-                            <td>Self Kills (Bugbear killed enemy)</td>
+                            <td>Self Kills (creature killed enemy)</td>
                             <td><Badge bg="warning">{results.creatureAbilityStats?.untap_on_adjacent_kill?.selfKills || 0}</Badge></td>
                           </tr>
                           <tr>
@@ -5385,7 +5385,7 @@ function AbilitiesTest() {
                   <Row className="mt-2">
                     <Col>
                       <small className="text-muted">
-                        UNTAP ON KILL: Bugbear Berserker untaps whenever an adjacent enemy creature is destroyed during its faction's turn. Works with self-kills AND ally kills. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                        UNTAP ON KILL: Bugbear Berserker (Goblins) and Orc Barbarian (Gruumsh) untap whenever an adjacent enemy creature is destroyed during their faction's turn. Works with self-kills AND ally kills. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

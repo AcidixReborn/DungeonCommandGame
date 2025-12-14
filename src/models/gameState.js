@@ -1261,14 +1261,12 @@ export class GameState {
     // Only trigger during the current turn player's turn
     const currentTurnPlayer = this.currentPlayer
     if (!currentTurnPlayer) {
-      console.log(`[UNTAP ON KILL CHECK] No current player - skipping`)
       return null
     }
 
     // Find Bugbear Berserkers belonging to the current turn's player
     const currentPlayer = this.players[currentTurnPlayer]
     if (!currentPlayer) {
-      console.log(`[UNTAP ON KILL CHECK] Player ${currentTurnPlayer} not found - skipping`)
       return null
     }
 
@@ -1276,8 +1274,6 @@ export class GameState {
     const bugbears = currentPlayer.creaturesInPlay.filter(creature =>
       this.hasUntapOnAdjacentKill(creature) && creature.currentHP > 0
     )
-
-    console.log(`[UNTAP ON KILL CHECK] Current player: ${currentTurnPlayer}, Faction: ${currentPlayer.commander?.faction}, Bugbears found: ${bugbears.length}, Destroyed at (${destroyedPosition?.x}, ${destroyedPosition?.y})`)
 
     if (bugbears.length === 0) return null
 
@@ -1308,22 +1304,22 @@ export class GameState {
           // Easy AI: never untap (0%)
           shouldUntap = false
           wasDeclined = true
-          console.log(`[UNTAP ON KILL] Easy AI - ability disabled for ${bugbear.creature.name}`)
         } else if (aiDifficulty === 'medium') {
           // Medium AI: 50% chance
           if (Math.random() >= 0.5) {
             shouldUntap = false
             wasDeclined = true
-            console.log(`[UNTAP ON KILL] Medium AI - ability not triggered (50% roll failed) for ${bugbear.creature.name}`)
           }
         }
         // Hard AI: always untap (100%)
       }
 
       if (shouldUntap) {
-        // Untap the Bugbear
+        // Untap the creature - reset movement AND action
         bugbear.isTapped = false
-        console.log(`[UNTAP ON KILL] ${bugbear.creature.name} untaps from adjacent enemy death!`)
+        bugbear.hasMovedThisTurn = false
+        bugbear.hasAttackedThisTurn = false
+        bugbear.remainingMovement = bugbear.creature.speed
 
         return {
           triggered: true,

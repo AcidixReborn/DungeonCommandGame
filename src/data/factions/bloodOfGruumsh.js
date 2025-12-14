@@ -179,9 +179,12 @@ export const creatures = [
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: [
-      'Whenever an adjacent enemy creature is destroyed, untap this creature. PLACEHOLDER'
-    ],
+    specialAbilities: [{
+      id: 'untap_on_adjacent_kill',
+      name: 'UNTAP ON KILL',
+      type: 'PASSIVE',
+      description: 'Whenever an adjacent enemy creature is destroyed, untap this creature.'
+    }],
     faction: FACTION_NAME,
     imageUrl: orcBarbarianImg
   },

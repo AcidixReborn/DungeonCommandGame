@@ -442,9 +442,6 @@ export class CombatResolver {
           attackerOwner,
           wasKilledByBugbear
         )
-        if (untapOnKillData?.triggered) {
-          console.log(`[UNTAP ON KILL] ${untapOnKillData.bugbearName} untapped after adjacent enemy death!`)
-        }
       }
 
       return {
