@@ -18,6 +18,7 @@ import WebRemovalModal from './WebRemovalModal'
 import HealingTouchModal from './HealingTouchModal'
 import ChieftainCallModal from './ChieftainCallModal'
 import OgreDeployMoraleModal from './OgreDeployMoraleModal'
+import ClericDrawOrderModal from './ClericDrawOrderModal'
 import './GameBoard.css'
 
 /**
@@ -256,6 +257,10 @@ function GameBoard({ onTurnInfoChange }) {
   // OGRE DEPLOY MORALE MODAL state - Ogre's on-deploy ability (+1 morale)
   const [showOgreDeployMoraleModal, setShowOgreDeployMoraleModal] = useState(false)
   const [ogreDeployMoraleResult, setOgreDeployMoraleResult] = useState(null) // { creatureInstance, oldMorale, newMorale, playerId }
+
+  // CLERIC DRAW ORDER MODAL state - Orc Cleric of Gruumsh's on-deploy ability (draw 1 Order card)
+  const [showClericDrawOrderModal, setShowClericDrawOrderModal] = useState(false)
+  const [clericDrawOrderResult, setClericDrawOrderResult] = useState(null) // { creatureInstance, drawnCard, playerId }
 
   /**
    * Faction color mapping from faction IDs to hex colors
@@ -2419,6 +2424,28 @@ function GameBoard({ onTurnInfoChange }) {
         playerId: gameState.currentPlayer
       })
       setShowOgreDeployMoraleModal(true)
+    }
+
+    // Check for ORC CLERIC DEPLOY DRAW ORDER ability trigger (draw 1 Order card)
+    if (gameState.shouldTriggerClericDeployDrawOrder(creatureInstance)) {
+      const player = gameState.players[gameState.currentPlayer]
+
+      // Draw a card from the Order deck if available
+      if (player.orderDeck && player.orderDeck.length > 0) {
+        const drawnCard = player.orderDeck.shift() // Remove from top of deck
+        player.orderHand.push(drawnCard) // Add to hand
+
+        // Show toast notification (logged)
+        addToast(`${creatureInstance.creature.name} deployed! Drew 1 Order card`, 'info')
+
+        // Show modal for human player showing the drawn card
+        setClericDrawOrderResult({
+          creatureInstance,
+          drawnCard,
+          playerId: gameState.currentPlayer
+        })
+        setShowClericDrawOrderModal(true)
+      }
     }
 
     // Force re-render to show newly deployed creature on board
@@ -7570,6 +7597,13 @@ function GameBoard({ onTurnInfoChange }) {
         show={showOgreDeployMoraleModal}
         onDismiss={() => setShowOgreDeployMoraleModal(false)}
         result={ogreDeployMoraleResult}
+      />
+
+      {/* ORC CLERIC DRAW ORDER MODAL - Orc Cleric of Gruumsh's on-deploy ability (draw 1 Order card) */}
+      <ClericDrawOrderModal
+        show={showClericDrawOrderModal}
+        onDismiss={() => setShowClericDrawOrderModal(false)}
+        result={clericDrawOrderResult}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}

@@ -237,9 +237,16 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: [
-      'When you deploy this creature, draw 1 Order card. PLACEHOLDER'
-    ],
+    specialAbilities: [{
+      id: 'cleric_deploy_draw_order',
+      name: 'DEPLOY: DRAW 1 ORDER CARD',
+      type: 'ON_DEPLOY',
+      description: 'When you deploy this creature, draw 1 Order card.',
+      effect: {
+        trigger: 'deploy',
+        drawOrderCard: 1
+      }
+    }],
     faction: FACTION_NAME,
     imageUrl: orcClericOfGruumshImg
   },

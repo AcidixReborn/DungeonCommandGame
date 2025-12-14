@@ -554,6 +554,20 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0 },
       medium: { offered: 0, triggered: 0, declined: 0 },
       hard: { offered: 0, triggered: 0, declined: 0 }
+    },
+    cleric_deploy_draw_order: {
+      name: 'DEPLOY: DRAW 1 ORDER CARD',
+      creature: 'Orc Cleric of Gruumsh',
+      faction: 'Blood of Gruumsh',
+      // Overall totals - draw 1 Order card on deploy (0/50/100 AI pattern)
+      timesOffered: 0,       // Times Cleric was deployed
+      timesTriggered: 0,     // Times card was drawn
+      timesDeclined: 0,      // Times AI declined (easy/medium)
+      totalCardsDrawn: 0,    // Total cards drawn
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0 }
     }
   })
 
@@ -5624,6 +5638,97 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         OGRE DEPLOY MORALE: When the Ogre is deployed, gain 1 MORALE. This is automatic for human players (with modal notification). AI uses the 0/50/100 rule. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* ORC CLERIC DEPLOY DRAW ORDER - Orc Cleric of Gruumsh (Blood of Gruumsh) */}
+              <Card bg="dark" text="white" className="mb-3">
+                <Card.Header style={{ backgroundColor: '#8B4513' }}>
+                  <h5>📜 ORC CLERIC DEPLOY DRAW ORDER (Blood of Gruumsh)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Cleric deployed)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.cleric_deploy_draw_order?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (card drawn)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.cleric_deploy_draw_order?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (Easy/Medium)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.cleric_deploy_draw_order?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Cards Drawn</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.cleric_deploy_draw_order?.totalCardsDrawn || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.cleric_deploy_draw_order?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.cleric_deploy_draw_order.timesTriggered / results.creatureAbilityStats.cleric_deploy_draw_order.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.cleric_deploy_draw_order?.[diff] || { offered: 0, triggered: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered}</td>
+                                <td>{stats.triggered}</td>
+                                <td>{stats.declined}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        ORC CLERIC DEPLOY DRAW ORDER: When Orc Cleric of Gruumsh is deployed, draw 1 Order card. Human players see a modal with the drawn card. AI uses the 0/50/100 rule. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

@@ -188,6 +188,26 @@ export class SimpleAI {
   }
 
   /**
+   * Decide if AI should draw Order card from ORC CLERIC DEPLOY ability
+   * Uses 0/50/100 rule based on difficulty
+   * @returns {boolean} True if AI should draw card
+   */
+  decideClericDeployDrawOrder() {
+    // Easy AI (0%): Never draw card
+    if (this.difficulty === 'easy') {
+      return false
+    }
+
+    // Medium AI (50%): 50% chance to draw card
+    if (this.difficulty === 'medium') {
+      return Math.random() >= 0.5
+    }
+
+    // Hard AI (100%): Always draw card
+    return true
+  }
+
+  /**
    * Execute AI turn for the current phase
    */
   executeTurn() {
@@ -1064,6 +1084,54 @@ export class SimpleAI {
             if (ogreStats[diffKey]) {
               ogreStats[diffKey].declined++
             }
+          }
+        }
+      }
+
+      // ============================================
+      // ORC CLERIC DEPLOY DRAW ORDER - Orc Cleric of Gruumsh's on-deploy ability
+      // Draws 1 Order card when deployed (uses 0/50/100 rule)
+      // ============================================
+      if (this.gameState.shouldTriggerClericDeployDrawOrder && this.gameState.shouldTriggerClericDeployDrawOrder(creatureInstance)) {
+        const clericStats = this.trackStats?.gruumsh?.cleric_deploy_draw_order
+          || this.trackStats?.cleric_deploy_draw_order
+
+        // Track ability offer for statistics
+        if (clericStats) {
+          clericStats.timesOffered++
+          const diffKey = this.difficulty
+          if (clericStats[diffKey]) {
+            clericStats[diffKey].offered++
+          }
+        }
+
+        const shouldDrawCard = this.decideClericDeployDrawOrder()
+
+        if (shouldDrawCard && player.orderDeck && player.orderDeck.length > 0) {
+          const drawnCard = player.orderDeck.shift()
+          player.orderHand.push(drawnCard)
+
+          actions.push({
+            type: 'cleric_deploy_draw_order',
+            creature: creatureCard.name,
+            cardDrawn: drawnCard.name
+          })
+
+          // Track ability usage for statistics
+          if (clericStats) {
+            clericStats.timesTriggered++
+            clericStats.totalCardsDrawn = (clericStats.totalCardsDrawn || 0) + 1
+            const diffKey = this.difficulty
+            if (clericStats[diffKey]) {
+              clericStats[diffKey].triggered++
+            }
+          }
+        } else if (clericStats) {
+          // AI chose to decline (easy/medium difficulty)
+          clericStats.timesDeclined++
+          const diffKey = this.difficulty
+          if (clericStats[diffKey]) {
+            clericStats[diffKey].declined++
           }
         }
       }

@@ -154,6 +154,17 @@ export class CommanderAbilityManager {
   }
 
   /**
+   * Check if ORC CLERIC DEPLOY DRAW ORDER ability should trigger
+   * (Orc Cleric of Gruumsh was just deployed - player draws 1 Order card)
+   * @param {Object} creatureInstance - The creature that was deployed
+   * @returns {boolean} True if creature is Orc Cleric of Gruumsh
+   */
+  shouldTriggerClericDeployDrawOrder(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.creature) return false
+    return creatureInstance.creature.name === 'Orc Cleric of Gruumsh'
+  }
+
+  /**
    * Get eligible Orcs from player's hand for CHIEFTAIN CALL
    * (Orc creatures with Level 3 or lower)
    * @param {string} playerId - The player whose hand to check

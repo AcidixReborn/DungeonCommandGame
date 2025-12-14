@@ -3916,6 +3916,13 @@ export class GameState {
   }
 
   /**
+   * Check if ORC CLERIC DEPLOY DRAW ORDER ability should trigger - delegates to abilityManager
+   */
+  shouldTriggerClericDeployDrawOrder(creatureInstance) {
+    return this.abilityManager.shouldTriggerClericDeployDrawOrder(creatureInstance)
+  }
+
+  /**
    * Get eligible Orcs for CHIEFTAIN CALL - delegates to abilityManager
    */
   getEligibleOrcsForChieftainCall(playerId) {
