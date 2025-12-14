@@ -56,23 +56,7 @@ function DefenseOptionsPanel({
     setSelectedCardCreature(null)
   }, [defenderInstance?.instanceId])
 
-  // DEBUG: Log panel render and props
-  console.log('[DefenseOptionsPanel DEBUG] Render called with:', {
-    hasAttacker: !!attackerInstance,
-    hasDefender: !!defenderInstance,
-    hasDefenderPlayerState: !!defenderPlayerState,
-    attackerName: attackerInstance?.creature?.name,
-    defenderName: defenderInstance?.creature?.name,
-    attackInfo: attackInfo,
-    accumulatedDamageReduction
-  })
-
   if (!defenderPlayerState || !defenderInstance || !attackerInstance) {
-    console.log('[DefenseOptionsPanel DEBUG] Returning null - missing props:', {
-      defenderPlayerState: !!defenderPlayerState,
-      defenderInstance: !!defenderInstance,
-      attackerInstance: !!attackerInstance
-    })
     return null
   }
 
@@ -140,22 +124,6 @@ function DefenseOptionsPanel({
   // Check for REACH 2 attack
   const isReachAttack = attackInfo?.isReachAttack || false
   const reachDistance = attackInfo?.reachDistance || attackInfo?.distance || 1
-
-  // DEBUG: Log TAP ON HIT and REACH status for defense
-  console.log('[DefenseOptionsPanel DEBUG] TAP ON HIT check:', {
-    attackerHasTapOnHit,
-    attackType,
-    tapOnHitApplies,
-    defenderAlreadyTapped,
-    attackerName: attackerInstance?.creature?.name,
-    defenderName: defenderInstance?.creature?.name
-  })
-
-  console.log('[DefenseOptionsPanel DEBUG] REACH 2 check:', {
-    isReachAttack,
-    reachDistance,
-    attackInfo
-  })
 
   // O(n) - Toggle Undead creature selection
   const toggleUndeadCreature = (creature) => {
@@ -261,7 +229,6 @@ function DefenseOptionsPanel({
 
   // O(1) - Handle skip
   const handleSkip = () => {
-    console.log('[DefenseOptionsPanel] handleSkip called, calling onDefenseSelected({ type: skip })')
     onDefenseSelected({ type: 'skip' })
     setSelectedDefense(null)
     setSelectedUndeadCreatures([])

@@ -1249,6 +1249,19 @@ export class GameState {
   }
 
   /**
+   * Check if creature has DEATH STRIKE ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has DEATH STRIKE
+   */
+  hasDeathStrike(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => (typeof ability === 'object' && ability.id === 'death_strike') ||
+                 (typeof ability === 'string' && ability.toUpperCase().includes('DEATH STRIKE'))
+    )
+  }
+
+  /**
    * Check for and trigger UNTAP ON KILL ability when a creature dies
    * Should be called after any creature death during combat
    * @param {Object} destroyedPosition - {x, y} position where creature died
@@ -4329,10 +4342,11 @@ export class GameState {
    * @param {CreatureInstance} attackerInstance - The attacking creature
    * @param {CreatureInstance} defenderInstance - The defending creature
    * @param {string} attackType - 'melee' or 'ranged'
+   * @param {string} aiDifficulty - AI difficulty for DEATH STRIKE decision ('easy'|'medium'|'hard')
    * @returns {Object} Attack result
    */
-  executeAttack(attackerInstance, defenderInstance, attackType = 'melee') {
-    return this.combatResolver.executeAttack(attackerInstance, defenderInstance, attackType)
+  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', aiDifficulty = 'medium') {
+    return this.combatResolver.executeAttack(attackerInstance, defenderInstance, attackType, aiDifficulty)
   }
 
   /**
@@ -4342,10 +4356,11 @@ export class GameState {
    * @param {string} attackType - 'melee' or 'ranged'
    * @param {number} damageReduction - Amount to reduce damage by
    * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
+   * @param {string} aiDifficulty - AI difficulty for DEATH STRIKE decision ('easy'|'medium'|'hard')
    * @returns {Object} Attack result
    */
-  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null) {
-    return this.combatResolver.executeAttackWithDefense(attackerInstance, defenderInstance, attackType, damageReduction, defenseType)
+  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, aiDifficulty = 'medium') {
+    return this.combatResolver.executeAttackWithDefense(attackerInstance, defenderInstance, attackType, damageReduction, defenseType, aiDifficulty)
   }
 
   /**

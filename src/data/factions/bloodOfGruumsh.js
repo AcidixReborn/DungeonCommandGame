@@ -115,9 +115,12 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: [
-      'DEATH STRIKE: When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE. PLACEHOLDER'
-    ],
+    specialAbilities: [{
+      id: 'death_strike',
+      name: 'DEATH STRIKE',
+      type: 'PASSIVE',
+      description: 'When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE.'
+    }],
     faction: FACTION_NAME,
     imageUrl: boarImg
   },
@@ -306,9 +309,12 @@ export const creatures = [
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: [
-      'DEATH STRIKE: When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE. PLACEHOLDER'
-    ],
+    specialAbilities: [{
+      id: 'death_strike',
+      name: 'DEATH STRIKE',
+      type: 'PASSIVE',
+      description: 'When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE.'
+    }],
     faction: FACTION_NAME,
     imageUrl: wereboarImg
   }

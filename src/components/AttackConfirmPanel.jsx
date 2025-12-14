@@ -28,22 +28,7 @@ function AttackConfirmPanel({
   onCancel,
   onLightningBreath
 }) {
-  // DEBUG: Log panel render and props
-  console.log('[AttackConfirmPanel DEBUG] Render called with:', {
-    hasAttacker: !!attacker,
-    hasDefender: !!defender,
-    hasAttackInfo: !!attackInfo,
-    attackerName: attacker?.creature?.name,
-    defenderName: defender?.creature?.name,
-    attackInfo: attackInfo
-  })
-
   if (!attacker || !defender || !attackInfo) {
-    console.log('[AttackConfirmPanel DEBUG] Returning null - missing props:', {
-      attacker: !!attacker,
-      defender: !!defender,
-      attackInfo: !!attackInfo
-    })
     return null
   }
 
@@ -112,32 +97,13 @@ function AttackConfirmPanel({
   const isReachAttack = attackInfo?.isReachAttack || false
   const reachDistance = attackInfo?.reachDistance || attackInfo?.distance || 1
 
-  // DEBUG: Log TAP ON HIT and REACH status
-  console.log('[AttackConfirmPanel DEBUG] TAP ON HIT check:', {
-    hasTapOnHit,
-    isMeleeAttack,
-    tapOnHitApplies,
-    defenderAlreadyTapped,
-    attackerName: attacker?.creature?.name,
-    defenderName: defender?.creature?.name
-  })
-
-  console.log('[AttackConfirmPanel DEBUG] REACH 2 check:', {
-    isReachAttack,
-    reachDistance,
-    attackerReach: attacker?.creature?.reach,
-    attackerName: attacker?.creature?.name
-  })
-
-  // Debug log for Lightning Breath availability
-  if (isRangedAttack && gameState?.hasLightningBreath?.(attacker)) {
-    console.log(`[AttackConfirmPanel] LIGHTNING BREATH check:`, {
-      hasAbility: true,
-      canUse: canUseLightningBreath,
-      damage: lightningBreathDamage,
-      attacker: attacker.creature.name
-    })
-  }
+  // Check for DEATH STRIKE ability (Boar, Wereboar) - only on adjacent melee attacks that would kill
+  // DEATH STRIKE triggers when defender would die, attack is melee, and attacker is truly adjacent (1 tile)
+  const hasDeathStrike = gameState?.hasDeathStrike && gameState.hasDeathStrike(defender)
+  const attackWouldKill = damageAfterShieldBlock >= defender.currentHP
+  const isTrulyAdjacent = attackInfo?.distance === 1 || (!isReachAttack && isMeleeAttack)
+  const deathStrikeApplies = hasDeathStrike && isMeleeAttack && isTrulyAdjacent && attackWouldKill
+  const deathStrikeDamage = deathStrikeApplies ? (defender.creature.meleeAttack?.damage || 0) : 0
 
   return (
     <div className="combat-panel attack-confirm-panel">
@@ -273,6 +239,36 @@ function AttackConfirmPanel({
         {tapOnHitApplies && !defenderAlreadyTapped && (
           <div style={{ fontSize: '0.75rem', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
             * Tap only occurs if target takes any damage (fully blocked = no tap)
+          </div>
+        )}
+        {/* DEATH STRIKE warning - shows when attacking a creature that would die and has DEATH STRIKE */}
+        {deathStrikeApplies && (
+          <div className="combat-info-row" style={{
+            borderTop: '2px solid #ff5722',
+            paddingTop: '8px',
+            marginTop: '8px',
+            backgroundColor: 'rgba(255, 87, 34, 0.15)',
+            padding: '8px',
+            borderRadius: '4px'
+          }}>
+            <span style={{ color: '#ff5722', fontWeight: 'bold' }}>⚠️ DEATH STRIKE WARNING:</span>
+          </div>
+        )}
+        {deathStrikeApplies && (
+          <div style={{
+            color: '#ff5722',
+            fontSize: '0.9rem',
+            marginTop: '4px',
+            backgroundColor: 'rgba(255, 87, 34, 0.15)',
+            padding: '8px',
+            borderRadius: '4px'
+          }}>
+            This creature will deal <strong>{deathStrikeDamage} damage</strong> to your attacker before dying!
+            {deathStrikeDamage >= attacker.currentHP && (
+              <div style={{ color: '#ff1744', fontWeight: 'bold', marginTop: '4px' }}>
+                ☠️ YOUR ATTACKER WILL DIE! ({attacker.creature.name}: {attacker.currentHP} HP)
+              </div>
+            )}
           </div>
         )}
       </div>

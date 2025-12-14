@@ -1008,16 +1008,6 @@ export class SimpleAI {
     // AI difficulty affects whether to prioritize SURVIVING targets vs killable targets
     const shouldUseTapOnHitAbility = attackerHasTapOnHit && this.shouldUseTapOnHit()
 
-    // Only log for TAP ON HIT creatures to reduce console noise
-    if (attackerHasTapOnHit) {
-      console.log(`%c[TAP ON HIT] 🐺😈 ${attackerInstance.creature.name} is selecting target!`, 'background: #e91e63; color: white; font-size: 14px; padding: 4px;', {
-        difficulty: this.difficulty,
-        shouldUseTapOnHitAbility,
-        targetCount: targets.length,
-        untappedTargetCount: targets.filter(t => !t.creature.isTapped).length
-      })
-    }
-
     if (attackerHasTapOnHit && targets.length > 0) {
       // Get attacker's melee damage
       const attackerDamage = attackerInstance.creature.meleeAttack?.damage || 0
@@ -1029,30 +1019,12 @@ export class SimpleAI {
       // This ensures TAP ON HIT actually triggers (taps the target)
       const survivingTargets = untappedTargets.filter(t => t.creature.currentHP > attackerDamage)
 
-      // CRITICAL DEBUG: Log every TAP ON HIT target selection
-      console.log(`%c[TAP ON HIT TARGET SELECTION] ${attackerInstance.creature.name}`, 'background: #e91e63; color: white; padding: 2px 4px;', {
-        difficulty: this.difficulty,
-        shouldUseTapOnHitAbility,
-        attackerDamage,
-        allTargets: targets.map(t => ({ name: t.creature.creature.name, hp: t.creature.currentHP, tapped: t.creature.isTapped })),
-        untappedCount: untappedTargets.length,
-        survivingCount: survivingTargets.length,
-        survivingTargets: survivingTargets.map(t => ({ name: t.creature.creature.name, hp: t.creature.currentHP }))
-      })
-
       if (shouldUseTapOnHitAbility && survivingTargets.length > 0) {
         // Hard/Medium AI: Pick the STRONGEST surviving target to maximize tap value
         const selectedTarget = survivingTargets.reduce((strongest, current) => {
           const strongestHP = strongest.creature.currentHP
           const currentHP = current.creature.currentHP
           return currentHP > strongestHP ? current : strongest
-        })
-        console.log(`%c[TAP ON HIT] ${this.difficulty.toUpperCase()}: SELECTED SURVIVING TARGET`, 'background: #4caf50; color: white;', {
-          selected: selectedTarget.creature.creature.name,
-          targetHP: selectedTarget.creature.currentHP,
-          attackerDamage,
-          willSurvive: true,
-          reason: 'Hard/Medium AI targets strongest surviving enemy'
         })
         return selectedTarget
       } else if (attackerHasTapOnHit && untappedTargets.length > 0) {
@@ -1062,14 +1034,6 @@ export class SimpleAI {
           const weakestHP = weakest.creature.currentHP
           const currentHP = current.creature.currentHP
           return currentHP < weakestHP ? current : weakest
-        })
-        const willSurvive = selectedTarget.creature.currentHP > attackerDamage
-        console.log(`%c[TAP ON HIT] ${this.difficulty.toUpperCase()}: SELECTED WEAKEST TARGET`, willSurvive ? 'background: #ff9800; color: white;' : 'background: #f44336; color: white;', {
-          selected: selectedTarget.creature.creature.name,
-          targetHP: selectedTarget.creature.currentHP,
-          attackerDamage,
-          willSurvive,
-          reason: survivingTargets.length === 0 ? 'NO SURVIVING TARGETS - all would die' : 'Easy AI prefers kills over taps'
         })
         return selectedTarget
       }
@@ -1081,43 +1045,14 @@ export class SimpleAI {
     const reachTargets = targets.filter(t => t.isReachAttack)
     const adjacentTargets = targets.filter(t => !t.isReachAttack)
 
-    // Only log for Horned Devil (REACH 2 creature) to reduce noise
-    const attackerHasReach = attackerInstance?.creature?.reach > 0
-    if (attackerHasReach) {
-      console.log(`%c[REACH 2 DEBUG] ${attackerInstance.creature.name} target selection:`, 'background: #9c27b0; color: white; font-size: 12px; padding: 2px 4px;', {
-        difficulty: this.difficulty,
-        shouldUseReachAbility,
-        totalTargets: targets.length,
-        reachTargetCount: reachTargets.length,
-        adjacentTargetCount: adjacentTargets.length,
-        hasChoice: reachTargets.length > 0 && adjacentTargets.length > 0,
-        reachTargets: reachTargets.map(t => ({ name: t.creature.creature.name, distance: t.distance, isReach: t.isReachAttack })),
-        adjacentTargets: adjacentTargets.map(t => ({ name: t.creature.creature.name, distance: t.distance }))
-      })
-    }
-
     // Only apply REACH preference logic if we have BOTH reach and adjacent options
     if (reachTargets.length > 0 && adjacentTargets.length > 0) {
       const weakestReach = reachTargets.reduce((w, c) => c.creature.currentHP < w.creature.currentHP ? c : w)
       const weakestAdjacent = adjacentTargets.reduce((w, c) => c.creature.currentHP < w.creature.currentHP ? c : w)
 
-      console.log(`[AI DEBUG] REACH 2 comparison:`, {
-        weakestReachTarget: weakestReach.creature.creature.name,
-        weakestReachHP: weakestReach.creature.currentHP,
-        weakestAdjacentTarget: weakestAdjacent.creature.creature.name,
-        weakestAdjacentHP: weakestAdjacent.creature.currentHP,
-        hpDifference: weakestAdjacent.creature.currentHP - weakestReach.creature.currentHP,
-        threshold: 30
-      })
-
       if (shouldUseReachAbility) {
         // Hard/Medium AI: Prefer reach for safety (if targets have similar HP)
         if (weakestReach.creature.currentHP <= weakestAdjacent.creature.currentHP + 30) {
-          console.log(`[AI ${this.difficulty.toUpperCase()}] REACH 2: Attacking from range 2 for safety:`, {
-            selectedTarget: weakestReach.creature.creature.name,
-            distance: weakestReach.distance,
-            isReachAttack: weakestReach.isReachAttack
-          })
           // Add reachDecision metadata to track AI decision
           weakestReach.reachDecision = {
             offered: true,
@@ -1127,7 +1062,6 @@ export class SimpleAI {
           }
           return weakestReach
         } else {
-          console.log(`[AI ${this.difficulty.toUpperCase()}] REACH 2: Adjacent target has significantly lower HP, preferring adjacent attack`)
           // Reach was offered but HP difference led to declining reach
           weakestAdjacent.reachDecision = {
             offered: true,
@@ -1140,11 +1074,6 @@ export class SimpleAI {
         }
       } else {
         // Easy AI (0%): Always prefer adjacent targets over reach targets
-        console.log(`[AI ${this.difficulty.toUpperCase()}] REACH 2: Preferring adjacent attack (0% reach usage):`, {
-          selectedTarget: weakestAdjacent.creature.creature.name,
-          distance: weakestAdjacent.distance || 1,
-          reason: 'Easy AI does not use reach strategically'
-        })
         // Reach was offered but Easy AI declined (0% rule)
         weakestAdjacent.reachDecision = {
           offered: true,

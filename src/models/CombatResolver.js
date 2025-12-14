@@ -152,7 +152,7 @@ export class CombatResolver {
    * @param {string} attackType - 'melee' or 'ranged'
    * @returns {Object} Attack result
    */
-  executeAttack(attackerInstance, defenderInstance, attackType = 'melee') {
+  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', aiDifficulty = 'medium') {
     // Validate the attack
     const validation = this.validateAttack(attackerInstance, defenderInstance, attackType)
     if (!validation.valid) {
@@ -160,6 +160,27 @@ export class CombatResolver {
     }
 
     const damage = validation.damage
+
+    // ========== DEATH STRIKE CHECK ==========
+    // DEATH STRIKE triggers BEFORE normal attack if:
+    // - Defender has DEATH STRIKE ability (Boar, Wereboar)
+    // - Attack would kill the defender
+    // - Attack is melee and attacker is truly adjacent (distance = 1)
+    const deathStrikeResult = this.checkDeathStrike(attackerInstance, defenderInstance, attackType, damage, aiDifficulty)
+
+    // If attacker was killed by DEATH STRIKE, return early - defender survives untouched
+    if (deathStrikeResult?.triggered && deathStrikeResult?.attackerWasDestroyed) {
+      return {
+        success: true,
+        deathStrikeTriggered: true,
+        deathStrikeResult,
+        attackerKilledByDeathStrike: true,
+        defenderSurvived: true,
+        attackType,
+        damage: 0, // Defender takes no damage
+        destroyed: false
+      }
+    }
 
     // Mark as attacked
     attackerInstance.hasAttackedThisTurn = true
@@ -212,7 +233,10 @@ export class CombatResolver {
       pendingSlam: hasSlam,  // Flag for SLAM ability (Earth Guardian)
       lifeDrain: lifeDrainResult,
       pendingSplashAttacks,
-      pendingSplash: hasPendingSplash  // Flag to indicate splash needs to be resolved before tapping
+      pendingSplash: hasPendingSplash,  // Flag to indicate splash needs to be resolved before tapping
+      // DEATH STRIKE info (if triggered but attacker survived)
+      deathStrikeTriggered: deathStrikeResult?.triggered || false,
+      deathStrikeResult: deathStrikeResult
     }
   }
 
@@ -231,7 +255,7 @@ export class CombatResolver {
    * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
    * @returns {Object} Attack result
    */
-  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null) {
+  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, aiDifficulty = 'medium', skipDeathStrike = false) {
     // Validate the attack using shared validation logic
     const validation = this.validateAttack(attackerInstance, defenderInstance, attackType)
     if (!validation.valid) {
@@ -241,6 +265,32 @@ export class CombatResolver {
     // Apply damage reduction from defense
     const originalDamage = validation.damage
     const damage = Math.max(0, originalDamage - damageReduction)
+
+    // ========== DEATH STRIKE CHECK ==========
+    // DEATH STRIKE triggers based on ORIGINAL damage (before defense), not reduced damage
+    // This is because DEATH STRIKE happens FIRST before defender can react
+    // skipDeathStrike flag is used when DEATH STRIKE was already processed by executeAttack
+    let deathStrikeResult = null
+    if (!skipDeathStrike) {
+      deathStrikeResult = this.checkDeathStrike(attackerInstance, defenderInstance, attackType, originalDamage, aiDifficulty)
+
+      // If attacker was killed by DEATH STRIKE, return early - defender survives untouched
+      if (deathStrikeResult?.triggered && deathStrikeResult?.attackerWasDestroyed) {
+        return {
+          success: true,
+          deathStrikeTriggered: true,
+          deathStrikeResult,
+          attackerKilledByDeathStrike: true,
+          defenderSurvived: true,
+          attackType,
+          damage: 0, // Defender takes no damage
+          destroyed: false,
+          originalDamage,
+          damageReduced: damageReduction,
+          defenseUsed: defenseType
+        }
+      }
+    }
 
     // Mark as attacked
     attackerInstance.hasAttackedThisTurn = true
@@ -296,7 +346,10 @@ export class CombatResolver {
       pendingSlam: hasSlam,  // Flag for SLAM ability (Earth Guardian)
       lifeDrain: lifeDrainResult,
       pendingSplashAttacks,
-      pendingSplash: hasPendingSplash  // Flag to indicate splash needs to be resolved before tapping
+      pendingSplash: hasPendingSplash,  // Flag to indicate splash needs to be resolved before tapping
+      // DEATH STRIKE info (if triggered but attacker survived)
+      deathStrikeTriggered: deathStrikeResult?.triggered || false,
+      deathStrikeResult: deathStrikeResult
     }
   }
 
@@ -528,6 +581,125 @@ export class CombatResolver {
       creatureName: attackerInstance.creature.name,
       currentHP: attackerInstance.currentHP,
       maxHP: attackerInstance.creature.hitPoints
+    }
+  }
+
+  /**
+   * Check and execute DEATH STRIKE ability
+   * DEATH STRIKE triggers when:
+   * - Defender has the ability (Boar, Wereboar)
+   * - Attack would kill the defender
+   * - Attack is melee
+   * - Attacker is truly adjacent (distance = 1, not Reach 2)
+   *
+   * Big O: O(1) - constant time checks
+   *
+   * @param {CreatureInstance} attackerInstance - The attacking creature
+   * @param {CreatureInstance} defenderInstance - The defending creature (with DEATH STRIKE)
+   * @param {string} attackType - 'melee' or 'ranged'
+   * @param {number} incomingDamage - Damage that would be dealt to defender
+   * @param {string} aiDifficulty - AI difficulty for 0/50/100 rule
+   * @returns {Object|null} DEATH STRIKE result or null if not triggered
+   */
+  checkDeathStrike(attackerInstance, defenderInstance, attackType, incomingDamage, aiDifficulty = 'medium') {
+    // DEATH STRIKE only triggers on melee attacks
+    if (attackType !== 'melee') return null
+
+    // Check if defender has DEATH STRIKE ability
+    if (!this.gameState.hasDeathStrike || !this.gameState.hasDeathStrike(defenderInstance)) return null
+
+    // Check if attack would kill defender
+    if (incomingDamage < defenderInstance.currentHP) return null
+
+    // Check if attacker is truly adjacent (distance = 1, not Reach 2)
+    const distance = this.gameState.getDistance(attackerInstance.position, defenderInstance.position)
+    if (distance !== 1) return null
+
+    // DEATH STRIKE conditions met - check AI difficulty
+    const isHuman = this.gameState.players[defenderInstance.owner]?.isHuman
+    let shouldTrigger = true
+    let wasDeclined = false
+
+    if (!isHuman) {
+      if (aiDifficulty === 'easy') {
+        // Easy AI: never use DEATH STRIKE (0%)
+        shouldTrigger = false
+        wasDeclined = true
+      } else if (aiDifficulty === 'medium') {
+        // Medium AI: 50% chance
+        if (Math.random() >= 0.5) {
+          shouldTrigger = false
+          wasDeclined = true
+        }
+      }
+      // Hard AI: always use DEATH STRIKE (100%)
+    }
+
+    if (!shouldTrigger) {
+      return {
+        triggered: false,
+        declined: true,
+        defenderName: defenderInstance.creature.name,
+        difficulty: aiDifficulty
+      }
+    }
+
+    // Execute DEATH STRIKE - defender attacks attacker with melee damage
+    const deathStrikeDamage = defenderInstance.creature.meleeAttack?.damage || 0
+    const attackerOwner = attackerInstance.owner
+    const defenderOwner = defenderInstance.owner
+
+    // Apply DEATH STRIKE damage to attacker
+    // Note: DEATH STRIKE damage can be reduced by defender's defenses (Cower, order cards, etc.)
+    // but for now we apply raw damage - the actual defense choice happens in the UI flow
+    const attackerWasDestroyed = attackerInstance.takeDamage(deathStrikeDamage)
+
+    let attackerDeathResult = null
+    if (attackerWasDestroyed) {
+      // Clear the tile occupant
+      if (attackerInstance.position) {
+        const tile = this.gameState.getTile(attackerInstance.position.x, attackerInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const attackerPlayer = this.gameState.players[attackerOwner]
+      const index = attackerPlayer.creaturesInPlay.findIndex(c => c.instanceId === attackerInstance.instanceId)
+      if (index !== -1) {
+        attackerPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Add creature CARD to graveyard
+      attackerPlayer.creatureGraveyard.push(attackerInstance.creature)
+
+      // Attacker loses morale equal to creature's level
+      attackerPlayer.loseMorale(attackerInstance.creature.level)
+
+      // Defender gains +1 morale (custom rule: killer gains morale)
+      const defenderPlayer = this.gameState.players[defenderOwner]
+      defenderPlayer.gainMorale(1)
+
+      attackerDeathResult = {
+        destroyed: true,
+        moraleChange: {
+          attacker: -attackerInstance.creature.level,
+          defender: +1
+        }
+      }
+    }
+
+    return {
+      triggered: true,
+      declined: false,
+      deathStrikeDamage,
+      defenderName: defenderInstance.creature.name,
+      attackerName: attackerInstance.creature.name,
+      attackerWasDestroyed,
+      attackerCurrentHP: attackerInstance.currentHP,
+      attackerDeathResult,
+      difficulty: isHuman ? 'human' : aiDifficulty
     }
   }
 

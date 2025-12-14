@@ -508,6 +508,25 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0 },
       medium: { offered: 0, triggered: 0, declined: 0 },
       hard: { offered: 0, triggered: 0, declined: 0 }
+    },
+    death_strike: {
+      name: 'DEATH STRIKE',
+      creature: 'Boar, Wereboar',
+      faction: 'Blood of Gruumsh',
+      // Overall totals - passive pre-death counterattack (0/50/100 AI pattern)
+      timesOffered: 0,        // Times creature would die from adjacent melee attack
+      timesTriggered: 0,      // Times DEATH STRIKE was executed
+      timesDeclined: 0,       // Times AI declined (Easy=always, Medium=50%)
+      attackerKilled: 0,      // Times DEATH STRIKE killed the attacker
+      attackerSurvived: 0,    // Times attacker survived DEATH STRIKE
+      totalDamageDealt: 0,    // Total damage dealt by DEATH STRIKE
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, attackerKilled: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, attackerKilled: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, attackerKilled: 0 },
+      // Per-creature stats
+      boarStats: { offered: 0, triggered: 0, attackerKilled: 0 },
+      wereboarStats: { offered: 0, triggered: 0, attackerKilled: 0 }
     }
   })
 
@@ -682,13 +701,19 @@ function AbilitiesTest() {
       const defenderWasTappedBefore = defenderInstance.isTapped
 
       // Execute the attack with or without damage reduction
+      // Generate random difficulty for DEATH STRIKE decision (defender's reactive ability)
+      // This is independent of the defender's turn-based aiDifficulty since DEATH STRIKE
+      // is triggered during the attacker's turn
+      const deathStrikeDiffRoll = Math.random()
+      const deathStrikeDifficulty = deathStrikeDiffRoll < 0.33 ? 'easy' : deathStrikeDiffRoll < 0.67 ? 'medium' : 'hard'
+
       let attackResult
       if (damageReduction > 0) {
         attackResult = gameState.executeAttackWithDefense
-          ? gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, damageReduction, defenseType)
-          : gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+          ? gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, damageReduction, defenseType, deathStrikeDifficulty)
+          : gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType, deathStrikeDifficulty)
       } else {
-        attackResult = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+        attackResult = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType, deathStrikeDifficulty)
       }
 
       if (attackResult.success) {
@@ -1482,6 +1507,50 @@ function AbilitiesTest() {
           creatureAbilityStats.reach_2[difficulty].triggered++
           creatureAbilityStats.reach_2.totalDamageDealt += (attackResult.damage || 0)
           creatureAbilityStats.reach_2[difficulty].damageDealt += (attackResult.damage || 0)
+        }
+
+        // Check for DEATH STRIKE ability (Boar, Wereboar)
+        // Track whenever a creature with DEATH STRIKE would be killed by adjacent melee attack
+        if (attackResult.deathStrikeTriggered || attackResult.deathStrikeResult) {
+          const dsResult = attackResult.deathStrikeResult
+          // Use deathStrikeDifficulty (randomly generated above for this attack)
+          const defenderName = defenderInstance.creature.name
+
+          // Track per-creature stats
+          const creatureStats = defenderName === 'Boar'
+            ? creatureAbilityStats.death_strike.boarStats
+            : defenderName === 'Wereboar'
+              ? creatureAbilityStats.death_strike.wereboarStats
+              : null
+
+          // Always count as "offered" when DEATH STRIKE conditions are met
+          creatureAbilityStats.death_strike.timesOffered++
+          creatureAbilityStats.death_strike[deathStrikeDifficulty].offered++
+          if (creatureStats) creatureStats.offered++
+
+          if (dsResult?.triggered) {
+            // DEATH STRIKE was executed
+            creatureAbilityStats.death_strike.timesTriggered++
+            creatureAbilityStats.death_strike[deathStrikeDifficulty].triggered++
+            if (creatureStats) creatureStats.triggered++
+
+            // Track damage dealt
+            const dsDamage = dsResult.damageDealt || defenderInstance.creature.meleeAttack?.damage || 0
+            creatureAbilityStats.death_strike.totalDamageDealt += dsDamage
+
+            // Check if attacker was killed
+            if (dsResult.attackerWasDestroyed || attackResult.attackerKilledByDeathStrike) {
+              creatureAbilityStats.death_strike.attackerKilled++
+              creatureAbilityStats.death_strike[deathStrikeDifficulty].attackerKilled++
+              if (creatureStats) creatureStats.attackerKilled++
+            } else {
+              creatureAbilityStats.death_strike.attackerSurvived++
+            }
+          } else if (dsResult?.declined) {
+            // AI declined to use DEATH STRIKE
+            creatureAbilityStats.death_strike.timesDeclined++
+            creatureAbilityStats.death_strike[deathStrikeDifficulty].declined++
+          }
         }
 
         // Check for immediate elimination of defender after attack
@@ -2682,6 +2751,8 @@ function AbilitiesTest() {
     if (creatureAbilityStats.tap_on_hit?.timesTriggered > 0) working++
     if (creatureAbilityStats.magic_circle_aura?.timesTriggered > 0) working++
     if (creatureAbilityStats.cutter?.timesTriggered > 0) working++
+    // Blood of Gruumsh abilities
+    if (creatureAbilityStats.death_strike?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -5198,6 +5269,132 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         CHIEFTAIN CALL: When Orc Chieftain is deployed, reveal an Orc (Level 3 or lower) from hand to gain Leadership equal to its level and deploy it for free. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* DEATH STRIKE - Boar, Wereboar (Blood of Gruumsh) */}
+              <Card bg="danger" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>💀 DEATH STRIKE (Boar, Wereboar - Blood of Gruumsh)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (would die from melee)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.death_strike?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (counterattacked)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.death_strike?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (skipped)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.death_strike?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Attacker Killed</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.death_strike?.attackerKilled || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Attacker Survived</td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.death_strike?.attackerSurvived || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Damage Dealt</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.death_strike?.totalDamageDealt || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.death_strike?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.death_strike.timesTriggered / results.creatureAbilityStats.death_strike.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.death_strike?.[diff] || { offered: 0, triggered: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Creature Stats</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Creature</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Attacker Killed</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>Boar</td>
+                            <td>{results.creatureAbilityStats?.death_strike?.boarStats?.offered || 0}</td>
+                            <td>{results.creatureAbilityStats?.death_strike?.boarStats?.triggered || 0}</td>
+                            <td>{results.creatureAbilityStats?.death_strike?.boarStats?.attackerKilled || 0}</td>
+                          </tr>
+                          <tr>
+                            <td>Wereboar</td>
+                            <td>{results.creatureAbilityStats?.death_strike?.wereboarStats?.offered || 0}</td>
+                            <td>{results.creatureAbilityStats?.death_strike?.wereboarStats?.triggered || 0}</td>
+                            <td>{results.creatureAbilityStats?.death_strike?.wereboarStats?.attackerKilled || 0}</td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <small className="text-muted">
+                        DEATH STRIKE: When this creature would be destroyed by an adjacent melee attack, it first deals its melee damage to the attacker. If the attacker dies, the defender survives (attack never completes). Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>
