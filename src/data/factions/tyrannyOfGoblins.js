@@ -260,7 +260,7 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: { damage: 20, range: 10 },
-    specialAbilities: ['PLACEHOLDER: While this creature is in a Magic Circle square, all Goblins, Hobgoblins, and Bugbears you control gain - Prevent 10 damage to this creature from 1 source.'],
+    specialAbilities: ['MAGIC CIRCLE AURA: While this creature is in a Magic Circle, all Goblins, Hobgoblins, and Bugbears you control gain "Prevent 10 damage from 1 source" once per turn.'],
     faction: FACTION_NAME,
     imageUrl: hobgoblinSorcererImg
   },

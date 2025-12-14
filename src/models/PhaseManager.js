@@ -329,6 +329,17 @@ export class PhaseManager {
       })
     }
 
+    // MAGIC CIRCLE AURA: Reset shields for Tyranny of Goblins creatures
+    // Each Goblin/Hobgoblin/Bugbear can block 10 damage once per turn
+    if (player.faction === 'Tyranny of Goblins') {
+      player.creaturesInPlay.forEach(creature => {
+        if (creature.magicCircleShieldUsed !== undefined) {
+          creature.magicCircleShieldUsed = false
+        }
+      })
+      console.log(`[Magic Circle Aura] Shields reset for ${player.name || player.id}'s creatures`)
+    }
+
     // REGENERATE: Heal creatures with Regenerate ability at start of refresh
     // AI difficulty affects whether regeneration is applied (0/50/100 pattern)
     const regeneratedCreatures = []

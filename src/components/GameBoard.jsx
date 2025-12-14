@@ -209,6 +209,13 @@ function GameBoard({ onTurnInfoChange }) {
   const [pendingRiderCallback, setPendingRiderCallback] = useState(null)
   const [selectedRiderCreature, setSelectedRiderCreature] = useState(null)
 
+  // MAGIC CIRCLE AURA modal - shows when Hobgoblin Sorcerer enters/leaves Magic Circle
+  const [showMagicCircleModal, setShowMagicCircleModal] = useState(false)
+  const [magicCircleModalData, setMagicCircleModalData] = useState(null)
+  // { activated: boolean, deactivated: boolean, sorcererName, sorcererOwner, reason }
+  const [pendingMagicCircleNotifications, setPendingMagicCircleNotifications] = useState({})
+  // { playerId: { activated, sorcererName, sorcererOwner, acknowledged: false } }
+
   // RANGED SPLASH DAMAGE state (ACID BREATH / EXPLOSIVE BOLTS)
   const [pendingRangedSplashTargets, setPendingRangedSplashTargets] = useState([])
   const [currentRangedSplashIndex, setCurrentRangedSplashIndex] = useState(0)
@@ -325,6 +332,132 @@ function GameBoard({ onTurnInfoChange }) {
     console.log(`[isPlayerHuman] playerId: ${playerId}, playerNum: ${playerNum}, playerKey: ${playerKey}, isHuman: ${isHuman}`)
     console.log(`[isPlayerHuman] gameConfig[${playerKey}]:`, gameConfig[playerKey])
     return isHuman
+  }
+
+  /**
+   * Check for Magic Circle Aura state changes and show modal if needed
+   * Called after creature movement to detect when Hobgoblin Sorcerer enters/leaves Magic Circle
+   * @param {string} moverOwner - Owner of the creature that moved
+   */
+  const checkMagicCircleAuraChange = (moverOwner) => {
+    if (!gameState?.lastMagicCircleAuraChange) return
+
+    const { entered, left, sorcerer, owner, timestamp } = gameState.lastMagicCircleAuraChange
+
+    if (!entered && !left) {
+      gameState.lastMagicCircleAuraChange = null
+      return
+    }
+
+    // Check if the mover is human or AI
+    const moverIsHuman = isPlayerHuman(moverOwner)
+
+    if (moverIsHuman) {
+      // Human player moved the Sorcerer - show modal immediately to mover
+      setMagicCircleModalData({
+        activated: entered,
+        deactivated: left,
+        sorcererName: sorcerer.creature.name,
+        sorcererOwner: owner,
+        reason: entered ? 'entered' : 'left'
+      })
+      setShowMagicCircleModal(true)
+
+      // ALSO queue notification for OTHER human players
+      const newNotifications = { ...pendingMagicCircleNotifications }
+      for (const playerId of gameState.activePlayers) {
+        if (isPlayerHuman(playerId) && playerId !== moverOwner) {
+          newNotifications[playerId] = {
+            activated: entered,
+            deactivated: left,
+            sorcererName: sorcerer.creature.name,
+            sorcererOwner: owner,
+            reason: entered ? 'human_entered' : 'human_left',
+            acknowledged: false,
+            timestamp: timestamp
+          }
+        }
+      }
+      setPendingMagicCircleNotifications(newNotifications)
+    } else {
+      // AI moved the Sorcerer - queue notification for ALL human players
+      const newNotifications = { ...pendingMagicCircleNotifications }
+      for (const playerId of gameState.activePlayers) {
+        if (isPlayerHuman(playerId)) {
+          newNotifications[playerId] = {
+            activated: entered,
+            deactivated: left,
+            sorcererName: sorcerer.creature.name,
+            sorcererOwner: owner,
+            reason: entered ? 'ai_entered' : 'ai_left',
+            acknowledged: false,
+            timestamp: timestamp
+          }
+        }
+      }
+      setPendingMagicCircleNotifications(newNotifications)
+    }
+
+    // Clear the change flag
+    gameState.lastMagicCircleAuraChange = null
+  }
+
+  /**
+   * Check for pending Magic Circle Aura notifications at turn start
+   * Shows modal to human players about AI-triggered aura changes (enters/leaves/death)
+   * Only shows ONCE per aura activation - not every turn
+   */
+  const checkPendingMagicCircleNotifications = () => {
+    if (!gameState?.currentPlayer) return
+    if (!isPlayerHuman(gameState.currentPlayer)) return
+
+    const currentPlayer = gameState.currentPlayer
+
+    // Check for pending change notifications (enters/leaves/death from AI moves)
+    const notification = pendingMagicCircleNotifications[currentPlayer]
+    if (notification && !notification.acknowledged) {
+      setMagicCircleModalData({
+        activated: notification.activated,
+        deactivated: notification.deactivated,
+        sorcererName: notification.sorcererName,
+        sorcererOwner: notification.sorcererOwner,
+        reason: notification.reason
+      })
+      setShowMagicCircleModal(true)
+
+      // Mark as acknowledged so it only shows once
+      setPendingMagicCircleNotifications(prev => ({
+        ...prev,
+        [currentPlayer]: { ...prev[currentPlayer], acknowledged: true }
+      }))
+    }
+  }
+
+  /**
+   * Check if Sorcerer death ends Magic Circle Aura and show notification
+   * Called when a creature is destroyed
+   * @param {CreatureInstance} destroyedCreature - The creature that was destroyed
+   */
+  const checkMagicCircleAuraDeathNotification = (destroyedCreature) => {
+    if (!gameState?.checkSorcererDeathEndsAura) return
+
+    const auraEnded = gameState.checkSorcererDeathEndsAura(destroyedCreature)
+    if (auraEnded) {
+      // Show death notification to all human players
+      for (const playerId of gameState.activePlayers) {
+        if (isPlayerHuman(playerId)) {
+          setMagicCircleModalData({
+            activated: false,
+            deactivated: true,
+            sorcererName: destroyedCreature.creature.name,
+            sorcererOwner: destroyedCreature.owner,
+            reason: 'death'
+          })
+          setShowMagicCircleModal(true)
+          break // Show once
+        }
+      }
+    }
   }
 
   /**
@@ -552,6 +685,10 @@ function GameBoard({ onTurnInfoChange }) {
       addToast(
         `${creatureInstance.creature.name} moved to (${targetTile.x}, ${targetTile.y}) - Cost: ${cost}`
       )
+
+      // MAGIC CIRCLE AURA: Check if Sorcerer entered/left Magic Circle
+      checkMagicCircleAuraChange(creatureInstance.owner)
+
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
       setValidAttackTargets([])
@@ -597,6 +734,9 @@ function GameBoard({ onTurnInfoChange }) {
           setShowTreasureDiscovery(true)
         }
       }
+
+      // MAGIC CIRCLE AURA: Check if Sorcerer entered/left Magic Circle
+      checkMagicCircleAuraChange(pendingMove.creature.owner)
     } else {
       addToast('Invalid move!')
     }
@@ -5905,6 +6045,19 @@ function GameBoard({ onTurnInfoChange }) {
     }
   }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber, isAIThinking, hordeRefreshExecuted, showHordeModal])
 
+  // MAGIC CIRCLE AURA: Show pending notifications at start of each human player's ACTIVATE phase
+  // This ensures other human players see the modal when the aura was activated by a different player
+  useEffect(() => {
+    if (!gameState?.currentPlayer) return
+    if (!gameState?.currentPhase) return
+
+    // Only trigger at the start of ACTIVATE phase for human players
+    if (gameState.currentPhase === GamePhases.ACTIVATE && isPlayerHuman(gameState.currentPlayer)) {
+      console.log(`[Magic Circle Aura] Checking pending notifications for ${gameState.currentPlayer}`)
+      checkPendingMagicCircleNotifications()
+    }
+  }, [gameState?.currentPhase, gameState?.currentPlayer])
+
   const getPhaseButtonText = () => {
     if (!gameState) return 'Start Phase'
 
@@ -7413,6 +7566,127 @@ function GameBoard({ onTurnInfoChange }) {
               Deploy {selectedRiderCreature?.name || 'Creature'}
             </Button>
           </div>
+        </Modal.Footer>
+      </Modal>
+
+      {/* MAGIC CIRCLE AURA MODAL - Notification when Hobgoblin Sorcerer enters/leaves Magic Circle */}
+      <Modal
+        show={showMagicCircleModal}
+        onHide={() => setShowMagicCircleModal(false)}
+        centered
+        size="md"
+        className="damage-notification-modal"
+      >
+        <Modal.Header closeButton style={{
+          backgroundColor: '#212529',
+          color: 'white',
+          borderBottom: '2px solid #9932cc'
+        }}>
+          <Modal.Title>
+            <span style={{ color: '#9932cc' }}>🔮</span> Magic Circle Aura
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {magicCircleModalData && (
+            <>
+              {magicCircleModalData.activated && (
+                <Alert variant="success" style={{ backgroundColor: '#1a4a3a', border: 'none', color: 'white' }}>
+                  <strong>{magicCircleModalData.sorcererName}</strong> has entered a Magic Circle!
+                  <br /><br />
+                  <strong>All Goblins, Hobgoblins, and Bugbears</strong> controlled by{' '}
+                  {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? 'you' : 'the opponent'} now gain:
+                  <br />
+                  <span style={{ color: '#9932cc', fontWeight: 'bold', fontSize: '1.1em' }}>
+                    "Prevent 10 damage from 1 source" (once per turn)
+                  </span>
+                </Alert>
+              )}
+
+              {magicCircleModalData.deactivated && magicCircleModalData.reason === 'left' && (
+                <Alert variant="warning" style={{ backgroundColor: '#4a3a1a', border: 'none', color: 'white' }}>
+                  <strong>{magicCircleModalData.sorcererName}</strong> has left the Magic Circle!
+                  <br /><br />
+                  The <strong>Magic Circle Aura</strong> protection has ended for{' '}
+                  {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? 'your' : "the opponent's"}{' '}
+                  Goblin faction creatures.
+                </Alert>
+              )}
+
+              {magicCircleModalData.deactivated && magicCircleModalData.reason === 'death' && (
+                <Alert variant="danger" style={{ backgroundColor: '#4a1a1a', border: 'none', color: 'white' }}>
+                  <strong>{magicCircleModalData.sorcererName}</strong> was destroyed while on the Magic Circle!
+                  <br /><br />
+                  The <strong>Magic Circle Aura</strong> protection has ended immediately for{' '}
+                  {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? 'your' : "the opponent's"}{' '}
+                  Goblin faction creatures.
+                </Alert>
+              )}
+
+              {magicCircleModalData.reason?.startsWith('ai_') && (
+                <Alert variant="info" style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}>
+                  <strong>Opponent's {magicCircleModalData.sorcererName}</strong>{' '}
+                  {magicCircleModalData.activated ? 'entered' : 'left'} a Magic Circle!
+                  <br /><br />
+                  {magicCircleModalData.activated ? (
+                    <>
+                      All enemy <strong>Goblins, Hobgoblins, and Bugbears</strong> now have:
+                      <br />
+                      <span style={{ color: '#9932cc', fontWeight: 'bold' }}>
+                        "Prevent 10 damage from 1 source" (once per turn)
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      The enemy's <strong>Magic Circle Aura</strong> protection has ended.
+                    </>
+                  )}
+                </Alert>
+              )}
+
+              {/* Human player moved Sorcerer - notification for OTHER human players */}
+              {magicCircleModalData.reason?.startsWith('human_') && (
+                <Alert variant="info" style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}>
+                  <strong>{magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? 'Your' : "Opponent's"} {magicCircleModalData.sorcererName}</strong>{' '}
+                  {magicCircleModalData.activated ? 'entered' : 'left'} a Magic Circle!
+                  <br /><br />
+                  {magicCircleModalData.activated ? (
+                    <>
+                      All {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? '' : 'enemy '}<strong>Goblins, Hobgoblins, and Bugbears</strong> now have:
+                      <br />
+                      <span style={{ color: '#9932cc', fontWeight: 'bold' }}>
+                        "Prevent 10 damage from 1 source" (once per turn)
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      The {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? '' : "enemy's "}<strong>Magic Circle Aura</strong> protection has ended.
+                    </>
+                  )}
+                </Alert>
+              )}
+
+              {/* Ability Description */}
+              <div style={{
+                backgroundColor: '#1a1d21',
+                padding: '12px 15px',
+                borderRadius: '8px',
+                marginTop: '15px',
+                fontSize: '0.9em',
+                color: '#aaa'
+              }}>
+                <strong style={{ color: '#9932cc' }}>Magic Circle Aura:</strong> While the Hobgoblin Sorcerer is on a Magic Circle,
+                all Goblins, Hobgoblins, and Bugbears controlled by the same player can prevent 10 damage from a single attack once per turn.
+                This shield refreshes at the start of each turn.
+              </div>
+            </>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444' }}>
+          <Button variant="primary" onClick={() => setShowMagicCircleModal(false)} size="lg">
+            Understood
+          </Button>
         </Modal.Footer>
       </Modal>
     </div>

@@ -83,12 +83,20 @@ function AttackConfirmPanel({
   const canUseLightningBreath = isRangedAttack && gameState?.canUseLightningBreath && gameState.canUseLightningBreath(attacker)
   const lightningBreathDamage = canUseLightningBreath ? (gameState?.getLightningBreathDamage?.(attacker) || 20) : 0
 
+  // Check for MAGIC CIRCLE AURA passive (Hobgoblin Sorcerer on Magic Circle)
+  // Prevents 10 damage from 1 source for Goblins/Hobgoblins/Bugbears (once per turn)
+  // This is the FIRST damage reduction (before Shield Block)
+  const magicCircleReduction = gameState?.hasMagicCircleProtection && gameState.hasMagicCircleProtection(defender)
+    ? (gameState?.getMagicCircleDamageReduction ? 10 : 0) // Preview shows 10 if protected
+    : 0
+  const damageAfterMagicCircle = Math.max(0, damage - magicCircleReduction)
+
   // Check for SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
   // Note: This is a preview - actual reduction happens in CombatResolver
   const shieldBlockReduction = gameState?.getShieldBlockReduction
     ? gameState.getShieldBlockReduction(defender)
     : 0
-  const damageAfterShieldBlock = Math.max(0, damage - shieldBlockReduction)
+  const damageAfterShieldBlock = Math.max(0, damageAfterMagicCircle - shieldBlockReduction)
 
   // Check for TAP ON HIT ability (Horned Devil, Wolf) - only on melee attacks
   const hasTapOnHit = gameState?.hasTapOnHit && gameState.hasTapOnHit(attacker)
@@ -208,12 +216,21 @@ function AttackConfirmPanel({
             * Heals only if damage is dealt (blocked = no heal)
           </div>
         )}
+        {/* MAGIC CIRCLE AURA preview - shows damage reduction from Hobgoblin Sorcerer on Magic Circle */}
+        {magicCircleReduction > 0 && (
+          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+            <span style={{ color: '#9932cc' }}>🔮 MAGIC CIRCLE AURA:</span>
+            <span style={{ color: '#9932cc' }}>
+              Block {magicCircleReduction} ({damage} → {damageAfterMagicCircle})
+            </span>
+          </div>
+        )}
         {/* SHIELD BLOCK preview - shows damage reduction from adjacent Dwarven Defender */}
         {shieldBlockReduction > 0 && (
           <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
             <span style={{ color: '#2196f3' }}>SHIELD BLOCK:</span>
             <span style={{ color: '#2196f3' }}>
-              Block {shieldBlockReduction} ({damage} → {damageAfterShieldBlock})
+              Block {shieldBlockReduction} ({damageAfterMagicCircle} → {damageAfterShieldBlock})
             </span>
           </div>
         )}

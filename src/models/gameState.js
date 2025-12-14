@@ -1506,6 +1506,291 @@ export class GameState {
   }
 
   // ============================================================================
+  // MAGIC CIRCLE AURA - Hobgoblin Sorcerer Creature Ability (Tyranny of Goblins)
+  // When standing on a Magic Circle tile, all friendly Goblins, Hobgoblins, and
+  // Bugbears gain "Prevent 10 damage from 1 source" once per turn.
+  // - Global buff (affects all qualifying creatures on the board)
+  // - Faction-locked to Tyranny of Goblins only
+  // - Shield refreshes at start of faction's turn
+  // - Shield drops immediately when Sorcerer dies OR leaves Magic Circle
+  // - Applies FIRST (before Insubstantial, Shield Block, IMD cards)
+  // - Does NOT tap creatures when preventing damage
+  // - Applies 0/50/100 AI difficulty rule based on DEFENDER's owner
+  // ============================================================================
+
+  /**
+   * Check if creature has MAGIC CIRCLE AURA ability
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature has MAGIC CIRCLE AURA
+   */
+  hasMagicCircleAura(creatureInstance) {
+    if (!creatureInstance?.creature?.specialAbilities) return false
+    return creatureInstance.creature.specialAbilities.some(
+      ability => typeof ability === 'string' && ability.toUpperCase().includes('MAGIC CIRCLE AURA')
+    )
+  }
+
+  /**
+   * Check if a specific Sorcerer is currently providing Magic Circle Aura
+   * (must be alive and standing on a MAGIC_CIRCLE tile)
+   * @param {CreatureInstance} sorcererInstance - The potential Sorcerer
+   * @returns {boolean} True if Sorcerer is active on Magic Circle
+   */
+  isSorcererOnMagicCircle(sorcererInstance) {
+    if (!this.hasMagicCircleAura(sorcererInstance)) return false
+    if (!sorcererInstance.position) return false
+    if (sorcererInstance.currentHP <= 0) return false
+
+    const tile = this.getTile(sorcererInstance.position.x, sorcererInstance.position.y)
+    return tile?.terrain === 'MAGIC_CIRCLE'
+  }
+
+  /**
+   * Check if a player has an active Magic Circle Aura
+   * (has a Sorcerer with the ability standing on a Magic Circle)
+   * @param {string} playerId - Player to check
+   * @returns {CreatureInstance|null} The active Sorcerer or null
+   */
+  getActiveMagicCircleSorcerer(playerId) {
+    const player = this.players[playerId]
+    if (!player) return null
+
+    for (const creature of player.creaturesInPlay) {
+      if (this.isSorcererOnMagicCircle(creature)) {
+        return creature
+      }
+    }
+    return null
+  }
+
+  /**
+   * Check if creature type qualifies for Magic Circle Aura buff
+   * Must be Goblin, Hobgoblin, or Bugbear type
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature is a valid type
+   */
+  isGoblinFactionType(creatureInstance) {
+    if (!creatureInstance?.creature?.type) return false
+    const types = creatureInstance.creature.type
+    return types.some(type => {
+      const upperType = type.toUpperCase()
+      return upperType === 'GOBLIN' || upperType === 'HOBGOBLIN' || upperType === 'BUGBEAR'
+    })
+  }
+
+  /**
+   * Check if creature is from Tyranny of Goblins faction
+   * @param {CreatureInstance} creatureInstance - Creature to check
+   * @returns {boolean} True if creature is from Tyranny of Goblins faction
+   */
+  isGoblinFaction(creatureInstance) {
+    if (!creatureInstance?.creature?.faction) return false
+    const faction = creatureInstance.creature.faction.toUpperCase()
+    return faction.includes('GOBLIN') || faction.includes('TYRANNY OF GOBLINS')
+  }
+
+  /**
+   * Check if creature is currently protected by Magic Circle Aura
+   * @param {CreatureInstance} defenderInstance - Creature taking damage
+   * @returns {boolean} True if creature has active Magic Circle protection
+   */
+  hasMagicCircleProtection(defenderInstance) {
+    // Must be valid type (Goblin/Hobgoblin/Bugbear)
+    if (!this.isGoblinFactionType(defenderInstance)) return false
+
+    // Must be from Tyranny of Goblins faction
+    if (!this.isGoblinFaction(defenderInstance)) return false
+
+    // Check if owner has an active Sorcerer on Magic Circle
+    const activeSorcerer = this.getActiveMagicCircleSorcerer(defenderInstance.owner)
+    if (!activeSorcerer) return false
+
+    // Shield must not already be used this turn
+    if (defenderInstance.magicCircleShieldUsed) return false
+
+    return true
+  }
+
+  /**
+   * Get Magic Circle Aura damage reduction for a creature
+   * Returns 10 if protection is active and shield not used, 0 otherwise
+   * Applies 0/50/100 AI difficulty rule based on DEFENDER's owner
+   * Big O: O(c) where c = creatures in play (to find Sorcerer)
+   * @param {CreatureInstance} defenderInstance - Creature taking damage
+   * @param {boolean} preventionBlocked - If true, damage prevention is disabled (future-proofing)
+   * @returns {number} Damage reduction amount (10 or 0)
+   */
+  getMagicCircleDamageReduction(defenderInstance, preventionBlocked = false) {
+    // Future-proof: Check if damage prevention is blocked by attacker effect
+    if (preventionBlocked) {
+      console.log(`[Magic Circle Aura] Damage prevention is blocked for this attack`)
+      return 0
+    }
+
+    if (!this.hasMagicCircleProtection(defenderInstance)) return 0
+
+    // AI difficulty check (0/50/100 rule) - based on DEFENDER's owner
+    const defenderOwner = defenderInstance.owner
+    const defenderPlayer = this.players[defenderOwner]
+
+    if (defenderPlayer && !defenderPlayer.isHuman) {
+      const aiDifficulty = defenderPlayer.aiDifficulty || 'medium'
+
+      // Track for AbilitiesTest - ability was offered
+      if (window.trackAbility) {
+        window.trackAbility('magic_circle_aura', 'offered', aiDifficulty, {
+          creature: defenderInstance.creature.name
+        })
+      }
+
+      if (aiDifficulty === 'easy') {
+        console.log(`[Magic Circle Aura] Easy AI - shield declined for ${defenderInstance.creature.name}`)
+        // Track declined
+        if (window.trackAbility) {
+          window.trackAbility('magic_circle_aura', 'declined', aiDifficulty, {
+            creature: defenderInstance.creature.name
+          })
+        }
+        return 0  // Easy AI never benefits from Magic Circle Aura
+      } else if (aiDifficulty === 'medium') {
+        if (Math.random() >= 0.5) {
+          console.log(`[Magic Circle Aura] Medium AI - shield declined (50% roll) for ${defenderInstance.creature.name}`)
+          // Track declined
+          if (window.trackAbility) {
+            window.trackAbility('magic_circle_aura', 'declined', aiDifficulty, {
+              creature: defenderInstance.creature.name
+            })
+          }
+          return 0  // Medium AI: 50% chance
+        }
+      }
+      // Hard AI: always benefits from Magic Circle Aura
+    }
+
+    console.log(`[Magic Circle Aura] ${defenderInstance.creature.name} will block 10 damage`)
+
+    // Track triggered for AbilitiesTest
+    if (window.trackAbility) {
+      const difficulty = defenderPlayer?.aiDifficulty || 'human'
+      window.trackAbility('magic_circle_aura', 'triggered', difficulty, {
+        blocked: 10,
+        creature: defenderInstance.creature.name
+      })
+    }
+
+    return 10  // Magic Circle Aura prevents 10 damage
+  }
+
+  /**
+   * Apply Magic Circle Aura shield (marks it as used for this turn)
+   * @param {CreatureInstance} defenderInstance - Creature using the shield
+   * @param {number} damageReduced - Amount of damage prevented (for logging)
+   * @returns {boolean} True if shield was applied
+   */
+  useMagicCircleShield(defenderInstance, damageReduced = 10) {
+    if (!this.hasMagicCircleProtection(defenderInstance)) return false
+
+    defenderInstance.magicCircleShieldUsed = true
+    console.log(`[Magic Circle Aura] ${defenderInstance.creature.name} blocked ${damageReduced} damage (shield used for this turn)`)
+    return true
+  }
+
+  /**
+   * Check if Sorcerer just entered Magic Circle (for UI notification)
+   * Called after movement to detect aura activation
+   * @param {CreatureInstance} creatureInstance - Creature that moved
+   * @param {Object} oldPosition - Previous position {x, y}
+   * @returns {boolean} True if Sorcerer entered Magic Circle
+   */
+  checkSorcererEnteredMagicCircle(creatureInstance, oldPosition) {
+    if (!this.hasMagicCircleAura(creatureInstance)) return false
+    if (!oldPosition || !creatureInstance.position) return false
+
+    const oldTile = this.getTile(oldPosition.x, oldPosition.y)
+    const newTile = this.getTile(creatureInstance.position.x, creatureInstance.position.y)
+
+    const wasOnMagicCircle = oldTile?.terrain === 'MAGIC_CIRCLE'
+    const isOnMagicCircle = newTile?.terrain === 'MAGIC_CIRCLE'
+
+    if (!wasOnMagicCircle && isOnMagicCircle) {
+      console.log(`[Magic Circle Aura] Sorcerer entered Magic Circle - aura ACTIVATED for ${creatureInstance.owner}`)
+
+      // Track aura activation for AbilitiesTest
+      if (window.trackAbility) {
+        window.trackAbility('magic_circle_aura', 'aura_activated', 'n/a', {
+          sorcerer: creatureInstance.creature.name,
+          owner: creatureInstance.owner
+        })
+      }
+
+      return true
+    }
+    return false
+  }
+
+  /**
+   * Check if Sorcerer just left Magic Circle (for UI notification)
+   * Called after movement to detect aura deactivation
+   * @param {CreatureInstance} creatureInstance - Creature that moved
+   * @param {Object} oldPosition - Previous position {x, y}
+   * @returns {boolean} True if Sorcerer left Magic Circle
+   */
+  checkSorcererLeftMagicCircle(creatureInstance, oldPosition) {
+    if (!this.hasMagicCircleAura(creatureInstance)) return false
+    if (!oldPosition || !creatureInstance.position) return false
+
+    const oldTile = this.getTile(oldPosition.x, oldPosition.y)
+    const newTile = this.getTile(creatureInstance.position.x, creatureInstance.position.y)
+
+    const wasOnMagicCircle = oldTile?.terrain === 'MAGIC_CIRCLE'
+    const isOnMagicCircle = newTile?.terrain === 'MAGIC_CIRCLE'
+
+    if (wasOnMagicCircle && !isOnMagicCircle) {
+      console.log(`[Magic Circle Aura] Sorcerer left Magic Circle - aura DEACTIVATED for ${creatureInstance.owner}`)
+
+      // Track aura deactivation for AbilitiesTest
+      if (window.trackAbility) {
+        window.trackAbility('magic_circle_aura', 'aura_deactivated', 'n/a', {
+          sorcerer: creatureInstance.creature.name,
+          owner: creatureInstance.owner,
+          reason: 'movement'
+        })
+      }
+
+      return true
+    }
+    return false
+  }
+
+  /**
+   * Check if dying Sorcerer was providing Magic Circle Aura
+   * Called when a creature is destroyed to detect aura deactivation
+   * @param {CreatureInstance} creatureInstance - Creature that died
+   * @returns {boolean} True if Sorcerer's death ends the aura
+   */
+  checkSorcererDeathEndsAura(creatureInstance) {
+    if (!this.hasMagicCircleAura(creatureInstance)) return false
+    if (!creatureInstance.position) return false
+
+    const tile = this.getTile(creatureInstance.position.x, creatureInstance.position.y)
+    if (tile?.terrain === 'MAGIC_CIRCLE') {
+      console.log(`[Magic Circle Aura] Sorcerer died on Magic Circle - aura DEACTIVATED for ${creatureInstance.owner}`)
+
+      // Track aura deactivation for AbilitiesTest
+      if (window.trackAbility) {
+        window.trackAbility('magic_circle_aura', 'aura_deactivated', 'n/a', {
+          sorcerer: creatureInstance.creature.name,
+          owner: creatureInstance.owner,
+          reason: 'death'
+        })
+      }
+
+      return true
+    }
+    return false
+  }
+
+  // ============================================================================
   // HEALING TOUCH - Dwarf Cleric Creature Ability (Heart of Cormyr)
   // Standard action: This creature or 1 adjacent ally heals 10 DAMAGE
   // OR removes 1 attached Order card
@@ -3805,6 +4090,9 @@ export class GameState {
 
     if (!isValid) return false
 
+    // Store old position for Magic Circle Aura detection
+    const oldPosition = { x: creatureInstance.position.x, y: creatureInstance.position.y }
+
     // Clear old position
     const oldTile = this.getTile(creatureInstance.position.x, creatureInstance.position.y)
     if (oldTile) {
@@ -3827,6 +4115,21 @@ export class GameState {
     // Tap the creature if it has both moved AND attacked
     if (creatureInstance.hasAttackedThisTurn) {
       creatureInstance.tap()
+    }
+
+    // MAGIC CIRCLE AURA: Check for state changes (Sorcerer entering/leaving Magic Circle)
+    // Store result for UI to pick up and show modal notification
+    const enteredMagicCircle = this.checkSorcererEnteredMagicCircle(creatureInstance, oldPosition)
+    const leftMagicCircle = this.checkSorcererLeftMagicCircle(creatureInstance, oldPosition)
+
+    if (enteredMagicCircle || leftMagicCircle) {
+      this.lastMagicCircleAuraChange = {
+        entered: enteredMagicCircle,
+        left: leftMagicCircle,
+        sorcerer: creatureInstance,
+        owner: creatureInstance.owner,
+        timestamp: Date.now()
+      }
     }
 
     return true

@@ -463,6 +463,22 @@ function AbilitiesTest() {
       // Per-creature stats to track Wolf vs Horned Devil separately
       wolfStats: { attacks: 0, kills: 0, triggers: 0, totalDefenderHP: 0 },
       hornedDevilStats: { attacks: 0, kills: 0, triggers: 0, totalDefenderHP: 0 }
+    },
+    magic_circle_aura: {
+      name: 'MAGIC CIRCLE AURA',
+      creature: 'Hobgoblin Sorcerer',
+      faction: 'Tyranny of Goblins',
+      // Overall totals - passive damage prevention when Sorcerer on Magic Circle
+      timesOffered: 0,        // Times creature took damage with aura active
+      timesTriggered: 0,      // Times shield blocked damage
+      timesDeclined: 0,       // Times AI declined (0/50/100 pattern)
+      totalDamageBlocked: 0,  // Total damage blocked by shields
+      auraActivations: 0,     // Times Sorcerer entered Magic Circle
+      auraDeactivations: 0,   // Times aura ended (death/movement)
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0, blocked: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0, blocked: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0, blocked: 0 }
     }
   })
 
@@ -767,6 +783,36 @@ function AbilitiesTest() {
               creatureAbilityStats.shield_block.timesDeclined++
               creatureAbilityStats.shield_block[difficulty].declined++
             }
+            }
+          }
+        }
+
+        // Check for MAGIC CIRCLE AURA ability (Hobgoblin Sorcerer - Tyranny of Goblins)
+        // Tracks when Magic Circle Aura was offered and whether it was triggered or declined
+        if (creatureAbilityStats && attackResult.magicCircleOffered) {
+          const defenderPlayer = gameState.players[defenderOwner]
+          const difficulty = defenderPlayer?.aiDifficulty || 'medium'
+
+          // Track offered (aura was active and available)
+          creatureAbilityStats.magic_circle_aura.timesOffered++
+          if (creatureAbilityStats.magic_circle_aura[difficulty]) {
+            creatureAbilityStats.magic_circle_aura[difficulty].offered++
+          }
+
+          if (attackResult.magicCircleUsed) {
+            // Track triggered (shield was used)
+            const damageBlocked = attackResult.magicCircleReduction || 10
+            creatureAbilityStats.magic_circle_aura.timesTriggered++
+            creatureAbilityStats.magic_circle_aura.totalDamageBlocked += damageBlocked
+            if (creatureAbilityStats.magic_circle_aura[difficulty]) {
+              creatureAbilityStats.magic_circle_aura[difficulty].triggered++
+              creatureAbilityStats.magic_circle_aura[difficulty].blocked += damageBlocked
+            }
+          } else {
+            // Track declined (aura was offered but AI declined or shield already used)
+            creatureAbilityStats.magic_circle_aura.timesDeclined++
+            if (creatureAbilityStats.magic_circle_aura[difficulty]) {
+              creatureAbilityStats.magic_circle_aura[difficulty].declined++
             }
           }
         }
@@ -2053,6 +2099,45 @@ function AbilitiesTest() {
             }
             break
 
+          case 'magic_circle_aura':
+            // Track MAGIC CIRCLE AURA ability (Hobgoblin Sorcerer)
+            // Tracks when shield blocks damage for Goblin faction creatures
+            {
+              const diff = action.difficulty || 'medium'
+              const blocked = action.blocked || 10
+              const creature = action.creature || 'Unknown'
+
+              if (action.type === 'offered') {
+                creatureAbilityStats.magic_circle_aura.timesOffered++
+                if (creatureAbilityStats.magic_circle_aura[diff]) {
+                  creatureAbilityStats.magic_circle_aura[diff].offered++
+                }
+              } else if (action.type === 'triggered') {
+                creatureAbilityStats.magic_circle_aura.timesOffered++
+                creatureAbilityStats.magic_circle_aura.timesTriggered++
+                creatureAbilityStats.magic_circle_aura.totalDamageBlocked += blocked
+                if (creatureAbilityStats.magic_circle_aura[diff]) {
+                  creatureAbilityStats.magic_circle_aura[diff].offered++
+                  creatureAbilityStats.magic_circle_aura[diff].triggered++
+                  creatureAbilityStats.magic_circle_aura[diff].blocked += blocked
+                }
+                console.log(`[MAGIC CIRCLE AURA] ${creature} blocked ${blocked} damage (${diff})`)
+              } else if (action.type === 'declined') {
+                creatureAbilityStats.magic_circle_aura.timesDeclined++
+                if (creatureAbilityStats.magic_circle_aura[diff]) {
+                  creatureAbilityStats.magic_circle_aura[diff].declined++
+                }
+                console.log(`[MAGIC CIRCLE AURA] Shield declined for ${creature} (${diff})`)
+              } else if (action.type === 'aura_activated') {
+                creatureAbilityStats.magic_circle_aura.auraActivations++
+                console.log(`[MAGIC CIRCLE AURA] Aura activated by ${action.sorcerer}`)
+              } else if (action.type === 'aura_deactivated') {
+                creatureAbilityStats.magic_circle_aura.auraDeactivations++
+                console.log(`[MAGIC CIRCLE AURA] Aura deactivated (${action.reason})`)
+              }
+            }
+            break
+
           // NOTE: 'reach_2_attack' case removed - REACH tracking is now handled in processAttackQueue
           // via targetInfo.reachDecision (when AI had a choice) and targetInfo.isReachAttack (fallback)
 
@@ -2488,7 +2573,7 @@ function AbilitiesTest() {
   const countWorkingCreatureAbilities = (creatureAbilityStats) => {
     if (!creatureAbilityStats) return { working: 0, total: 25 }
     let working = 0
-    const total = 25 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL, SHIELD BLOCK, HEALING TOUCH, REGENERATE 10, UNTAP ON KILL
+    const total = 26 // FLASHING BLADES, HIDDEN BLADE, SCUTTLE, SHADOW STALKER, BURROW (Lolth), BURROW (Cormyr), CONFUSION GAZE, SUMMON SPIDER, GRAVEYARD DEPLOY, LIFE DRAIN, LICH NECROMANCER DEPLOY, TOMB GUARDIAN SPLASH, LIGHTNING BREATH, PHASING, INSUBSTANTIAL, RIDER, ACID BREATH, EXPLOSIVE BOLTS, SLAM, FLANKING, ARCANE PORTAL, SHIELD BLOCK, HEALING TOUCH, REGENERATE 10, UNTAP ON KILL, MAGIC CIRCLE AURA
     if (creatureAbilityStats.flashing_blades?.timesTriggered > 0) working++
     if (creatureAbilityStats.hidden_blade?.timesTriggered > 0) working++
     if (creatureAbilityStats.scuttle?.timesTriggered > 0) working++
@@ -2524,6 +2609,7 @@ function AbilitiesTest() {
     if (creatureAbilityStats.untap_on_adjacent_kill?.timesTriggered > 0) working++
     if (creatureAbilityStats.reach_2?.timesTriggered > 0) working++
     if (creatureAbilityStats.tap_on_hit?.timesTriggered > 0) working++
+    if (creatureAbilityStats.magic_circle_aura?.timesTriggered > 0) working++
     return { working, total }
   }
 
@@ -5133,6 +5219,107 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         UNTAP ON KILL: Bugbear Berserker untaps whenever an adjacent enemy creature is destroyed during its faction's turn. Works with self-kills AND ally kills. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* MAGIC CIRCLE AURA - Hobgoblin Sorcerer (Tyranny of Goblins) */}
+              <Card bg="dark" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>🔮 MAGIC CIRCLE AURA (Hobgoblin Sorcerer - Tyranny of Goblins)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (damage with aura active)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.magic_circle_aura?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (shield blocked)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.magic_circle_aura?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (skipped)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.magic_circle_aura?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Damage Blocked</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.magic_circle_aura?.totalDamageBlocked || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Aura Activations</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.magic_circle_aura?.auraActivations || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Aura Deactivations</td>
+                            <td><Badge bg="secondary">{results.creatureAbilityStats?.magic_circle_aura?.auraDeactivations || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.magic_circle_aura?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.magic_circle_aura.timesTriggered / results.creatureAbilityStats.magic_circle_aura.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Blocked</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.magic_circle_aura?.[diff] || { offered: 0, triggered: 0, declined: 0, blocked: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered}</td>
+                                <td>{stats.triggered}</td>
+                                <td>{stats.declined}</td>
+                                <td>{stats.blocked}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        MAGIC CIRCLE AURA: While Hobgoblin Sorcerer is on a Magic Circle tile, all Goblins, Hobgoblins, and Bugbears you control gain "Prevent 10 damage from 1 source" once per turn. Shield resets each turn. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

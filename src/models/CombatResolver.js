@@ -310,15 +310,51 @@ export class CombatResolver {
     const attackerOwner = attackerInstance.owner
     const defenderOwner = defenderInstance.owner
 
-    // Check INSUBSTANTIAL before applying damage
+    // ========== MAGIC CIRCLE AURA - First damage prevention step ==========
+    // Hobgoblin Sorcerer on Magic Circle provides "Prevent 10 damage from 1 source"
+    // to all friendly Goblins, Hobgoblins, and Bugbears (once per turn per creature)
+    // This applies BEFORE Insubstantial and Shield Block
+    let magicCircleReduction = 0
+    let magicCircleOffered = false  // Track if ability was available (for AbilitiesTest)
+    if (this.gameState.hasMagicCircleProtection && this.gameState.hasMagicCircleProtection(defenderInstance)) {
+      magicCircleOffered = true  // Protection was available
+      magicCircleReduction = this.gameState.getMagicCircleDamageReduction(defenderInstance)
+      if (magicCircleReduction > 0) {
+        this.gameState.useMagicCircleShield(defenderInstance, Math.min(magicCircleReduction, damageAmount))
+      }
+    }
+
+    // Apply Magic Circle reduction first
+    let workingDamage = Math.max(0, damageAmount - magicCircleReduction)
+
+    // If damage fully absorbed by Magic Circle Aura, return early
+    if (workingDamage === 0 && magicCircleReduction > 0) {
+      return {
+        destroyed: false,
+        damage: 0,
+        originalDamage: damageAmount,
+        magicCircleReduction: magicCircleReduction,
+        magicCircleUsed: true,
+        magicCircleOffered: true,
+        shieldBlockReduction: 0,
+        insubstantialUsed: false,
+        moraleChange: null
+      }
+    }
+
+    // Check INSUBSTANTIAL before applying remaining damage
     // This ability blocks ALL damage from a single source once per refresh cycle
     if (this.gameState.canUseInsubstantial(defenderInstance)) {
-      const blocked = this.gameState.useInsubstantial(defenderInstance, damageAmount, attackerOwner)
+      const blocked = this.gameState.useInsubstantial(defenderInstance, workingDamage, attackerOwner)
       if (blocked) {
         return {
           destroyed: false,
           damage: 0,
-          damageBlocked: damageAmount,
+          originalDamage: damageAmount,
+          magicCircleReduction: magicCircleReduction,
+          magicCircleUsed: magicCircleReduction > 0,
+          magicCircleOffered: magicCircleOffered,
+          damageBlocked: workingDamage,
           insubstantialUsed: true,
           moraleChange: null
         }
@@ -327,11 +363,11 @@ export class CombatResolver {
 
     // Check SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
     let shieldBlockReduction = 0
-    let finalDamage = damageAmount
+    let finalDamage = workingDamage
     if (this.gameState.getShieldBlockReduction) {
       shieldBlockReduction = this.gameState.getShieldBlockReduction(defenderInstance)
       if (shieldBlockReduction > 0) {
-        finalDamage = Math.max(0, damageAmount - shieldBlockReduction)
+        finalDamage = Math.max(0, workingDamage - shieldBlockReduction)
       }
     }
 
@@ -410,6 +446,9 @@ export class CombatResolver {
         destroyed: true,
         damage: finalDamage,
         originalDamage: damageAmount,
+        magicCircleReduction: magicCircleReduction,
+        magicCircleUsed: magicCircleReduction > 0,
+        magicCircleOffered: magicCircleOffered,
         shieldBlockReduction: shieldBlockReduction,
         moraleChange: {
           attacker: +1,
@@ -453,6 +492,9 @@ export class CombatResolver {
       destroyed: false,
       damage: finalDamage,
       originalDamage: damageAmount,
+      magicCircleReduction: magicCircleReduction,
+      magicCircleUsed: magicCircleReduction > 0,
+      magicCircleOffered: magicCircleOffered,
       shieldBlockReduction: shieldBlockReduction,
       moraleChange: null,
       tapOnHitTriggered: tapOnHitData?.triggered || false,

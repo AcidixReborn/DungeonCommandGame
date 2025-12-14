@@ -106,11 +106,18 @@ function DefenseOptionsPanel({
   // Total damage includes base + FLANKING bonus
   const originalDamage = baseDamage + flankingBonus
 
+  // Check for MAGIC CIRCLE AURA passive (Hobgoblin Sorcerer on Magic Circle)
+  // This is the FIRST damage reduction - prevents 10 damage for Goblin/Hobgoblin/Bugbear
+  const magicCircleReduction = gameState?.hasMagicCircleProtection && gameState.hasMagicCircleProtection(defenderInstance)
+    ? 10 // Preview shows 10 if protected (actual check happens in CombatResolver)
+    : 0
+  const damageAfterMagicCircle = Math.max(0, originalDamage - accumulatedDamageReduction - magicCircleReduction)
+
   // Check for SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
   const shieldBlockReduction = gameState?.getShieldBlockReduction
     ? gameState.getShieldBlockReduction(defenderInstance)
     : 0
-  const incomingDamage = Math.max(0, originalDamage - accumulatedDamageReduction - shieldBlockReduction)
+  const incomingDamage = Math.max(0, damageAfterMagicCircle - shieldBlockReduction)
 
   // O(n) - Get defense options from gameState
   const defenseOptions = gameState?.getDefenseOptions
@@ -344,11 +351,20 @@ function DefenseOptionsPanel({
             <Badge bg="success">{accumulatedDamageReduction}</Badge>
           </div>
         )}
+        {/* MAGIC CIRCLE AURA - shows damage prevention from Hobgoblin Sorcerer on Magic Circle */}
+        {magicCircleReduction > 0 && (
+          <div className="combat-info-row">
+            <span style={{ color: '#9932cc' }}>🔮 MAGIC CIRCLE AURA:</span>
+            <span style={{ color: '#9932cc' }}>
+              Block {magicCircleReduction} ({originalDamage - accumulatedDamageReduction} → {damageAfterMagicCircle})
+            </span>
+          </div>
+        )}
         {shieldBlockReduction > 0 && (
           <div className="combat-info-row">
             <span style={{ color: '#2196f3' }}>SHIELD BLOCK:</span>
             <span style={{ color: '#2196f3' }}>
-              Block {shieldBlockReduction} ({originalDamage} → {Math.max(0, originalDamage - shieldBlockReduction)})
+              Block {shieldBlockReduction} ({damageAfterMagicCircle} → {incomingDamage})
             </span>
           </div>
         )}
