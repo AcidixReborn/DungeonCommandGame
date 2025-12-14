@@ -493,6 +493,21 @@ function AbilitiesTest() {
       easy: { offered: 0, triggered: 0, declined: 0, damage: 0 },
       medium: { offered: 0, triggered: 0, declined: 0, damage: 0 },
       hard: { offered: 0, triggered: 0, declined: 0, damage: 0 }
+    },
+    chieftain_call: {
+      name: 'CHIEFTAIN CALL',
+      creature: 'Orc Chieftain',
+      faction: 'Blood of Gruumsh',
+      // Overall totals - on-deploy ability to deploy bonus Orc (0/50/100 AI pattern)
+      timesOffered: 0,        // Times Orc Chieftain deployed with eligible Orcs in hand
+      timesTriggered: 0,      // Times bonus Orc was deployed
+      timesDeclined: 0,       // Times AI declined (Easy=always, Medium=50%)
+      orcsDeployed: 0,        // Total bonus Orcs deployed
+      leadershipGained: 0,    // Total leadership gained (= deployed creature level)
+      // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+      easy: { offered: 0, triggered: 0, declined: 0 },
+      medium: { offered: 0, triggered: 0, declined: 0 },
+      hard: { offered: 0, triggered: 0, declined: 0 }
     }
   })
 
@@ -556,7 +571,9 @@ function AbilitiesTest() {
       // Check for defense options using the newer decideDefense method
       let damageReduction = 0
       let defenseType = null
-      const defenderAI = new SimpleAI(gameState, defenderOwner)
+      const defenderPlayer = gameState.players[defenderOwner]
+      const defenderDifficulty = defenderPlayer?.aiDifficulty || 'easy'
+      const defenderAI = new SimpleAI(gameState, defenderOwner, creatureAbilityStats, defenderDifficulty)
       const defenseDecision = defenderAI.decideDefense
         ? defenderAI.decideDefense(defenderInstance, incomingDamage, attackerOwner)
         : { type: 'none', hadOpportunity: false }
@@ -1482,7 +1499,7 @@ function AbilitiesTest() {
     // Randomize AI difficulty: 33% easy, 34% medium, 33% hard
     const difficultyRoll = Math.random()
     const aiDifficulty = difficultyRoll < 0.33 ? 'easy' : difficultyRoll < 0.67 ? 'medium' : 'hard'
-    const ai = new SimpleAI(gameState, currentPlayerId, null, aiDifficulty)
+    const ai = new SimpleAI(gameState, currentPlayerId, creatureAbilityStats, aiDifficulty)
     const player = gameState.players[currentPlayerId]
     // Store difficulty on player for tracking purposes
     player.aiDifficulty = aiDifficulty
@@ -5086,6 +5103,101 @@ function AbilitiesTest() {
                     <Col>
                       <small className="text-muted">
                         HEALING TOUCH: Dwarf Cleric can heal self or adjacent ally for 10 damage OR remove 1 attached Order card. Uses standard action. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
+                      </small>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* CHIEFTAIN CALL - Orc Chieftain (Blood of Gruumsh) */}
+              <Card bg="danger" text="white" className="mb-3">
+                <Card.Header>
+                  <h5>&#9876; CHIEFTAIN CALL (Orc Chieftain - Blood of Gruumsh)</h5>
+                </Card.Header>
+                <Card.Body>
+                  <Row>
+                    <Col md={6}>
+                      <h6 className="text-light">Overall Statistics</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <tbody>
+                          <tr>
+                            <td>Times Offered (Orc Chieftain deployed)</td>
+                            <td><Badge bg="info">{results.creatureAbilityStats?.chieftain_call?.timesOffered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Triggered (bonus Orc deployed)</td>
+                            <td><Badge bg="success">{results.creatureAbilityStats?.chieftain_call?.timesTriggered || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Times Declined (skipped)</td>
+                            <td><Badge bg="danger">{results.creatureAbilityStats?.chieftain_call?.timesDeclined || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Orcs Deployed</td>
+                            <td><Badge bg="primary">{results.creatureAbilityStats?.chieftain_call?.orcsDeployed || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Total Leadership Gained</td>
+                            <td><Badge bg="warning">{results.creatureAbilityStats?.chieftain_call?.leadershipGained || 0}</Badge></td>
+                          </tr>
+                          <tr>
+                            <td>Trigger Rate</td>
+                            <td>
+                              {results.creatureAbilityStats?.chieftain_call?.timesOffered > 0
+                                ? `${((results.creatureAbilityStats.chieftain_call.timesTriggered / results.creatureAbilityStats.chieftain_call.timesOffered) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Col>
+                    <Col md={6}>
+                      <h6 className="text-light">Per-Difficulty Breakdown</h6>
+                      <Table striped bordered variant="dark" size="sm">
+                        <thead>
+                          <tr>
+                            <th>Difficulty</th>
+                            <th>Offered</th>
+                            <th>Triggered</th>
+                            <th>Declined</th>
+                            <th>Rate</th>
+                            <th>Expected</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['easy', 'medium', 'hard'].map(diff => {
+                            const stats = results.creatureAbilityStats?.chieftain_call?.[diff] || { offered: 0, triggered: 0, declined: 0 }
+                            const rate = stats.offered > 0 ? (stats.triggered / stats.offered) * 100 : 0
+                            const expected = diff === 'easy' ? 0 : diff === 'medium' ? 50 : 100
+                            const tolerance = diff === 'medium' ? 25 : 5
+                            const isCorrect = Math.abs(rate - expected) <= tolerance || stats.offered === 0
+                            return (
+                              <tr key={diff}>
+                                <td style={{ textTransform: 'capitalize' }}>{diff}</td>
+                                <td>{stats.offered || 0}</td>
+                                <td>{stats.triggered || 0}</td>
+                                <td>{stats.declined || 0}</td>
+                                <td>{stats.offered > 0 ? `${rate.toFixed(1)}%` : 'N/A'}</td>
+                                <td>{expected}%</td>
+                                <td>
+                                  {stats.offered > 0 ? (
+                                    <Badge bg={isCorrect ? 'success' : 'danger'}>{isCorrect ? '✓' : '✗'}</Badge>
+                                  ) : (
+                                    <Badge bg="secondary">-</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </Table>
+                    </Col>
+                  </Row>
+                  <Row className="mt-2">
+                    <Col>
+                      <small className="text-muted">
+                        CHIEFTAIN CALL: When Orc Chieftain is deployed, reveal an Orc (Level 3 or lower) from hand to gain Leadership equal to its level and deploy it for free. Expected rates: Easy = 0%, Medium = ~50%, Hard = 100%
                       </small>
                     </Col>
                   </Row>

@@ -3824,6 +3824,27 @@ export class GameState {
   }
 
   /**
+   * Check if CHIEFTAIN CALL ability should trigger - delegates to abilityManager
+   */
+  shouldTriggerChieftainCall(creatureInstance) {
+    return this.abilityManager.shouldTriggerChieftainCall(creatureInstance)
+  }
+
+  /**
+   * Get eligible Orcs for CHIEFTAIN CALL - delegates to abilityManager
+   */
+  getEligibleOrcsForChieftainCall(playerId) {
+    return this.abilityManager.getEligibleOrcsForChieftainCall(playerId)
+  }
+
+  /**
+   * Execute CHIEFTAIN CALL ability - delegates to abilityManager
+   */
+  executeChieftainCall(playerId, selectedCreature, deployPosition) {
+    return this.abilityManager.executeChieftainCall(playerId, selectedCreature, deployPosition)
+  }
+
+  /**
    * Check if creature can use COWER - delegates to abilityManager
    */
   canCower(creatureInstance, incomingDamage, attackerOwner = null) {

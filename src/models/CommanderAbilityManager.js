@@ -17,6 +17,7 @@
  */
 
 import { COMBAT, COMMANDER_ABILITIES } from '../constants/gameConstants.js'
+import { CreatureInstance } from './creatures.js'
 
 /**
  * CommanderAbilityManager class
@@ -125,6 +126,88 @@ export class CommanderAbilityManager {
       player.commanderAbilityState = {}
     }
     player.commanderAbilityState.orcScoutUsed = true
+  }
+
+  // ============================================================================
+  // CHIEFTAIN CALL (Orc Chieftain Creature Ability)
+  // ============================================================================
+
+  /**
+   * Check if CHIEFTAIN CALL ability should trigger (Orc Chieftain deployed)
+   * @param {CreatureInstance} creatureInstance - The creature that was just deployed
+   * @returns {boolean} True if should trigger CHIEFTAIN CALL modal
+   */
+  shouldTriggerChieftainCall(creatureInstance) {
+    if (!creatureInstance || !creatureInstance.creature) return false
+    return creatureInstance.creature.name === 'Orc Chieftain'
+  }
+
+  /**
+   * Get eligible Orcs from player's hand for CHIEFTAIN CALL
+   * (Orc creatures with Level 3 or lower)
+   * @param {string} playerId - The player whose hand to check
+   * @returns {Array} Array of eligible Orc creature cards
+   */
+  getEligibleOrcsForChieftainCall(playerId) {
+    const player = this.gameState.players[playerId]
+    if (!player || !player.creatureHand) return []
+
+    return player.creatureHand.filter(creature =>
+      creature.type?.includes('Orc') && creature.level <= 3
+    )
+  }
+
+  /**
+   * Execute CHIEFTAIN CALL ability - gain leadership and deploy creature
+   * @param {string} playerId - The player using the ability
+   * @param {Object} selectedCreature - The creature card to deploy from hand
+   * @param {Object} deployPosition - The position {x, y} to deploy the creature
+   * @returns {Object} { success, leadershipGained, deployedCreature, message }
+   */
+  executeChieftainCall(playerId, selectedCreature, deployPosition) {
+    const player = this.gameState.players[playerId]
+    if (!player) {
+      return { success: false, message: 'Invalid player' }
+    }
+
+    // Validate selected creature is in hand and eligible
+    const cardIndex = player.creatureHand.findIndex(c => c.id === selectedCreature.id)
+    if (cardIndex === -1) {
+      return { success: false, message: 'Creature not in hand' }
+    }
+
+    const creature = player.creatureHand[cardIndex]
+    if (!creature.type?.includes('Orc') || creature.level > 3) {
+      return { success: false, message: 'Creature must be an Orc of Level 3 or lower' }
+    }
+
+    // Gain leadership equal to creature's level
+    const leadershipGained = creature.level
+    player.increaseLeadership(leadershipGained)
+
+    // Remove creature from hand
+    player.creatureHand.splice(cardIndex, 1)
+
+    // Create and deploy creature instance
+    const creatureInstance = new CreatureInstance(creature, playerId)
+    creatureInstance.position = deployPosition
+    creatureInstance.markAsDeployed(this.gameState.turnNumber)
+
+    // Add to player's creatures in play
+    player.creaturesInPlay.push(creatureInstance)
+
+    // Place on board
+    const tile = this.gameState.getTile(deployPosition.x, deployPosition.y)
+    if (tile) {
+      tile.occupant = creatureInstance
+    }
+
+    return {
+      success: true,
+      leadershipGained,
+      deployedCreature: creatureInstance,
+      message: `CHIEFTAIN CALL: Gained ${leadershipGained} Leadership and deployed ${creature.name}`
+    }
   }
 
   // ============================================================================

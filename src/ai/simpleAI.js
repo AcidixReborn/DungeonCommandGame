@@ -143,6 +143,31 @@ export class SimpleAI {
   }
 
   /**
+   * Decide if and which Orc to deploy via CHIEFTAIN CALL ability
+   * @param {Array} eligibleOrcs - Array of eligible Orc creatures (Level 3 or lower) from hand
+   * @returns {Object|null} Selected Orc creature card or null to decline
+   */
+  decideChieftainCall(eligibleOrcs) {
+    if (!eligibleOrcs || eligibleOrcs.length === 0) return null
+
+    // Easy AI (0%): Never use CHIEFTAIN CALL
+    if (this.difficulty === 'easy') {
+      return null
+    }
+
+    // Medium AI (50%): 50% chance to use, random selection
+    if (this.difficulty === 'medium') {
+      if (Math.random() < 0.5) return null
+      return eligibleOrcs[Math.floor(Math.random() * eligibleOrcs.length)]
+    }
+
+    // Hard AI (100%): Always use, select highest level Orc
+    // Sort by level descending and pick the first one
+    const sortedOrcs = [...eligibleOrcs].sort((a, b) => b.level - a.level)
+    return sortedOrcs[0]
+  }
+
+  /**
    * Execute AI turn for the current phase
    */
   executeTurn() {
@@ -820,6 +845,87 @@ export class SimpleAI {
         isLichNecromancer: isLichNecromancerDeploy,
         isArcanePortalDeploy: isArcanePortalDeploy
       })
+
+      // ============================================
+      // CHIEFTAIN CALL - Orc Chieftain's on-deploy ability
+      // Deploys an additional Orc (Level 3 or lower) for free
+      // ============================================
+      if (this.gameState.shouldTriggerChieftainCall && this.gameState.shouldTriggerChieftainCall(creatureInstance)) {
+        const eligibleOrcs = this.gameState.getEligibleOrcsForChieftainCall(this.playerId)
+
+        // Track ability offer for statistics ONLY when there are eligible Orcs
+        // Note: CLI test uses gruumsh.chieftain_call, UI test uses chieftain_call directly
+        const chieftainStats = this.trackStats?.gruumsh?.chieftain_call
+          || this.trackStats?.chieftain_call
+        if (chieftainStats && eligibleOrcs.length > 0) {
+          chieftainStats.timesOffered++
+          const diffKey = this.difficulty
+          if (chieftainStats[diffKey]) {
+            chieftainStats[diffKey].offered++
+          }
+        }
+
+        const selectedOrc = this.decideChieftainCall(eligibleOrcs)
+
+        if (selectedOrc) {
+          // Find a valid deployment tile for the bonus creature
+          const bonusDeployTile = startingZoneTiles.length > 0
+            ? startingZoneTiles.splice(Math.floor(Math.random() * startingZoneTiles.length), 1)[0]
+            : null
+
+          if (bonusDeployTile) {
+            const deployPosition = { x: bonusDeployTile.x, y: bonusDeployTile.y }
+            const result = this.gameState.executeChieftainCall(this.playerId, selectedOrc, deployPosition)
+
+            if (result.success) {
+              actions.push({
+                type: 'chieftain_call',
+                creature: selectedOrc.name,
+                leadershipGained: result.leadershipGained,
+                position: deployPosition
+              })
+
+              // Track ability usage for statistics
+              if (chieftainStats) {
+                chieftainStats.timesTriggered++
+                chieftainStats.orcsDeployed++
+                chieftainStats.leadershipGained += result.leadershipGained
+                const diffKey = this.difficulty
+                if (chieftainStats[diffKey]) {
+                  chieftainStats[diffKey].triggered++
+                }
+              }
+            } else {
+              // Selection failed (deployment error) - count as declined
+              if (chieftainStats) {
+                chieftainStats.timesDeclined++
+                const diffKey = this.difficulty
+                if (chieftainStats[diffKey]) {
+                  chieftainStats[diffKey].declined++
+                }
+              }
+            }
+          } else {
+            // No empty tile available - count as declined (external constraint)
+            if (chieftainStats) {
+              chieftainStats.timesDeclined++
+              const diffKey = this.difficulty
+              if (chieftainStats[diffKey]) {
+                chieftainStats[diffKey].declined++
+              }
+            }
+          }
+        } else if (eligibleOrcs.length > 0) {
+          // Had opportunity but AI chose to decline
+          if (chieftainStats) {
+            chieftainStats.timesDeclined++
+            const diffKey = this.difficulty
+            if (chieftainStats[diffKey]) {
+              chieftainStats[diffKey].declined++
+            }
+          }
+        }
+      }
     }
 
     if (actions.length === 0) {

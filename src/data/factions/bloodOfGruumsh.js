@@ -197,7 +197,18 @@ export const creatures = [
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'When you deploy this creature, you can reveal an Orc Creature card of Level 3 or lower from your hand. If you do, gain LEADERSHIP equal to the revealed creature\'s Level and immediately deploy that creature. PLACEHOLDER'
+      {
+        id: 'chieftain_call',
+        name: 'CHIEFTAIN CALL',
+        type: 'ON_DEPLOY',
+        description: 'When you deploy this creature, you can reveal an Orc Creature card of Level 3 or lower from your hand. If you do, gain LEADERSHIP equal to the revealed creature\'s Level and immediately deploy that creature.',
+        effect: {
+          trigger: 'deploy',
+          creatureTypeRequired: 'Orc',
+          maxLevel: 3,
+          gainLeadership: true
+        }
+      }
     ],
     faction: FACTION_NAME,
     imageUrl: orcChieftainImg

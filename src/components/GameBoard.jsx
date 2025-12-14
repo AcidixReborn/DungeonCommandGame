@@ -16,6 +16,7 @@ import { useNotifications, useSelection, useCombat } from '../hooks'
 import DamageNotificationModal from './DamageNotificationModal'
 import WebRemovalModal from './WebRemovalModal'
 import HealingTouchModal from './HealingTouchModal'
+import ChieftainCallModal from './ChieftainCallModal'
 import './GameBoard.css'
 
 /**
@@ -246,6 +247,10 @@ function GameBoard({ onTurnInfoChange }) {
   const [showHealingTouchModal, setShowHealingTouchModal] = useState(false)
   const [healingTouchHealer, setHealingTouchHealer] = useState(null) // The Dwarf Cleric using the ability
   const [healingTouchTarget, setHealingTouchTarget] = useState(null) // The creature being healed/having card removed
+
+  // CHIEFTAIN CALL MODAL state - Orc Chieftain's on-deploy ability
+  const [showChieftainCallModal, setShowChieftainCallModal] = useState(false)
+  const [chieftainCallPending, setChieftainCallPending] = useState(null) // { chieftainInstance, eligibleOrcs, playerId }
 
   /**
    * Faction color mapping from faction IDs to hex colors
@@ -2378,6 +2383,18 @@ function GameBoard({ onTurnInfoChange }) {
     setShowDeployConfirm(false)
     setPendingDeployment(null)
 
+    // Check for CHIEFTAIN CALL ability trigger (Orc Chieftain deployed)
+    if (gameState.shouldTriggerChieftainCall(creatureInstance)) {
+      const eligibleOrcs = gameState.getEligibleOrcsForChieftainCall(gameState.currentPlayer)
+      // Always show modal (even if no eligible orcs - shows acknowledgement)
+      setChieftainCallPending({
+        chieftainInstance: creatureInstance,
+        eligibleOrcs,
+        playerId: gameState.currentPlayer
+      })
+      setShowChieftainCallModal(true)
+    }
+
     // Force re-render to show newly deployed creature on board
     // Use setTimeout to ensure state updates are processed before forcing render
     setTimeout(() => {
@@ -2395,6 +2412,59 @@ function GameBoard({ onTurnInfoChange }) {
     // Also clear graveyard selection if cancelling a graveyard deploy
     setSelectedGraveyardCreature(null)
     setSelectedGraveyardIndex(null)
+  }
+
+  /**
+   * Handle CHIEFTAIN CALL ability - player selected an Orc to deploy
+   * @param {Object} selectedCreature - The Orc creature card selected from hand
+   */
+  const handleChieftainCallDeploy = (selectedCreature) => {
+    if (!chieftainCallPending) return
+
+    const { playerId } = chieftainCallPending
+    const currentPlayer = gameState.players[playerId]
+
+    // Get valid deployment tiles (starting zone)
+    // startingZoneTiles is array of {x, y} coords - need to look up actual tiles
+    const startingZoneCoords = gameState.players[playerId].startingZoneTiles
+    const validTiles = startingZoneCoords
+      .map(coord => gameState.getTile(coord.x, coord.y))
+      .filter(tile => tile && !tile.occupant)
+
+    if (validTiles.length === 0) {
+      addToast('No valid deployment squares available!')
+      setShowChieftainCallModal(false)
+      setChieftainCallPending(null)
+      return
+    }
+
+    // Deploy to first available starting zone tile
+    const deployTile = validTiles[0]
+    const deployPosition = { x: deployTile.x, y: deployTile.y }
+
+    // Execute the ability
+    const result = gameState.executeChieftainCall(playerId, selectedCreature, deployPosition)
+
+    if (result.success) {
+      addToast(`CHIEFTAIN CALL: Gained ${result.leadershipGained} Leadership and deployed ${selectedCreature.name} to (${deployPosition.x}, ${deployPosition.y})!`)
+    } else {
+      addToast(`CHIEFTAIN CALL failed: ${result.message}`)
+    }
+
+    // Clear modal state
+    setShowChieftainCallModal(false)
+    setChieftainCallPending(null)
+
+    // Force re-render
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Handle CHIEFTAIN CALL ability declined - player chose not to use it
+   */
+  const handleChieftainCallDecline = () => {
+    setShowChieftainCallModal(false)
+    setChieftainCallPending(null)
   }
 
   /**
@@ -7363,6 +7433,16 @@ function GameBoard({ onTurnInfoChange }) {
         onCancel={handleHealingTouchCancel}
         healerInstance={healingTouchHealer}
         targetInstance={healingTouchTarget}
+      />
+
+      {/* CHIEFTAIN CALL MODAL - Orc Chieftain's on-deploy ability */}
+      <ChieftainCallModal
+        show={showChieftainCallModal}
+        onDeploy={handleChieftainCallDeploy}
+        onDecline={handleChieftainCallDecline}
+        chieftainInstance={chieftainCallPending?.chieftainInstance}
+        eligibleOrcs={chieftainCallPending?.eligibleOrcs || []}
+        gameState={gameState}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}

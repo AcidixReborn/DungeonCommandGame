@@ -41,7 +41,8 @@ const CONFIG = {
     confusion_gaze: { easy: 0, medium: 0.5, hard: 1.0 },
     summon_spider: { easy: 0, medium: 0.5, hard: 1.0 },
     acid_breath: { easy: 0, medium: 0.5, hard: 1.0 },
-    explosive_bolts: { easy: 0, medium: 0.5, hard: 1.0 }
+    explosive_bolts: { easy: 0, medium: 0.5, hard: 1.0 },
+    chieftain_call: { easy: 0, medium: 0.5, hard: 1.0 }
   }
 }
 
@@ -263,7 +264,19 @@ const stats = {
       death_strike: { name: 'DEATH STRIKE', timesTriggered: 0, damageDealt: 0, creatures: ['Boar', 'Wereboar'] },
       untap_on_kill: { name: 'UNTAP ON KILL', timesTriggered: 0, creatures: ['Orc Barbarian'] },
       beast_deployment: { name: 'BEAST DEPLOYMENT', timesTriggered: 0, beastsDeployed: 0, creatures: ['Orc Druid'] },
-      summon_orc: { name: 'SUMMON ORC', timesTriggered: 0, orcsDeployed: 0, leadershipGained: 0, creatures: ['Orc Chieftain'] },
+      chieftain_call: {
+        name: 'CHIEFTAIN CALL',
+        timesOffered: 0,
+        timesTriggered: 0,
+        timesDeclined: 0,
+        orcsDeployed: 0,
+        leadershipGained: 0,
+        creatures: ['Orc Chieftain'],
+        // Per-difficulty breakdown (Easy=0%, Medium=50%, Hard=100%)
+        easy: { offered: 0, triggered: 0, declined: 0 },
+        medium: { offered: 0, triggered: 0, declined: 0 },
+        hard: { offered: 0, triggered: 0, declined: 0 }
+      },
       draw_order: { name: 'DRAW ORDER', timesTriggered: 0, cardsDrawn: 0, creatures: ['Orc Cleric of Gruumsh'] },
       morale_boost: { name: 'MORALE BOOST', timesTriggered: 0, moraleGained: 0, creatures: ['Ogre'] }
     },
@@ -631,7 +644,7 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
     const defenderOwner = defenderInstance.owner
     const defenderPlayer = gameState.players[defenderOwner]
     const defenderDifficulty = defenderPlayer?.aiDifficulty || 'easy'
-    const defenderAI = new SimpleAI(gameState, defenderOwner, null, defenderDifficulty)
+    const defenderAI = new SimpleAI(gameState, defenderOwner, stats.creatureAbilityStats, defenderDifficulty)
     const defenseDecision = defenderAI.decideDefense
       ? defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
       : { type: 'none', hadOpportunity: false }
@@ -1207,7 +1220,7 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
 function executeAITurn(gameState, currentPlayerId) {
   const player = gameState.players[currentPlayerId]
   const difficulty = player.aiDifficulty || 'easy'
-  const ai = new SimpleAI(gameState, currentPlayerId, null, difficulty)
+  const ai = new SimpleAI(gameState, currentPlayerId, stats.creatureAbilityStats, difficulty)
 
   const result = {
     movementActions: 0,
@@ -1847,6 +1860,19 @@ function printResults() {
                 const usageRate = ((abilityData.timesTriggered / abilityData.timesOffered) * 100).toFixed(1)
                 console.log(`      Usage Rate (when offered): ${usageRate}%`)
               }
+            } else if (abilityKey === 'chieftain_call') {
+              // Special handling for CHIEFTAIN CALL with per-difficulty breakdown
+              console.log(`    ${abilityData.name} (${abilityData.creatures.join(', ')}):`)
+              console.log(`      Times Offered:           ${String(abilityData.timesOffered).padStart(6)}    (${avgPerGame(abilityData.timesOffered)}/game)`)
+              console.log(`      Times Triggered:         ${String(abilityData.timesTriggered).padStart(6)}    (${avgPerGame(abilityData.timesTriggered)}/game)`)
+              console.log(`      Times Declined:          ${String(abilityData.timesDeclined).padStart(6)}    (${avgPerGame(abilityData.timesDeclined)}/game)`)
+              console.log(`      Orcs Deployed:           ${String(abilityData.orcsDeployed).padStart(6)}    (${avgPerGame(abilityData.orcsDeployed)}/game)`)
+              console.log(`      Leadership Gained:       ${String(abilityData.leadershipGained).padStart(6)}    (${avgPerGame(abilityData.leadershipGained)}/game)`)
+              // Calculate usage rate when offered
+              if (abilityData.timesOffered > 0) {
+                const usageRate = ((abilityData.timesTriggered / abilityData.timesOffered) * 100).toFixed(1)
+                console.log(`      Usage Rate (when offered): ${usageRate}%`)
+              }
             } else {
               console.log(`    ${abilityData.name}: ${abilityData.timesTriggered} triggers (${avgPerGame(abilityData.timesTriggered)}/game)`)
             }
@@ -2122,6 +2148,23 @@ function validateAbilityUsageRates(difficulty) {
     }
   }
 
+  // Validate CHIEFTAIN CALL usage rate (Gruumsh - Orc Chieftain)
+  const chieftainCall = stats.creatureAbilityStats.gruumsh.chieftain_call
+  if (chieftainCall.timesOffered > 0) {
+    const actualRate = chieftainCall.timesTriggered / chieftainCall.timesOffered
+    const expectedRate = CONFIG.EXPECTED_RATES.chieftain_call[difficulty]
+
+    // Allow some variance (±25% for medium, exact for easy/hard)
+    let tolerance = 0
+    if (difficulty === 'medium') {
+      tolerance = 0.25  // 25% tolerance for random 50% chance
+    }
+
+    if (Math.abs(actualRate - expectedRate) > tolerance) {
+      issues.push(`CHIEFTAIN CALL: Expected ~${(expectedRate * 100).toFixed(0)}% usage, got ${(actualRate * 100).toFixed(1)}%`)
+    }
+  }
+
   return issues
 }
 
@@ -2156,6 +2199,7 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
       hiddenBlade: { ...stats.creatureAbilityStats.lolth.hidden_blade },
       shadowStalker: { ...stats.creatureAbilityStats.lolth.shadow_stalker },
       confusionGaze: { ...stats.creatureAbilityStats.lolth.confusion_gaze },
+      chieftainCall: { ...stats.creatureAbilityStats.gruumsh.chieftain_call },
       difficultyStats: { ...stats.difficultyStats[difficulty] }
     }
 
@@ -2238,6 +2282,23 @@ if (CONFIG.AI_DIFFICULTY === 'all') {
     const cg = difficultyResults[difficulty].confusionGaze
     const actualRate = cg.timesOffered > 0 ? (cg.timesTriggered / cg.timesOffered) : 0
     const expectedRate = CONFIG.EXPECTED_RATES.confusion_gaze[difficulty]
+    const status = Math.abs(actualRate - expectedRate) <= 0.25 ? '✓' : '✗'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)} Expected: ${(expectedRate * 100).toFixed(0)}%   Actual: ${(actualRate * 100).toFixed(1)}%  ${status}`)
+  }
+
+  console.log('\n[CHIEFTAIN CALL USAGE BY DIFFICULTY]')
+  console.log('                        OFFERED   TRIGGERED   DECLINED   RATE')
+  for (const difficulty of difficulties) {
+    const cc = difficultyResults[difficulty].chieftainCall
+    const rate = cc.timesOffered > 0 ? ((cc.timesTriggered / cc.timesOffered) * 100).toFixed(1) : '0.0'
+    console.log(`  ${difficulty.toUpperCase().padEnd(8)}          ${String(cc.timesOffered).padStart(6)}    ${String(cc.timesTriggered).padStart(6)}     ${String(cc.timesDeclined).padStart(6)}    ${rate}%`)
+  }
+
+  console.log('\n[EXPECTED VS ACTUAL RATES - CHIEFTAIN CALL]')
+  for (const difficulty of difficulties) {
+    const cc = difficultyResults[difficulty].chieftainCall
+    const actualRate = cc.timesOffered > 0 ? (cc.timesTriggered / cc.timesOffered) : 0
+    const expectedRate = CONFIG.EXPECTED_RATES.chieftain_call[difficulty]
     const status = Math.abs(actualRate - expectedRate) <= 0.25 ? '✓' : '✗'
     console.log(`  ${difficulty.toUpperCase().padEnd(8)} Expected: ${(expectedRate * 100).toFixed(0)}%   Actual: ${(actualRate * 100).toFixed(1)}%  ${status}`)
   }
