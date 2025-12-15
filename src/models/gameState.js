@@ -16,8 +16,46 @@ import {
   COMMANDER_ABILITIES,
   TREASURE,
   GAME_RULES,
-  MAGIC_CIRCLE
+  MAGIC_CIRCLE,
+  ABILITIES
 } from '../constants/gameConstants.js'
+// Import creature abilities from AbilityManager
+import {
+  Flying,
+  Burrow,
+  Rider,
+  Flanking,
+  FlashingBlades,
+  UntapOnKill
+} from '../abilities/shared/index.js'
+import {
+  Insubstantial,
+  Phasing,
+  LifeDrain,
+  TombGuardianSplash,
+  LightningBreath,
+  DiscipleOfKyuss
+} from '../abilities/undead/index.js'
+import {
+  HiddenBlade
+} from '../abilities/drow/index.js'
+import {
+  ShieldBlock,
+  HealingTouch,
+  Slam,
+  AcidBreath,
+  ExplosiveBolts
+} from '../abilities/cormyr/index.js'
+import {
+  Cutter,
+  MagicCircleAura,
+  TapOnHit,
+  Regenerate,
+  Reach
+} from '../abilities/goblins/index.js'
+import {
+  DeathStrike
+} from '../abilities/orcs/index.js'
 
 // Re-export GamePhases for backward compatibility
 export { GamePhases }
@@ -415,102 +453,60 @@ export class GameState {
   }
 
   /**
-   * Check if creature has flying ability
+   * Check if creature has flying ability - delegates to Flying ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {boolean} True if creature can fly
    */
   hasFlying(creatureInstance) {
-    if (!creatureInstance || !creatureInstance.creature) return false
-    const abilities = creatureInstance.creature.specialAbilities || []
-    return abilities.some(ability =>
-      typeof ability === 'string' && ability.toLowerCase().includes('flying')
-    )
+    return Flying.has(creatureInstance)
   }
 
   /**
-   * Check if creature has PHASING ability
-   * PHASING works like FLYING (ignores terrain, all costs 1) but can also move through other creatures
-   * Cannot end movement on mountains or other creatures
-   * Immune to water damage (like flying)
+   * Check if creature has PHASING ability - delegates to Phasing ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {boolean} True if creature has PHASING
    */
   hasPhasing(creatureInstance) {
-    if (!creatureInstance || !creatureInstance.creature) return false
-    const abilities = creatureInstance.creature.specialAbilities || []
-    return abilities.some(ability =>
-      typeof ability === 'string' && ability.toUpperCase().includes('PHASING')
-    )
+    return Phasing.has(creatureInstance)
   }
 
   /**
-   * Check if creature has INSUBSTANTIAL ability
-   * INSUBSTANTIAL prevents all damage from 1 source, then resets at owner's refresh phase
+   * Check if creature has INSUBSTANTIAL ability - delegates to Insubstantial ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {boolean} True if creature has INSUBSTANTIAL
    */
   hasInsubstantial(creatureInstance) {
-    if (!creatureInstance || !creatureInstance.creature) return false
-    const abilities = creatureInstance.creature.specialAbilities || []
-    return abilities.some(ability =>
-      typeof ability === 'string' && ability.toUpperCase().includes('INSUBSTANTIAL')
-    )
+    return Insubstantial.has(creatureInstance)
   }
 
   /**
-   * Check if creature can use INSUBSTANTIAL ability
+   * Check if creature can use INSUBSTANTIAL ability - delegates to Insubstantial ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {boolean} True if creature has INSUBSTANTIAL and hasn't used it yet
    */
   canUseInsubstantial(creatureInstance) {
-    return this.hasInsubstantial(creatureInstance) && !creatureInstance.insubstantialUsed
+    return Insubstantial.canUse(creatureInstance)
   }
 
   /**
-   * Attempt to use INSUBSTANTIAL ability to block damage
-   * Applies 0/50/100 AI difficulty rule for AI players
+   * Attempt to use INSUBSTANTIAL ability to block damage - delegates to Insubstantial ability
    * @param {CreatureInstance} creatureInstance - Creature attempting to use ability
    * @param {number} incomingDamage - Amount of damage to block
    * @param {string} attackerOwner - Owner of the attacker (for logging)
    * @returns {boolean} True if damage was blocked, false otherwise
    */
   useInsubstantial(creatureInstance, incomingDamage, attackerOwner) {
-    if (!this.canUseInsubstantial(creatureInstance)) return false
-
-    // AI difficulty check (0/50/100 rule)
-    const defenderOwner = creatureInstance.owner
-    const defenderPlayer = this.players[defenderOwner]
-
-    if (defenderPlayer && !defenderPlayer.isHuman) {
-      const aiDifficulty = defenderPlayer.aiDifficulty || 'medium'
-
-      if (aiDifficulty === 'easy') {
-        return false  // Easy AI never uses ability
-      } else if (aiDifficulty === 'medium') {
-        if (Math.random() >= 0.5) {
-          return false  // Medium AI: 50% chance
-        }
-      }
-      // Hard AI: always use
-    }
-
-    // Mark ability as used
-    creatureInstance.insubstantialUsed = true
-    return true  // Damage blocked
+    const defenderPlayer = this.players[creatureInstance?.owner]
+    return Insubstantial.use(creatureInstance, defenderPlayer)
   }
 
   /**
-   * Check if creature has BURROW ability
-   * BURROW allows movement through MOUNTAIN tiles (cost=1) but cannot stop on them
-   * Unlike FLYING, burrowing creatures still take water damage
+   * Check if creature has BURROW ability - delegates to Burrow ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {boolean} True if creature has BURROW
    */
   hasBurrow(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('BURROW')
-    )
+    return Burrow.has(creatureInstance)
   }
 
   // ============================================================================
@@ -520,33 +516,21 @@ export class GameState {
   // ============================================================================
 
   /**
-   * Check if creature has REGENERATE ability
+   * Check if creature has REGENERATE ability - delegates to Regenerate ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {boolean} True if creature has REGENERATE
    */
   hasRegenerate(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('REGENERATE')
-    )
+    return Regenerate.has(creatureInstance)
   }
 
   /**
-   * Get the regeneration amount for a creature
+   * Get the regeneration amount for a creature - delegates to Regenerate ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {number} Amount to regenerate (10 for REGENERATE 10, 0 if no ability)
    */
   getRegenerateAmount(creatureInstance) {
-    if (!this.hasRegenerate(creatureInstance)) return 0
-    // Parse amount from ability text if needed, default to 10
-    const ability = creatureInstance.creature.specialAbilities.find(
-      a => typeof a === 'string' && a.toUpperCase().includes('REGENERATE')
-    )
-    if (ability) {
-      const match = ability.match(/REGENERATE\s*(\d+)/i)
-      if (match) return parseInt(match[1], 10)
-    }
-    return 10 // Default
+    return Regenerate.getAmount(creatureInstance)
   }
 
   // ============================================================================
@@ -556,15 +540,12 @@ export class GameState {
   // ============================================================================
 
   /**
-   * Check if creature has RIDER ability
+   * Check if creature has RIDER ability - delegates to Rider ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {boolean} True if creature has RIDER
    */
   hasRider(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('RIDER')
-    )
+    return Rider.has(creatureInstance)
   }
 
   /**
@@ -618,43 +599,22 @@ export class GameState {
   // ============================================================================
 
   /**
-   * Check if creature has FLASHING BLADES ability
+   * Check if creature has FLASHING BLADES ability - delegates to FlashingBlades ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {boolean} True if creature has FLASHING BLADES
    */
   hasFlashingBlades(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('FLASHING BLADES')
-    )
+    return FlashingBlades.has(creatureInstance)
   }
 
   /**
-   * Get valid targets for FLASHING BLADES splash damage
-   * Returns adjacent enemy creatures (excluding the original attack target)
-   * @param {CreatureInstance} attackerInstance - The Drow Blademaster
+   * Get valid targets for FLASHING BLADES splash damage - delegates to FlashingBlades ability
+   * @param {CreatureInstance} attackerInstance - The attacker with Flashing Blades
    * @param {CreatureInstance} originalTarget - The creature that was just attacked
    * @returns {Array} Array of valid target CreatureInstances
    */
   getFlashingBladesTargets(attackerInstance, originalTarget) {
-    if (!this.hasFlashingBlades(attackerInstance)) return []
-    if (!attackerInstance.position) return []
-
-    const targets = []
-    // Use 8-directional adjacency - FLASHING BLADES can hit all surrounding tiles including diagonals
-    const adjacent = this.getAdjacentTiles8Dir(attackerInstance.position.x, attackerInstance.position.y)
-
-    for (const tile of adjacent) {
-      const occupant = tile.occupant
-      if (occupant &&
-          occupant.owner !== attackerInstance.owner &&
-          occupant.instanceId !== originalTarget?.instanceId &&
-          occupant.currentHP > 0) {
-        targets.push(occupant)
-      }
-    }
-
-    return targets
+    return FlashingBlades.getTargets(this, attackerInstance, originalTarget)
   }
 
   /**
@@ -853,43 +813,21 @@ export class GameState {
   // ============================================================================
 
   /**
-   * Check if creature has HIDDEN BLADE ability
+   * Check if creature has HIDDEN BLADE ability - delegates to HiddenBlade ability
    * @param {CreatureInstance} creatureInstance - Creature to check
    * @returns {boolean} True if creature has HIDDEN BLADE
    */
   hasHiddenBlade(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('HIDDEN BLADE')
-    )
+    return HiddenBlade.has(creatureInstance)
   }
 
   /**
-   * Get valid targets for HIDDEN BLADE damage
-   * Returns adjacent enemy creatures that are TAPPED
-   * Unlike FLASHING BLADES, this CAN include the original target if it became tapped
+   * Get valid targets for HIDDEN BLADE damage - delegates to HiddenBlade ability
    * @param {CreatureInstance} attackerInstance - The Drow Assassin
    * @returns {Array} Array of valid target CreatureInstances (must be tapped)
    */
   getHiddenBladeTargets(attackerInstance) {
-    if (!this.hasHiddenBlade(attackerInstance)) return []
-    if (!attackerInstance.position) return []
-
-    const targets = []
-    // Use 8-directional adjacency
-    const adjacent = this.getAdjacentTiles8Dir(attackerInstance.position.x, attackerInstance.position.y)
-
-    for (const tile of adjacent) {
-      const occupant = tile.occupant
-      if (occupant &&
-          occupant.owner !== attackerInstance.owner &&
-          occupant.isTapped &&  // KEY: Must be tapped
-          occupant.currentHP > 0) {
-        targets.push(occupant)
-      }
-    }
-
-    return targets
+    return HiddenBlade.getTargets(this, attackerInstance)
   }
 
   /**
@@ -1092,10 +1030,7 @@ export class GameState {
    * @returns {boolean} True if creature has FLANKING
    */
   hasFlanking(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('FLANKING')
-    )
+    return Flanking.has(creatureInstance)
   }
 
   /**
@@ -1108,50 +1043,7 @@ export class GameState {
    * @returns {number} Bonus damage (10 or 0)
    */
   getFlankingBonus(attackerInstance, defenderInstance) {
-    // Must have FLANKING ability
-    if (!this.hasFlanking(attackerInstance)) return 0
-
-    // Defender must exist and have a position
-    if (!defenderInstance?.position) return 0
-
-    // Get all tiles adjacent to the defender (8-directional)
-    const adjacentTiles = this.getAdjacentTiles8Dir(defenderInstance.position.x, defenderInstance.position.y)
-
-    // Check if any friendly creature (not the attacker itself) is adjacent to the defender
-    let hasAdjacentAlly = false
-    for (const tile of adjacentTiles) {
-      const occupant = tile.occupant
-      if (occupant &&
-          occupant.owner === attackerInstance.owner &&  // Same team as attacker
-          occupant.instanceId !== attackerInstance.instanceId &&  // Not the attacker itself
-          occupant.currentHP > 0) {  // Must be alive
-        hasAdjacentAlly = true
-        break
-      }
-    }
-
-    // No ally adjacent to target - no bonus possible
-    if (!hasAdjacentAlly) return 0
-
-    // AI difficulty check (0/50/100 rule) - only applies to AI attackers
-    const attackerOwner = attackerInstance.owner
-    const attackerPlayer = this.players[attackerOwner]
-
-    if (attackerPlayer && !attackerPlayer.isHuman) {
-      const aiDifficulty = attackerPlayer.aiDifficulty || 'medium'
-
-      if (aiDifficulty === 'easy') {
-        return 0  // Easy AI never uses FLANKING bonus
-      } else if (aiDifficulty === 'medium') {
-        if (Math.random() >= 0.5) {
-          return 0  // Medium AI: 50% chance
-        }
-      }
-      // Hard AI: always use FLANKING bonus
-    }
-
-    // Human players or Hard AI - return +10 bonus
-    return 10
+    return Flanking.getBonus(this, attackerInstance, defenderInstance)
   }
 
   // ============================================================================
@@ -1167,10 +1059,7 @@ export class GameState {
    * @returns {boolean} True if creature has CUTTER ability
    */
   hasCutter(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('CUTTER')
-    )
+    return Cutter.has(creatureInstance)
   }
 
   /**
@@ -1182,32 +1071,7 @@ export class GameState {
    * @returns {number} Bonus damage (10 or 0)
    */
   getCutterBonus(attackerInstance, defenderInstance) {
-    // Must have CUTTER ability
-    if (!this.hasCutter(attackerInstance)) return 0
-
-    // Defender must exist and be tapped
-    if (!defenderInstance) return 0
-    if (!defenderInstance.isTapped) return 0
-
-    // AI difficulty check (0/50/100 rule) - based on ATTACKER's owner
-    const attackerOwner = attackerInstance.owner
-    const attackerPlayer = this.players[attackerOwner]
-
-    if (attackerPlayer && !attackerPlayer.isHuman) {
-      const aiDifficulty = attackerPlayer.aiDifficulty || 'medium'
-
-      if (aiDifficulty === 'easy') {
-        return 0  // Easy AI never uses CUTTER bonus
-      } else if (aiDifficulty === 'medium') {
-        if (Math.random() >= 0.5) {
-          return 0  // Medium AI: 50% chance
-        }
-      }
-      // Hard AI: always use CUTTER bonus
-    }
-
-    // Human players or Hard AI - return +10 bonus
-    return 10
+    return Cutter.getBonus(this, attackerInstance, defenderInstance)
   }
 
   // ============================================================================
@@ -1223,11 +1087,7 @@ export class GameState {
    * @returns {boolean} True if creature has UNTAP ON KILL
    */
   hasUntapOnAdjacentKill(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => (typeof ability === 'object' && ability.id === 'untap_on_adjacent_kill') ||
-                 (typeof ability === 'string' && ability.toUpperCase().includes('UNTAP'))
-    )
+    return UntapOnKill.has(creatureInstance)
   }
 
   /**
@@ -1236,11 +1096,7 @@ export class GameState {
    * @returns {boolean} True if creature has DEATH STRIKE
    */
   hasDeathStrike(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => (typeof ability === 'object' && ability.id === 'death_strike') ||
-                 (typeof ability === 'string' && ability.toUpperCase().includes('DEATH STRIKE'))
-    )
+    return DeathStrike.has(creatureInstance)
   }
 
   /**
@@ -1470,10 +1326,7 @@ export class GameState {
    * @returns {boolean} True if creature has SHIELD BLOCK
    */
   hasShieldBlock(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('SHIELD BLOCK')
-    )
+    return ShieldBlock.has(creatureInstance)
   }
 
   /**
@@ -1482,10 +1335,7 @@ export class GameState {
    * @returns {boolean} True if creature has Adventurer type
    */
   isAdventurerType(creatureInstance) {
-    if (!creatureInstance?.creature?.type) return false
-    return creatureInstance.creature.type.some(
-      type => type.toUpperCase() === 'ADVENTURER'
-    )
+    return ShieldBlock.isAdventurerType(creatureInstance)
   }
 
   /**
@@ -1494,9 +1344,7 @@ export class GameState {
    * @returns {boolean} True if creature is from Heart of Cormyr faction
    */
   isCormyrFaction(creatureInstance) {
-    if (!creatureInstance?.creature?.faction) return false
-    const faction = creatureInstance.creature.faction.toUpperCase()
-    return faction.includes('CORMYR') || faction.includes('HEART OF CORMYR')
+    return ShieldBlock.isCormyrFaction(creatureInstance)
   }
 
   /**
@@ -1509,47 +1357,7 @@ export class GameState {
    * @returns {number} Damage reduction amount (0, 10, 20, etc.)
    */
   getShieldBlockReduction(defenderInstance) {
-    // Must be Adventurer type AND Cormyr faction
-    if (!this.isAdventurerType(defenderInstance)) return 0
-    if (!this.isCormyrFaction(defenderInstance)) return 0
-    if (!defenderInstance.position) return 0
-
-    // Get all tiles adjacent to the defender (8-directional)
-    const adjacentTiles = this.getAdjacentTiles8Dir(defenderInstance.position.x, defenderInstance.position.y)
-
-    // Count adjacent Dwarven Defenders with SHIELD BLOCK (same owner)
-    let shieldBlockCount = 0
-    for (const tile of adjacentTiles) {
-      const occupant = tile.occupant
-      if (occupant &&
-          occupant.owner === defenderInstance.owner &&
-          occupant.currentHP > 0 &&
-          this.hasShieldBlock(occupant)) {
-        shieldBlockCount++
-      }
-    }
-
-    if (shieldBlockCount === 0) return 0
-
-    // AI difficulty check (0/50/100 rule) - based on DEFENDER's owner
-    const defenderOwner = defenderInstance.owner
-    const defenderPlayer = this.players[defenderOwner]
-
-    if (defenderPlayer && !defenderPlayer.isHuman) {
-      const aiDifficulty = defenderPlayer.aiDifficulty || 'medium'
-
-      if (aiDifficulty === 'easy') {
-        return 0  // Easy AI never benefits from SHIELD BLOCK
-      } else if (aiDifficulty === 'medium') {
-        if (Math.random() >= 0.5) {
-          return 0  // Medium AI: 50% chance
-        }
-      }
-      // Hard AI: always benefits from SHIELD BLOCK
-    }
-
-    // 10 damage reduction per adjacent Dwarven Defender
-    return shieldBlockCount * 10
+    return ShieldBlock.getReduction(this, defenderInstance)
   }
 
   // ============================================================================
@@ -1571,10 +1379,7 @@ export class GameState {
    * @returns {boolean} True if creature has MAGIC CIRCLE AURA
    */
   hasMagicCircleAura(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('MAGIC CIRCLE AURA')
-    )
+    return MagicCircleAura.has(creatureInstance)
   }
 
   /**
@@ -1584,12 +1389,7 @@ export class GameState {
    * @returns {boolean} True if Sorcerer is active on Magic Circle
    */
   isSorcererOnMagicCircle(sorcererInstance) {
-    if (!this.hasMagicCircleAura(sorcererInstance)) return false
-    if (!sorcererInstance.position) return false
-    if (sorcererInstance.currentHP <= 0) return false
-
-    const tile = this.getTile(sorcererInstance.position.x, sorcererInstance.position.y)
-    return tile?.terrain === 'MAGIC_CIRCLE'
+    return MagicCircleAura.isOnMagicCircle(this, sorcererInstance)
   }
 
   /**
@@ -1599,15 +1399,7 @@ export class GameState {
    * @returns {CreatureInstance|null} The active Sorcerer or null
    */
   getActiveMagicCircleSorcerer(playerId) {
-    const player = this.players[playerId]
-    if (!player) return null
-
-    for (const creature of player.creaturesInPlay) {
-      if (this.isSorcererOnMagicCircle(creature)) {
-        return creature
-      }
-    }
-    return null
+    return MagicCircleAura.getActiveSorcerer(this, playerId)
   }
 
   /**
@@ -1617,12 +1409,7 @@ export class GameState {
    * @returns {boolean} True if creature is a valid type
    */
   isGoblinFactionType(creatureInstance) {
-    if (!creatureInstance?.creature?.type) return false
-    const types = creatureInstance.creature.type
-    return types.some(type => {
-      const upperType = type.toUpperCase()
-      return upperType === 'GOBLIN' || upperType === 'HOBGOBLIN' || upperType === 'BUGBEAR'
-    })
+    return MagicCircleAura.isGoblinFactionType(creatureInstance)
   }
 
   /**
@@ -1631,9 +1418,7 @@ export class GameState {
    * @returns {boolean} True if creature is from Tyranny of Goblins faction
    */
   isGoblinFaction(creatureInstance) {
-    if (!creatureInstance?.creature?.faction) return false
-    const faction = creatureInstance.creature.faction.toUpperCase()
-    return faction.includes('GOBLIN') || faction.includes('TYRANNY OF GOBLINS')
+    return MagicCircleAura.isGoblinFaction(creatureInstance)
   }
 
   /**
@@ -1642,20 +1427,7 @@ export class GameState {
    * @returns {boolean} True if creature has active Magic Circle protection
    */
   hasMagicCircleProtection(defenderInstance) {
-    // Must be valid type (Goblin/Hobgoblin/Bugbear)
-    if (!this.isGoblinFactionType(defenderInstance)) return false
-
-    // Must be from Tyranny of Goblins faction
-    if (!this.isGoblinFaction(defenderInstance)) return false
-
-    // Check if owner has an active Sorcerer on Magic Circle
-    const activeSorcerer = this.getActiveMagicCircleSorcerer(defenderInstance.owner)
-    if (!activeSorcerer) return false
-
-    // Shield must not already be used this turn
-    if (defenderInstance.magicCircleShieldUsed) return false
-
-    return true
+    return MagicCircleAura.hasProtection(this, defenderInstance)
   }
 
   /**
@@ -1838,10 +1610,7 @@ export class GameState {
    * @returns {boolean} True if creature has HEALING TOUCH
    */
   hasHealingTouch(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('HEALING TOUCH')
-    )
+    return HealingTouch.has(creatureInstance)
   }
 
   /**
@@ -1851,29 +1620,7 @@ export class GameState {
    * @returns {Array} Array of valid target CreatureInstances (includes self)
    */
   getHealingTouchTargets(healerInstance) {
-    if (!this.hasHealingTouch(healerInstance)) return []
-    if (!healerInstance.position) return []
-
-    const validTargets = []
-    const healerOwner = healerInstance.owner
-
-    // Self is always a valid target
-    validTargets.push(healerInstance)
-
-    // Get 8-directional adjacent tiles
-    const adjacentTiles = this.getAdjacentTiles8Dir(healerInstance.position.x, healerInstance.position.y)
-
-    for (const tile of adjacentTiles) {
-      const occupant = tile.occupant
-      if (occupant &&
-          occupant.owner === healerOwner && // Same owner (ally)
-          occupant.currentHP > 0 && // Alive
-          occupant.instanceId !== healerInstance.instanceId) { // Not self (already added)
-        validTargets.push(occupant)
-      }
-    }
-
-    return validTargets
+    return HealingTouch.getTargets(this, healerInstance)
   }
 
   /**
@@ -1883,18 +1630,7 @@ export class GameState {
    * @returns {boolean} True if target is valid
    */
   isValidHealingTouchTarget(healerInstance, targetInstance) {
-    if (!this.hasHealingTouch(healerInstance)) return false
-    if (!healerInstance.position || !targetInstance.position) return false
-    if (targetInstance.currentHP <= 0) return false
-    if (targetInstance.owner !== healerInstance.owner) return false
-
-    // Self is valid
-    if (targetInstance.instanceId === healerInstance.instanceId) return true
-
-    // Check if adjacent (8-directional)
-    const dx = Math.abs(targetInstance.position.x - healerInstance.position.x)
-    const dy = Math.abs(targetInstance.position.y - healerInstance.position.y)
-    return dx <= 1 && dy <= 1
+    return HealingTouch.isValidTarget(this, healerInstance, targetInstance)
   }
 
   /**
@@ -2377,10 +2113,7 @@ export class GameState {
    * @returns {boolean} True if creature has SLAM ability
    */
   hasSlam(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('SLAM')
-    )
+    return Slam.has(creatureInstance)
   }
 
   /**
@@ -2393,53 +2126,7 @@ export class GameState {
    * @returns {Array} Array of {x, y} valid destinations
    */
   getValidSlamTiles(targetInstance, maxDistance = 3) {
-    if (!targetInstance?.position) return []
-
-    const validTiles = []
-    const startPos = targetInstance.position
-
-    // BFS to find all reachable tiles within maxDistance
-    const visited = new Set()
-    const queue = [{ pos: startPos, cost: 0 }]
-    visited.add(`${startPos.x},${startPos.y}`)
-
-    while (queue.length > 0) {
-      const { pos, cost } = queue.shift()
-
-      // 8-directional movement (includes diagonals)
-      const directions = [
-        { dx: 0, dy: -1 }, { dx: 1, dy: -1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 },
-        { dx: 0, dy: 1 }, { dx: -1, dy: 1 }, { dx: -1, dy: 0 }, { dx: -1, dy: -1 }
-      ]
-
-      for (const dir of directions) {
-        const newX = pos.x + dir.dx
-        const newY = pos.y + dir.dy
-        const key = `${newX},${newY}`
-
-        if (visited.has(key)) continue
-        visited.add(key)
-
-        const tile = this.getTile(newX, newY)
-        if (!tile) continue // Off board
-
-        // Mountains block completely (cannot pass through or stop)
-        if (tile.terrain === 'MOUNTAIN') continue
-
-        const newCost = cost + 1
-        if (newCost > maxDistance) continue
-
-        // Can pass through occupied tiles but cannot stop on them
-        if (!tile.occupant) {
-          validTiles.push({ x: newX, y: newY })
-        }
-
-        // Continue BFS even through occupied tiles (can pass through)
-        queue.push({ pos: { x: newX, y: newY }, cost: newCost })
-      }
-    }
-
-    return validTiles
+    return Slam.getValidTiles(this, targetInstance, maxDistance)
   }
 
   /**
@@ -2449,22 +2136,7 @@ export class GameState {
    * @returns {Object} Result with oldPosition and newPosition
    */
   executeSlamSlide(targetInstance, destination) {
-    const oldPosition = { ...targetInstance.position }
-    const oldTile = this.getTile(oldPosition.x, oldPosition.y)
-    const newTile = this.getTile(destination.x, destination.y)
-
-    // Clear old tile
-    if (oldTile) {
-      oldTile.occupant = null
-    }
-
-    // Move creature to new tile
-    if (newTile) {
-      newTile.occupant = targetInstance
-    }
-    targetInstance.position = { x: destination.x, y: destination.y }
-
-    return { oldPosition, newPosition: { x: destination.x, y: destination.y } }
+    return Slam.execute(this, targetInstance, destination)
   }
 
   // ============================================================================
@@ -2652,10 +2324,7 @@ export class GameState {
    * @returns {boolean} True if creature has LIFE DRAIN ability
    */
   hasLifeDrain(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('LIFE DRAIN')
-    )
+    return LifeDrain.has(creatureInstance)
   }
 
   /**
@@ -2665,17 +2334,7 @@ export class GameState {
    * @returns {number} Amount actually healed (0 if already at max HP)
    */
   applyLifeDrain(attackerInstance) {
-    if (!attackerInstance) return 0
-
-    const maxHP = attackerInstance.creature.hitPoints
-    const currentHP = attackerInstance.currentHP
-    const healAmount = Math.min(10, maxHP - currentHP)
-
-    if (healAmount > 0) {
-      attackerInstance.currentHP += healAmount
-    }
-
-    return healAmount
+    return LifeDrain.apply(attackerInstance)
   }
 
   // --------------------------------------------------------------------------
@@ -2690,21 +2349,7 @@ export class GameState {
    * @returns {boolean} True if creature has TAP ON HIT ability
    */
   hasTapOnHit(creatureInstance) {
-    if (!creatureInstance?.creature) {
-      return false
-    }
-    // Check direct property first (most efficient)
-    if (creatureInstance.creature.tapOnHit === true) {
-      return true
-    }
-    // Fallback: check specialAbilities array
-    if (!creatureInstance.creature.specialAbilities) {
-      return false
-    }
-    return creatureInstance.creature.specialAbilities.some(
-      ability => (typeof ability === 'object' && ability.id === 'tap_on_hit') ||
-                 (typeof ability === 'string' && ability.toUpperCase().includes('TAP') && ability.toUpperCase().includes('HIT'))
-    )
+    return TapOnHit.has(creatureInstance)
   }
 
   /**
@@ -2715,10 +2360,7 @@ export class GameState {
    * @returns {number} Reach distance (0 if no reach ability)
    */
   getCreatureReach(creatureInstance) {
-    if (!creatureInstance?.creature) {
-      return 0
-    }
-    return creatureInstance.creature.reach || 0
+    return Reach.getDistance(creatureInstance)
   }
 
   /**
@@ -2728,7 +2370,7 @@ export class GameState {
    * @returns {boolean} True if creature has REACH ability
    */
   hasReach(creatureInstance) {
-    return this.getCreatureReach(creatureInstance) > 1
+    return Reach.has(creatureInstance)
   }
 
   // --------------------------------------------------------------------------
@@ -3094,13 +2736,7 @@ export class GameState {
    * @returns {boolean} True if creature has splash ability
    */
   hasTombGuardianSplash(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    if (creatureInstance.creature.name !== 'Skeletal Tomb Guardian') return false
-    return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' &&
-           (a.toUpperCase().includes('SWIRL') ||
-            (a.toUpperCase().includes('20 DAMAGE') && a.toUpperCase().includes('ADJACENT')))
-    )
+    return TombGuardianSplash.has(creatureInstance)
   }
 
   /**
@@ -3112,35 +2748,7 @@ export class GameState {
    * @returns {Array} Array of enemy creature instances to receive splash damage
    */
   getTombGuardianSplashTargets(attackerInstance, mainTargetInstance = null) {
-    if (!this.hasTombGuardianSplash(attackerInstance)) return []
-    if (!attackerInstance.position) return []
-
-    const targets = []
-    const pos = attackerInstance.position
-
-    // Check all 8 adjacent tiles to the Guardian
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        if (dx === 0 && dy === 0) continue // Skip Guardian's own tile
-        const x = pos.x + dx
-        const y = pos.y + dy
-
-        const tile = this.getTile(x, y)
-        if (!tile || !tile.occupant) continue
-
-        const occupant = tile.occupant
-        // Skip if it's the main attack target (they already receive main attack damage)
-        if (mainTargetInstance && occupant.instanceId === mainTargetInstance.instanceId) continue
-        // Skip friendly creatures
-        if (occupant.owner === attackerInstance.owner) continue
-        // Skip dead creatures
-        if (occupant.currentHP <= 0) continue
-
-        targets.push(occupant)
-      }
-    }
-
-    return targets
+    return TombGuardianSplash.getTargets(this, attackerInstance, mainTargetInstance)
   }
 
   /**
@@ -3227,10 +2835,7 @@ export class GameState {
    * @returns {boolean} True if creature has LIGHTNING BREATH ability
    */
   hasLightningBreath(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('LIGHTNING BREATH')
-    )
+    return LightningBreath.has(creatureInstance)
   }
 
   /**
@@ -3240,9 +2845,7 @@ export class GameState {
    * @returns {boolean} True if Lightning Breath can be used
    */
   canUseLightningBreath(creatureInstance) {
-    if (!this.hasLightningBreath(creatureInstance)) return false
-    const validTargets = this.getLightningBreathTargets(creatureInstance)
-    return validTargets.length >= 2
+    return LightningBreath.canUse(this, creatureInstance)
   }
 
   /**
@@ -3259,51 +2862,7 @@ export class GameState {
    * @returns {Array} Array of valid target creature instances
    */
   getLightningBreathTargets(creatureInstance) {
-    if (!creatureInstance?.position) return []
-    if (!this.hasLightningBreath(creatureInstance)) return []
-
-    const attackerPos = creatureInstance.position
-    const attackerOwner = creatureInstance.owner
-    const rangedRange = creatureInstance.creature.rangedAttack?.range || 5
-
-    // Check if attacker is in FOREST (cannot shoot from forest)
-    const attackerTile = this.getTile(attackerPos.x, attackerPos.y)
-    if (attackerTile?.terrain === 'FOREST') {
-      return []
-    }
-
-    const validTargets = []
-
-    // Check all enemy creatures across all players
-    for (const playerId of Object.keys(this.players)) {
-      if (playerId === attackerOwner) continue // Skip own creatures
-
-      const player = this.players[playerId]
-      for (const enemyCreature of player.creaturesInPlay) {
-        if (!enemyCreature.position) continue
-        if (enemyCreature.currentHP <= 0) continue
-
-        const targetPos = enemyCreature.position
-        const distance = this.getDistance(attackerPos, targetPos)
-
-        // Must be within range
-        if (distance > rangedRange) continue
-
-        // Cannot target adjacent creatures (ranged attacks only)
-        if (distance <= 1) continue
-
-        // Check if target is in FOREST (cannot attack creatures hiding in forest)
-        const targetTile = this.getTile(targetPos.x, targetPos.y)
-        if (targetTile?.terrain === 'FOREST') continue
-
-        // Check line of sight (blocked by mountains and enemy creatures)
-        if (!this.hasLineOfSight(creatureInstance, enemyCreature, attackerOwner)) continue
-
-        validTargets.push(enemyCreature)
-      }
-    }
-
-    return validTargets
+    return LightningBreath.getTargets(this, creatureInstance)
   }
 
   /**
@@ -3312,7 +2871,7 @@ export class GameState {
    * @returns {number} Damage per attack (20)
    */
   getLightningBreathDamage(creatureInstance) {
-    return creatureInstance?.creature?.rangedAttack?.damage || 20
+    return LightningBreath.getDamage(creatureInstance)
   }
 
   // ============================================
@@ -3327,10 +2886,7 @@ export class GameState {
    * @returns {boolean}
    */
   hasAcidBreath(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('ACID BREATH')
-    )
+    return AcidBreath.has(creatureInstance)
   }
 
   /**
@@ -3339,10 +2895,7 @@ export class GameState {
    * @returns {boolean}
    */
   hasExplosiveBolts(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('EXPLOSIVE BOLTS')
-    )
+    return ExplosiveBolts.has(creatureInstance)
   }
 
   /**
@@ -3351,7 +2904,7 @@ export class GameState {
    * @returns {boolean}
    */
   hasRangedSplashAbility(creatureInstance) {
-    return this.hasAcidBreath(creatureInstance) || this.hasExplosiveBolts(creatureInstance)
+    return AcidBreath.has(creatureInstance) || ExplosiveBolts.has(creatureInstance)
   }
 
   /**
@@ -3360,8 +2913,8 @@ export class GameState {
    * @returns {number} Splash damage (20 for Acid Breath, 10 for Explosive Bolts, 0 if none)
    */
   getRangedSplashDamage(attackerInstance) {
-    if (this.hasAcidBreath(attackerInstance)) return 20
-    if (this.hasExplosiveBolts(attackerInstance)) return 10
+    if (AcidBreath.has(attackerInstance)) return AcidBreath.getSplashDamage()
+    if (ExplosiveBolts.has(attackerInstance)) return ExplosiveBolts.getSplashDamage()
     return 0
   }
 
@@ -3371,8 +2924,8 @@ export class GameState {
    * @returns {string|null}
    */
   getRangedSplashAbilityName(attackerInstance) {
-    if (this.hasAcidBreath(attackerInstance)) return 'ACID BREATH'
-    if (this.hasExplosiveBolts(attackerInstance)) return 'EXPLOSIVE BOLTS'
+    if (AcidBreath.has(attackerInstance)) return 'ACID BREATH'
+    if (ExplosiveBolts.has(attackerInstance)) return 'EXPLOSIVE BOLTS'
     return null
   }
 
@@ -3532,10 +3085,7 @@ export class GameState {
    * @returns {boolean} True if creature has DISCIPLE_OF_KYUSS ability
    */
   hasDiscipleOfKyuss(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
-    return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('DISCIPLE_OF_KYUSS')
-    )
+    return DiscipleOfKyuss.has(creatureInstance)
   }
 
   /**
@@ -3545,18 +3095,7 @@ export class GameState {
    * @returns {Array<CreatureInstance>} Array of enemy Disciples of Kyuss
    */
   getEnemyDisciplesOfKyuss(currentPlayerId) {
-    const disciples = []
-    for (const playerId of this.activePlayers) {
-      if (playerId === currentPlayerId) continue // Skip current player's creatures
-      const player = this.players[playerId]
-      if (!player) continue
-      for (const creature of player.creaturesInPlay) {
-        if (creature.currentHP > 0 && this.hasDiscipleOfKyuss(creature)) {
-          disciples.push(creature)
-        }
-      }
-    }
-    return disciples
+    return DiscipleOfKyuss.getEnemyDisciples(this, currentPlayerId)
   }
 
   /**
@@ -3568,23 +3107,7 @@ export class GameState {
    * @returns {Array<CreatureInstance>} Creatures adjacent to the Disciple
    */
   getCreaturesAdjacentToDisciple(factionPlayerId, disciple) {
-    const adjacentCreatures = []
-    const player = this.players[factionPlayerId]
-    if (!player || !disciple.position) return adjacentCreatures
-
-    const adjacentTiles = this.getAdjacentTiles8Dir(disciple.position.x, disciple.position.y)
-
-    for (const creature of player.creaturesInPlay) {
-      if (!creature.position) continue
-      if (creature.currentHP <= 0) continue
-      const isAdjacent = adjacentTiles.some(
-        tile => tile.x === creature.position.x && tile.y === creature.position.y
-      )
-      if (isAdjacent) {
-        adjacentCreatures.push(creature)
-      }
-    }
-    return adjacentCreatures
+    return DiscipleOfKyuss.getAdjacentCreatures(this, factionPlayerId, disciple)
   }
 
   /**
