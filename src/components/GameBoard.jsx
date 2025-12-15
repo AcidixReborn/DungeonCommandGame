@@ -12,7 +12,7 @@ import CommanderSelector from './CommanderSelector'
 import DeployConfirmPanel from './DeployConfirmPanel'
 import SimpleAI from '../ai/simpleAI'
 // Import custom hooks for state management
-import { useNotifications, useSelection, useCombat } from '../hooks'
+import { useNotifications, useSelection, useCombat, useAbilityModals, useAITurn, useDeployment } from '../hooks'
 import DamageNotificationModal from './DamageNotificationModal'
 import WebRemovalModal from './WebRemovalModal'
 import HealingTouchModal from './HealingTouchModal'
@@ -67,7 +67,6 @@ function GameBoard({ onTurnInfoChange }) {
 
   // Player panel collapse state
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
-  const [isAIThinking, setIsAIThinking] = useState(false)
   const [renderCounter, setRenderCounter] = useState(0) // Force re-renders without destroying GameState
 
   // ============================================
@@ -127,6 +126,127 @@ function GameBoard({ onTurnInfoChange }) {
     isCurrentPlayerHuman: isCurrentPlayerHumanCheck
   })
 
+  // Ability modal state hook - handles all ability-related modal states
+  const {
+    // Flashing Blades
+    showFlashingBladesModal, setShowFlashingBladesModal,
+    flashingBladesPending, setFlashingBladesPending,
+    flashingBladesTargetMode, setFlashingBladesTargetMode,
+    clearFlashingBladesState,
+    // Hidden Blade
+    showHiddenBladeModal, setShowHiddenBladeModal,
+    hiddenBladePending, setHiddenBladePending,
+    hiddenBladeTargetMode, setHiddenBladeTargetMode,
+    clearHiddenBladeState,
+    // Confusion Gaze
+    showConfusionGazeModal, setShowConfusionGazeModal,
+    confusionGazeMode, setConfusionGazeMode,
+    confusionGazePending, setConfusionGazePending,
+    clearConfusionGazeState,
+    // Slam
+    slamMode, setSlamMode,
+    slamPending, setSlamPending,
+    slamValidTiles, setSlamValidTiles,
+    showSlamModal, setShowSlamModal,
+    showSlamConfirmModal, setShowSlamConfirmModal,
+    slamSelectedTile, setSlamSelectedTile,
+    clearSlamState,
+    // Tomb Guardian Splash
+    pendingSplashAttacks, setPendingSplashAttacks,
+    currentSplashIndex, setCurrentSplashIndex,
+    splashResults, setSplashResults,
+    clearSplashState,
+    // Lightning Breath
+    lightningBreathMode, setLightningBreathMode,
+    lightningBreathAttacker, setLightningBreathAttacker,
+    lightningBreathTargets, setLightningBreathTargets,
+    lightningBreathValidTargets, setLightningBreathValidTargets,
+    lightningBreathCurrentAttackIndex, setLightningBreathCurrentAttackIndex,
+    lightningBreathResults, setLightningBreathResults,
+    clearLightningBreathState,
+    // Disciple of Kyuss
+    showDamageNotification, setShowDamageNotification,
+    damageNotificationData, setDamageNotificationData,
+    pendingPhaseAdvance, setPendingPhaseAdvance,
+    // Insubstantial
+    showInsubstantialModal, setShowInsubstantialModal,
+    insubstantialData, setInsubstantialData,
+    // Rider
+    showRiderModal, setShowRiderModal,
+    riderData, setRiderData,
+    pendingRiderCallback, setPendingRiderCallback,
+    selectedRiderCreature, setSelectedRiderCreature,
+    clearRiderState,
+    // Magic Circle Aura
+    showMagicCircleModal, setShowMagicCircleModal,
+    magicCircleModalData, setMagicCircleModalData,
+    pendingMagicCircleNotifications, setPendingMagicCircleNotifications,
+    // Ranged Splash
+    pendingRangedSplashTargets, setPendingRangedSplashTargets,
+    currentRangedSplashIndex, setCurrentRangedSplashIndex,
+    rangedSplashAttackInfo, setRangedSplashAttackInfo,
+    showRangedSplashDefensePanel, setShowRangedSplashDefensePanel,
+    clearRangedSplashState,
+    // Healing Touch
+    showHealingTouchModal, setShowHealingTouchModal,
+    healingTouchData, setHealingTouchData,
+    // Chieftain Call
+    showChieftainCallModal, setShowChieftainCallModal,
+    chieftainCallData, setChieftainCallData,
+    // Ogre Deploy Morale
+    showOgreDeployMoraleModal, setShowOgreDeployMoraleModal,
+    ogreDeployMoraleData, setOgreDeployMoraleData,
+    // Cleric Draw Order
+    showClericDrawOrderModal, setShowClericDrawOrderModal,
+    clericDrawOrderData, setClericDrawOrderData,
+    // Web Removal
+    showWebRemovalModal, setShowWebRemovalModal,
+    webRemovalData, setWebRemovalData,
+    // Clear all
+    clearAllAbilityModalState
+  } = useAbilityModals()
+
+  // AI Turn state hook - handles AI thinking, death queue, and notifications
+  const {
+    isAIThinking, setIsAIThinking,
+    startAiThinking, endAiThinking,
+    aiDeathQueue, setAiDeathQueue,
+    showAiDeathModal, setShowAiDeathModal,
+    currentAiDeath, setCurrentAiDeath,
+    queueAiDeath, showNextAiDeath,
+    acknowledgeAiDeath, clearAiDeathQueue,
+    hasQueuedDeaths,
+    aiCurrentAction, setAiCurrentAction,
+    clearAllAiTurnState
+  } = useAITurn()
+
+  // Deployment state hook - handles deploy confirmation and graveyard deployment
+  const {
+    showDeployConfirm, setShowDeployConfirm,
+    pendingDeployment, setPendingDeployment,
+    startDeployConfirmation, cancelDeployConfirmation, clearDeployConfirmation,
+    selectedGraveyardCreature, setSelectedGraveyardCreature,
+    selectedGraveyardIndex, setSelectedGraveyardIndex,
+    draggingFromGraveyard, setDraggingFromGraveyard,
+    selectGraveyardCreature, clearGraveyardSelection,
+    startGraveyardDrag, endGraveyardDrag,
+    showHordeModal, setShowHordeModal,
+    hordeRefreshExecuted, setHordeRefreshExecuted,
+    clearHordeState, clearAllDeploymentState
+  } = useDeployment()
+
+  // Alias healingTouchData fields to match existing variable names
+  const healingTouchHealer = healingTouchData?.healer || null
+  const healingTouchTarget = healingTouchData?.target || null
+  // Alias chieftainCallData to match existing variable name
+  const chieftainCallPending = chieftainCallData
+  // Alias ogreDeployMoraleData to match existing variable name
+  const ogreDeployMoraleResult = ogreDeployMoraleData
+  // Alias clericDrawOrderData to match existing variable name
+  const clericDrawOrderResult = clericDrawOrderData
+  // Alias webRemovalData to match existing variable name
+  const webRemovalCreature = webRemovalData
+
   // Treasure Discovery Modal state
   const [showTreasureDiscovery, setShowTreasureDiscovery] = useState(false)
   const [discoveredTreasure, setDiscoveredTreasure] = useState(null) // Stores {creature, treasure, tile}
@@ -150,117 +270,11 @@ function GameBoard({ onTurnInfoChange }) {
   // ============================================
   const [versatileDeclinedCreatures, setVersatileDeclinedCreatures] = useState(new Set())
 
-  // HORDE ability modal state (deploy during REFRESH phase)
-  const [showHordeModal, setShowHordeModal] = useState(false)
-  const [hordeRefreshExecuted, setHordeRefreshExecuted] = useState(false) // Track if refresh actions done
-
-  // FLASHING BLADES ability state (splash damage after melee attack)
-  const [showFlashingBladesModal, setShowFlashingBladesModal] = useState(false)
-  const [flashingBladesPending, setFlashingBladesPending] = useState(null) // { attacker, originalTarget, validTargets }
-  const [flashingBladesTargetMode, setFlashingBladesTargetMode] = useState(false) // True when highlighting targets for selection
-
-  // HIDDEN BLADE ability state (10 damage to adjacent tapped enemy after any attack)
-  const [showHiddenBladeModal, setShowHiddenBladeModal] = useState(false)
-  const [hiddenBladePending, setHiddenBladePending] = useState(null) // { attacker, validTargets }
-  const [hiddenBladeTargetMode, setHiddenBladeTargetMode] = useState(false) // True when highlighting targets for selection
-
-  // CONFUSION GAZE ability state (slide enemy then attack)
-  const [showConfusionGazeModal, setShowConfusionGazeModal] = useState(false)
-  const [confusionGazeMode, setConfusionGazeMode] = useState(null) // null | 'slide' | 'attack'
-  const [confusionGazePending, setConfusionGazePending] = useState(null)
-  // { attacker, target, validSlideTiles, slideDestination, attackTargets }
-
-  // SLAM ability state (Earth Guardian - slide enemy after melee damage)
-  const [slamMode, setSlamMode] = useState(false) // True when selecting slam destination
-  const [slamPending, setSlamPending] = useState(null) // { attackerInstance, targetInstance }
-  const [slamValidTiles, setSlamValidTiles] = useState([]) // Valid slam destinations
-  const [showSlamModal, setShowSlamModal] = useState(false) // Decision modal (Slide/Skip)
-  const [showSlamConfirmModal, setShowSlamConfirmModal] = useState(false) // Confirm destination
-  const [slamSelectedTile, setSlamSelectedTile] = useState(null) // { x, y } selected destination
-
-  // TOMB GUARDIAN SWIRL ability state - queue of splash attacks after melee
-  const [pendingSplashAttacks, setPendingSplashAttacks] = useState([]) // Array of { attackerInstance, targetInstance, damage }
-  const [currentSplashIndex, setCurrentSplashIndex] = useState(0) // Index into pendingSplashAttacks
-  const [splashResults, setSplashResults] = useState([]) // Accumulated results for toast message
-
-  // LIGHTNING BREATH ability state - multi-target ranged attack
-  const [lightningBreathMode, setLightningBreathMode] = useState(false) // True when selecting targets
-  const [lightningBreathAttacker, setLightningBreathAttacker] = useState(null) // The Dracolich
-  const [lightningBreathTargets, setLightningBreathTargets] = useState([]) // Selected targets (max 3)
-  const [lightningBreathValidTargets, setLightningBreathValidTargets] = useState([]) // All valid targets
-  const [lightningBreathCurrentAttackIndex, setLightningBreathCurrentAttackIndex] = useState(0) // Current attack being resolved
-  const [lightningBreathResults, setLightningBreathResults] = useState([]) // Results for summary toast
-
-  // DISCIPLE OF KYUSS ability state - damage notification modal
-  const [showDamageNotification, setShowDamageNotification] = useState(false)
-  const [damageNotificationData, setDamageNotificationData] = useState(null)
-  const [pendingPhaseAdvance, setPendingPhaseAdvance] = useState(false)
-
-  // AI COMBAT DEATH modal queue - shows deaths during AI turns
-  const [aiDeathQueue, setAiDeathQueue] = useState([])
-  const [showAiDeathModal, setShowAiDeathModal] = useState(false)
-  const [currentAiDeath, setCurrentAiDeath] = useState(null)
-
-  // INSUBSTANTIAL ability modal - shows when damage is blocked
-  const [showInsubstantialModal, setShowInsubstantialModal] = useState(false)
-  const [insubstantialData, setInsubstantialData] = useState(null)
-
-  // RIDER ability modal - shows when Skeletal Lancer dies, allows deploying Skeleton from hand
-  const [showRiderModal, setShowRiderModal] = useState(false)
-  const [riderData, setRiderData] = useState(null)
-  // { destroyedCreature, creatureLevel, position, ownerPlayerId, eligibleCreatures }
-  const [pendingRiderCallback, setPendingRiderCallback] = useState(null)
-  const [selectedRiderCreature, setSelectedRiderCreature] = useState(null)
-
-  // MAGIC CIRCLE AURA modal - shows when Hobgoblin Sorcerer enters/leaves Magic Circle
-  const [showMagicCircleModal, setShowMagicCircleModal] = useState(false)
-  const [magicCircleModalData, setMagicCircleModalData] = useState(null)
-  // { activated: boolean, deactivated: boolean, sorcererName, sorcererOwner, reason }
-  const [pendingMagicCircleNotifications, setPendingMagicCircleNotifications] = useState({})
-  // { playerId: { activated, sorcererName, sorcererOwner, acknowledged: false } }
-
-  // RANGED SPLASH DAMAGE state (ACID BREATH / EXPLOSIVE BOLTS)
-  const [pendingRangedSplashTargets, setPendingRangedSplashTargets] = useState([])
-  const [currentRangedSplashIndex, setCurrentRangedSplashIndex] = useState(0)
-  const [rangedSplashAttackInfo, setRangedSplashAttackInfo] = useState(null)
-  const [showRangedSplashDefensePanel, setShowRangedSplashDefensePanel] = useState(false)
-
-  // DEPLOY CONFIRMATION state (shows leadership cost before deploying)
-  const [showDeployConfirm, setShowDeployConfirm] = useState(false)
-  const [pendingDeployment, setPendingDeployment] = useState(null)
-  // { creature, tile, creatureIndex, isFromGraveyard, source: 'drag'|'rightClick' }
-
-  // GRAVEYARD DEPLOY state - tracks selected creature from graveyard for resurrection
-  const [selectedGraveyardCreature, setSelectedGraveyardCreature] = useState(null)
-  const [selectedGraveyardIndex, setSelectedGraveyardIndex] = useState(null)
-  const [draggingFromGraveyard, setDraggingFromGraveyard] = useState(false)
-
   // ORDER CARD TARGETING state - for Web and other targeted order cards
   const [orderCardFilterCreature, setOrderCardFilterCreature] = useState(null) // Creature selected for filtering order cards
   const [selectedOrderCard, setSelectedOrderCard] = useState(null) // { card, cardIndex } - order card being used
   const [orderCardTargetingMode, setOrderCardTargetingMode] = useState(false) // True when selecting target for order card
   const [orderCardValidTargets, setOrderCardValidTargets] = useState([]) // Valid target creatures for selected order card
-
-  // WEB REMOVAL MODAL state - for human player to remove web from their own webbed creature
-  const [showWebRemovalModal, setShowWebRemovalModal] = useState(false)
-  const [webRemovalCreature, setWebRemovalCreature] = useState(null) // Creature instance with web to potentially remove
-
-  // HEALING TOUCH MODAL state - for human player to use Dwarf Cleric's healing ability
-  const [showHealingTouchModal, setShowHealingTouchModal] = useState(false)
-  const [healingTouchHealer, setHealingTouchHealer] = useState(null) // The Dwarf Cleric using the ability
-  const [healingTouchTarget, setHealingTouchTarget] = useState(null) // The creature being healed/having card removed
-
-  // CHIEFTAIN CALL MODAL state - Orc Chieftain's on-deploy ability
-  const [showChieftainCallModal, setShowChieftainCallModal] = useState(false)
-  const [chieftainCallPending, setChieftainCallPending] = useState(null) // { chieftainInstance, eligibleOrcs, playerId }
-
-  // OGRE DEPLOY MORALE MODAL state - Ogre's on-deploy ability (+1 morale)
-  const [showOgreDeployMoraleModal, setShowOgreDeployMoraleModal] = useState(false)
-  const [ogreDeployMoraleResult, setOgreDeployMoraleResult] = useState(null) // { creatureInstance, oldMorale, newMorale, playerId }
-
-  // CLERIC DRAW ORDER MODAL state - Orc Cleric of Gruumsh's on-deploy ability (draw 1 Order card)
-  const [showClericDrawOrderModal, setShowClericDrawOrderModal] = useState(false)
-  const [clericDrawOrderResult, setClericDrawOrderResult] = useState(null) // { creatureInstance, drawnCard, playerId }
 
   /**
    * Faction color mapping from faction IDs to hex colors
