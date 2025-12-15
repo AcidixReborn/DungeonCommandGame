@@ -240,6 +240,7 @@ function GameBoard({ onTurnInfoChange }) {
   const healingTouchTarget = healingTouchData?.target || null
   // Alias chieftainCallData to match existing variable name
   const chieftainCallPending = chieftainCallData
+  const setChieftainCallPending = setChieftainCallData
   // Alias ogreDeployMoraleData to match existing variable name
   const ogreDeployMoraleResult = ogreDeployMoraleData
   // Alias clericDrawOrderData to match existing variable name

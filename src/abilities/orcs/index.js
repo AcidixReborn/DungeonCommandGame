@@ -3,8 +3,12 @@
  */
 
 // Creature abilities
-export { DeathStrike } from './creature/deathStrike.js'
+import { DeathStrike } from './creature/deathStrike.js'
 
+// Named exports
+export { DeathStrike }
+
+// Default export
 export default {
   DeathStrike
 }

@@ -1,7 +1,7 @@
 // useNotifications.js - Toast notification system hook
 // Extracted from GameBoard.jsx for single responsibility
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
 /**
  * Custom hook for managing toast notifications and turn log
@@ -24,8 +24,9 @@ export function useNotifications(options = {}) {
   // Track if log panel is expanded
   const [isLogExpanded, setIsLogExpanded] = useState(false)
 
-  // Unique ID counter for toasts
-  const [nextToastId, setNextToastId] = useState(1)
+  // Unique ID counter for toasts - using ref to avoid stale closure issues
+  // when addToast is called rapidly (e.g., during AI turns)
+  const nextToastIdRef = useRef(1)
 
   /**
    * Add a toast notification
@@ -41,8 +42,8 @@ export function useNotifications(options = {}) {
     // Filter out "AI turn ended" messages
     if (message === 'AI: AI turn ended') return
 
-    const id = nextToastId
-    setNextToastId(prev => prev + 1)
+    // Use ref for atomic increment - avoids duplicate IDs when called rapidly
+    const id = nextToastIdRef.current++
 
     const turnNumber = getCurrentTurnNumber ? getCurrentTurnNumber() : 1
 
@@ -66,7 +67,7 @@ export function useNotifications(options = {}) {
         return updated.slice(-10)
       })
     }
-  }, [nextToastId, getCurrentTurnNumber, isCurrentPlayerHuman])
+  }, [getCurrentTurnNumber, isCurrentPlayerHuman])
 
   /**
    * Remove a toast by ID (memoized to prevent timer resets)

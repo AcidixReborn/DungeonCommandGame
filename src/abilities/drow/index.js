@@ -3,11 +3,15 @@
  */
 
 // Creature abilities
-export { HiddenBlade } from './creature/hiddenBlade.js'
+import { HiddenBlade } from './creature/hiddenBlade.js'
 
 // Order card abilities
-export { WebCard } from './order/webCard.js'
+import { WebCard } from './order/webCard.js'
 
+// Named exports
+export { HiddenBlade, WebCard }
+
+// Default export
 export default {
   HiddenBlade,
   WebCard

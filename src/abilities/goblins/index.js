@@ -3,12 +3,16 @@
  */
 
 // Creature abilities
-export { Cutter } from './creature/cutter.js'
-export { MagicCircleAura } from './creature/magicCircleAura.js'
-export { TapOnHit } from './creature/tapOnHit.js'
-export { Regenerate } from './creature/regenerate.js'
-export { Reach } from './creature/reach.js'
+import { Cutter } from './creature/cutter.js'
+import { MagicCircleAura } from './creature/magicCircleAura.js'
+import { TapOnHit } from './creature/tapOnHit.js'
+import { Regenerate } from './creature/regenerate.js'
+import { Reach } from './creature/reach.js'
 
+// Named exports
+export { Cutter, MagicCircleAura, TapOnHit, Regenerate, Reach }
+
+// Default export
 export default {
   Cutter,
   MagicCircleAura,

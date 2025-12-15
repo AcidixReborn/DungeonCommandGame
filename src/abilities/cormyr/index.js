@@ -3,12 +3,16 @@
  */
 
 // Creature abilities
-export { ShieldBlock } from './creature/shieldBlock.js'
-export { HealingTouch } from './creature/healingTouch.js'
-export { Slam } from './creature/slam.js'
-export { AcidBreath } from './creature/acidBreath.js'
-export { ExplosiveBolts } from './creature/explosiveBolts.js'
+import { ShieldBlock } from './creature/shieldBlock.js'
+import { HealingTouch } from './creature/healingTouch.js'
+import { Slam } from './creature/slam.js'
+import { AcidBreath } from './creature/acidBreath.js'
+import { ExplosiveBolts } from './creature/explosiveBolts.js'
 
+// Named exports
+export { ShieldBlock, HealingTouch, Slam, AcidBreath, ExplosiveBolts }
+
+// Default export
 export default {
   ShieldBlock,
   HealingTouch,
