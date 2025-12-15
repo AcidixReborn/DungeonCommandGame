@@ -622,95 +622,10 @@ export class GameState {
    * Handles morale changes and creature destruction
    * @param {CreatureInstance} targetInstance - The creature receiving splash damage
    * @param {string} attackerOwner - Owner of the Blademaster (for morale)
-   * @returns {Object} { success, damage, destroyed, moraleChange }
+   * @param {number} damageReduction - Optional damage reduction from defense (default 0)
+   * @returns {Object} { success, damage, destroyed, moraleChange, damageReduced }
    */
-  applyFlashingBlades(targetInstance, attackerOwner) {
-    const SPLASH_DAMAGE = 10
-
-    if (!targetInstance) {
-      return { success: false, message: 'Invalid target' }
-    }
-
-    const defenderOwner = targetInstance.owner
-
-    // Check INSUBSTANTIAL before applying splash damage
-    if (this.canUseInsubstantial(targetInstance)) {
-      const blocked = this.useInsubstantial(targetInstance, SPLASH_DAMAGE, attackerOwner)
-      if (blocked) {
-        return {
-          success: true,
-          destroyed: false,
-          damageBlocked: SPLASH_DAMAGE,
-          insubstantialUsed: true,
-          moraleChange: { attacker: 0, defender: 0 }
-        }
-      }
-    }
-
-    // Apply damage using takeDamage (same as resolveAttack)
-    const wasDestroyed = targetInstance.takeDamage(SPLASH_DAMAGE)
-
-    let moraleChange = { attacker: 0, defender: 0 }
-
-    if (wasDestroyed) {
-      // Clear the tile occupant first
-      if (targetInstance.position) {
-        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
-        if (tile) {
-          tile.occupant = null
-        }
-      }
-
-      // Remove from battlefield
-      const defenderPlayer = this.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
-      if (index !== -1) {
-        defenderPlayer.creaturesInPlay.splice(index, 1)
-      }
-
-      // Add creature CARD to graveyard (not instance)
-      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
-
-      // Defender loses morale equal to creature's level
-      defenderPlayer.loseMorale(targetInstance.creature.level)
-
-      // Attacker gains +1 morale
-      const attackerPlayer = this.players[attackerOwner]
-      attackerPlayer.gainMorale(1)
-
-      moraleChange = {
-        attacker: +1,
-        defender: -targetInstance.creature.level
-      }
-
-      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
-      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
-        const untapResult = this.checkUntapOnAdjacentKill(
-          targetInstance.position,
-          defenderOwner,
-          attackerOwner,
-          false // Not killed by Bugbear directly
-        )
-      }
-    }
-
-    return {
-      success: true,
-      damage: SPLASH_DAMAGE,
-      destroyed: wasDestroyed,
-      moraleChange,
-      remainingHP: Math.max(0, targetInstance.currentHP)
-    }
-  }
-
-  /**
-   * Apply FLASHING BLADES splash damage with defense reduction
-   * @param {CreatureInstance} targetInstance - The creature receiving splash damage
-   * @param {string} attackerOwner - Owner of the Blademaster (for morale)
-   * @param {number} damageReduction - Amount of damage prevented by defense
-   * @returns {Object} { success, damage, destroyed, moraleChange }
-   */
-  applyFlashingBladesWithDefense(targetInstance, attackerOwner, damageReduction = 0) {
+  applyFlashingBlades(targetInstance, attackerOwner, damageReduction = 0) {
     const BASE_SPLASH_DAMAGE = 10
     const actualDamage = Math.max(0, BASE_SPLASH_DAMAGE - damageReduction)
 
@@ -732,7 +647,7 @@ export class GameState {
 
     const defenderOwner = targetInstance.owner
 
-    // Check INSUBSTANTIAL before applying Flashing Blades splash damage
+    // Check INSUBSTANTIAL before applying splash damage
     if (this.canUseInsubstantial(targetInstance)) {
       const blocked = this.useInsubstantial(targetInstance, actualDamage, attackerOwner)
       if (blocked) {
@@ -803,6 +718,14 @@ export class GameState {
       remainingHP: Math.max(0, targetInstance.currentHP),
       damageReduced: damageReduction
     }
+  }
+
+  /**
+   * @deprecated Use applyFlashingBlades(target, owner, damageReduction) instead
+   * Kept for backward compatibility - delegates to consolidated function
+   */
+  applyFlashingBladesWithDefense(targetInstance, attackerOwner, damageReduction = 0) {
+    return this.applyFlashingBlades(targetInstance, attackerOwner, damageReduction)
   }
 
   // ============================================================================
@@ -835,95 +758,10 @@ export class GameState {
    * Handles morale changes and creature destruction
    * @param {CreatureInstance} targetInstance - The creature receiving damage
    * @param {string} attackerOwner - Owner of the Drow Assassin (for morale)
-   * @returns {Object} { success, damage, destroyed, moraleChange }
+   * @param {number} damageReduction - Optional damage reduction from defense (default 0)
+   * @returns {Object} { success, damage, destroyed, moraleChange, damageReduced }
    */
-  applyHiddenBlade(targetInstance, attackerOwner) {
-    const HIDDEN_BLADE_DAMAGE = 10
-
-    if (!targetInstance) {
-      return { success: false, message: 'Invalid target' }
-    }
-
-    const defenderOwner = targetInstance.owner
-
-    // Check INSUBSTANTIAL before applying Hidden Blade damage
-    if (this.canUseInsubstantial(targetInstance)) {
-      const blocked = this.useInsubstantial(targetInstance, HIDDEN_BLADE_DAMAGE, attackerOwner)
-      if (blocked) {
-        return {
-          success: true,
-          destroyed: false,
-          damageBlocked: HIDDEN_BLADE_DAMAGE,
-          insubstantialUsed: true,
-          moraleChange: { attacker: 0, defender: 0 }
-        }
-      }
-    }
-
-    // Apply damage using takeDamage
-    const wasDestroyed = targetInstance.takeDamage(HIDDEN_BLADE_DAMAGE)
-
-    let moraleChange = { attacker: 0, defender: 0 }
-
-    if (wasDestroyed) {
-      // Clear the tile occupant first
-      if (targetInstance.position) {
-        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
-        if (tile) {
-          tile.occupant = null
-        }
-      }
-
-      // Remove from battlefield
-      const defenderPlayer = this.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
-      if (index !== -1) {
-        defenderPlayer.creaturesInPlay.splice(index, 1)
-      }
-
-      // Add creature CARD to graveyard (not instance)
-      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
-
-      // Defender loses morale equal to creature's level
-      defenderPlayer.loseMorale(targetInstance.creature.level)
-
-      // Attacker gains +1 morale
-      const attackerPlayer = this.players[attackerOwner]
-      attackerPlayer.gainMorale(1)
-
-      moraleChange = {
-        attacker: +1,
-        defender: -targetInstance.creature.level
-      }
-
-      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
-      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
-        const untapResult = this.checkUntapOnAdjacentKill(
-          targetInstance.position,
-          defenderOwner,
-          attackerOwner,
-          false // Not killed by Bugbear directly
-        )
-      }
-    }
-
-    return {
-      success: true,
-      damage: HIDDEN_BLADE_DAMAGE,
-      destroyed: wasDestroyed,
-      moraleChange,
-      remainingHP: Math.max(0, targetInstance.currentHP)
-    }
-  }
-
-  /**
-   * Apply HIDDEN BLADE damage with defense reduction
-   * @param {CreatureInstance} targetInstance - The creature receiving damage
-   * @param {string} attackerOwner - Owner of the Drow Assassin (for morale)
-   * @param {number} damageReduction - Amount of damage prevented by defense
-   * @returns {Object} { success, damage, destroyed, moraleChange }
-   */
-  applyHiddenBladeWithDefense(targetInstance, attackerOwner, damageReduction = 0) {
+  applyHiddenBlade(targetInstance, attackerOwner, damageReduction = 0) {
     const BASE_HIDDEN_BLADE_DAMAGE = 10
     const actualDamage = Math.max(0, BASE_HIDDEN_BLADE_DAMAGE - damageReduction)
 
@@ -945,7 +783,7 @@ export class GameState {
 
     const defenderOwner = targetInstance.owner
 
-    // Check INSUBSTANTIAL before applying Hidden Blade damage with defense
+    // Check INSUBSTANTIAL before applying Hidden Blade damage
     if (this.canUseInsubstantial(targetInstance)) {
       const blocked = this.useInsubstantial(targetInstance, actualDamage, attackerOwner)
       if (blocked) {
@@ -1016,6 +854,14 @@ export class GameState {
       remainingHP: Math.max(0, targetInstance.currentHP),
       damageReduced: damageReduction
     }
+  }
+
+  /**
+   * @deprecated Use applyHiddenBlade(target, owner, damageReduction) instead
+   * Kept for backward compatibility - delegates to consolidated function
+   */
+  applyHiddenBladeWithDefense(targetInstance, attackerOwner, damageReduction = 0) {
+    return this.applyHiddenBlade(targetInstance, attackerOwner, damageReduction)
   }
 
   // ============================================================================

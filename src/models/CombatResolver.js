@@ -128,132 +128,36 @@ export class CombatResolver {
 
   /**
    * Execute an attack from one creature to another
+   * Supports optional defense (COWER, UNSTOPPABLE HORDES, etc.)
    *
    * Big O Complexity: O(c) where c = creatures in play (for removal)
    *
    * @param {CreatureInstance} attackerInstance - The attacking creature
    * @param {CreatureInstance} defenderInstance - The defending creature
    * @param {string} attackType - 'melee' or 'ranged'
+   * @param {string} aiDifficulty - AI difficulty for 0/50/100 rule
+   * @param {number} damageReduction - Amount to reduce damage by (default 0)
+   * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
+   * @param {boolean} skipDeathStrike - Skip DEATH STRIKE check (if already processed)
    * @returns {Object} Attack result
    */
-  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', aiDifficulty = 'medium') {
+  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', aiDifficulty = 'medium', damageReduction = 0, defenseType = null, skipDeathStrike = false) {
     // Validate the attack
     const validation = this.validateAttack(attackerInstance, defenderInstance, attackType)
     if (!validation.valid) {
       return { success: false, message: validation.error }
     }
 
-    const damage = validation.damage
-
-    // ========== DEATH STRIKE CHECK ==========
-    // DEATH STRIKE triggers BEFORE normal attack if:
-    // - Defender has DEATH STRIKE ability (Boar, Wereboar)
-    // - Attack would kill the defender
-    // - Attack is melee and attacker is truly adjacent (distance = 1)
-    const deathStrikeResult = this.checkDeathStrike(attackerInstance, defenderInstance, attackType, damage, aiDifficulty)
-
-    // If attacker was killed by DEATH STRIKE, return early - defender survives untouched
-    if (deathStrikeResult?.triggered && deathStrikeResult?.attackerWasDestroyed) {
-      return {
-        success: true,
-        deathStrikeTriggered: true,
-        deathStrikeResult,
-        attackerKilledByDeathStrike: true,
-        defenderSurvived: true,
-        attackType,
-        damage: 0, // Defender takes no damage
-        destroyed: false
-      }
-    }
-
-    // Mark as attacked
-    attackerInstance.hasAttackedThisTurn = true
-
-    // Check if creature has FLASHING BLADES (melee only) - defer tapping until ability resolves
-    const hasFlashingBlades = attackType === 'melee' &&
-      this.gameState.hasFlashingBlades &&
-      this.gameState.hasFlashingBlades(attackerInstance)
-
-    // Check if creature has HIDDEN BLADE (melee OR ranged) - defer tapping until ability resolves
-    const hasHiddenBlade = this.gameState.hasHiddenBlade &&
-      this.gameState.hasHiddenBlade(attackerInstance)
-
-    // Check for TOMB GUARDIAN SPLASH (SWIRL) BEFORE resolving damage
-    // We need to know if splash is pending to defer tapping
-    const pendingSplashAttacks = this.checkTombGuardianSplash(attackerInstance, attackType, defenderInstance)
-    const hasPendingSplash = pendingSplashAttacks && pendingSplashAttacks.length > 0
-
-    // Check for RANGED SPLASH abilities (ACID BREATH / EXPLOSIVE BOLTS) - defer tapping until ability resolves
-    const hasRangedSplash = attackType === 'ranged' &&
-      this.gameState.hasRangedSplashAbility &&
-      this.gameState.hasRangedSplashAbility(attackerInstance)
-
-    // Check if creature has SLAM ability (melee only) - defer tapping until ability resolves
-    const hasSlam = attackType === 'melee' &&
-      this.gameState.hasSlam &&
-      this.gameState.hasSlam(attackerInstance)
-
-    // Tap the creature if it has both moved AND attacked
-    // UNLESS it has FLASHING BLADES, HIDDEN BLADE, PENDING SPLASH, RANGED SPLASH, or SLAM (will be tapped after ability resolves)
-    const shouldTapNow = attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash && !hasRangedSplash && !hasSlam
-    if (shouldTapNow) {
-      attackerInstance.tap()
-    }
-
-    // Use the combat resolution (includes +1 morale on kill)
-    const result = this.resolveAttack(attackerInstance, defenderInstance, damage)
-
-    // Check for LIFE DRAIN ability (Vampire Stalker - heals on melee damage)
-    const lifeDrainResult = this.checkLifeDrain(attackerInstance, attackType, damage)
-
-    return {
-      success: true,
-      ...result,
-      attackType,
-      damage,
-      pendingFlashingBlades: hasFlashingBlades,
-      pendingHiddenBlade: hasHiddenBlade,
-      pendingRangedSplash: hasRangedSplash,  // Flag for ACID BREATH / EXPLOSIVE BOLTS
-      pendingSlam: hasSlam,  // Flag for SLAM ability (Earth Guardian)
-      lifeDrain: lifeDrainResult,
-      pendingSplashAttacks,
-      pendingSplash: hasPendingSplash,  // Flag to indicate splash needs to be resolved before tapping
-      // DEATH STRIKE info (if triggered but attacker survived)
-      deathStrikeTriggered: deathStrikeResult?.triggered || false,
-      deathStrikeResult: deathStrikeResult
-    }
-  }
-
-  /**
-   * Execute attack with defense options (COWER or UNSTOPPABLE HORDES)
-   * Supports both:
-   * - COWER: Avoid ALL damage (damageReduction equals original damage)
-   * - UNSTOPPABLE HORDES: Reduce damage by specific amount (can stack)
-   *
-   * Big O Complexity: O(c) where c = creatures in play for defender (for removal)
-   *
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {CreatureInstance} defenderInstance - The defending creature
-   * @param {string} attackType - 'melee' or 'ranged'
-   * @param {number} damageReduction - Amount to reduce damage by
-   * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
-   * @returns {Object} Attack result
-   */
-  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, aiDifficulty = 'medium', skipDeathStrike = false) {
-    // Validate the attack using shared validation logic
-    const validation = this.validateAttack(attackerInstance, defenderInstance, attackType)
-    if (!validation.valid) {
-      return { success: false, message: validation.error }
-    }
-
-    // Apply damage reduction from defense
+    // Calculate damage (with optional reduction from defense)
     const originalDamage = validation.damage
     const damage = Math.max(0, originalDamage - damageReduction)
 
     // ========== DEATH STRIKE CHECK ==========
-    // DEATH STRIKE triggers based on ORIGINAL damage (before defense), not reduced damage
-    // This is because DEATH STRIKE happens FIRST before defender can react
-    // skipDeathStrike flag is used when DEATH STRIKE was already processed by executeAttack
+    // DEATH STRIKE triggers BEFORE normal attack if:
+    // - Defender has DEATH STRIKE ability (Boar, Wereboar)
+    // - Attack would kill the defender (based on ORIGINAL damage before defense)
+    // - Attack is melee and attacker is truly adjacent (distance = 1)
+    // skipDeathStrike flag is used when DEATH STRIKE was already processed
     let deathStrikeResult = null
     if (!skipDeathStrike) {
       deathStrikeResult = this.checkDeathStrike(attackerInstance, defenderInstance, attackType, originalDamage, aiDifficulty)
@@ -335,6 +239,24 @@ export class CombatResolver {
       deathStrikeTriggered: deathStrikeResult?.triggered || false,
       deathStrikeResult: deathStrikeResult
     }
+  }
+
+  /**
+   * Execute attack with defense options (COWER or UNSTOPPABLE HORDES)
+   * @deprecated Use executeAttack(attacker, defender, type, difficulty, damageReduction, defenseType, skipDeathStrike) instead
+   *
+   * @param {CreatureInstance} attackerInstance - The attacking creature
+   * @param {CreatureInstance} defenderInstance - The defending creature
+   * @param {string} attackType - 'melee' or 'ranged'
+   * @param {number} damageReduction - Amount to reduce damage by
+   * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
+   * @param {string} aiDifficulty - AI difficulty for 0/50/100 rule
+   * @param {boolean} skipDeathStrike - Skip DEATH STRIKE check
+   * @returns {Object} Attack result
+   */
+  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, aiDifficulty = 'medium', skipDeathStrike = false) {
+    // Delegate to consolidated executeAttack function
+    return this.executeAttack(attackerInstance, defenderInstance, attackType, aiDifficulty, damageReduction, defenseType, skipDeathStrike)
   }
 
   /**
