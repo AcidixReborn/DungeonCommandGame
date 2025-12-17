@@ -684,7 +684,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: vampiricTouchOrder34Img
   },
-  // Card 35: Warning Shout - Level 3, CHA, IMMEDIATE
+  // Card 35: Warning Shout - Level 3, CHA, IMMEDIATE (protects ally in LOS)
   {
     id: 'cou_ord_35',
     name: 'Warning Shout',
@@ -692,10 +692,12 @@ export const orderCards = [
     abilityRequired: 'CHA',
     actionType: 'IMMEDIATE',
     effectDescription: 'Choose 1 allied creature within line of sight. Prevent 30 damage to that creature from 1 source.',
+    damagePrevented: 30,
+    protectTargetType: 'ally_los', // Can only protect allies in line of sight, not self
     faction: FACTION_NAME,
     imageUrl: warningShoutOrder35Img
   },
-  // Card 36: Warning Shout - Level 3, CHA, IMMEDIATE
+  // Card 36: Warning Shout - Level 3, CHA, IMMEDIATE (protects ally in LOS)
   {
     id: 'cou_ord_36',
     name: 'Warning Shout',
@@ -703,6 +705,8 @@ export const orderCards = [
     abilityRequired: 'CHA',
     actionType: 'IMMEDIATE',
     effectDescription: 'Choose 1 allied creature within line of sight. Prevent 30 damage to that creature from 1 source.',
+    damagePrevented: 30,
+    protectTargetType: 'ally_los', // Can only protect allies in line of sight, not self
     faction: FACTION_NAME,
     imageUrl: warningShoutOrder36Img
   }

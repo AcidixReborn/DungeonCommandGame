@@ -384,25 +384,29 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: daringAttack7Img
   },
-  // Card #8 - Defend Ally (IMMEDIATE but targets adjacent ally - placeholder)
+  // Card #8 - Defend Ally (IMMEDIATE - protects adjacent ally)
   {
     id: 'hoc_ord_8',
     name: 'Defend Ally',
     level: 1,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 30 DAMAGE to 1 adjacent creature from 1 source. PLACEHOLDER',
+    effectDescription: 'Prevent 30 DAMAGE to 1 adjacent creature from 1 source.',
+    damagePrevented: 30,
+    protectTargetType: 'adjacent_ally', // Can only protect adjacent allies, not self
     faction: FACTION_NAME,
     imageUrl: defendAlly8Img
   },
-  // Card #9 - Defend Ally (IMMEDIATE but targets adjacent ally - placeholder)
+  // Card #9 - Defend Ally (IMMEDIATE - protects adjacent ally)
   {
     id: 'hoc_ord_9',
     name: 'Defend Ally',
     level: 1,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 30 DAMAGE to 1 adjacent creature from 1 source. PLACEHOLDER',
+    effectDescription: 'Prevent 30 DAMAGE to 1 adjacent creature from 1 source.',
+    damagePrevented: 30,
+    protectTargetType: 'adjacent_ally', // Can only protect adjacent allies, not self
     faction: FACTION_NAME,
     imageUrl: defendAlly9Img
   },
@@ -671,25 +675,31 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: seizeTheOpportunity32Img
   },
-  // Card #33 - Shield (IMMEDIATE but targets self or ally within 5 - placeholder)
+  // Card #33 - Shield (IMMEDIATE - protects self or ally within 5 squares)
   {
     id: 'hoc_ord_33',
     name: 'Shield',
     level: 2,
     abilityRequired: 'INT',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source. PLACEHOLDER',
+    effectDescription: 'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source.',
+    damagePrevented: 30,
+    protectTargetType: 'ally_in_range', // Can protect self or ally within range
+    protectTargetRange: 5, // 5 squares
     faction: FACTION_NAME,
     imageUrl: shield33Img
   },
-  // Card #34 - Shield (IMMEDIATE but targets self or ally within 5 - placeholder)
+  // Card #34 - Shield (IMMEDIATE - protects self or ally within 5 squares)
   {
     id: 'hoc_ord_34',
     name: 'Shield',
     level: 2,
     abilityRequired: 'INT',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source. PLACEHOLDER',
+    effectDescription: 'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source.',
+    damagePrevented: 30,
+    protectTargetType: 'ally_in_range', // Can protect self or ally within range
+    protectTargetRange: 5, // 5 squares
     faction: FACTION_NAME,
     imageUrl: shield34Img
   },

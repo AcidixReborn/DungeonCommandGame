@@ -46,7 +46,14 @@ export class OrderCard {
     affinityOverridesRequirements = false, // If true, affinity match bypasses level/ability requirements
     counterAttackDamage = 0, // Fixed damage dealt by counter-attack (e.g., Riposte = 10)
     counterAttackTarget = null, // 'attacker' | 'adjacent_tapped' | 'all_adjacent_tapped'
-    counterAttackRequiresAdjacent = false // If true, counter-attack only works if target is adjacent
+    counterAttackRequiresAdjacent = false, // If true, counter-attack only works if target is adjacent
+    // Target type for IMMEDIATE cards that protect OTHER creatures (not self)
+    // 'self' (default) = card user protects themselves
+    // 'adjacent_ally' = card user protects adjacent ally (e.g., Defend Ally)
+    // 'ally_in_range' = card user protects ally within targetRange squares (e.g., Shield)
+    // 'ally_los' = card user protects ally within line of sight (e.g., Warning Shout)
+    protectTargetType = 'self',
+    protectTargetRange = 0 // Range in squares for 'ally_in_range' targeting (e.g., Shield = 5)
   }) {
     this.id = id
     this.name = name
@@ -72,6 +79,8 @@ export class OrderCard {
     this.counterAttackDamage = counterAttackDamage // Fixed damage dealt by counter-attack
     this.counterAttackTarget = counterAttackTarget // Target type: 'attacker', 'adjacent_tapped', 'all_adjacent_tapped'
     this.counterAttackRequiresAdjacent = counterAttackRequiresAdjacent // If true, counter-attack requires adjacent target
+    this.protectTargetType = protectTargetType // Who can be protected: 'self', 'adjacent_ally', 'ally_in_range', 'ally_los'
+    this.protectTargetRange = protectTargetRange // Range for 'ally_in_range' targeting (0 = N/A)
   }
 
   /**

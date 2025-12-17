@@ -693,13 +693,15 @@ function DefenseOptionsPanel({
                             display: 'block'
                           }}
                         />
-                        {/* Defender/Adjacent badge */}
+                        {/* Badge showing creature's role */}
                         <div
                           style={{
                             position: 'absolute',
                             bottom: '2px',
                             left: '2px',
-                            backgroundColor: creature.instanceId === defenderInstance.instanceId ? '#007bff' : '#6c757d',
+                            backgroundColor: selectedImmediateCard.protectTargetType && selectedImmediateCard.protectTargetType !== 'self'
+                              ? '#17a2b8' // Teal for ally-protecting cards
+                              : creature.instanceId === defenderInstance.instanceId ? '#007bff' : '#6c757d',
                             color: 'white',
                             padding: '1px 4px',
                             borderRadius: '3px',
@@ -707,7 +709,9 @@ function DefenseOptionsPanel({
                             fontWeight: 'bold'
                           }}
                         >
-                          {creature.instanceId === defenderInstance.instanceId ? 'DEFENDER' : 'ADJACENT'}
+                          {selectedImmediateCard.protectTargetType && selectedImmediateCard.protectTargetType !== 'self'
+                            ? 'PROTECTOR' // This creature will protect the defender
+                            : creature.instanceId === defenderInstance.instanceId ? 'DEFENDER' : 'ADJACENT'}
                         </div>
                         {/* Selected checkmark */}
                         {selectedCardCreature?.instanceId === creature.instanceId && (

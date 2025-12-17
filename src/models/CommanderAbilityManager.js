@@ -635,8 +635,8 @@ export class CommanderAbilityManager {
       return []
     }
 
-    // Get all eligible creatures (defender + adjacent friendly untapped creatures)
-    const eligibleCreatures = this.getCreaturesForImmediateCard(defenderInstance)
+    // Get all eligible creatures for 'self' protection (defender + adjacent friendly untapped)
+    const selfProtectCreatures = this.getCreaturesForImmediateCard(defenderInstance)
 
     // Find IMMEDIATE cards that prevent damage
     const immediateCards = []
@@ -644,7 +644,26 @@ export class CommanderAbilityManager {
       // Card must prevent damage (either fixed amount or all damage)
       const preventsDamage = (card.damagePrevented != null && card.damagePrevented > 0) || card.preventsAllDamage
       if (card.isImmediate && card.isImmediate() && preventsDamage) {
-        const creaturesForCard = eligibleCreatures.filter(creature => {
+        // Determine which creatures can use this card based on protectTargetType
+        const protectType = card.protectTargetType || 'self'
+        let potentialCreatures = []
+
+        if (protectType === 'self') {
+          // Self-protection: creature must be defender or adjacent to defender
+          potentialCreatures = selfProtectCreatures
+        } else if (protectType === 'adjacent_ally') {
+          // Adjacent ally protection (Defend Ally): card user must be adjacent to defender
+          potentialCreatures = this.getCreaturesAdjacentToDefender(defenderInstance)
+        } else if (protectType === 'ally_in_range') {
+          // Ally in range protection (Shield): card user must be within range of defender
+          const range = card.protectTargetRange || 5
+          potentialCreatures = this.getCreaturesInRangeOfDefender(defenderInstance, range)
+        } else if (protectType === 'ally_los') {
+          // Ally in LOS protection (Warning Shout): card user must have LOS to defender
+          potentialCreatures = this.getCreaturesWithLOSToDefender(defenderInstance)
+        }
+
+        const creaturesForCard = potentialCreatures.filter(creature => {
           // Check if affinity overrides normal requirements (e.g., Cloud of Bats)
           // When affinityOverridesRequirements is true and creature has the affinity,
           // bypass normal level/ability requirements
@@ -682,7 +701,8 @@ export class CommanderAbilityManager {
             card,
             eligibleCreatures: creaturesForCard,
             damagePrevented: card.preventsAllDamage ? 'ALL' : (card.damagePrevented != null ? card.damagePrevented : 0),
-            moraleCost: card.moraleCost != null ? card.moraleCost : 0
+            moraleCost: card.moraleCost != null ? card.moraleCost : 0,
+            protectTargetType: protectType // Include for UI to know if this protects defender vs self
           })
         }
       }
@@ -735,6 +755,123 @@ export class CommanderAbilityManager {
     }
 
     return eligibleCreatures
+  }
+
+  /**
+   * Get all untapped friendly creatures ADJACENT to the defender
+   * Used for 'adjacent_ally' protection cards like Defend Ally
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @returns {Array} Array of CreatureInstances adjacent to defender (NOT including defender)
+   */
+  getCreaturesAdjacentToDefender(defenderInstance) {
+    if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
+      return []
+    }
+
+    const adjacentCreatures = []
+    const pos = defenderInstance.position
+    const directions = [
+      { dx: 0, dy: -1 },   // North
+      { dx: 1, dy: -1 },   // NE
+      { dx: 1, dy: 0 },    // East
+      { dx: 1, dy: 1 },    // SE
+      { dx: 0, dy: 1 },    // South
+      { dx: -1, dy: 1 },   // SW
+      { dx: -1, dy: 0 },   // West
+      { dx: -1, dy: -1 }   // NW
+    ]
+
+    for (const dir of directions) {
+      const tile = this.gameState.getTile(pos.x + dir.dx, pos.y + dir.dy)
+      if (!tile || !tile.occupant) continue
+
+      const adjacentCreature = tile.occupant
+
+      // Must be same owner and untapped
+      if (adjacentCreature.owner !== defenderInstance.owner) continue
+      if (adjacentCreature.isTapped) continue
+      // Must NOT be the defender itself (they protect OTHERS, not self)
+      if (adjacentCreature.instanceId === defenderInstance.instanceId) continue
+
+      adjacentCreatures.push(adjacentCreature)
+    }
+
+    return adjacentCreatures
+  }
+
+  /**
+   * Get all untapped friendly creatures within range of the defender
+   * Used for 'ally_in_range' protection cards like Shield
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @param {number} range - Maximum range in squares
+   * @returns {Array} Array of CreatureInstances within range (INCLUDING defender for self-targeting)
+   */
+  getCreaturesInRangeOfDefender(defenderInstance, range) {
+    if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
+      return []
+    }
+
+    const creaturesInRange = []
+    const player = this.gameState.players[defenderInstance.owner]
+
+    if (!player || !player.creaturesInPlay) {
+      return []
+    }
+
+    const defenderPos = defenderInstance.position
+
+    for (const creature of player.creaturesInPlay) {
+      // Must be untapped
+      if (creature.isTapped) continue
+      if (!creature.position) continue
+
+      // Calculate distance (Chebyshev distance for grid movement)
+      const dx = Math.abs(creature.position.x - defenderPos.x)
+      const dy = Math.abs(creature.position.y - defenderPos.y)
+      const distance = Math.max(dx, dy)
+
+      // Must be within range
+      if (distance > range) continue
+
+      creaturesInRange.push(creature)
+    }
+
+    return creaturesInRange
+  }
+
+  /**
+   * Get all untapped friendly creatures with line of sight to the defender
+   * Used for 'ally_los' protection cards like Warning Shout
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @returns {Array} Array of CreatureInstances with LOS to defender (NOT including defender)
+   */
+  getCreaturesWithLOSToDefender(defenderInstance) {
+    if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
+      return []
+    }
+
+    const creaturesWithLOS = []
+    const player = this.gameState.players[defenderInstance.owner]
+
+    if (!player || !player.creaturesInPlay) {
+      return []
+    }
+
+    for (const creature of player.creaturesInPlay) {
+      // Must be untapped
+      if (creature.isTapped) continue
+      if (!creature.position) continue
+      // Must NOT be the defender itself
+      if (creature.instanceId === defenderInstance.instanceId) continue
+
+      // Check line of sight from this creature to defender
+      const hasLOS = this.gameState.hasLineOfSight(creature, defenderInstance, creature.owner)
+      if (!hasLOS) continue
+
+      creaturesWithLOS.push(creature)
+    }
+
+    return creaturesWithLOS
   }
 
   /**
