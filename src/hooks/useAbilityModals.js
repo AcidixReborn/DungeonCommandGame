@@ -151,6 +151,28 @@ export function useAbilityModals() {
   const [bonusDrawSources, setBonusDrawSources] = useState([]) // Card names that triggered bonus draws (e.g., ["Parry"])
 
   // ============================================
+  // RECOIL DRAW modal
+  // Shows when opponent uses Recoil - attacker draws a card as side effect
+  // Only shown to the attacking player (human only)
+  // ============================================
+  const [showRecoilDrawModal, setShowRecoilDrawModal] = useState(false)
+  const [recoilDrawnCards, setRecoilDrawnCards] = useState([])
+  const [recoilSourceCardName, setRecoilSourceCardName] = useState('') // Name of card that caused the draw (e.g., "Recoil")
+
+  // ============================================
+  // FACTION SELECT modal (Recoil target selection)
+  // Shows when defender uses Recoil with 3+ factions to choose recipient
+  // ============================================
+  const [showFactionSelectModal, setShowFactionSelectModal] = useState(false)
+  const [factionSelectConfig, setFactionSelectConfig] = useState({
+    title: '',
+    description: '',
+    eligibleFactions: [],
+    onSelect: null,
+    pendingDrawInfo: null // { cardCount, sourceName, defenderPlayerId }
+  })
+
+  // ============================================
   // SHIFT AFTER DEFENSE modal (Cloud of Bats)
   // Shows after Cloud of Bats prevents damage, asking if player wants to shift
   // ============================================
@@ -446,6 +468,20 @@ export function useAbilityModals() {
     setCardsDrawnData,
     bonusDrawSources,
     setBonusDrawSources,
+
+    // Recoil Draw (opponent card draw side effect)
+    showRecoilDrawModal,
+    setShowRecoilDrawModal,
+    recoilDrawnCards,
+    setRecoilDrawnCards,
+    recoilSourceCardName,
+    setRecoilSourceCardName,
+
+    // Faction Select (Recoil target selection with 3+ factions)
+    showFactionSelectModal,
+    setShowFactionSelectModal,
+    factionSelectConfig,
+    setFactionSelectConfig,
 
     // Shift After Defense (Cloud of Bats)
     showShiftDecisionModal,

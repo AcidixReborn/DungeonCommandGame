@@ -2030,6 +2030,12 @@ export class SimpleAI {
         score += 20 // Bonus for preventing death
       }
 
+      // Penalty for cards that let opponent draw (Recoil)
+      // Still worth using for high damage/lethal attacks, but less attractive otherwise
+      if (cardInfo.opponentDrawsCards > 0) {
+        score -= 10 * cardInfo.opponentDrawsCards // -10 points per card opponent draws
+      }
+
       if (score > bestScore && cardInfo.eligibleCreatures?.length > 0) {
         bestScore = score
         bestCard = cardInfo

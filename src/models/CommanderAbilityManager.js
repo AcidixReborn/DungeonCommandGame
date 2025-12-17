@@ -711,7 +711,8 @@ export class CommanderAbilityManager {
             damagePrevented: card.preventsAllDamage ? 'ALL' : (card.damagePrevented != null ? card.damagePrevented : 0),
             moraleCost: card.moraleCost != null ? card.moraleCost : 0,
             protectTargetType: protectType, // Include for UI to know if this protects defender vs self
-            discardCost: card.discardCost || 0 // Number of cards player must discard to use this card
+            discardCost: card.discardCost || 0, // Number of cards player must discard to use this card
+            opponentDrawsCards: card.opponentDrawsCards || 0 // Cards opponent draws when this card is used (e.g., Recoil)
           })
         }
       }
@@ -1008,7 +1009,8 @@ export class CommanderAbilityManager {
       shiftAfterUse: shiftAfterUse,
       creatureToShift: shiftAfterUse > 0 ? usingCreature : null,
       counterAttack: counterAttack,
-      discardedCardName: discardedCardName // Name of card discarded as cost (e.g., Uncanny Dodge)
+      discardedCardName: discardedCardName, // Name of card discarded as cost (e.g., Uncanny Dodge)
+      opponentDrawsCards: card.opponentDrawsCards || 0 // Cards opponent (attacker) draws (e.g., Recoil = 1)
     }
   }
 

@@ -54,7 +54,8 @@ export class OrderCard {
     // 'ally_los' = card user protects ally within line of sight (e.g., Warning Shout)
     protectTargetType = 'self',
     protectTargetRange = 0, // Range in squares for 'ally_in_range' targeting (e.g., Shield = 5)
-    discardCost = 0 // Number of order cards player must discard to use this card (e.g., Uncanny Dodge = 1)
+    discardCost = 0, // Number of order cards player must discard to use this card (e.g., Uncanny Dodge = 1)
+    opponentDrawsCards = 0 // Cards opponent (attacker) draws when this card is used (e.g., Recoil = 1)
   }) {
     this.id = id
     this.name = name
@@ -83,6 +84,7 @@ export class OrderCard {
     this.protectTargetType = protectTargetType // Who can be protected: 'self', 'adjacent_ally', 'ally_in_range', 'ally_los'
     this.protectTargetRange = protectTargetRange // Range for 'ally_in_range' targeting (0 = N/A)
     this.discardCost = discardCost // Number of order cards player must discard to use this card
+    this.opponentDrawsCards = opponentDrawsCards // Cards opponent (attacker) draws when this card is used
   }
 
   /**

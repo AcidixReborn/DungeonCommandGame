@@ -295,6 +295,19 @@ export class PhaseManager {
     player.bonusOrderCardsToDraw = 0
     player.bonusDrawSources = []
 
+    // Merge pending card reveals (from opponent effects like Recoil) into the drawn cards display
+    if (player.pendingCardReveals && player.pendingCardReveals.length > 0) {
+      player.pendingCardReveals.forEach(reveal => {
+        // Add the card to cards drawn this turn (for modal display)
+        player.cardsDrawnThisTurn.push(reveal.card)
+        // Add source to bonus sources (so modal shows "Received from Recoil")
+        if (!player.bonusDrawSourcesThisTurn) player.bonusDrawSourcesThisTurn = []
+        player.bonusDrawSourcesThisTurn.push(`Received from ${reveal.source}`)
+      })
+      // Clear pending reveals after processing
+      player.pendingCardReveals = []
+    }
+
     // Untap all creatures
     player.creaturesInPlay.forEach(creature => creature.untap())
 

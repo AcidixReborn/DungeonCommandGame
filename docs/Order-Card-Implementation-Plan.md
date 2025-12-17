@@ -41,7 +41,7 @@ Cards requiring player to discard another card from hand.
 
 ---
 
-### Phase IMD-7: Opponent Effects
+### Phase IMD-7: Opponent Effects ✅ COMPLETE
 Cards that affect the opponent when used.
 
 | Card | Faction | Effect |
@@ -49,9 +49,23 @@ Cards that affect the opponent when used.
 | Recoil | Heart of Cormyr | Prevent 30 damage, opponent draws 1 card |
 
 **Implementation**:
-- Add `opponentDraws` property
-- Execute opponent draw after damage prevention
-- AI weighs prevention value vs giving opponent resources
+- ✅ Added `opponentDrawsCards` property to OrderCard class
+- ✅ Updated Recoil card with `damagePrevented: 30` and `opponentDrawsCards: 1`
+- ✅ Toast notification shown to all players
+- ✅ AI weighs prevention value vs giving opponent resources (-10 score per card)
+
+**Phase IMD-7.1: Faction Selection Update** ✅ COMPLETE
+- ✅ **2-player games**: Auto-give card to attacker, show modal immediately
+- ✅ **3+ player games**: Defender selects which opponent receives the card via FactionSelectModal
+- ✅ Created `FactionSelectModal` component with commander image selection
+- ✅ Only show factions with cards in their deck
+- ✅ **Card reveal timing**:
+  - If recipient is attacker: Show card immediately
+  - If recipient is non-attacker: Queue for reveal at their next ACTIVATE phase
+- ✅ Added `pendingCardReveals` array to PlayerState for delayed reveals
+- ✅ PhaseManager merges pending reveals into ACTIVATE modal with "Received from [source]"
+- ✅ AI: 75% chance to give to non-attacker opponent, 25% to attacker
+- ✅ Toast: "[Defender] chose to give [Recipient] 1 card from Recoil"
 
 ---
 

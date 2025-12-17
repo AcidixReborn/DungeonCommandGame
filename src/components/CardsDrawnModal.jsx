@@ -8,12 +8,16 @@ import { Modal, Button, Alert } from 'react-bootstrap'
  * - The normal 1 card drawn during REFRESH
  * - Any bonus cards from abilities like Parry or Defensive Advantage
  *
+ * Also used for Recoil effect (opponent draws card as side effect).
+ *
  * @param {boolean} show - Controls modal visibility
  * @param {Function} onContinue - Callback when player clicks Continue
  * @param {Array} cards - Array of Order card objects that were drawn
  * @param {Array} bonusSources - Array of card names that triggered bonus draws (e.g., ["Parry"])
+ * @param {string} title - Optional custom title (e.g., "You Drew a Card!")
+ * @param {string} reason - Optional reason text explaining why the card was drawn (e.g., "Opponent used Recoil")
  */
-function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [] }) {
+function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [], title = null, reason = null }) {
   if (!show) return null
 
   const hasCards = cards && cards.length > 0
@@ -23,9 +27,11 @@ function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [] }) {
     <Modal show={show} onHide={onContinue} centered size="md">
       <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}>
         <Modal.Title>
-          {hasCards
-            ? `You Drew ${cards.length} Card${cards.length > 1 ? 's' : ''}!`
-            : 'No Cards to Draw'
+          {title
+            ? title
+            : hasCards
+              ? `You Drew ${cards.length} Card${cards.length > 1 ? 's' : ''}!`
+              : 'No Cards to Draw'
           }
         </Modal.Title>
       </Modal.Header>
@@ -91,6 +97,11 @@ function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [] }) {
               {hasBonusSources && (
                 <div style={{ fontSize: '0.85rem', marginTop: '8px', color: '#ffc107' }}>
                   Bonus draw from: {bonusSources.join(', ')}
+                </div>
+              )}
+              {reason && (
+                <div style={{ fontSize: '0.85rem', marginTop: '8px', color: '#ffc107' }}>
+                  {reason}
                 </div>
               )}
             </Alert>

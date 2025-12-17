@@ -20,6 +20,7 @@ import ChieftainCallModal from './ChieftainCallModal'
 import OgreDeployMoraleModal from './OgreDeployMoraleModal'
 import ClericDrawOrderModal from './ClericDrawOrderModal'
 import CardsDrawnModal from './CardsDrawnModal'
+import FactionSelectModal from './FactionSelectModal'
 import ShiftDecisionModal from './ShiftDecisionModal'
 import CounterAttackTargetModal from './CounterAttackTargetModal'
 import './GameBoard.css'
@@ -209,6 +210,13 @@ function GameBoard({ onTurnInfoChange }) {
     showCardsDrawnModal, setShowCardsDrawnModal,
     cardsDrawnData, setCardsDrawnData,
     bonusDrawSources, setBonusDrawSources,
+    // Recoil Draw (opponent card draw side effect)
+    showRecoilDrawModal, setShowRecoilDrawModal,
+    recoilDrawnCards, setRecoilDrawnCards,
+    recoilSourceCardName, setRecoilSourceCardName,
+    // Faction Select (Recoil target selection with 3+ factions)
+    showFactionSelectModal, setShowFactionSelectModal,
+    factionSelectConfig, setFactionSelectConfig,
     // Shift After Defense (Cloud of Bats)
     showShiftDecisionModal, setShowShiftDecisionModal,
     pendingShiftAfterDefense, setPendingShiftAfterDefense,
@@ -363,6 +371,127 @@ function GameBoard({ onTurnInfoChange }) {
     const playerNum = playerId.replace('PLAYER', '')
     const playerKey = `player${playerNum}`
     return gameConfig[playerKey]?.isHuman || false
+  }
+
+  /**
+   * Get opponent factions that can receive cards (have cards in deck)
+   * Used for Recoil faction selection
+   * @param {string} defenderPlayerId - Player ID of the defender using Recoil
+   * @returns {Array} Array of { playerId, factionName, commanderImage, commanderName }
+   */
+  const getEligibleOpponentFactions = (defenderPlayerId) => {
+    if (!gameState) return []
+    return Object.entries(gameState.players)
+      .filter(([playerId, player]) => {
+        if (playerId === defenderPlayerId) return false // Not defender
+        if (!gameState.activePlayers.includes(playerId)) return false // Must be active
+        if (player.orderDeck.length === 0) return false // Must have cards to draw
+        return true
+      })
+      .map(([playerId, player]) => ({
+        playerId,
+        factionName: player.faction,
+        commanderImage: player.commander?.imageUrl,
+        commanderName: player.commander?.name
+      }))
+  }
+
+  /**
+   * AI target selection for Recoil: 75% chance non-attacker, 25% attacker
+   * @param {Array} eligibleFactions - Array of eligible faction options
+   * @param {string} attackerPlayerId - Player ID of the attacker
+   * @returns {string} Selected player ID
+   */
+  const selectAIRecoilTarget = (eligibleFactions, attackerPlayerId) => {
+    const nonAttackerFactions = eligibleFactions.filter(f => f.playerId !== attackerPlayerId)
+    if (nonAttackerFactions.length > 0 && Math.random() < 0.75) {
+      // Pick random non-attacker (75% chance)
+      return nonAttackerFactions[Math.floor(Math.random() * nonAttackerFactions.length)].playerId
+    }
+    // Give to attacker (25% chance, or if no non-attackers available)
+    const attackerFaction = eligibleFactions.find(f => f.playerId === attackerPlayerId)
+    return attackerFaction?.playerId || eligibleFactions[0].playerId
+  }
+
+  /**
+   * Handle opponent draw effects (Recoil) with faction selection
+   * Shows modal for human defenders with 3+ factions, auto-selects for 2-player or AI
+   * @param {number} cardCount - Number of cards opponent draws
+   * @param {string} cardName - Name of the card causing the draw (e.g., "Recoil")
+   * @param {string} defenderPlayerId - Player ID of the defender using the card
+   * @param {string} attackerPlayerId - Player ID of the attacker
+   */
+  const handleOpponentDrawEffect = (cardCount, cardName, defenderPlayerId, attackerPlayerId) => {
+    if (cardCount <= 0) return
+
+    // Get list of opponent factions (excluding defender)
+    const opponentFactions = getEligibleOpponentFactions(defenderPlayerId)
+
+    if (opponentFactions.length === 0) {
+      // No opponents have cards to draw - just show toast
+      addToast(`No opponent decks have cards - ${cardName} draw effect skipped`)
+      return
+    }
+
+    if (opponentFactions.length === 1) {
+      // Only one opponent - auto-select (2-player game or only 1 has cards)
+      executeRecoilDraw(opponentFactions[0].playerId, cardName, defenderPlayerId, attackerPlayerId)
+      return
+    }
+
+    // Multiple opponents - show selection modal (if human) or AI chooses
+    if (isPlayerHuman(defenderPlayerId)) {
+      setFactionSelectConfig({
+        title: 'Choose Opponent to Receive Card',
+        description: `${cardName}: An opponent draws 1 Order card`,
+        eligibleFactions: opponentFactions,
+        onSelect: (targetPlayerId) => {
+          executeRecoilDraw(targetPlayerId, cardName, defenderPlayerId, attackerPlayerId)
+          setShowFactionSelectModal(false)
+        },
+        pendingDrawInfo: { cardCount, sourceName: cardName, defenderPlayerId, attackerPlayerId }
+      })
+      setShowFactionSelectModal(true)
+    } else {
+      // AI: 75% chance non-attacker, 25% attacker
+      const targetPlayerId = selectAIRecoilTarget(opponentFactions, attackerPlayerId)
+      executeRecoilDraw(targetPlayerId, cardName, defenderPlayerId, attackerPlayerId)
+    }
+  }
+
+  /**
+   * Execute the Recoil draw and handle reveal timing
+   * @param {string} targetPlayerId - Player ID who receives the card
+   * @param {string} cardName - Name of the card causing the draw
+   * @param {string} defenderPlayerId - Player ID of the defender
+   * @param {string} attackerPlayerId - Player ID of the attacker
+   */
+  const executeRecoilDraw = (targetPlayerId, cardName, defenderPlayerId, attackerPlayerId) => {
+    const targetPlayer = gameState.players[targetPlayerId]
+    const defenderPlayer = gameState.players[defenderPlayerId]
+    const drawnCards = targetPlayer.drawOrderCards(1)
+
+    // Toast for all players
+    if (drawnCards.length > 0) {
+      addToast(`${defenderPlayer.commander?.name || 'Player'} chose to give ${targetPlayer.commander?.name || 'opponent'} 1 card from ${cardName}`)
+    } else {
+      addToast(`${targetPlayer.commander?.name || 'Opponent'}'s deck is empty - no cards to draw from ${cardName}`)
+    }
+
+    if (drawnCards.length > 0) {
+      const isAttacker = targetPlayerId === attackerPlayerId
+
+      if (isAttacker && !targetPlayer.isAI) {
+        // Attacker sees card immediately
+        setRecoilDrawnCards(drawnCards)
+        setRecoilSourceCardName(cardName)
+        setShowRecoilDrawModal(true)
+      } else if (!isAttacker && !targetPlayer.isAI) {
+        // Non-attacker human: queue for their ACTIVATE phase
+        targetPlayer.addPendingCardReveal(drawnCards[0], cardName, defenderPlayerId)
+      }
+      // AI recipients don't need modal - they already have the card
+    }
   }
 
   /**
@@ -947,6 +1076,12 @@ function GameBoard({ onTurnInfoChange }) {
             moraleGain: result.moraleGain || 0,
             untapAfterUse: result.untapAfterUse || false
           }
+
+          // Handle opponent draws (Recoil) - defender chooses which opponent receives card
+          if (result.opponentDrawsCards > 0) {
+            const cardName = result.cardUsed?.name || defenseDecision.card.name
+            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
+          }
         }
       }
 
@@ -1202,6 +1337,12 @@ function GameBoard({ onTurnInfoChange }) {
       if (result.success) {
         const newAccumulatedReduction = accumulatedReduction + result.damagePrevented
         const remainingDamage = originalDamage - newAccumulatedReduction
+
+        // Handle opponent draws (Recoil) - defender chooses which opponent receives card
+        if (result.opponentDrawsCards > 0) {
+          const cardName = result.cardUsed?.name || defense.card.name
+          handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
+        }
 
         // Check if card grants a shift after use (Cloud of Bats)
         if (result.shiftAfterUse > 0 && result.creatureToShift) {
@@ -1789,6 +1930,12 @@ function GameBoard({ onTurnInfoChange }) {
       const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
       if (result.success) {
         damageAfterDefense = Math.max(0, 20 - result.damagePrevented)
+
+        // Handle opponent draws (Recoil) - defender chooses which opponent receives card
+        if (result.opponentDrawsCards > 0) {
+          const cardName = result.cardUsed?.name || defense.card.name
+          handleOpponentDrawEffect(result.opponentDrawsCards, cardName, targetInstance.owner, attackerInstance.owner)
+        }
       }
     }
 
@@ -2520,6 +2667,12 @@ function GameBoard({ onTurnInfoChange }) {
             damageReduction: result.damagePrevented,
             cardUsed: defenseDecision.card.name
           }
+
+          // Handle opponent draws (Recoil) - defender chooses which opponent receives card
+          if (result.opponentDrawsCards > 0) {
+            const cardName = result.cardUsed?.name || defenseDecision.card.name
+            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderPlayerId, attackerInstance.owner)
+          }
         }
       }
 
@@ -3090,6 +3243,12 @@ function GameBoard({ onTurnInfoChange }) {
             damageReduction: result.damagePrevented,
             cardUsed: defenseDecision.card.name
           }
+
+          // Handle opponent draws (Recoil) - defender chooses which opponent receives card
+          if (result.opponentDrawsCards > 0) {
+            const cardName = result.cardUsed?.name || defenseDecision.card.name
+            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderPlayerId, attackerInstance.owner)
+          }
         }
       }
 
@@ -3391,6 +3550,12 @@ function GameBoard({ onTurnInfoChange }) {
             damagePrevented: result.damagePrevented,
             damageReduction: result.damagePrevented,
             cardUsed: defenseDecision.card.name
+          }
+
+          // Handle opponent draws (Recoil) - defender chooses which opponent receives card
+          if (result.opponentDrawsCards > 0) {
+            const cardName = result.cardUsed?.name || defenseDecision.card.name
+            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderPlayerId, attackerInstance.owner)
           }
         }
       }
@@ -4009,6 +4174,12 @@ function GameBoard({ onTurnInfoChange }) {
             creatureTapped: defenseDecision.creature.creature.name,
             moraleGain: result.moraleGain || 0,
             untapAfterUse: result.untapAfterUse || false
+          }
+
+          // Handle opponent draws (Recoil) - defender chooses which opponent receives card
+          if (result.opponentDrawsCards > 0) {
+            const cardName = result.cardUsed?.name || defenseDecision.card.name
+            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
           }
         }
       }
@@ -5310,6 +5481,12 @@ function GameBoard({ onTurnInfoChange }) {
       const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
       damageAfterDefense = result.success ? Math.max(0, damage - result.damagePrevented) : damage
       defenseResult = { ...result, type: 'immediate_card' }
+
+      // Handle opponent draws (Recoil) - defender chooses which opponent receives card
+      if (result.success && result.opponentDrawsCards > 0) {
+        const cardName = result.cardUsed?.name || defense.card.name
+        handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
+      }
     }
 
     // Apply damage to defender
@@ -5813,6 +5990,13 @@ function GameBoard({ onTurnInfoChange }) {
     if (defense.type === 'immediate_card') {
       // IMMEDIATE card: Prevent damage equal to card value, optionally discard card as cost
       const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
+
+      // Handle opponent draws (Recoil) - defender chooses which opponent receives card
+      if (result.success && result.opponentDrawsCards > 0) {
+        const cardName = result.cardUsed?.name || defense.card.name
+        handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
+      }
+
       closeCombatPanel()
       handleRangedSplashDefenseComplete({ damageReduction: result.success ? result.damagePrevented : 0 })
       return
@@ -6474,11 +6658,39 @@ function GameBoard({ onTurnInfoChange }) {
         const executeHordeRefresh = async () => {
           await new Promise(resolve => setTimeout(resolve, 500))
 
-          // Execute refresh actions (untap, draw card, clear old protection)
+          // Execute refresh actions (matching PhaseManager.executeRefreshPhase logic)
           const player = gameState.getCurrentPlayerState()
           player.resetAbilitiesForNewTurn()
-          player.drawOrderCards(1)
+
+          // Calculate total cards to draw (1 normal + any bonus from Parry/Defensive Advantage)
+          const bonusDraws = player.bonusOrderCardsToDraw || 0
+          const totalCardsToDraw = 1 + bonusDraws
+
+          // Store bonus draw sources before resetting (for modal display)
+          player.bonusDrawSourcesThisTurn = [...(player.bonusDrawSources || [])]
+
+          // Draw order cards and store them for the modal display
+          const drawnCards = player.drawOrderCards(totalCardsToDraw)
+          player.cardsDrawnThisTurn = drawnCards
+
+          // Reset bonus draws counter and sources
+          player.bonusOrderCardsToDraw = 0
+          player.bonusDrawSources = []
+
+          // Merge pending card reveals (from opponent effects like Recoil) into the drawn cards display
+          if (player.pendingCardReveals && player.pendingCardReveals.length > 0) {
+            player.pendingCardReveals.forEach(reveal => {
+              player.cardsDrawnThisTurn.push(reveal.card)
+              if (!player.bonusDrawSourcesThisTurn) player.bonusDrawSourcesThisTurn = []
+              player.bonusDrawSourcesThisTurn.push(`Received from ${reveal.source}`)
+            })
+            player.pendingCardReveals = []
+          }
+
+          // Untap all creatures
           player.creaturesInPlay.forEach(creature => creature.untap())
+
+          // Clear deployment protection from previous turns
           player.creaturesInPlay.forEach(creature => {
             if (creature.deployedThisTurn && creature.turnDeployed !== gameState.turnNumber) {
               creature.clearDeploymentProtection()
@@ -7914,6 +8126,29 @@ function GameBoard({ onTurnInfoChange }) {
           }
           setBonusDrawSources([])
         }}
+      />
+
+      {/* RECOIL DRAW MODAL - Shows when attacker draws a card from Recoil side effect */}
+      <CardsDrawnModal
+        show={showRecoilDrawModal}
+        cards={recoilDrawnCards}
+        title="You Drew a Card!"
+        reason={`Opponent used ${recoilSourceCardName} - you draw 1 card as a side effect`}
+        onContinue={() => {
+          setShowRecoilDrawModal(false)
+          setRecoilDrawnCards([])
+          setRecoilSourceCardName('')
+        }}
+      />
+
+      {/* FACTION SELECT MODAL - Shows when defender uses Recoil with 3+ factions */}
+      <FactionSelectModal
+        show={showFactionSelectModal}
+        title={factionSelectConfig.title}
+        description={factionSelectConfig.description}
+        eligibleFactions={factionSelectConfig.eligibleFactions}
+        onSelect={factionSelectConfig.onSelect}
+        onCancel={null}
       />
 
       {/* CLOUD OF BATS SHIFT DECISION MODAL */}

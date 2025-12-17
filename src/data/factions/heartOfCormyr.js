@@ -625,16 +625,18 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: quickShot28Img
   },
-  // Card #29 - Recoil (IMMEDIATE but has side effect - placeholder)
+  // Card #29 - Recoil (IMMEDIATE - prevents damage but opponent draws a card)
   {
     id: 'hoc_ord_29',
     name: 'Recoil',
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 30 DAMAGE to this creature from 1 source. Choose 1 opponent. That opponent draws 1 Order card. PLACEHOLDER',
+    effectDescription: 'Prevent 30 damage to this creature from 1 source. The attacking faction draws 1 Order card.',
     faction: FACTION_NAME,
-    imageUrl: recoilImg
+    imageUrl: recoilImg,
+    damagePrevented: 30,
+    opponentDrawsCards: 1
   },
   // Card #30 - Saving Throw
   {

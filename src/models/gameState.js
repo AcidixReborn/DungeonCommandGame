@@ -125,6 +125,7 @@ export class PlayerState {
     this.bonusOrderCardsToDraw = 0    // Pending bonus draws from cards like Parry/Defensive Advantage
     this.bonusDrawSources = []        // Names of cards that caused bonus draws (e.g., ["Parry", "Defensive Advantage"])
     this.cardsDrawnThisTurn = []      // Cards drawn during REFRESH (for modal display)
+    this.pendingCardReveals = []      // Cards received from opponent effects (e.g., Recoil) to show at next ACTIVATE
 
     // Commander ability state tracking
     this.commanderAbilityState = {
@@ -197,6 +198,18 @@ export class PlayerState {
       drawn.push(card)
     }
     return drawn
+  }
+
+  /**
+   * Add a card to pending reveals (shown at next ACTIVATE phase)
+   * Used for cards received from opponent effects like Recoil
+   * @param {Object} card - The order card received
+   * @param {string} source - Name of the card/effect that caused this (e.g., "Recoil")
+   * @param {string} fromPlayerId - Player ID who gave the card
+   */
+  addPendingCardReveal(card, source, fromPlayerId) {
+    if (!this.pendingCardReveals) this.pendingCardReveals = []
+    this.pendingCardReveals.push({ card, source, fromPlayer: fromPlayerId })
   }
 
   /**
