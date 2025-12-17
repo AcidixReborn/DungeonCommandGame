@@ -20,6 +20,7 @@ import ChieftainCallModal from './ChieftainCallModal'
 import OgreDeployMoraleModal from './OgreDeployMoraleModal'
 import ClericDrawOrderModal from './ClericDrawOrderModal'
 import CardsDrawnModal from './CardsDrawnModal'
+import ShiftDecisionModal from './ShiftDecisionModal'
 import './GameBoard.css'
 
 /**
@@ -207,6 +208,11 @@ function GameBoard({ onTurnInfoChange }) {
     showCardsDrawnModal, setShowCardsDrawnModal,
     cardsDrawnData, setCardsDrawnData,
     bonusDrawSources, setBonusDrawSources,
+    // Shift After Defense (Cloud of Bats)
+    showShiftDecisionModal, setShowShiftDecisionModal,
+    pendingShiftAfterDefense, setPendingShiftAfterDefense,
+    shiftSelectionMode, setShiftSelectionMode,
+    shiftValidTiles, setShiftValidTiles,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -720,6 +726,12 @@ function GameBoard({ onTurnInfoChange }) {
   const confirmMove = () => {
     if (!pendingMove) return
 
+    // Check if this is a shift after defense (Cloud of Bats)
+    if (pendingMove.isShiftAfterDefense) {
+      handleShiftConfirm()
+      return
+    }
+
     const success = gameState.moveCreature(pendingMove.creature, pendingMove.destination)
 
     if (success) {
@@ -769,6 +781,12 @@ function GameBoard({ onTurnInfoChange }) {
 
   // Cancel movement from modal
   const cancelMove = () => {
+    // Check if this is a shift after defense (Cloud of Bats)
+    if (pendingMove?.isShiftAfterDefense) {
+      handleShiftCancel()
+      return
+    }
+
     setPendingMove(null)
     setShowMoveConfirm(false)
   }
@@ -1173,13 +1191,39 @@ function GameBoard({ onTurnInfoChange }) {
         success: totalDamageReduction > 0
       })
     } else if (defense.type === 'immediate_card') {
-      // IMMEDIATE CARD: Prevent 10 damage, discard card, tap creature
+      // IMMEDIATE CARD: Prevent damage, discard card, tap creature
       const result = gameState.applyImmediateCardDefense(defense.card, defense.creature)
 
       if (result.success) {
         const newAccumulatedReduction = accumulatedReduction + result.damagePrevented
         const remainingDamage = originalDamage - newAccumulatedReduction
 
+        // Check if card grants a shift after use (Cloud of Bats)
+        if (result.shiftAfterUse > 0 && result.creatureToShift) {
+          // Store pending shift info and show decision modal
+          // The attack execution will happen after shift decision
+          setPendingShiftAfterDefense({
+            creature: result.creatureToShift,
+            maxShift: result.shiftAfterUse,
+            cardName: result.cardUsed?.name || defense.card.name,
+            pendingAttackInfo: {
+              newAccumulatedReduction,
+              remainingDamage,
+              originalDamage,
+              defenderInstance,
+              attackerInstance,
+              cardUsed: result.cardUsed?.name || defense.card.name,
+              creatureTapped: defense.creature.creature.name,
+              moraleGain: result.moraleGain || 0,
+              untapAfterUse: result.untapAfterUse || false
+            }
+          })
+          closeCombatPanel()
+          setShowShiftDecisionModal(true)
+          return // Wait for shift decision
+        }
+
+        // No shift - continue with normal flow
         // Check if there are more defensive options available
         if (remainingDamage > 0) {
           const moreOptions = gameState.getDefenseOptions(defenderInstance, remainingDamage, attackerInstance.owner)
@@ -2274,6 +2318,149 @@ function GameBoard({ onTurnInfoChange }) {
         success: !!defenseResult?.success
       })
     }
+  }
+
+  // ============================================
+  // CLOUD OF BATS SHIFT HANDLERS
+  // ============================================
+
+  /**
+   * User chose YES to shift after Cloud of Bats - enter shift selection mode
+   */
+  const handleShiftDecisionYes = () => {
+    if (!pendingShiftAfterDefense) return
+
+    const { creature, maxShift } = pendingShiftAfterDefense
+
+    // Calculate valid shift tiles for this creature
+    const validTiles = gameState.getValidShiftTiles
+      ? gameState.getValidShiftTiles(creature, maxShift)
+      : []
+
+    if (validTiles.length === 0) {
+      // No valid tiles - skip shift, just tap and continue
+      addToast('No valid tiles to shift to.')
+      handleShiftDecisionNo()
+      return
+    }
+
+    // Close decision modal and enter shift selection mode
+    setShowShiftDecisionModal(false)
+    setShiftValidTiles(validTiles)
+    setShiftSelectionMode(true)
+  }
+
+  /**
+   * User chose NO to shift (or no valid tiles) - tap creature and continue attack
+   */
+  const handleShiftDecisionNo = () => {
+    if (!pendingShiftAfterDefense) return
+
+    const { creature, pendingAttackInfo } = pendingShiftAfterDefense
+
+    // Tap the creature (was deferred from applyImmediateCardDefense)
+    creature.tap()
+
+    // Close modal and clear state
+    setShowShiftDecisionModal(false)
+    setPendingShiftAfterDefense(null)
+    setShiftSelectionMode(false)
+    setShiftValidTiles([])
+
+    // Continue with attack execution
+    if (pendingAttackInfo) {
+      executeAttackAfterDefense({
+        type: 'immediate_card',
+        damageReduction: pendingAttackInfo.newAccumulatedReduction,
+        moraleCost: 0,
+        cardUsed: pendingAttackInfo.cardUsed,
+        creatureTapped: pendingAttackInfo.creatureTapped,
+        moraleGain: pendingAttackInfo.moraleGain || 0,
+        untapAfterUse: pendingAttackInfo.untapAfterUse || false,
+        success: true
+      })
+    }
+
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * User selected a tile for Cloud of Bats shift - show confirmation
+   */
+  const handleShiftTileSelected = (tile) => {
+    if (!pendingShiftAfterDefense || !shiftSelectionMode) return
+
+    // Verify tile is valid
+    const isValid = shiftValidTiles.some(t => t.x === tile.x && t.y === tile.y)
+    if (!isValid) return
+
+    // Show move confirmation modal
+    // Use same structure as normal movement (destination, cost) for modal compatibility
+    setPendingMove({
+      creature: pendingShiftAfterDefense.creature,
+      destination: tile,
+      cost: 0, // Shift is free
+      isShiftAfterDefense: true
+    })
+    setShowMoveConfirm(true)
+  }
+
+  /**
+   * User confirmed shift destination - execute shift
+   */
+  const handleShiftConfirm = () => {
+    if (!pendingShiftAfterDefense || !pendingMove) return
+
+    const { creature, pendingAttackInfo } = pendingShiftAfterDefense
+    const { destination } = pendingMove
+
+    // Execute the shift (move creature to new position)
+    const fromTile = gameState.getTile(creature.position.x, creature.position.y)
+    const targetTile = gameState.getTile(destination.x, destination.y)
+
+    if (fromTile && targetTile) {
+      fromTile.occupant = null
+      targetTile.occupant = creature
+      creature.position = { x: destination.x, y: destination.y }
+    }
+
+    // Tap the creature (was deferred from applyImmediateCardDefense)
+    creature.tap()
+
+    // Show toast
+    addToast(`🦇 ${creature.creature.name} shifted to (${destination.x}, ${destination.y})!`)
+
+    // Clear all shift state
+    setShowMoveConfirm(false)
+    setPendingMove(null)
+    setPendingShiftAfterDefense(null)
+    setShiftSelectionMode(false)
+    setShiftValidTiles([])
+
+    // Continue with attack execution
+    if (pendingAttackInfo) {
+      executeAttackAfterDefense({
+        type: 'immediate_card',
+        damageReduction: pendingAttackInfo.newAccumulatedReduction,
+        moraleCost: 0,
+        cardUsed: pendingAttackInfo.cardUsed,
+        creatureTapped: pendingAttackInfo.creatureTapped,
+        moraleGain: pendingAttackInfo.moraleGain || 0,
+        untapAfterUse: pendingAttackInfo.untapAfterUse || false,
+        success: true
+      })
+    }
+
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * User cancelled shift destination selection - back to tile selection
+   */
+  const handleShiftCancel = () => {
+    setShowMoveConfirm(false)
+    setPendingMove(null)
+    // Stay in shift selection mode - user can pick another tile
   }
 
   /**
@@ -4183,6 +4370,15 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const handleTileRightClick = (tile) => {
     if (!gameState || gameState.gameOver) return
+
+    // ============================================
+    // CLOUD OF BATS SHIFT SELECTION MODE
+    // Handle clicking on tiles to select shift destination
+    // ============================================
+    if (shiftSelectionMode && pendingShiftAfterDefense) {
+      handleShiftTileSelected(tile)
+      return // Don't process other right-click actions during shift selection
+    }
 
     // ============================================
     // ORDER CARD TARGETING MODE
@@ -6256,6 +6452,12 @@ function GameBoard({ onTurnInfoChange }) {
                     slamValidTiles.some(t => t.x === x && t.y === y)
 
                   // ============================================
+                  // CLOUD OF BATS SHIFT HIGHLIGHTS: Show valid shift destinations
+                  // ============================================
+                  const isShiftTile = shiftSelectionMode &&
+                    shiftValidTiles.some(t => t.x === x && t.y === y)
+
+                  // ============================================
                   // LIGHTNING BREATH HIGHLIGHTS: Show valid targets and selected targets
                   // ============================================
                   const isLightningBreathValidTarget = lightningBreathMode &&
@@ -6507,6 +6709,7 @@ function GameBoard({ onTurnInfoChange }) {
                       isOrderCardTarget={isOrderCardTarget}
                       isWebbed={creature && gameState?.isWebbed?.(creature)}
                       isHealingTouchTarget={isHealingTouchTarget}
+                      isShiftTile={isShiftTile}
                     />
                   )
                 })}
@@ -7498,6 +7701,16 @@ function GameBoard({ onTurnInfoChange }) {
           }
           setBonusDrawSources([])
         }}
+      />
+
+      {/* CLOUD OF BATS SHIFT DECISION MODAL */}
+      <ShiftDecisionModal
+        show={showShiftDecisionModal}
+        cardName={pendingShiftAfterDefense?.cardName || 'Cloud of Bats'}
+        shiftDistance={pendingShiftAfterDefense?.maxShift || 6}
+        creatureName={pendingShiftAfterDefense?.creature?.creature?.name || 'creature'}
+        onYes={handleShiftDecisionYes}
+        onNo={handleShiftDecisionNo}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}

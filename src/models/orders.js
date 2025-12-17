@@ -39,7 +39,11 @@ export class OrderCard {
     moraleCost = 0, // Morale cost to use this card (only if card ability explicitly requires it, default 0)
     moraleGain = 0, // Morale gained when using this card (e.g., Defiant Stance gains 1 Morale)
     untapAfterUse = false, // If true, creature untaps after using this card (e.g., Tactical Block)
-    drawCards = 0 // Number of order cards to draw when using this IMMEDIATE card (e.g., Parry, Defensive Advantage)
+    drawCards = 0, // Number of order cards to draw when using this IMMEDIATE card (e.g., Parry, Defensive Advantage)
+    preventsAllDamage = false, // If true, prevents ALL damage from the attack (e.g., Cloud of Bats)
+    shiftAfterUse = 0, // Squares creature can shift after using this card (e.g., Cloud of Bats = 6)
+    affinityRequired = null, // Keyword required to use this card (e.g., 'VAMPIRE' for Cloud of Bats)
+    affinityOverridesRequirements = false // If true, affinity match bypasses level/ability requirements
   }) {
     this.id = id
     this.name = name
@@ -58,6 +62,10 @@ export class OrderCard {
     this.moraleGain = moraleGain // Morale gained when using this card (0 = no gain)
     this.untapAfterUse = untapAfterUse // If true, creature untaps after using this IMMEDIATE card
     this.drawCards = drawCards // Number of order cards to draw when using this IMMEDIATE card
+    this.preventsAllDamage = preventsAllDamage // If true, prevents ALL damage from the attack
+    this.shiftAfterUse = shiftAfterUse // Squares creature can shift after using this card
+    this.affinityRequired = affinityRequired // Keyword required to use this card (e.g., 'VAMPIRE')
+    this.affinityOverridesRequirements = affinityOverridesRequirements // If true, affinity bypasses level/ability requirements
   }
 
   /**

@@ -641,17 +641,47 @@ export class CommanderAbilityManager {
     // Find IMMEDIATE cards that prevent damage
     const immediateCards = []
     for (const card of player.orderHand) {
-      const preventsDamage = card.damagePrevented != null && card.damagePrevented > 0
+      // Card must prevent damage (either fixed amount or all damage)
+      const preventsDamage = (card.damagePrevented != null && card.damagePrevented > 0) || card.preventsAllDamage
       if (card.isImmediate && card.isImmediate() && preventsDamage) {
         const creaturesForCard = eligibleCreatures.filter(creature => {
-          return card.canBeUsedBy(creature.creature)
+          // Check if affinity overrides normal requirements (e.g., Cloud of Bats)
+          // When affinityOverridesRequirements is true and creature has the affinity,
+          // bypass normal level/ability requirements
+          if (card.affinityRequired && card.affinityOverridesRequirements) {
+            // Check creature type array for affinity match
+            const creatureTypes = creature.creature.type || []
+            const hasAffinity = creatureTypes.some(type =>
+              type.toUpperCase() === card.affinityRequired.toUpperCase()
+            )
+            if (hasAffinity) {
+              // Affinity match - bypass normal canBeUsedBy() check
+              // Creature is already checked for untapped status by eligibleCreatures filter
+              return true
+            }
+            // No affinity match - fall through to normal checks
+          }
+
+          // Check standard requirements (level, ability, creature type)
+          if (!card.canBeUsedBy(creature.creature)) return false
+
+          // Check affinity requirement for cards without affinityOverridesRequirements
+          if (card.affinityRequired && !card.affinityOverridesRequirements) {
+            const creatureTypes = creature.creature.type || []
+            const hasAffinity = creatureTypes.some(type =>
+              type.toUpperCase() === card.affinityRequired.toUpperCase()
+            )
+            if (!hasAffinity) return false
+          }
+
+          return true
         })
 
         if (creaturesForCard.length > 0) {
           immediateCards.push({
             card,
             eligibleCreatures: creaturesForCard,
-            damagePrevented: card.damagePrevented != null ? card.damagePrevented : 0,
+            damagePrevented: card.preventsAllDamage ? 'ALL' : (card.damagePrevented != null ? card.damagePrevented : 0),
             moraleCost: card.moraleCost != null ? card.moraleCost : 0
           })
         }
@@ -731,7 +761,19 @@ export class CommanderAbilityManager {
     }
 
     // Verify creature can use the card
-    if (!card.canBeUsedBy(usingCreature.creature)) {
+    // Check if affinity override applies
+    let canUse = false
+    if (card.affinityRequired && card.affinityOverridesRequirements) {
+      const creatureTypes = usingCreature.creature.type || []
+      const hasAffinity = creatureTypes.some(type =>
+        type.toUpperCase() === card.affinityRequired.toUpperCase()
+      )
+      if (hasAffinity) {
+        canUse = true // Affinity match bypasses normal requirements
+      }
+    }
+    // Fall back to normal check if no affinity override
+    if (!canUse && !card.canBeUsedBy(usingCreature.creature)) {
       return { success: false, damagePrevented: 0, cardUsed: null, reason: 'creature_cannot_use', moraleCost: 0 }
     }
 
@@ -749,11 +791,18 @@ export class CommanderAbilityManager {
       player.orderDiscard.push(card)
     }
 
-    // Tap the creature
-    usingCreature.tap()
+    // Get shift after use value (for Cloud of Bats)
+    const shiftAfterUse = card.shiftAfterUse || 0
+
+    // Tap the creature ONLY if there's no shift after use
+    // If there's a shift, the tap happens AFTER the shift decision (handled by UI)
+    if (shiftAfterUse === 0) {
+      usingCreature.tap()
+    }
 
     // Get card's damage prevention amount
-    const damagePrevented = card.damagePrevented != null ? card.damagePrevented : 0
+    // If preventsAllDamage is true, return Infinity so Math.max(0, damage - prevented) = 0
+    const damagePrevented = card.preventsAllDamage ? Infinity : (card.damagePrevented != null ? card.damagePrevented : 0)
 
     // Handle morale gain effect
     const moraleGain = card.moraleGain || 0
@@ -761,9 +810,11 @@ export class CommanderAbilityManager {
       player.morale += moraleGain
     }
 
-    // Handle untap after use effect
+    // Handle untap after use effect (Near Miss)
+    // This keeps the creature untapped after using the card
     const untapAfterUse = card.untapAfterUse || false
-    if (untapAfterUse) {
+    if (untapAfterUse && shiftAfterUse === 0) {
+      // Only untap if we already tapped (no shift pending)
       usingCreature.untap()
     }
 
@@ -780,11 +831,14 @@ export class CommanderAbilityManager {
     return {
       success: true,
       damagePrevented: damagePrevented,
+      preventsAllDamage: card.preventsAllDamage || false,
       cardUsed: card,
       moraleCost: moraleCost,
       moraleGain: moraleGain,
       untapAfterUse: untapAfterUse,
-      bonusDrawsQueued: drawCards
+      bonusDrawsQueued: drawCards,
+      shiftAfterUse: shiftAfterUse,
+      creatureToShift: shiftAfterUse > 0 ? usingCreature : null
     }
   }
 

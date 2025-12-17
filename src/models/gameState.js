@@ -3553,6 +3553,52 @@ export class GameState {
     return true
   }
 
+  /**
+   * Get valid shift destination tiles for a creature (used by Cloud of Bats)
+   * Shift ignores normal movement restrictions but respects terrain rules
+   * @param {CreatureInstance} creature - The creature shifting
+   * @param {number} maxDistance - Maximum shift distance in squares
+   * @returns {Array} Array of valid tile positions {x, y}
+   */
+  getValidShiftTiles(creature, maxDistance) {
+    if (!creature || !creature.position) return []
+
+    const validTiles = []
+    const startX = creature.position.x
+    const startY = creature.position.y
+
+    // Check all tiles within shift range
+    for (let x = Math.max(0, startX - maxDistance); x <= Math.min(this.boardWidth - 1, startX + maxDistance); x++) {
+      for (let y = Math.max(0, startY - maxDistance); y <= Math.min(this.boardHeight - 1, startY + maxDistance); y++) {
+        // Skip current position
+        if (x === startX && y === startY) continue
+
+        // Calculate distance (Chebyshev distance for 8-directional movement)
+        const distance = Math.max(Math.abs(x - startX), Math.abs(y - startY))
+        if (distance > maxDistance) continue
+
+        const tile = this.getTile(x, y)
+        if (!tile) continue
+
+        // Check if creature can enter this tile (terrain rules)
+        // Mountains block all except flying/phasing
+        if (tile.terrain === 'MOUNTAIN' && !this.hasFlying(creature) && !this.hasPhasing(creature)) {
+          continue
+        }
+
+        // Water is dangerous but not impassable (creature will take damage later)
+        // No special blocking for water
+
+        // Cannot shift onto occupied tiles
+        if (tile.occupant) continue
+
+        validTiles.push({ x, y })
+      }
+    }
+
+    return validTiles
+  }
+
   // ============================================================================
   // COMBAT DELEGATION METHODS
   // These methods delegate to the CombatResolver for backward compatibility

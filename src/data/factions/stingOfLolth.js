@@ -378,6 +378,8 @@ export const orderCards = [
     abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Untap this creature.',
+    damagePrevented: 20,
+    untapAfterUse: true,
     faction: FACTION_NAME,
     imageUrl: nearMiss10Img
   },
@@ -388,6 +390,8 @@ export const orderCards = [
     abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Untap this creature.',
+    damagePrevented: 20,
+    untapAfterUse: true,
     faction: FACTION_NAME,
     imageUrl: nearMiss11Img
   },

@@ -331,6 +331,10 @@ export const orderCards = [
     abilityRequired: 'INT',
     actionType: 'IMMEDIATE',
     effectDescription: 'VAMPIRE AFFINITY (Any Vampire creature can take this action.) Prevent all damage to this creature from 1 source, then shift 6 squares.',
+    preventsAllDamage: true,
+    shiftAfterUse: 6,
+    affinityRequired: 'VAMPIRE',
+    affinityOverridesRequirements: true, // VAMPIRE affinity bypasses level/ability requirements
     faction: FACTION_NAME,
     imageUrl: cloudOfBatsOrder4Img
   },

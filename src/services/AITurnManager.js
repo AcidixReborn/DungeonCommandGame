@@ -190,6 +190,18 @@ export class AITurnManager {
       // Apply IMMEDIATE card defense
       const result = this.gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
       if (result.success) {
+        // Handle shift after use (Cloud of Bats)
+        if (result.shiftAfterUse > 0 && result.creatureToShift) {
+          const shiftResult = this.handleAIShiftAfterDefense(result.creatureToShift, result.shiftAfterUse, attackerInstance)
+          if (shiftResult.shifted) {
+            // Tap the creature after shifting
+            result.creatureToShift.tap()
+          } else {
+            // No shift, just tap
+            result.creatureToShift.tap()
+          }
+        }
+
         defenseResult = {
           success: true,
           type: 'immediate_card',
@@ -199,7 +211,8 @@ export class AITurnManager {
           creatureTapped: defenseDecision.creature.creature.name,
           moraleGain: result.moraleGain || 0,
           untapAfterUse: result.untapAfterUse || false,
-          bonusDrawsQueued: result.bonusDrawsQueued || 0
+          bonusDrawsQueued: result.bonusDrawsQueued || 0,
+          shiftedTo: result.shiftAfterUse > 0 ? result.creatureToShift?.position : null
         }
       }
     }
@@ -269,6 +282,73 @@ export class AITurnManager {
     }
 
     return message
+  }
+
+  /**
+   * Handle AI shift after defense (Cloud of Bats)
+   * AI logic: Move away from attacker, toward allied creatures if possible
+   * @param {CreatureInstance} creature - The creature to shift
+   * @param {number} maxShift - Maximum shift distance
+   * @param {CreatureInstance} attacker - The attacker (to move away from)
+   * @returns {Object} { shifted: boolean, newPosition: {x, y} | null }
+   */
+  handleAIShiftAfterDefense(creature, maxShift, attacker) {
+    const validTiles = this.gameState.getValidShiftTiles(creature, maxShift)
+    if (validTiles.length === 0) {
+      return { shifted: false, newPosition: null }
+    }
+
+    // Find best tile: maximize distance from attacker
+    let bestTile = null
+    let bestScore = -Infinity
+
+    const attackerPos = attacker?.position || { x: 0, y: 0 }
+    const allies = this.gameState.players[creature.owner]?.creaturesInPlay || []
+
+    for (const tile of validTiles) {
+      // Calculate distance from attacker (Chebyshev)
+      const distFromAttacker = Math.max(
+        Math.abs(tile.x - attackerPos.x),
+        Math.abs(tile.y - attackerPos.y)
+      )
+
+      // Calculate average distance to allied creatures (prefer staying near allies)
+      let allyScore = 0
+      let allyCount = 0
+      for (const ally of allies) {
+        if (ally.instanceId === creature.instanceId || !ally.position) continue
+        const distToAlly = Math.max(
+          Math.abs(tile.x - ally.position.x),
+          Math.abs(tile.y - ally.position.y)
+        )
+        // Prefer being closer to allies (lower distance = higher score)
+        allyScore += (10 - Math.min(distToAlly, 10))
+        allyCount++
+      }
+
+      // Combine scores: prioritize distance from attacker, then proximity to allies
+      const score = distFromAttacker * 10 + (allyCount > 0 ? allyScore / allyCount : 0)
+
+      if (score > bestScore) {
+        bestScore = score
+        bestTile = tile
+      }
+    }
+
+    if (bestTile) {
+      // Execute the shift
+      const fromTile = this.gameState.getTile(creature.position.x, creature.position.y)
+      const targetTile = this.gameState.getTile(bestTile.x, bestTile.y)
+
+      if (fromTile && targetTile) {
+        fromTile.occupant = null
+        targetTile.occupant = creature
+        creature.position = { x: bestTile.x, y: bestTile.y }
+        return { shifted: true, newPosition: bestTile }
+      }
+    }
+
+    return { shifted: false, newPosition: null }
   }
 }
 

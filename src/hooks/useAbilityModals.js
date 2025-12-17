@@ -151,6 +151,16 @@ export function useAbilityModals() {
   const [bonusDrawSources, setBonusDrawSources] = useState([]) // Card names that triggered bonus draws (e.g., ["Parry"])
 
   // ============================================
+  // SHIFT AFTER DEFENSE modal (Cloud of Bats)
+  // Shows after Cloud of Bats prevents damage, asking if player wants to shift
+  // ============================================
+  const [showShiftDecisionModal, setShowShiftDecisionModal] = useState(false)
+  const [pendingShiftAfterDefense, setPendingShiftAfterDefense] = useState(null)
+  // { creature, maxShift, cardName, onComplete }
+  const [shiftSelectionMode, setShiftSelectionMode] = useState(false)
+  const [shiftValidTiles, setShiftValidTiles] = useState([])
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -426,6 +436,16 @@ export function useAbilityModals() {
     setCardsDrawnData,
     bonusDrawSources,
     setBonusDrawSources,
+
+    // Shift After Defense (Cloud of Bats)
+    showShiftDecisionModal,
+    setShowShiftDecisionModal,
+    pendingShiftAfterDefense,
+    setPendingShiftAfterDefense,
+    shiftSelectionMode,
+    setShiftSelectionMode,
+    shiftValidTiles,
+    setShiftValidTiles,
 
     // Clear all
     clearAllAbilityModalState
