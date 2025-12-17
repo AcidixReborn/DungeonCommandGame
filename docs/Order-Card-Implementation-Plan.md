@@ -69,7 +69,7 @@ Cards that affect the opponent when used.
 
 ---
 
-### Phase IMD-8: OR Choice Cards
+### Phase IMD-8: OR Choice Cards ✅ COMPLETE
 Cards offering player a choice between effects.
 
 | Card | Faction | Effect |
@@ -77,9 +77,19 @@ Cards offering player a choice between effects.
 | Patch Up (x2) | Tyranny of Goblins | Heal 20 OR Prevent 20 damage |
 
 **Implementation**:
-- Add `orChoice` property with effect options
-- Create choice modal for human players
-- AI evaluates which option is better situationally
+- ✅ Added `healAmount` property (20 for Patch Up)
+- ✅ Added `canHealProactively` property (enables proactive heal mode)
+- ✅ Added `damagePrevented: 20` (enables defensive prevent mode)
+- ✅ **Proactive Heal Mode**: During ACTIVATE phase, right-click Patch Up on damaged creature
+  - Shows PatchUpHealModal with card, heal preview, and warning about consuming action
+  - Heals damage, consumes action (like STANDARD), taps creature, discards card
+  - Only available if creature has damage to heal
+- ✅ **Reactive Prevent Mode**: Automatically available in DefenseOptionsPanel (existing IMMEDIATE logic)
+- ✅ AI proactive heal strategy:
+  - Only Hard AI uses order cards (0/0/100 pattern)
+  - Prioritizes higher-level damaged creatures
+  - Penalizes healing if creature can make a kill this turn
+  - Scores based on: heal value + level bonus + critical HP bonus - kill penalty
 
 ---
 

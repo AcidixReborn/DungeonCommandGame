@@ -55,7 +55,9 @@ export class OrderCard {
     protectTargetType = 'self',
     protectTargetRange = 0, // Range in squares for 'ally_in_range' targeting (e.g., Shield = 5)
     discardCost = 0, // Number of order cards player must discard to use this card (e.g., Uncanny Dodge = 1)
-    opponentDrawsCards = 0 // Cards opponent (attacker) draws when this card is used (e.g., Recoil = 1)
+    opponentDrawsCards = 0, // Cards opponent (attacker) draws when this card is used (e.g., Recoil = 1)
+    healAmount = 0, // Amount of healing this card provides when used proactively (e.g., Patch Up = 20)
+    canHealProactively = false // If true, can be used proactively during ACTIVATE to heal (e.g., Patch Up)
   }) {
     this.id = id
     this.name = name
@@ -85,6 +87,8 @@ export class OrderCard {
     this.protectTargetRange = protectTargetRange // Range for 'ally_in_range' targeting (0 = N/A)
     this.discardCost = discardCost // Number of order cards player must discard to use this card
     this.opponentDrawsCards = opponentDrawsCards // Cards opponent (attacker) draws when this card is used
+    this.healAmount = healAmount // Amount of healing this card provides when used proactively
+    this.canHealProactively = canHealProactively // If true, can be used proactively during ACTIVATE to heal
   }
 
   /**

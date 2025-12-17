@@ -332,6 +332,17 @@ export class SimpleAI {
       }
     }
 
+    // ============================================================================
+    // ORDER CARDS: Check for Patch Up proactive heal (0/0/100 pattern - Hard only)
+    // Patch Up can heal 20 damage OR prevent 20 damage
+    // Proactive heal consumes creature's action (like STANDARD)
+    // Strategy: Heal high-level damaged creatures that can't make a kill this turn
+    // ============================================================================
+    const patchUpHealActions = this.tryPatchUpHeal(player, availableCreatures)
+    if (patchUpHealActions.length > 0) {
+      actions.push(...patchUpHealActions)
+    }
+
     // O(C) iterations - each creature can do BOTH move AND action
     for (const creature of availableCreatures) {
       // ============================================================================
@@ -2242,6 +2253,132 @@ export class SimpleAI {
     }
 
     return opportunities
+  }
+
+  /**
+   * Try to use Patch Up order cards for proactive healing
+   * 0/0/100 pattern - only Hard AI uses order cards
+   *
+   * Strategy:
+   * - Prioritize higher-level damaged creatures
+   * - Only heal creatures that have damage
+   * - Heal creatures that can't make a kill this turn (no wasted action potential)
+   * - Score based on creature level and damage amount
+   *
+   * @param {Object} player - The AI player state
+   * @param {Array} availableCreatures - Untapped creatures that can heal
+   * @returns {Array} Array of patch_up_heal actions
+   */
+  tryPatchUpHeal(player, availableCreatures) {
+    const actions = []
+
+    // Only Hard AI uses order cards (0/0/100 pattern)
+    if (!this.canUseOrderCards()) {
+      return actions
+    }
+
+    // Get Patch Up cards from hand (canHealProactively = true)
+    const patchUpCards = player.orderHand?.filter(card =>
+      card && card.canHealProactively && card.healAmount > 0
+    ) || []
+
+    if (patchUpCards.length === 0) return actions
+
+    // Find all damaged creatures that can use Patch Up and haven't acted
+    const healOpportunities = []
+
+    for (const creature of availableCreatures) {
+      // Skip if creature has no damage
+      if (!creature.damageTokens || creature.damageTokens === 0) continue
+
+      // Skip if creature has already attacked/acted (proactive heal consumes action)
+      if (creature.hasAttackedThisTurn) continue
+
+      // Skip if creature has no position
+      if (!creature.position) continue
+
+      // Find a Patch Up card this creature can use
+      for (const card of patchUpCards) {
+        // Check level requirement
+        if (card.level > creature.creature.level) continue
+
+        // Check ability requirement (Patch Up requires CON)
+        if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+          const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+          const hasRequiredAbility = abilities.some(ability =>
+            creature.creature.abilities?.[ability] === true
+          )
+          if (!hasRequiredAbility) continue
+        }
+
+        // Calculate heal value
+        const healValue = Math.min(card.healAmount, creature.damageTokens)
+
+        // Score based on:
+        // - Creature level (higher = more valuable to heal)
+        // - Damage amount (more damage = more value from heal)
+        // - Current HP percentage (lower = more critical to heal)
+        const levelBonus = creature.creature.level * 15
+        const hpPercent = creature.currentHP / creature.creature.hitPoints
+        const criticalBonus = hpPercent < 0.3 ? 30 : (hpPercent < 0.5 ? 15 : 0)
+
+        // Check if this creature can make a kill (if so, lower priority for healing)
+        let canMakeKill = false
+        const enemies = this.getEnemiesInRange(creature, creature.creature.meleeAttack?.range || 1)
+        for (const enemy of enemies) {
+          if (enemy.currentHP <= (creature.creature.meleeAttack?.damage || 0)) {
+            canMakeKill = true
+            break
+          }
+        }
+
+        // Penalize healing if creature can make a kill (prefer attacking)
+        const killPenalty = canMakeKill ? -50 : 0
+
+        const score = healValue + levelBonus + criticalBonus + killPenalty
+
+        healOpportunities.push({
+          creature,
+          card,
+          healValue,
+          score
+        })
+      }
+    }
+
+    // Sort by score (highest first)
+    healOpportunities.sort((a, b) => b.score - a.score)
+
+    // Use at most 1 Patch Up for healing per turn (to not waste too many cards)
+    // Only heal if score is positive (worth it)
+    if (healOpportunities.length > 0 && healOpportunities[0].score > 0) {
+      const best = healOpportunities[0]
+
+      // Execute the heal
+      best.creature.heal(best.healValue)
+
+      // Mark as having attacked/acted (consumes action like STANDARD)
+      // Uses hasAttackedThisTurn so moveCreature() will tap after movement
+      best.creature.hasAttackedThisTurn = true
+
+      // Remove card from hand
+      const cardIndex = player.orderHand.findIndex(c => c.id === best.card.id)
+      if (cardIndex !== -1) {
+        player.orderHand.splice(cardIndex, 1)
+      }
+
+      console.log(`[AI] Patch Up: ${best.creature.creature.name} healed ${best.healValue} damage (score: ${best.score})`)
+
+      actions.push({
+        type: 'patch_up_heal',
+        creatureInstance: best.creature,
+        card: best.card,
+        healAmount: best.healValue,
+        score: best.score
+      })
+    }
+
+    return actions
   }
 
   /**

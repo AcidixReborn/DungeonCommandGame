@@ -23,6 +23,7 @@ import CardsDrawnModal from './CardsDrawnModal'
 import FactionSelectModal from './FactionSelectModal'
 import ShiftDecisionModal from './ShiftDecisionModal'
 import CounterAttackTargetModal from './CounterAttackTargetModal'
+import PatchUpHealModal from './PatchUpHealModal'
 import './GameBoard.css'
 
 /**
@@ -225,6 +226,9 @@ function GameBoard({ onTurnInfoChange }) {
     // Counter-Attack Target Selection (Seize the Opportunity)
     showCounterAttackTargetModal, setShowCounterAttackTargetModal,
     counterAttackPending, setCounterAttackPending,
+    // Patch Up Heal (proactive healing during ACTIVATE)
+    showPatchUpHealModal, setShowPatchUpHealModal,
+    patchUpHealConfig, setPatchUpHealConfig,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -2440,6 +2444,57 @@ function GameBoard({ onTurnInfoChange }) {
     executeAttackAfterDefense(pendingDefenseResult)
   }
 
+  /**
+   * Execute Patch Up proactive heal
+   * Heals the creature, consumes action (like STANDARD), discards card
+   * Does NOT tap - creature can still move after healing if it hasn't moved yet
+   */
+  const executePatchUpHeal = () => {
+    if (!patchUpHealConfig?.card || !patchUpHealConfig?.creature) return
+
+    const { card, cardIndex, creature, healAmount } = patchUpHealConfig
+    const player = gameState.getCurrentPlayerState()
+
+    // Calculate actual healing
+    const actualHeal = Math.min(healAmount, creature.damageTokens || 0)
+
+    // Heal the creature
+    creature.heal(actualHeal)
+
+    // Consume creature's action (mark as having attacked - like STANDARD action)
+    // This uses hasAttackedThisTurn so that moveCreature() will tap after movement
+    // (gameState.moveCreature checks hasAttackedThisTurn to decide if it should tap)
+    creature.hasAttackedThisTurn = true
+
+    // NOTE: Do NOT call creature.tap() here!
+    // Tapping only happens after both moving AND acting
+    // Proactive heal only consumes the action, not the movement
+
+    // Discard the card from hand
+    const handCardIndex = player.orderHand.findIndex(c => c.id === card.id)
+    if (handCardIndex !== -1) {
+      player.orderHand.splice(handCardIndex, 1)
+    }
+
+    // Toast notification
+    addToast(`${creature.creature.name} used Patch Up to heal ${actualHeal} damage`)
+
+    // Close modal and clear state
+    setShowPatchUpHealModal(false)
+    setPatchUpHealConfig({ card: null, creature: null, healAmount: 0 })
+
+    // Force re-render
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Cancel Patch Up proactive heal
+   */
+  const cancelPatchUpHeal = () => {
+    setShowPatchUpHealModal(false)
+    setPatchUpHealConfig({ card: null, creature: null, healAmount: 0 })
+  }
+
   // Handle collect morale from treasure (show confirmation modal)
   const handleCollectMorale = () => {
     if (!selectedBoardCreature) {
@@ -3800,6 +3855,50 @@ function GameBoard({ onTurnInfoChange }) {
       setOrderCardTargetingMode(true)
       setOrderCardValidTargets(validTargets)
       addToast(`🕸️ WEB targeting: Right-click on a highlighted enemy (${validTargets.length} targets)`)
+      return
+    }
+
+    // PATCH UP PROACTIVE HEAL: Check if this is a card that can heal proactively
+    if (card.canHealProactively && card.healAmount > 0) {
+      // Check if creature has damage to heal
+      const creature = orderCardFilterCreature
+      if (!creature.damageTokens || creature.damageTokens === 0) {
+        addToast(`${creature.creature.name} has no damage to heal`)
+        return
+      }
+
+      // Check level requirement
+      if (card.level > creature.creature.level) {
+        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+        return
+      }
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+        const hasRequiredAbility = abilities.some(ability =>
+          creature.creature.abilities?.[ability] === true
+        )
+        if (!hasRequiredAbility) {
+          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+          return
+        }
+      }
+
+      // Check if creature has already attacked/acted (proactive heal consumes action like STANDARD)
+      if (creature.hasAttackedThisTurn) {
+        addToast(`${creature.creature.name} has already acted this turn`)
+        return
+      }
+
+      // Show Patch Up heal modal
+      setPatchUpHealConfig({
+        card,
+        cardIndex,
+        creature,
+        healAmount: card.healAmount
+      })
+      setShowPatchUpHealModal(true)
       return
     }
 
@@ -8167,6 +8266,16 @@ function GameBoard({ onTurnInfoChange }) {
         onSelectTarget={handleCounterAttackTargetSelected}
         onSkip={handleCounterAttackSkipped}
         counterAttackData={counterAttackPending}
+      />
+
+      {/* PATCH UP HEAL MODAL (proactive healing during ACTIVATE phase) */}
+      <PatchUpHealModal
+        show={showPatchUpHealModal}
+        card={patchUpHealConfig?.card}
+        creature={patchUpHealConfig?.creature}
+        healAmount={patchUpHealConfig?.healAmount || 0}
+        onConfirm={executePatchUpHeal}
+        onCancel={cancelPatchUpHeal}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}

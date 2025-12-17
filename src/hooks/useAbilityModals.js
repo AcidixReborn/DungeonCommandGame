@@ -191,6 +191,17 @@ export function useAbilityModals() {
   // { damage, validTargets, defenderInstance, attackerInstance, pendingDefenseResult }
 
   // ============================================
+  // PATCH UP HEAL modal (proactive healing during ACTIVATE)
+  // Dual-mode card: Can heal during ACTIVATE phase OR prevent during defense
+  // ============================================
+  const [showPatchUpHealModal, setShowPatchUpHealModal] = useState(false)
+  const [patchUpHealConfig, setPatchUpHealConfig] = useState({
+    card: null,
+    creature: null,
+    healAmount: 0
+  })
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -498,6 +509,12 @@ export function useAbilityModals() {
     setShowCounterAttackTargetModal,
     counterAttackPending,
     setCounterAttackPending,
+
+    // Patch Up Heal (proactive healing during ACTIVATE)
+    showPatchUpHealModal,
+    setShowPatchUpHealModal,
+    patchUpHealConfig,
+    setPatchUpHealConfig,
 
     // Clear all
     clearAllAbilityModalState

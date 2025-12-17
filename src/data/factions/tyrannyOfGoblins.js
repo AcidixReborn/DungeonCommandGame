@@ -564,7 +564,8 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: nimbleStrikeOrder21Img
   },
-  // Card 22: Patch Up - Level 1, CON, IMMEDIATE (Placeholder - complex OR choice)
+  // Card 22: Patch Up - Level 1, CON, IMMEDIATE - ABILITY IMPLEMENTED
+  // Dual-mode card: Can heal 20 proactively (ACTIVATE phase) OR prevent 20 defensively
   {
     id: 'tog_ord_22',
     name: 'Patch Up',
@@ -573,9 +574,13 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'This creature heals 20 damage. OR Prevent 20 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: patchUpOrder22Img
+    imageUrl: patchUpOrder22Img,
+    damagePrevented: 20, // For prevent mode (defensive)
+    healAmount: 20, // For heal mode (proactive)
+    canHealProactively: true // Enable proactive heal mode during ACTIVATE phase
   },
-  // Card 23: Patch Up - Level 1, CON, IMMEDIATE (Placeholder - complex OR choice)
+  // Card 23: Patch Up - Level 1, CON, IMMEDIATE - ABILITY IMPLEMENTED
+  // Dual-mode card: Can heal 20 proactively (ACTIVATE phase) OR prevent 20 defensively
   {
     id: 'tog_ord_23',
     name: 'Patch Up',
@@ -584,7 +589,10 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'This creature heals 20 damage. OR Prevent 20 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: patchUpOrder23Img
+    imageUrl: patchUpOrder23Img,
+    damagePrevented: 20, // For prevent mode (defensive)
+    healAmount: 20, // For heal mode (proactive)
+    canHealProactively: true // Enable proactive heal mode during ACTIVATE phase
   },
   // Card 24: Portal Stone - Level 1, ANY, MINOR
   {
