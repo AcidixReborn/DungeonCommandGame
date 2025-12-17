@@ -143,6 +143,14 @@ export function useAbilityModals() {
   const [webRemovalData, setWebRemovalData] = useState(null)
 
   // ============================================
+  // CARDS DRAWN modal
+  // Shows at ACTIVATE phase start to display cards drawn during REFRESH
+  // ============================================
+  const [showCardsDrawnModal, setShowCardsDrawnModal] = useState(false)
+  const [cardsDrawnData, setCardsDrawnData] = useState([])
+  const [bonusDrawSources, setBonusDrawSources] = useState([]) // Card names that triggered bonus draws (e.g., ["Parry"])
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -257,6 +265,8 @@ export function useAbilityModals() {
     setClericDrawOrderData(null)
     setShowWebRemovalModal(false)
     setWebRemovalData(null)
+    setShowCardsDrawnModal(false)
+    setCardsDrawnData([])
   }, [
     clearFlashingBladesState,
     clearHiddenBladeState,
@@ -408,6 +418,14 @@ export function useAbilityModals() {
     setShowWebRemovalModal,
     webRemovalData,
     setWebRemovalData,
+
+    // Cards Drawn
+    showCardsDrawnModal,
+    setShowCardsDrawnModal,
+    cardsDrawnData,
+    setCardsDrawnData,
+    bonusDrawSources,
+    setBonusDrawSources,
 
     // Clear all
     clearAllAbilityModalState

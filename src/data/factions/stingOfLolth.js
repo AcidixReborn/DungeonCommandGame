@@ -399,7 +399,9 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Draw 1 Order card.',
     faction: FACTION_NAME,
-    imageUrl: parry12Img
+    imageUrl: parry12Img,
+    damagePrevented: 10,
+    drawCards: 1
   },
   {
     id: 'sol_ord_13',
@@ -409,7 +411,9 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Draw 1 Order card.',
     faction: FACTION_NAME,
-    imageUrl: parry13Img
+    imageUrl: parry13Img,
+    damagePrevented: 10,
+    drawCards: 1
   },
   {
     id: 'sol_ord_14',

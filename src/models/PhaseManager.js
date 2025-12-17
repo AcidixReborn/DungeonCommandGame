@@ -280,8 +280,20 @@ export class PhaseManager {
     // Reset commander ability state for new turn
     player.resetAbilitiesForNewTurn()
 
-    // Draw 1 order card
-    player.drawOrderCards(1)
+    // Calculate total cards to draw (1 normal + any bonus from Parry/Defensive Advantage)
+    const bonusDraws = player.bonusOrderCardsToDraw || 0
+    const totalCardsToDraw = 1 + bonusDraws
+
+    // Store bonus draw sources before resetting (for modal display)
+    player.bonusDrawSourcesThisTurn = [...(player.bonusDrawSources || [])]
+
+    // Draw order cards and store them for the modal display
+    const drawnCards = player.drawOrderCards(totalCardsToDraw)
+    player.cardsDrawnThisTurn = drawnCards
+
+    // Reset bonus draws counter and sources
+    player.bonusOrderCardsToDraw = 0
+    player.bonusDrawSources = []
 
     // Untap all creatures
     player.creaturesInPlay.forEach(creature => creature.untap())

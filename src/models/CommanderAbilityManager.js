@@ -767,13 +767,24 @@ export class CommanderAbilityManager {
       usingCreature.untap()
     }
 
+    // Handle draw cards effect - queue for next REFRESH phase (not drawn immediately)
+    // This ensures the attacking player cannot see the drawn card (important for PvP)
+    const drawCards = card.drawCards || 0
+    if (drawCards > 0) {
+      player.bonusOrderCardsToDraw += drawCards
+      // Track which card caused the bonus draw (for modal display)
+      if (!player.bonusDrawSources) player.bonusDrawSources = []
+      player.bonusDrawSources.push(card.name)
+    }
+
     return {
       success: true,
       damagePrevented: damagePrevented,
       cardUsed: card,
       moraleCost: moraleCost,
       moraleGain: moraleGain,
-      untapAfterUse: untapAfterUse
+      untapAfterUse: untapAfterUse,
+      bonusDrawsQueued: drawCards
     }
   }
 

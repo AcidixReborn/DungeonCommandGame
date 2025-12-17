@@ -370,7 +370,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: deathGripOrder7Img
   },
-  // Card 8: Defensive Advantage - Level 2, CON, IMMEDIATE
+  // Card 8: Defensive Advantage - Level 2, CON, IMMEDIATE (IMPLEMENTED - prevents 20 damage, draws 1 card)
   {
     id: 'cou_ord_8',
     name: 'Defensive Advantage',
@@ -379,9 +379,11 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 20 damage to this creature from 1 source. Draw 1 Order card.',
     faction: FACTION_NAME,
-    imageUrl: defensiveAdvantageOrder8Img
+    imageUrl: defensiveAdvantageOrder8Img,
+    damagePrevented: 20,
+    drawCards: 1
   },
-  // Card 9: Defensive Advantage - Level 2, CON, IMMEDIATE
+  // Card 9: Defensive Advantage - Level 2, CON, IMMEDIATE (IMPLEMENTED - prevents 20 damage, draws 1 card)
   {
     id: 'cou_ord_9',
     name: 'Defensive Advantage',
@@ -390,7 +392,9 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 20 damage to this creature from 1 source. Draw 1 Order card.',
     faction: FACTION_NAME,
-    imageUrl: defensiveAdvantageOrder9Img
+    imageUrl: defensiveAdvantageOrder9Img,
+    damagePrevented: 20,
+    drawCards: 1
   },
   // Card 10: Dimension Door - Level 4, INT, MINOR
   {

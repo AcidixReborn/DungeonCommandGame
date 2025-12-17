@@ -47,6 +47,7 @@ function DefenseOptionsPanel({
   const [selectedUndeadCreatures, setSelectedUndeadCreatures] = useState([])
   const [selectedImmediateCard, setSelectedImmediateCard] = useState(null)
   const [selectedCardCreature, setSelectedCardCreature] = useState(null)
+  const [hoverPreview, setHoverPreview] = useState(null) // { type: 'order' | 'creature', data: cardInfo | creatureInstance }
 
   // O(1) - Reset state when defender changes
   useEffect(() => {
@@ -249,14 +250,46 @@ function DefenseOptionsPanel({
 
   return (
     <div className="combat-panel defense-options-panel">
+      {/* Hover Preview - positioned to the left of the panel */}
+      {hoverPreview && (
+        <div
+          style={{
+            position: 'fixed',
+            right: '340px', // Position to the left of the ~320px defense panel
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 9999,
+            pointerEvents: 'none',
+            maxWidth: '280px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            borderRadius: '8px',
+            overflow: 'hidden'
+          }}
+        >
+          {hoverPreview.type === 'order' ? (
+            <img
+              src={hoverPreview.data.card.imageUrl}
+              alt={hoverPreview.data.card.name}
+              style={{ width: '100%', height: 'auto', display: 'block' }}
+            />
+          ) : (
+            <img
+              src={hoverPreview.data.creature.imageUrl}
+              alt={hoverPreview.data.creature.name}
+              style={{ width: '100%', height: 'auto', display: 'block' }}
+            />
+          )}
+        </div>
+      )}
+
       {/* Header */}
-      <div className="combat-panel-header defense-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="combat-panel-header defense-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '6px', marginBottom: '2px' }}>
         <h5 style={{ margin: 0 }}>🛡️ Defend Against Attack</h5>
-        <Badge bg="info">Morale: {defenderPlayerState.morale}</Badge>
+        <Badge bg="info" style={{ padding: '2px 6px' }}>Morale: {defenderPlayerState.morale}</Badge>
       </div>
 
       {/* Combat Creatures Display - O(1) render */}
-      <div className="combat-creatures-display">
+      <div className="combat-creatures-display" style={{ padding: '2px 0' }}>
         {/* Attacker */}
         <div className="combat-creature-section attacker-section">
           <span className="combat-creature-label">Attacker</span>
@@ -283,59 +316,62 @@ function DefenseOptionsPanel({
 
       {/* Attack Info */}
       <div className="combat-info">
-        <div className="combat-info-row">
-          <span>Attack Type:</span>
-          <Badge bg={
-            attackType === 'ranged' ? 'info'
-            : attackType === 'splash' ? 'warning'
-            : attackType === 'ranged_splash' ? 'success'
-            : attackType === 'flashing_blades' ? 'warning'
-            : attackType === 'hidden_blade' ? 'secondary'
-            : attackType === 'confusion_gaze' ? 'warning'
-            : 'danger'
-          }>
-            {attackType === 'ranged' ? '🏹 Ranged'
-             : attackType === 'splash' ? '💀 SWIRL (Splash)'
-             : attackType === 'ranged_splash' ? `🔥 ${attackInfo?.abilityName || 'Ranged Splash'}`
-             : attackType === 'flashing_blades' ? '⚔️ FLASHING BLADES'
-             : attackType === 'hidden_blade' ? '🗡️ HIDDEN BLADE'
-             : attackType === 'confusion_gaze' ? '😵 CONFUSION GAZE'
-             : '⚔️ Melee'}
-          </Badge>
-        </div>
-        <div className="combat-info-row">
-          <span>Damage:</span>
-          {cutterBonus > 0 || flankingBonus > 0 ? (
-            <span>
-              <Badge bg="warning" text="dark">{baseDamage}</Badge>
-              {flankingBonus > 0 && (
-                <>
-                  <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
-                  <span style={{ color: '#888', marginLeft: '4px' }}>(FLANKING)</span>
-                </>
-              )}
-              {cutterBonus > 0 && (
-                <>
-                  <span style={{ color: '#ff5722', marginLeft: '4px' }}>+{cutterBonus}</span>
-                  <span style={{ color: '#888', marginLeft: '4px' }}>(CUTTER)</span>
-                </>
-              )}
-              <span style={{ marginLeft: '4px' }}>=</span>
-              <Badge bg="success" style={{ marginLeft: '4px' }}>{originalDamage}</Badge>
-            </span>
-          ) : (
-            <Badge bg="warning" text="dark">{originalDamage}</Badge>
-          )}
+        {/* Row 1: Attack Type + Damage */}
+        <div className="combat-info-row" style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.85rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>Attack Type:</span>
+            <Badge bg={
+              attackType === 'ranged' ? 'info'
+              : attackType === 'splash' ? 'warning'
+              : attackType === 'ranged_splash' ? 'success'
+              : attackType === 'flashing_blades' ? 'warning'
+              : attackType === 'hidden_blade' ? 'secondary'
+              : attackType === 'confusion_gaze' ? 'warning'
+              : 'danger'
+            } style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+              {attackType === 'ranged' ? '🏹 Ranged'
+               : attackType === 'splash' ? '💀 SWIRL (Splash)'
+               : attackType === 'ranged_splash' ? `🔥 ${attackInfo?.abilityName || 'Ranged Splash'}`
+               : attackType === 'flashing_blades' ? '⚔️ FLASHING BLADES'
+               : attackType === 'hidden_blade' ? '🗡️ HIDDEN BLADE'
+               : attackType === 'confusion_gaze' ? '😵 CONFUSION GAZE'
+               : '⚔️ Melee'}
+            </Badge>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>Damage:</span>
+            {cutterBonus > 0 || flankingBonus > 0 ? (
+              <span>
+                <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{baseDamage}</Badge>
+                {flankingBonus > 0 && (
+                  <>
+                    <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
+                    <span style={{ color: '#888', marginLeft: '4px' }}>(FLANKING)</span>
+                  </>
+                )}
+                {cutterBonus > 0 && (
+                  <>
+                    <span style={{ color: '#ff5722', marginLeft: '4px' }}>+{cutterBonus}</span>
+                    <span style={{ color: '#888', marginLeft: '4px' }}>(CUTTER)</span>
+                  </>
+                )}
+                <span style={{ marginLeft: '4px' }}>=</span>
+                <Badge bg="success" style={{ marginLeft: '4px', fontSize: '0.7rem', padding: '2px 6px' }}>{originalDamage}</Badge>
+              </span>
+            ) : (
+              <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{originalDamage}</Badge>
+            )}
+          </div>
         </div>
         {accumulatedDamageReduction > 0 && (
-          <div className="combat-info-row">
+          <div className="combat-info-row" style={{ fontSize: '0.85rem' }}>
             <span>Already Prevented:</span>
-            <Badge bg="success">{accumulatedDamageReduction}</Badge>
+            <Badge bg="success" style={{ fontSize: '0.75rem' }}>{accumulatedDamageReduction}</Badge>
           </div>
         )}
         {/* MAGIC CIRCLE AURA - shows damage prevention from Hobgoblin Sorcerer on Magic Circle */}
         {magicCircleReduction > 0 && (
-          <div className="combat-info-row">
+          <div className="combat-info-row" style={{ fontSize: '0.85rem' }}>
             <span style={{ color: '#9932cc' }}>🔮 MAGIC CIRCLE AURA:</span>
             <span style={{ color: '#9932cc' }}>
               Block {magicCircleReduction} ({originalDamage - accumulatedDamageReduction} → {damageAfterMagicCircle})
@@ -343,22 +379,23 @@ function DefenseOptionsPanel({
           </div>
         )}
         {shieldBlockReduction > 0 && (
-          <div className="combat-info-row">
+          <div className="combat-info-row" style={{ fontSize: '0.85rem' }}>
             <span style={{ color: '#2196f3' }}>SHIELD BLOCK:</span>
             <span style={{ color: '#2196f3' }}>
               Block {shieldBlockReduction} ({damageAfterMagicCircle} → {incomingDamage})
             </span>
           </div>
         )}
-        <div className="combat-info-row">
-          <span>Remaining Damage:</span>
-          <Badge bg="danger">{incomingDamage}</Badge>
-        </div>
-        <div className="combat-info-row">
-          <span>Target HP:</span>
-          <span className="hp-display">
-            {defenderInstance.currentHP}/{defenderInstance.creature.hitPoints}
-          </span>
+        {/* Row 2: Remaining Damage + Target HP */}
+        <div className="combat-info-row" style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.85rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>Remaining Damage:</span>
+            <Badge bg="danger" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{incomingDamage}</Badge>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>Target HP:</span>
+            <Badge bg="info" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{defenderInstance.currentHP}/{defenderInstance.creature.hitPoints}</Badge>
+          </div>
         </div>
         {/* REACH 2 indicator - shows when being attacked from extended range */}
         {isReachAttack && (
@@ -417,27 +454,25 @@ function DefenseOptionsPanel({
             <Card.Body className="py-2 px-2">
               <div className="d-flex justify-content-between align-items-start">
                 <div style={{ flex: 1 }}>
-                  <h6 className="mb-1">
-                    🛡️ COWER
-                    <Badge bg="warning" text="dark" className="ms-2" style={{ fontSize: '0.7rem' }}>Universal</Badge>
+                  {/* Row 1: COWER | Cost | Morale change */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>🛡️ COWER</span>
                     {cowerInfo.extraCost > 0 && (
-                      <Badge bg="danger" className="ms-1" style={{ fontSize: '0.65rem' }}>
+                      <Badge bg="danger" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
                         +{cowerInfo.extraCost} BLACK HAND
                       </Badge>
                     )}
-                  </h6>
-                  <p className="mb-1" style={{ fontSize: '0.8rem' }}>
-                    Avoid <strong className="text-success">ALL {incomingDamage} damage</strong>.
-                    Creature becomes tapped.
-                  </p>
-                  <div className="d-flex gap-1 flex-wrap">
-                    <Badge bg="danger" style={{ fontSize: '0.75rem' }}>
+                    <Badge bg="danger" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
                       Cost: {cowerInfo.moraleCost} Morale
                     </Badge>
+                    <span style={{ fontSize: '0.75rem', color: selectedDefense === 'cower' ? '#fff' : '#adb5bd' }}>
+                      Morale: {defenderPlayerState.morale} → {defenderPlayerState.morale - cowerInfo.moraleCost}
+                    </span>
                   </div>
-                  <small style={{ fontSize: '0.75rem', color: '#adb5bd' }}>
-                    Morale: {defenderPlayerState.morale} → {defenderPlayerState.morale - cowerInfo.moraleCost}
-                  </small>
+                  {/* Row 2: Description */}
+                  <p className="mb-0" style={{ fontSize: '0.8rem' }}>
+                    Avoid <strong style={{ color: selectedDefense === 'cower' ? '#fff' : '#28a745' }}>ALL {incomingDamage} damage</strong>. Creature becomes tapped.
+                  </p>
                 </div>
                 {selectedDefense === 'cower' && (
                   <Badge bg="light" text="dark" style={{ fontSize: '1rem' }}>✓</Badge>
@@ -519,95 +554,186 @@ function DefenseOptionsPanel({
         {/* IMMEDIATE Cards Option */}
         {immediateCards.length > 0 && (
           <Card
-            bg={selectedDefense === 'immediate_card' ? 'warning' : 'dark'}
-            text={selectedDefense === 'immediate_card' ? 'dark' : 'white'}
+            bg="dark"
+            text="white"
             className="defense-option-card mb-2"
             style={{
-              cursor: 'pointer',
               border: selectedDefense === 'immediate_card' ? '2px solid #ffc107' : '2px solid #6f42c1'
-            }}
-            onClick={() => {
-              if (!selectedImmediateCard && immediateCards.length > 0) {
-                handleSelectImmediateCard(immediateCards[0])
-              } else {
-                handleSelectDefense('immediate_card')
-              }
             }}
           >
             <Card.Body className="py-2 px-2">
               <h6 className="mb-2">
                 ⚡ IMMEDIATE Cards
-                <Badge bg="secondary" className="ms-2" style={{ fontSize: '0.7rem' }}>Order Cards</Badge>
               </h6>
 
-              <div className="immediate-cards-list">
+              {/* Card images grid - 3 columns */}
+              <div
+                className="immediate-cards-grid"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '4px',
+                  maxHeight: '200px',
+                  overflowY: 'auto'
+                }}
+              >
                 {immediateCards.map((cardInfo, index) => (
-                  <Card
+                  <div
                     key={`${cardInfo.card.id}-${index}`}
-                    bg={selectedImmediateCard?.card.id === cardInfo.card.id ? 'success' : 'secondary'}
-                    text="white"
-                    className="mb-1"
                     style={{
+                      position: 'relative',
                       cursor: 'pointer',
-                      border: selectedImmediateCard?.card.id === cardInfo.card.id ? '2px solid #28a745' : '1px solid #444',
-                      fontSize: '0.8rem'
+                      borderRadius: '6px',
+                      border: selectedImmediateCard?.card.id === cardInfo.card.id
+                        ? '3px solid #28a745'
+                        : '2px solid transparent',
+                      overflow: 'hidden',
+                      transition: 'border-color 0.2s'
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
                       handleSelectImmediateCard(cardInfo)
                     }}
+                    onMouseEnter={() => setHoverPreview({ type: 'order', data: cardInfo })}
+                    onMouseLeave={() => setHoverPreview(null)}
                   >
-                    <Card.Body className="py-1 px-2">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <strong>{cardInfo.card.name}</strong>
-                          <Badge bg="info" className="ms-1" style={{ fontSize: '0.65rem' }}>Lv{cardInfo.card.level}</Badge>
-                          <br />
-                          <small>
-                            {cardInfo.moraleCost > 0
-                              ? `Lose ${cardInfo.moraleCost} Morale to prevent ${cardInfo.damagePrevented} damage`
-                              : `Prevents ${cardInfo.damagePrevented} damage`
-                            }
-                          </small>
-                        </div>
-                        {selectedImmediateCard?.card.id === cardInfo.card.id && (
-                          <Badge bg="light" text="dark">✓</Badge>
-                        )}
+                    {/* Card Image */}
+                    <img
+                      src={cardInfo.card.imageUrl}
+                      alt={cardInfo.card.name}
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block'
+                      }}
+                    />
+                    {/* Damage Prevention Overlay */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '4px',
+                        right: '4px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        color: '#28a745',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {cardInfo.moraleCost > 0
+                        ? `-${cardInfo.moraleCost}M / -${cardInfo.damagePrevented}dmg`
+                        : `-${cardInfo.damagePrevented}dmg`
+                      }
+                    </div>
+                    {/* Selected checkmark */}
+                    {selectedImmediateCard?.card.id === cardInfo.card.id && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '4px',
+                          right: '4px',
+                          backgroundColor: '#28a745',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: '20px',
+                          height: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        ✓
                       </div>
-                    </Card.Body>
-                  </Card>
+                    )}
+                  </div>
                 ))}
               </div>
 
-              {/* Creature selection */}
+              {/* Creature selection with card images */}
               {selectedDefense === 'immediate_card' && selectedImmediateCard && (
                 <div
                   className="mt-2 p-2"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '6px', fontSize: '0.8rem' }}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '6px' }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <strong className="d-block mb-1">Select creature to use card:</strong>
-                  {selectedImmediateCard.eligibleCreatures.map((creature) => (
-                    <Form.Check
-                      key={creature.instanceId}
-                      type="radio"
-                      id={`immediate-creature-${creature.instanceId}`}
-                      name="immediateCreatureSelection"
-                      label={
-                        <span>
-                          <strong>{creature.creature.name}</strong>
-                          {creature.instanceId === defenderInstance.instanceId
-                            ? <Badge bg="primary" className="ms-1" style={{ fontSize: '0.65rem' }}>Defender</Badge>
-                            : <Badge bg="secondary" className="ms-1" style={{ fontSize: '0.65rem' }}>Adjacent</Badge>
-                          }
-                        </span>
-                      }
-                      checked={selectedCardCreature?.instanceId === creature.instanceId}
-                      onChange={() => setSelectedCardCreature(creature)}
-                      className="mb-1"
-                      style={{ color: '#fff', fontSize: '0.8rem' }}
-                    />
-                  ))}
+                  <strong className="d-block mb-2" style={{ fontSize: '0.85rem' }}>Select creature to use card:</strong>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '4px'
+                    }}
+                  >
+                    {selectedImmediateCard.eligibleCreatures.map((creature) => (
+                      <div
+                        key={creature.instanceId}
+                        style={{
+                          cursor: 'pointer',
+                          borderRadius: '6px',
+                          border: selectedCardCreature?.instanceId === creature.instanceId
+                            ? '3px solid #007bff'
+                            : '2px solid #444',
+                          overflow: 'hidden',
+                          position: 'relative'
+                        }}
+                        onClick={() => setSelectedCardCreature(creature)}
+                        onMouseEnter={() => setHoverPreview({ type: 'creature', data: creature })}
+                        onMouseLeave={() => setHoverPreview(null)}
+                      >
+                        {/* Creature Image */}
+                        <img
+                          src={creature.creature.imageUrl}
+                          alt={creature.creature.name}
+                          style={{
+                            width: '100%',
+                            height: 'auto',
+                            display: 'block'
+                          }}
+                        />
+                        {/* Defender/Adjacent badge */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '2px',
+                            left: '2px',
+                            backgroundColor: creature.instanceId === defenderInstance.instanceId ? '#007bff' : '#6c757d',
+                            color: 'white',
+                            padding: '1px 4px',
+                            borderRadius: '3px',
+                            fontSize: '0.5rem',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {creature.instanceId === defenderInstance.instanceId ? 'DEFENDER' : 'ADJACENT'}
+                        </div>
+                        {/* Selected checkmark */}
+                        {selectedCardCreature?.instanceId === creature.instanceId && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '2px',
+                              right: '2px',
+                              backgroundColor: '#007bff',
+                              color: 'white',
+                              borderRadius: '50%',
+                              width: '14px',
+                              height: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.6rem',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            ✓
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </Card.Body>

@@ -19,6 +19,7 @@ import HealingTouchModal from './HealingTouchModal'
 import ChieftainCallModal from './ChieftainCallModal'
 import OgreDeployMoraleModal from './OgreDeployMoraleModal'
 import ClericDrawOrderModal from './ClericDrawOrderModal'
+import CardsDrawnModal from './CardsDrawnModal'
 import './GameBoard.css'
 
 /**
@@ -202,6 +203,10 @@ function GameBoard({ onTurnInfoChange }) {
     // Web Removal
     showWebRemovalModal, setShowWebRemovalModal,
     webRemovalData, setWebRemovalData,
+    // Cards Drawn
+    showCardsDrawnModal, setShowCardsDrawnModal,
+    cardsDrawnData, setCardsDrawnData,
+    bonusDrawSources, setBonusDrawSources,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -959,6 +964,7 @@ function GameBoard({ onTurnInfoChange }) {
             let extraEffects = ''
             if (defenseResult.moraleGain > 0) extraEffects += ` +${defenseResult.moraleGain} morale!`
             if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
+            if (defenseResult.bonusDrawsQueued > 0) extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
             message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented${defenseResult.untapAfterUse ? '' : ` (${defenseResult.creatureTapped} tapped)`}!${extraEffects} `
           }
         }
@@ -3643,6 +3649,7 @@ function GameBoard({ onTurnInfoChange }) {
             let extraEffects = ''
             if (defenseResult.moraleGain > 0) extraEffects += ` +${defenseResult.moraleGain} morale!`
             if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
+            if (defenseResult.bonusDrawsQueued > 0) extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
             message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented${defenseResult.untapAfterUse ? '' : ` (${defenseResult.creatureTapped} tapped)`}!${extraEffects} `
           }
         }
@@ -6107,6 +6114,25 @@ function GameBoard({ onTurnInfoChange }) {
     }
   }, [gameState?.currentPhase, gameState?.currentPlayer])
 
+  // CARDS DRAWN: Show modal at start of ACTIVATE phase displaying cards drawn during REFRESH
+  // This shows the player what Order cards they drew before they make any moves
+  useEffect(() => {
+    if (!gameState?.currentPlayer) return
+    if (!gameState?.currentPhase) return
+
+    // Only trigger at the start of ACTIVATE phase for human players
+    if (gameState.currentPhase === GamePhases.ACTIVATE && isPlayerHuman(gameState.currentPlayer)) {
+      const player = gameState.getCurrentPlayerState()
+      // Only show modal if cards were drawn (even if empty array, show "no cards to draw")
+      if (player.cardsDrawnThisTurn !== undefined) {
+        setCardsDrawnData(player.cardsDrawnThisTurn || [])
+        // Also set bonus draw sources (e.g., ["Parry", "Defensive Advantage"])
+        setBonusDrawSources(player.bonusDrawSourcesThisTurn || [])
+        setShowCardsDrawnModal(true)
+      }
+    }
+  }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber])
+
   const getPhaseButtonText = () => {
     if (!gameState) return 'Start Phase'
 
@@ -7455,6 +7481,23 @@ function GameBoard({ onTurnInfoChange }) {
         show={showClericDrawOrderModal}
         onDismiss={() => setShowClericDrawOrderModal(false)}
         result={clericDrawOrderResult}
+      />
+
+      {/* CARDS DRAWN MODAL - Shows cards drawn at start of ACTIVATE phase */}
+      <CardsDrawnModal
+        show={showCardsDrawnModal}
+        cards={cardsDrawnData}
+        bonusSources={bonusDrawSources}
+        onContinue={() => {
+          setShowCardsDrawnModal(false)
+          // Clear the drawn cards tracking after showing the modal
+          const player = gameState?.getCurrentPlayerState()
+          if (player) {
+            player.cardsDrawnThisTurn = []
+            player.bonusDrawSourcesThisTurn = []
+          }
+          setBonusDrawSources([])
+        }}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}

@@ -121,6 +121,11 @@ export class PlayerState {
     // Graveyard - destroyed creatures go here (creature cards, not instances)
     this.creatureGraveyard = []
 
+    // Order card draw tracking
+    this.bonusOrderCardsToDraw = 0    // Pending bonus draws from cards like Parry/Defensive Advantage
+    this.bonusDrawSources = []        // Names of cards that caused bonus draws (e.g., ["Parry", "Defensive Advantage"])
+    this.cardsDrawnThisTurn = []      // Cards drawn during REFRESH (for modal display)
+
     // Commander ability state tracking
     this.commanderAbilityState = {
       usedThisTurn: [],      // Track once-per-turn abilities (array of ability IDs)

@@ -198,7 +198,8 @@ export class AITurnManager {
           cardUsed: defenseDecision.card.name,
           creatureTapped: defenseDecision.creature.creature.name,
           moraleGain: result.moraleGain || 0,
-          untapAfterUse: result.untapAfterUse || false
+          untapAfterUse: result.untapAfterUse || false,
+          bonusDrawsQueued: result.bonusDrawsQueued || 0
         }
       }
     }
@@ -242,6 +243,7 @@ export class AITurnManager {
         let extraEffects = ''
         if (defenseResult.moraleGain > 0) extraEffects += ` +${defenseResult.moraleGain} morale!`
         if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
+        if (defenseResult.bonusDrawsQueued > 0) extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
         message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented${defenseResult.untapAfterUse ? '' : ` (${defenseResult.creatureTapped} tapped)`}!${extraEffects} `
       }
     }

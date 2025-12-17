@@ -38,7 +38,8 @@ export class OrderCard {
     damagePrevented = null, // Amount of damage this IMMEDIATE card prevents (null = not implemented, will default to 0)
     moraleCost = 0, // Morale cost to use this card (only if card ability explicitly requires it, default 0)
     moraleGain = 0, // Morale gained when using this card (e.g., Defiant Stance gains 1 Morale)
-    untapAfterUse = false // If true, creature untaps after using this card (e.g., Tactical Block)
+    untapAfterUse = false, // If true, creature untaps after using this card (e.g., Tactical Block)
+    drawCards = 0 // Number of order cards to draw when using this IMMEDIATE card (e.g., Parry, Defensive Advantage)
   }) {
     this.id = id
     this.name = name
@@ -56,6 +57,7 @@ export class OrderCard {
     this.moraleCost = moraleCost // Morale cost to use this card (0 = no cost, only set if card ability explicitly requires it)
     this.moraleGain = moraleGain // Morale gained when using this card (0 = no gain)
     this.untapAfterUse = untapAfterUse // If true, creature untaps after using this IMMEDIATE card
+    this.drawCards = drawCards // Number of order cards to draw when using this IMMEDIATE card
   }
 
   /**
