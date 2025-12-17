@@ -3261,9 +3261,12 @@ export class GameState {
 
   /**
    * Apply IMMEDIATE card for defense - delegates to abilityManager
+   * @param {OrderCard} card - The immediate card to use
+   * @param {CreatureInstance} usingCreature - The creature using the card
+   * @param {OrderCard} discardCard - Optional card to discard as cost (e.g., Uncanny Dodge)
    */
-  applyImmediateCardDefense(card, usingCreature) {
-    return this.abilityManager.applyImmediateCardDefense(card, usingCreature)
+  applyImmediateCardDefense(card, usingCreature, discardCard = null) {
+    return this.abilityManager.applyImmediateCardDefense(card, usingCreature, discardCard)
   }
 
   /**

@@ -8,7 +8,7 @@ Master plan for implementing all Order Cards with AI difficulty support (0/0/100
 
 ## PART 1: IMMEDIATE CARDS (Remaining)
 
-### Phase IMD-5: Target Other Creatures
+### Phase IMD-5: Target Other Creatures ✅ COMPLETE
 Cards that prevent damage to creatures OTHER than the card user.
 
 | Card | Faction | Effect | Targeting |
@@ -18,14 +18,14 @@ Cards that prevent damage to creatures OTHER than the card user.
 | Warning Shout (x2) | Curse of Undeath | Prevent 30 damage | Ally within line of sight |
 
 **Implementation**:
-- Add `targetType` property: 'self' | 'adjacent_ally' | 'ally_in_range' | 'ally_los'
-- Add `targetRange` property for range-based targeting
-- Update DefenseOptionsPanel to show valid targets
-- Update AI to select optimal ally to protect
+- ✅ Added `protectTargetType` property: 'self' | 'adjacent_ally' | 'ally_in_range' | 'ally_los'
+- ✅ Added `protectTargetRange` property for range-based targeting
+- ✅ Updated DefenseOptionsPanel to show valid targets with "PROTECTOR" badge
+- ✅ Updated CommanderAbilityManager with helper functions for ally targeting
 
 ---
 
-### Phase IMD-6: Discard Cost Cards
+### Phase IMD-6: Discard Cost Cards ✅ COMPLETE
 Cards requiring player to discard another card from hand.
 
 | Card | Faction | Effect |
@@ -33,10 +33,11 @@ Cards requiring player to discard another card from hand.
 | Uncanny Dodge (x2) | Sting of Lolth | Discard 1 card to prevent ALL damage |
 
 **Implementation**:
-- Add `discardCost` property (number of cards to discard)
-- Add discard selection UI in DefenseOptionsPanel
-- Validate player has cards to discard before showing option
-- AI evaluates hand value vs damage prevented
+- ✅ Added `discardCost` property to OrderCard class
+- ✅ Added discard selection UI in DefenseOptionsPanel (yellow warning box)
+- ✅ Validate player has cards to discard before showing option (need card + discardCost)
+- ✅ AI selects lowest-level card to discard
+- ✅ Fixed NaN display for 'ALL' damage prevention in Summary
 
 ---
 

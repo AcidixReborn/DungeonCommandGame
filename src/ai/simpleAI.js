@@ -2043,13 +2043,29 @@ export class SimpleAI {
       return null
     }
 
+    // Handle discard cost (Uncanny Dodge) - select lowest value card to discard
+    let discardCard = null
+    if (bestCard.discardCost > 0) {
+      // Find the lowest value card in hand (excluding the card being used)
+      const cardsToConsider = player.orderHand.filter(c => c.id !== bestCard.card.id)
+      if (cardsToConsider.length > 0) {
+        // Simple heuristic: prefer lower level cards for discard
+        discardCard = cardsToConsider.reduce((lowest, card) => {
+          const cardLevel = card.level || 1
+          const lowestLevel = lowest.level || 1
+          return cardLevel < lowestLevel ? card : lowest
+        }, cardsToConsider[0])
+      }
+    }
+
     return {
       type: 'immediate_card',
       card: bestCard.card,
       creature: bestCreature,
       damagePrevented: bestCard.damagePrevented || 0,
       cardName: bestCard.card.name,
-      hadOpportunity: true
+      hadOpportunity: true,
+      discardCard: discardCard // Card to discard as cost (for Uncanny Dodge)
     }
   }
 

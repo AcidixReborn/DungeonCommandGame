@@ -187,8 +187,8 @@ export class AITurnManager {
         }
       }
     } else if (defenseDecision.type === 'immediate_card') {
-      // Apply IMMEDIATE card defense
-      const result = this.gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+      // Apply IMMEDIATE card defense (pass discardCard for cards like Uncanny Dodge)
+      const result = this.gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature, defenseDecision.discardCard)
       if (result.success) {
         // Handle shift after use (Cloud of Bats)
         if (result.shiftAfterUse > 0 && result.creatureToShift) {
@@ -219,7 +219,8 @@ export class AITurnManager {
           untapAfterUse: result.untapAfterUse || false,
           bonusDrawsQueued: result.bonusDrawsQueued || 0,
           shiftedTo: result.shiftAfterUse > 0 ? result.creatureToShift?.position : null,
-          counterAttackResults: counterAttackResults
+          counterAttackResults: counterAttackResults,
+          discardedCardName: result.discardedCardName // Name of card discarded as cost (Uncanny Dodge)
         }
       }
     }
@@ -261,6 +262,7 @@ export class AITurnManager {
         message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
       } else if (defenseResult.type === 'immediate_card') {
         let extraEffects = ''
+        if (defenseResult.discardedCardName) extraEffects += ` Discarded ${defenseResult.discardedCardName}.`
         if (defenseResult.moraleGain > 0) extraEffects += ` +${defenseResult.moraleGain} morale!`
         if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
         if (defenseResult.bonusDrawsQueued > 0) extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`

@@ -615,7 +615,9 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Discard 1 Order card to prevent all damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: uncannyDodge32Img
+    imageUrl: uncannyDodge32Img,
+    preventsAllDamage: true, // Prevents ALL damage from attack
+    discardCost: 1 // Must discard 1 card from hand to use
   },
   {
     id: 'sol_ord_33',
@@ -625,7 +627,9 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Discard 1 Order card to prevent all damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: uncannyDodge33Img
+    imageUrl: uncannyDodge33Img,
+    preventsAllDamage: true, // Prevents ALL damage from attack
+    discardCost: 1 // Must discard 1 card from hand to use
   },
   {
     id: 'sol_ord_34',

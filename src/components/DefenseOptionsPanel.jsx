@@ -47,6 +47,7 @@ function DefenseOptionsPanel({
   const [selectedUndeadCreatures, setSelectedUndeadCreatures] = useState([])
   const [selectedImmediateCard, setSelectedImmediateCard] = useState(null)
   const [selectedCardCreature, setSelectedCardCreature] = useState(null)
+  const [selectedDiscardCard, setSelectedDiscardCard] = useState(null) // Card to discard for Uncanny Dodge etc.
   const [hoverPreview, setHoverPreview] = useState(null) // { type: 'order' | 'creature', data: cardInfo | creatureInstance }
 
   // O(1) - Reset state when defender changes
@@ -55,6 +56,7 @@ function DefenseOptionsPanel({
     setSelectedUndeadCreatures([])
     setSelectedImmediateCard(null)
     setSelectedCardCreature(null)
+    setSelectedDiscardCard(null)
   }, [defenderInstance?.instanceId])
 
   if (!defenderPlayerState || !defenderInstance || !attackerInstance) {
@@ -163,6 +165,7 @@ function DefenseOptionsPanel({
       setSelectedUndeadCreatures([])
       setSelectedImmediateCard(null)
       setSelectedCardCreature(null)
+      setSelectedDiscardCard(null)
     } else {
       setSelectedDefense(defenseType)
       if (defenseType !== 'unstoppable_hordes') {
@@ -171,6 +174,7 @@ function DefenseOptionsPanel({
       if (defenseType !== 'immediate_card') {
         setSelectedImmediateCard(null)
         setSelectedCardCreature(null)
+        setSelectedDiscardCard(null)
       }
     }
   }
@@ -179,6 +183,7 @@ function DefenseOptionsPanel({
   const handleSelectImmediateCard = (cardInfo) => {
     setSelectedDefense('immediate_card')
     setSelectedImmediateCard(cardInfo)
+    setSelectedDiscardCard(null) // Reset discard selection when card changes
     if (cardInfo.eligibleCreatures.length === 1) {
       setSelectedCardCreature(cardInfo.eligibleCreatures[0])
     } else {
@@ -214,7 +219,8 @@ function DefenseOptionsPanel({
           card: selectedImmediateCard.card,
           creature: selectedCardCreature,
           damageReduction: selectedImmediateCard.damagePrevented,
-          moraleCost: selectedImmediateCard.moraleCost
+          moraleCost: selectedImmediateCard.moraleCost,
+          discardCard: selectedDiscardCard // Card player chose to discard (for Uncanny Dodge etc.)
         })
       }
     } else {
@@ -226,6 +232,7 @@ function DefenseOptionsPanel({
     setSelectedUndeadCreatures([])
     setSelectedImmediateCard(null)
     setSelectedCardCreature(null)
+    setSelectedDiscardCard(null)
   }
 
   // O(1) - Handle skip
@@ -235,17 +242,19 @@ function DefenseOptionsPanel({
     setSelectedUndeadCreatures([])
     setSelectedImmediateCard(null)
     setSelectedCardCreature(null)
+    setSelectedDiscardCard(null)
   }
 
   const hasAnyDefense = cowerInfo?.canCower || unstoppableInfo?.canUse || adjacentUndead.length > 0 || immediateCards.length > 0
 
   // O(1) - Calculate final damage for display
+  // Handle 'ALL' for cards that prevent all damage (Uncanny Dodge, Cloud of Bats)
   const finalDamage = selectedDefense === 'cower'
     ? 0
     : selectedDefense === 'unstoppable_hordes'
       ? Math.max(0, incomingDamage - calculateUnstoppableDamageReduction())
       : selectedDefense === 'immediate_card' && selectedImmediateCard
-        ? Math.max(0, incomingDamage - selectedImmediateCard.damagePrevented)
+        ? (selectedImmediateCard.damagePrevented === 'ALL' ? 0 : Math.max(0, incomingDamage - selectedImmediateCard.damagePrevented))
         : incomingDamage
 
   return (
@@ -740,6 +749,98 @@ function DefenseOptionsPanel({
                   </div>
                 </div>
               )}
+
+              {/* Discard card selection - for cards like Uncanny Dodge that require discarding */}
+              {selectedDefense === 'immediate_card' && selectedImmediateCard && selectedCardCreature && selectedImmediateCard.discardCost > 0 && (
+                <div
+                  className="mt-2 p-2"
+                  style={{ backgroundColor: 'rgba(255,193,7,0.2)', borderRadius: '6px', border: '1px solid #ffc107' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <strong className="d-block mb-2" style={{ fontSize: '0.85rem', color: '#ffc107' }}>
+                    ⚠️ Select {selectedImmediateCard.discardCost} card to discard:
+                  </strong>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '4px',
+                      maxHeight: '150px',
+                      overflowY: 'auto'
+                    }}
+                  >
+                    {/* Show all other cards in hand (excluding the selected immediate card) */}
+                    {defenderPlayerState.orderHand
+                      .filter(card => card.id !== selectedImmediateCard.card.id)
+                      .map((card, index) => (
+                        <div
+                          key={`discard-${card.id}-${index}`}
+                          style={{
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            border: selectedDiscardCard?.id === card.id
+                              ? '3px solid #dc3545'
+                              : '2px solid #444',
+                            overflow: 'hidden',
+                            position: 'relative',
+                            opacity: selectedDiscardCard?.id === card.id ? 1 : 0.8
+                          }}
+                          onClick={() => setSelectedDiscardCard(card)}
+                          onMouseEnter={() => setHoverPreview({ type: 'order', data: { card } })}
+                          onMouseLeave={() => setHoverPreview(null)}
+                        >
+                          <img
+                            src={card.imageUrl}
+                            alt={card.name}
+                            style={{
+                              width: '100%',
+                              height: 'auto',
+                              display: 'block'
+                            }}
+                          />
+                          {/* Discard indicator */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '2px',
+                              left: '2px',
+                              backgroundColor: '#dc3545',
+                              color: 'white',
+                              padding: '1px 4px',
+                              borderRadius: '3px',
+                              fontSize: '0.5rem',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            DISCARD
+                          </div>
+                          {/* Selected checkmark */}
+                          {selectedDiscardCard?.id === card.id && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: '2px',
+                                right: '2px',
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                borderRadius: '50%',
+                                width: '14px',
+                                height: '14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.6rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              ✓
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </Card.Body>
           </Card>
         )}
@@ -776,6 +877,7 @@ function DefenseOptionsPanel({
             !selectedDefense
             || (selectedDefense === 'unstoppable_hordes' && calculateUnstoppableMoraleCost() === 0)
             || (selectedDefense === 'immediate_card' && (!selectedImmediateCard || !selectedCardCreature))
+            || (selectedDefense === 'immediate_card' && selectedImmediateCard?.discardCost > 0 && !selectedDiscardCard)
           }
         >
           {selectedDefense === 'cower'

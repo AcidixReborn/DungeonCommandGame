@@ -644,6 +644,14 @@ export class CommanderAbilityManager {
       // Card must prevent damage (either fixed amount or all damage)
       const preventsDamage = (card.damagePrevented != null && card.damagePrevented > 0) || card.preventsAllDamage
       if (card.isImmediate && card.isImmediate() && preventsDamage) {
+        // Check discard cost - player needs the card itself + additional cards to discard
+        // e.g., Uncanny Dodge requires discarding 1 card, so player needs at least 2 cards total
+        if (card.discardCost && card.discardCost > 0) {
+          const cardsInHand = player.orderHand.length
+          if (cardsInHand < card.discardCost + 1) {
+            continue // Skip - not enough cards to discard
+          }
+        }
         // Determine which creatures can use this card based on protectTargetType
         const protectType = card.protectTargetType || 'self'
         let potentialCreatures = []
@@ -702,7 +710,8 @@ export class CommanderAbilityManager {
             eligibleCreatures: creaturesForCard,
             damagePrevented: card.preventsAllDamage ? 'ALL' : (card.damagePrevented != null ? card.damagePrevented : 0),
             moraleCost: card.moraleCost != null ? card.moraleCost : 0,
-            protectTargetType: protectType // Include for UI to know if this protects defender vs self
+            protectTargetType: protectType, // Include for UI to know if this protects defender vs self
+            discardCost: card.discardCost || 0 // Number of cards player must discard to use this card
           })
         }
       }
@@ -878,9 +887,10 @@ export class CommanderAbilityManager {
    * Apply an IMMEDIATE card for defense
    * @param {OrderCard} card - The immediate card to use
    * @param {CreatureInstance} usingCreature - The creature using the card
+   * @param {OrderCard} discardCard - Optional card to discard as cost (e.g., Uncanny Dodge)
    * @returns {Object} { success: boolean, damagePrevented: number, cardUsed: card, moraleCost: number }
    */
-  applyImmediateCardDefense(card, usingCreature) {
+  applyImmediateCardDefense(card, usingCreature, discardCard = null) {
     if (!card || !usingCreature || !usingCreature.owner) {
       return { success: false, damagePrevented: 0, cardUsed: null, moraleCost: 0 }
     }
@@ -926,6 +936,19 @@ export class CommanderAbilityManager {
     player.orderHand.splice(cardIndex, 1)
     if (player.orderDiscard) {
       player.orderDiscard.push(card)
+    }
+
+    // Handle discard cost - discard the additional card (Uncanny Dodge)
+    let discardedCardName = null
+    if (discardCard && card.discardCost > 0) {
+      const discardIndex = player.orderHand.findIndex(c => c.id === discardCard.id)
+      if (discardIndex !== -1) {
+        discardedCardName = discardCard.name
+        player.orderHand.splice(discardIndex, 1)
+        if (player.orderDiscard) {
+          player.orderDiscard.push(discardCard)
+        }
+      }
     }
 
     // Get shift after use value (for Cloud of Bats)
@@ -984,7 +1007,8 @@ export class CommanderAbilityManager {
       bonusDrawsQueued: drawCards,
       shiftAfterUse: shiftAfterUse,
       creatureToShift: shiftAfterUse > 0 ? usingCreature : null,
-      counterAttack: counterAttack
+      counterAttack: counterAttack,
+      discardedCardName: discardedCardName // Name of card discarded as cost (e.g., Uncanny Dodge)
     }
   }
 

@@ -1196,7 +1196,8 @@ function GameBoard({ onTurnInfoChange }) {
       })
     } else if (defense.type === 'immediate_card') {
       // IMMEDIATE CARD: Prevent damage, discard card, tap creature
-      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature)
+      // Pass discardCard if card has discard cost (e.g., Uncanny Dodge)
+      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
 
       if (result.success) {
         const newAccumulatedReduction = accumulatedReduction + result.damagePrevented
@@ -1785,7 +1786,7 @@ function GameBoard({ onTurnInfoChange }) {
       })
       damageAfterDefense = Math.max(0, 20 - totalPrevented)
     } else if (defense.type === 'immediate_card') {
-      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature)
+      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
       if (result.success) {
         damageAfterDefense = Math.max(0, 20 - result.damagePrevented)
       }
@@ -5305,8 +5306,8 @@ function GameBoard({ onTurnInfoChange }) {
       damageAfterDefense = Math.max(0, damage - totalReduction)
       defenseResult = { type: 'unstoppable_hordes', damagePrevented: totalReduction, success: true }
     } else if (defense.type === 'immediate_card') {
-      // IMMEDIATE CARD: Prevent 10 damage
-      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature)
+      // IMMEDIATE CARD: Prevent damage, optionally discard card as cost (Uncanny Dodge)
+      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
       damageAfterDefense = result.success ? Math.max(0, damage - result.damagePrevented) : damage
       defenseResult = { ...result, type: 'immediate_card' }
     }
@@ -5810,8 +5811,8 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     if (defense.type === 'immediate_card') {
-      // IMMEDIATE card: Prevent damage equal to card value
-      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature)
+      // IMMEDIATE card: Prevent damage equal to card value, optionally discard card as cost
+      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
       closeCombatPanel()
       handleRangedSplashDefenseComplete({ damageReduction: result.success ? result.damagePrevented : 0 })
       return
