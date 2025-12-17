@@ -466,6 +466,10 @@ export const orderCards = [
     abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Make a melee attack that deals 10 DAMAGE.',
+    damagePrevented: 20,
+    counterAttackDamage: 10,
+    counterAttackTarget: 'attacker',
+    counterAttackRequiresAdjacent: true,
     faction: FACTION_NAME,
     imageUrl: riposte18Img
   },
@@ -476,6 +480,10 @@ export const orderCards = [
     abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Make a melee attack that deals 10 DAMAGE.',
+    damagePrevented: 20,
+    counterAttackDamage: 10,
+    counterAttackTarget: 'attacker',
+    counterAttackRequiresAdjacent: true,
     faction: FACTION_NAME,
     imageUrl: riposte19Img
   },

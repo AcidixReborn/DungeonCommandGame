@@ -43,7 +43,10 @@ export class OrderCard {
     preventsAllDamage = false, // If true, prevents ALL damage from the attack (e.g., Cloud of Bats)
     shiftAfterUse = 0, // Squares creature can shift after using this card (e.g., Cloud of Bats = 6)
     affinityRequired = null, // Keyword required to use this card (e.g., 'VAMPIRE' for Cloud of Bats)
-    affinityOverridesRequirements = false // If true, affinity match bypasses level/ability requirements
+    affinityOverridesRequirements = false, // If true, affinity match bypasses level/ability requirements
+    counterAttackDamage = 0, // Fixed damage dealt by counter-attack (e.g., Riposte = 10)
+    counterAttackTarget = null, // 'attacker' | 'adjacent_tapped' | 'all_adjacent_tapped'
+    counterAttackRequiresAdjacent = false // If true, counter-attack only works if target is adjacent
   }) {
     this.id = id
     this.name = name
@@ -66,6 +69,9 @@ export class OrderCard {
     this.shiftAfterUse = shiftAfterUse // Squares creature can shift after using this card
     this.affinityRequired = affinityRequired // Keyword required to use this card (e.g., 'VAMPIRE')
     this.affinityOverridesRequirements = affinityOverridesRequirements // If true, affinity bypasses level/ability requirements
+    this.counterAttackDamage = counterAttackDamage // Fixed damage dealt by counter-attack
+    this.counterAttackTarget = counterAttackTarget // Target type: 'attacker', 'adjacent_tapped', 'all_adjacent_tapped'
+    this.counterAttackRequiresAdjacent = counterAttackRequiresAdjacent // If true, counter-attack requires adjacent target
   }
 
   /**

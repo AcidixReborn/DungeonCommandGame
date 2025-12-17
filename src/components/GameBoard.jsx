@@ -21,6 +21,7 @@ import OgreDeployMoraleModal from './OgreDeployMoraleModal'
 import ClericDrawOrderModal from './ClericDrawOrderModal'
 import CardsDrawnModal from './CardsDrawnModal'
 import ShiftDecisionModal from './ShiftDecisionModal'
+import CounterAttackTargetModal from './CounterAttackTargetModal'
 import './GameBoard.css'
 
 /**
@@ -213,6 +214,9 @@ function GameBoard({ onTurnInfoChange }) {
     pendingShiftAfterDefense, setPendingShiftAfterDefense,
     shiftSelectionMode, setShiftSelectionMode,
     shiftValidTiles, setShiftValidTiles,
+    // Counter-Attack Target Selection (Seize the Opportunity)
+    showCounterAttackTargetModal, setShowCounterAttackTargetModal,
+    counterAttackPending, setCounterAttackPending,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -1244,8 +1248,52 @@ function GameBoard({ onTurnInfoChange }) {
           }
         }
 
-        // No more options or damage fully prevented - execute attack
+        // No more options or damage fully prevented - check for counter-attack
         closeCombatPanel()
+
+        // Handle counter-attack if the card has one
+        let counterAttackResults = null
+        if (result.counterAttack) {
+          const counterResult = executeCounterAttack(result.counterAttack, attackerInstance)
+
+          if (counterResult.needsTargetSelection) {
+            // Human player needs to select target (Seize the Opportunity with multiple targets)
+            setCounterAttackPending({
+              damage: counterResult.damage,
+              validTargets: counterResult.validTargets,
+              defenderInstance: result.counterAttack.defenderInstance,
+              attackerInstance: attackerInstance,
+              pendingDefenseResult: {
+                type: 'immediate_card',
+                damageReduction: newAccumulatedReduction,
+                moraleCost: 0,
+                cardUsed: result.cardUsed?.name || defense.card.name,
+                creatureTapped: defense.creature.creature.name,
+                moraleGain: result.moraleGain || 0,
+                untapAfterUse: result.untapAfterUse || false,
+                success: true
+              }
+            })
+            setShowCounterAttackTargetModal(true)
+            return // Wait for target selection
+          }
+
+          if (counterResult.executed) {
+            counterAttackResults = counterResult.results
+            // Show toast for each target hit
+            for (const hit of counterResult.results) {
+              if (hit.killed) {
+                addToast(`⚔️ COUNTER-ATTACK: ${defense.creature.creature.name} killed ${hit.targetName} with ${hit.damage} damage!`)
+              } else {
+                addToast(`⚔️ COUNTER-ATTACK: ${defense.creature.creature.name} dealt ${hit.damage} damage to ${hit.targetName} (${hit.remainingHP} HP remaining)`)
+              }
+            }
+          } else if (counterResult.message) {
+            // Counter-attack couldn't execute (e.g., ranged attacker not adjacent for Riposte)
+            addToast(`⚡ ${result.cardUsed?.name || defense.card.name}: ${counterResult.message}`)
+          }
+        }
+
         executeAttackAfterDefense({
           type: 'immediate_card',
           damageReduction: newAccumulatedReduction,
@@ -1254,6 +1302,7 @@ function GameBoard({ onTurnInfoChange }) {
           creatureTapped: defense.creature.creature.name,
           moraleGain: result.moraleGain || 0,
           untapAfterUse: result.untapAfterUse || false,
+          counterAttackResults: counterAttackResults,
           success: true
         })
       } else {
@@ -2078,6 +2127,169 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Continue processing remaining AI actions
     setProcessingAIAction(false)
+  }
+
+  /**
+   * Execute counter-attack from IMMEDIATE defense cards (Riposte, Seize the Opportunity, Corrosive Blood)
+   * Counter-attacks deal fixed damage that cannot be prevented
+   * @param {Object} counterAttack - { damage, targetType, requiresAdjacent, defenderInstance }
+   * @param {CreatureInstance} attackerInstance - The creature that attacked (for Riposte targeting)
+   * @param {CreatureInstance|null} selectedTarget - Pre-selected target for Seize the Opportunity
+   * @returns {Object} { executed, results: [{ target, damage, killed }], reason? }
+   */
+  const executeCounterAttack = (counterAttack, attackerInstance, selectedTarget = null) => {
+    const { damage, targetType, requiresAdjacent, defenderInstance } = counterAttack
+    const targets = []
+    let reason = null
+
+    if (targetType === 'attacker') {
+      // Riposte: Target must be the attacker, must be adjacent
+      if (requiresAdjacent && !gameState.isAttackerAdjacent(defenderInstance, attackerInstance)) {
+        return { executed: false, reason: 'attacker_not_adjacent', message: 'Attacker is not adjacent - counter-attack skipped' }
+      }
+      targets.push(attackerInstance)
+    }
+    else if (targetType === 'adjacent_tapped') {
+      // Seize the Opportunity: Can target ANY adjacent tapped enemy
+      if (selectedTarget) {
+        // Target already selected by human player
+        targets.push(selectedTarget)
+      } else {
+        // Need to find valid targets
+        const adjacentTapped = gameState.getAdjacentTappedEnemies(defenderInstance)
+
+        // Also check if attacker will be tapped after this attack resolves
+        // Attacker must be adjacent AND have moved this turn (attacking completes the tap)
+        if (attackerInstance &&
+            gameState.isAttackerAdjacent(defenderInstance, attackerInstance) &&
+            attackerInstance.hasMovedThisTurn) {
+          // Attacker will be tapped - add to valid targets if not already included
+          const alreadyIncluded = adjacentTapped.some(c => c.instanceId === attackerInstance.instanceId)
+          if (!alreadyIncluded) {
+            adjacentTapped.push(attackerInstance)
+          }
+        }
+
+        if (adjacentTapped.length === 0) {
+          return { executed: false, reason: 'no_valid_targets', message: 'No adjacent tapped enemies - counter-attack skipped' }
+        }
+        if (adjacentTapped.length === 1) {
+          // Only one target - auto-select
+          targets.push(adjacentTapped[0])
+        } else {
+          // Multiple targets - return for selection (human) or AI decision
+          return { needsTargetSelection: true, validTargets: adjacentTapped, damage }
+        }
+      }
+    }
+    else if (targetType === 'all_adjacent_tapped') {
+      // Corrosive Blood: Hit ALL adjacent tapped enemies
+      const adjacentTapped = gameState.getAdjacentTappedEnemies(defenderInstance)
+      if (adjacentTapped.length === 0) {
+        return { executed: false, reason: 'no_valid_targets', message: 'No adjacent tapped enemies - counter-attack skipped' }
+      }
+      targets.push(...adjacentTapped)
+    }
+
+    // Apply damage to all targets (no defense allowed - counter-attack damage is unpreventable)
+    const results = []
+    for (const target of targets) {
+      const prevHP = target.currentHP
+      target.currentHP -= damage
+
+      const killed = target.currentHP <= 0
+
+      if (killed) {
+        // Handle morale changes for death
+        const targetPlayer = gameState.players[target.owner]
+        const counterAttackerPlayer = gameState.players[defenderInstance.owner]
+
+        // Attacker (counter-attacker) gains morale equal to killed creature's level
+        counterAttackerPlayer.morale += target.creature.level
+
+        // Defender (killed creature's owner) loses morale equal to killed creature's level
+        targetPlayer.morale -= target.creature.level
+
+        // Remove from play
+        const index = targetPlayer.creaturesInPlay.findIndex(c => c.instanceId === target.instanceId)
+        if (index !== -1) {
+          targetPlayer.creaturesInPlay.splice(index, 1)
+        }
+
+        // Remove from board
+        const tile = gameState.getTile(target.position.x, target.position.y)
+        if (tile && tile.occupant === target) {
+          tile.occupant = null
+        }
+      }
+
+      results.push({
+        target,
+        targetName: target.creature.name,
+        damage,
+        prevHP,
+        remainingHP: Math.max(0, target.currentHP),
+        killed
+      })
+    }
+
+    return { executed: true, results }
+  }
+
+  /**
+   * Handle counter-attack target selection from modal (Seize the Opportunity)
+   * Called when human player selects a target from the CounterAttackTargetModal
+   * @param {CreatureInstance} selectedTarget - The target creature selected by player
+   */
+  const handleCounterAttackTargetSelected = (selectedTarget) => {
+    if (!counterAttackPending) return
+
+    const { damage, defenderInstance, attackerInstance, pendingDefenseResult } = counterAttackPending
+
+    // Execute counter-attack with selected target
+    const counterResult = executeCounterAttack(
+      { damage, targetType: 'adjacent_tapped', defenderInstance },
+      attackerInstance,
+      selectedTarget
+    )
+
+    // Close modal and clear pending state
+    setShowCounterAttackTargetModal(false)
+    setCounterAttackPending(null)
+
+    if (counterResult.executed) {
+      // Show toast for the hit
+      for (const hit of counterResult.results) {
+        if (hit.killed) {
+          addToast(`⚔️ COUNTER-ATTACK: ${defenderInstance.creature.name} killed ${hit.targetName} with ${hit.damage} damage!`)
+        } else {
+          addToast(`⚔️ COUNTER-ATTACK: ${defenderInstance.creature.name} dealt ${hit.damage} damage to ${hit.targetName} (${hit.remainingHP} HP remaining)`)
+        }
+      }
+    }
+
+    // Continue with attack execution
+    executeAttackAfterDefense({
+      ...pendingDefenseResult,
+      counterAttackResults: counterResult.executed ? counterResult.results : null
+    })
+  }
+
+  /**
+   * Handle counter-attack modal cancel (skip counter-attack)
+   * Player chose not to counter-attack even though targets were available
+   */
+  const handleCounterAttackSkipped = () => {
+    if (!counterAttackPending) return
+
+    const { pendingDefenseResult } = counterAttackPending
+
+    // Close modal and clear pending state
+    setShowCounterAttackTargetModal(false)
+    setCounterAttackPending(null)
+
+    // Continue with attack execution without counter-attack
+    executeAttackAfterDefense(pendingDefenseResult)
   }
 
   // Handle collect morale from treasure (show confirmation modal)
@@ -7711,6 +7923,14 @@ function GameBoard({ onTurnInfoChange }) {
         creatureName={pendingShiftAfterDefense?.creature?.creature?.name || 'creature'}
         onYes={handleShiftDecisionYes}
         onNo={handleShiftDecisionNo}
+      />
+
+      {/* COUNTER-ATTACK TARGET SELECTION MODAL (Seize the Opportunity) */}
+      <CounterAttackTargetModal
+        show={showCounterAttackTargetModal}
+        onSelectTarget={handleCounterAttackTargetSelected}
+        onSkip={handleCounterAttackSkipped}
+        counterAttackData={counterAttackPending}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}

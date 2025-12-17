@@ -338,7 +338,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: cloudOfBatsOrder4Img
   },
-  // Card 5: Corrosive Blood - Level 1, CON, IMMEDIATE
+  // Card 5: Corrosive Blood - Level 1, CON, IMMEDIATE (counter-attack vs all adjacent tapped enemies)
   {
     id: 'cou_ord_5',
     name: 'Corrosive Blood',
@@ -346,6 +346,9 @@ export const orderCards = [
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
     effectDescription: 'REQUIRES UNDEAD. Prevent 10 damage to this creature from 1 source. Deal 10 damage to each tapped creature adjacent to this creature.',
+    damagePrevented: 10,
+    counterAttackDamage: 10,
+    counterAttackTarget: 'all_adjacent_tapped',
     requiresCreatureType: 'Undead',
     faction: FACTION_NAME,
     imageUrl: corrosiveBloodOrder5Img

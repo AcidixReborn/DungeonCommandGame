@@ -828,6 +828,14 @@ export class CommanderAbilityManager {
       player.bonusDrawSources.push(card.name)
     }
 
+    // Build counter-attack info if card has counter-attack ability
+    const counterAttack = card.counterAttackDamage > 0 ? {
+      damage: card.counterAttackDamage,
+      targetType: card.counterAttackTarget,
+      requiresAdjacent: card.counterAttackRequiresAdjacent || false,
+      defenderInstance: usingCreature
+    } : null
+
     return {
       success: true,
       damagePrevented: damagePrevented,
@@ -838,8 +846,75 @@ export class CommanderAbilityManager {
       untapAfterUse: untapAfterUse,
       bonusDrawsQueued: drawCards,
       shiftAfterUse: shiftAfterUse,
-      creatureToShift: shiftAfterUse > 0 ? usingCreature : null
+      creatureToShift: shiftAfterUse > 0 ? usingCreature : null,
+      counterAttack: counterAttack
     }
+  }
+
+  // ============================================================================
+  // COUNTER-ATTACK HELPERS
+  // ============================================================================
+
+  /**
+   * Get all adjacent tapped enemy creatures for counter-attack targeting
+   * Used by Seize the Opportunity and Corrosive Blood
+   * @param {CreatureInstance} defenderInstance - The creature performing the counter-attack
+   * @returns {Array} Array of adjacent tapped enemy CreatureInstances
+   */
+  getAdjacentTappedEnemies(defenderInstance) {
+    if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
+      return []
+    }
+
+    const adjacentTapped = []
+    const pos = defenderInstance.position
+
+    // Check all 8 directions
+    const directions = [
+      { dx: 0, dy: -1 },   // North
+      { dx: 1, dy: -1 },   // NE
+      { dx: 1, dy: 0 },    // East
+      { dx: 1, dy: 1 },    // SE
+      { dx: 0, dy: 1 },    // South
+      { dx: -1, dy: 1 },   // SW
+      { dx: -1, dy: 0 },   // West
+      { dx: -1, dy: -1 }   // NW
+    ]
+
+    for (const dir of directions) {
+      const tile = this.gameState.getTile(pos.x + dir.dx, pos.y + dir.dy)
+      if (!tile || !tile.occupant) continue
+
+      const adjacentCreature = tile.occupant
+
+      // Must be an enemy (different owner)
+      if (adjacentCreature.owner === defenderInstance.owner) continue
+
+      // Must be tapped
+      if (!adjacentCreature.isTapped) continue
+
+      adjacentTapped.push(adjacentCreature)
+    }
+
+    return adjacentTapped
+  }
+
+  /**
+   * Check if attacker is adjacent to defender (for Riposte)
+   * @param {CreatureInstance} defenderInstance - The creature using Riposte
+   * @param {CreatureInstance} attackerInstance - The creature that attacked
+   * @returns {boolean} True if attacker is adjacent to defender
+   */
+  isAttackerAdjacent(defenderInstance, attackerInstance) {
+    if (!defenderInstance?.position || !attackerInstance?.position) {
+      return false
+    }
+
+    const dx = Math.abs(defenderInstance.position.x - attackerInstance.position.x)
+    const dy = Math.abs(defenderInstance.position.y - attackerInstance.position.y)
+
+    // Adjacent means within 1 tile in any direction (including diagonal)
+    return dx <= 1 && dy <= 1 && !(dx === 0 && dy === 0)
   }
 
   // ============================================================================

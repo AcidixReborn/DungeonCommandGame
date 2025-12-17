@@ -202,6 +202,12 @@ export class AITurnManager {
           }
         }
 
+        // Handle counter-attack (Riposte, Seize the Opportunity, Corrosive Blood)
+        let counterAttackResults = null
+        if (result.counterAttack) {
+          counterAttackResults = this.executeAICounterAttack(result.counterAttack, attackerInstance)
+        }
+
         defenseResult = {
           success: true,
           type: 'immediate_card',
@@ -212,7 +218,8 @@ export class AITurnManager {
           moraleGain: result.moraleGain || 0,
           untapAfterUse: result.untapAfterUse || false,
           bonusDrawsQueued: result.bonusDrawsQueued || 0,
-          shiftedTo: result.shiftAfterUse > 0 ? result.creatureToShift?.position : null
+          shiftedTo: result.shiftAfterUse > 0 ? result.creatureToShift?.position : null,
+          counterAttackResults: counterAttackResults
         }
       }
     }
@@ -258,6 +265,17 @@ export class AITurnManager {
         if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
         if (defenseResult.bonusDrawsQueued > 0) extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
         message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented${defenseResult.untapAfterUse ? '' : ` (${defenseResult.creatureTapped} tapped)`}!${extraEffects} `
+
+        // Add counter-attack results
+        if (defenseResult.counterAttackResults && defenseResult.counterAttackResults.length > 0) {
+          for (const hit of defenseResult.counterAttackResults) {
+            if (hit.killed) {
+              message += `⚔️ COUNTER-ATTACK: ${defenseResult.creatureTapped} killed ${hit.targetName}! `
+            } else {
+              message += `⚔️ COUNTER-ATTACK: ${defenseResult.creatureTapped} dealt ${hit.damage} to ${hit.targetName} (${hit.remainingHP} HP)! `
+            }
+          }
+        }
       }
     }
 
@@ -349,6 +367,113 @@ export class AITurnManager {
     }
 
     return { shifted: false, newPosition: null }
+  }
+
+  /**
+   * Execute AI counter-attack from IMMEDIATE defense cards (Riposte, Seize the Opportunity, Corrosive Blood)
+   * @param {Object} counterAttack - { damage, targetType, requiresAdjacent, defenderInstance }
+   * @param {CreatureInstance} attackerInstance - The creature that attacked
+   * @returns {Array|null} Array of { target, targetName, damage, killed } or null if not executed
+   */
+  executeAICounterAttack(counterAttack, attackerInstance) {
+    const { damage, targetType, requiresAdjacent, defenderInstance } = counterAttack
+    const targets = []
+
+    if (targetType === 'attacker') {
+      // Riposte: Must target attacker, must be adjacent
+      if (requiresAdjacent && !this.gameState.isAttackerAdjacent(defenderInstance, attackerInstance)) {
+        // Attacker not adjacent (ranged attack) - counter-attack skipped
+        return null
+      }
+      targets.push(attackerInstance)
+    }
+    else if (targetType === 'adjacent_tapped') {
+      // Seize the Opportunity: AI picks best target from adjacent tapped enemies
+      const adjacentTapped = this.gameState.getAdjacentTappedEnemies(defenderInstance)
+
+      // Also check if attacker will be tapped after this attack resolves
+      // Attacker must be adjacent AND have moved this turn (attacking completes the tap)
+      if (attackerInstance &&
+          this.gameState.isAttackerAdjacent(defenderInstance, attackerInstance) &&
+          attackerInstance.hasMovedThisTurn) {
+        // Attacker will be tapped - add to valid targets if not already included
+        const alreadyIncluded = adjacentTapped.some(c => c.instanceId === attackerInstance.instanceId)
+        if (!alreadyIncluded) {
+          adjacentTapped.push(attackerInstance)
+        }
+      }
+
+      if (adjacentTapped.length === 0) {
+        return null
+      }
+
+      // AI selection logic: prefer target that would die, else highest value target
+      let bestTarget = adjacentTapped[0]
+      let bestScore = -Infinity
+
+      for (const target of adjacentTapped) {
+        const wouldKill = target.currentHP <= damage
+        // Score: killing is worth a lot, then consider creature level
+        const score = (wouldKill ? 1000 : 0) + target.creature.level * 10 + (target.creature.hitPoints - target.currentHP)
+        if (score > bestScore) {
+          bestScore = score
+          bestTarget = target
+        }
+      }
+
+      targets.push(bestTarget)
+    }
+    else if (targetType === 'all_adjacent_tapped') {
+      // Corrosive Blood: Hit ALL adjacent tapped enemies
+      const adjacentTapped = this.gameState.getAdjacentTappedEnemies(defenderInstance)
+      if (adjacentTapped.length === 0) {
+        return null
+      }
+      targets.push(...adjacentTapped)
+    }
+
+    // Apply damage to all targets (no defense allowed)
+    const results = []
+    for (const target of targets) {
+      const prevHP = target.currentHP
+      target.currentHP -= damage
+      const killed = target.currentHP <= 0
+
+      if (killed) {
+        // Handle morale changes for death
+        const targetPlayer = this.gameState.players[target.owner]
+        const counterAttackerPlayer = this.gameState.players[defenderInstance.owner]
+
+        // Counter-attacker gains morale equal to killed creature's level
+        counterAttackerPlayer.morale += target.creature.level
+
+        // Target's owner loses morale equal to killed creature's level
+        targetPlayer.morale -= target.creature.level
+
+        // Remove from play
+        const index = targetPlayer.creaturesInPlay.findIndex(c => c.instanceId === target.instanceId)
+        if (index !== -1) {
+          targetPlayer.creaturesInPlay.splice(index, 1)
+        }
+
+        // Remove from board
+        const tile = this.gameState.getTile(target.position.x, target.position.y)
+        if (tile && tile.occupant === target) {
+          tile.occupant = null
+        }
+      }
+
+      results.push({
+        target,
+        targetName: target.creature.name,
+        damage,
+        prevHP,
+        remainingHP: Math.max(0, target.currentHP),
+        killed
+      })
+    }
+
+    return results.length > 0 ? results : null
   }
 }
 

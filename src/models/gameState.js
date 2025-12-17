@@ -3225,6 +3225,20 @@ export class GameState {
   }
 
   /**
+   * Get adjacent tapped enemy creatures for counter-attack - delegates to abilityManager
+   */
+  getAdjacentTappedEnemies(defenderInstance) {
+    return this.abilityManager.getAdjacentTappedEnemies(defenderInstance)
+  }
+
+  /**
+   * Check if attacker is adjacent to defender (for Riposte) - delegates to abilityManager
+   */
+  isAttackerAdjacent(defenderInstance, attackerInstance) {
+    return this.abilityManager.isAttackerAdjacent(defenderInstance, attackerInstance)
+  }
+
+  /**
    * Get all defense options for a creature - delegates to abilityManager
    */
   getDefenseOptions(defenderInstance, incomingDamage, attackerOwner) {

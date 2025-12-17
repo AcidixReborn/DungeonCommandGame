@@ -161,6 +161,14 @@ export function useAbilityModals() {
   const [shiftValidTiles, setShiftValidTiles] = useState([])
 
   // ============================================
+  // COUNTER-ATTACK TARGET SELECTION modal
+  // Shows when Seize the Opportunity has multiple valid targets
+  // ============================================
+  const [showCounterAttackTargetModal, setShowCounterAttackTargetModal] = useState(false)
+  const [counterAttackPending, setCounterAttackPending] = useState(null)
+  // { damage, validTargets, defenderInstance, attackerInstance, pendingDefenseResult }
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -277,6 +285,8 @@ export function useAbilityModals() {
     setWebRemovalData(null)
     setShowCardsDrawnModal(false)
     setCardsDrawnData([])
+    setShowCounterAttackTargetModal(false)
+    setCounterAttackPending(null)
   }, [
     clearFlashingBladesState,
     clearHiddenBladeState,
@@ -446,6 +456,12 @@ export function useAbilityModals() {
     setShiftSelectionMode,
     shiftValidTiles,
     setShiftValidTiles,
+
+    // Counter-Attack Target Selection (Seize the Opportunity)
+    showCounterAttackTargetModal,
+    setShowCounterAttackTargetModal,
+    counterAttackPending,
+    setCounterAttackPending,
 
     // Clear all
     clearAllAbilityModalState

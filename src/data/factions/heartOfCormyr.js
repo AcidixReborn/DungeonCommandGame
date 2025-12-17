@@ -643,25 +643,31 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: savingThrowImg
   },
-  // Card #31 - Seize the Opportunity (IMMEDIATE but complex - placeholder)
+  // Card #31 - Seize the Opportunity (IMMEDIATE - counter-attack vs adjacent tapped)
   {
     id: 'hoc_ord_31',
     name: 'Seize the Opportunity',
     level: 2,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE. PLACEHOLDER',
+    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE.',
+    damagePrevented: 10,
+    counterAttackDamage: 20,
+    counterAttackTarget: 'adjacent_tapped',
     faction: FACTION_NAME,
     imageUrl: seizeTheOpportunity31Img
   },
-  // Card #32 - Seize the Opportunity (IMMEDIATE but complex - placeholder)
+  // Card #32 - Seize the Opportunity (IMMEDIATE - counter-attack vs adjacent tapped)
   {
     id: 'hoc_ord_32',
     name: 'Seize the Opportunity',
     level: 2,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE. PLACEHOLDER',
+    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE.',
+    damagePrevented: 10,
+    counterAttackDamage: 20,
+    counterAttackTarget: 'adjacent_tapped',
     faction: FACTION_NAME,
     imageUrl: seizeTheOpportunity32Img
   },
