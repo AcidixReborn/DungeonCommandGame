@@ -49,6 +49,7 @@ function DefenseOptionsPanel({
   const [selectedCardCreature, setSelectedCardCreature] = useState(null)
   const [selectedDiscardCard, setSelectedDiscardCard] = useState(null) // Card to discard for Uncanny Dodge etc.
   const [selectedMoraleTarget, setSelectedMoraleTarget] = useState(null) // Enemy creature for morale loss (Unexpected Resistance)
+  const [selectedSacrificeTarget, setSelectedSacrificeTarget] = useState(null) // Enemy creature for Savage Demise attack
   const [hoverPreview, setHoverPreview] = useState(null) // { type: 'order' | 'creature', data: cardInfo | creatureInstance }
 
   // O(1) - Reset state when defender changes
@@ -59,6 +60,7 @@ function DefenseOptionsPanel({
     setSelectedCardCreature(null)
     setSelectedDiscardCard(null)
     setSelectedMoraleTarget(null)
+    setSelectedSacrificeTarget(null)
   }, [defenderInstance?.instanceId])
 
   if (!defenderPlayerState || !defenderInstance || !attackerInstance) {
@@ -118,8 +120,37 @@ function DefenseOptionsPanel({
     ? gameState.getDefenseOptions(defenderInstance, incomingDamage, attackerInstance.owner)
     : { cower: null, unstoppableHordes: null, adjacentUndead: [], immediateCards: [] }
 
-  const { cower: cowerInfo, unstoppableHordes: unstoppableInfo, adjacentUndead, immediateCards } = defenseOptions
+  const { cower: cowerInfo, unstoppableHordes: unstoppableInfo, adjacentUndead, immediateCards: rawImmediateCards } = defenseOptions
   const defenderCanUseUnstoppable = unstoppableInfo?.canUse
+
+  // Filter out Savage Demise cards if no valid targets exist
+  // For selfSacrificeAttack cards, we need at least one adjacent tapped enemy
+  const immediateCards = rawImmediateCards.filter(cardInfo => {
+    // If not a self-sacrifice attack card, keep it
+    if (!cardInfo.card.selfSacrificeAttack) return true
+
+    // For self-sacrifice cards, check if any eligible creature has adjacent tapped enemies
+    for (const creature of cardInfo.eligibleCreatures) {
+      // Get adjacent tiles for this creature
+      const adjacentTiles = gameState?.getAdjacentTiles8Dir
+        ? gameState.getAdjacentTiles8Dir(creature.position.x, creature.position.y)
+        : []
+
+      // Check if any adjacent tile has a tapped enemy
+      for (const [playerId, player] of Object.entries(gameState?.players || {})) {
+        if (playerId === defenderInstance.owner) continue // Skip own creatures
+        for (const enemy of player.creaturesInPlay) {
+          if (enemy.isTapped) {
+            const isAdjacent = adjacentTiles.some(
+              tile => tile.x === enemy.position.x && tile.y === enemy.position.y
+            )
+            if (isAdjacent) return true // Found valid target, include card
+          }
+        }
+      }
+    }
+    return false // No valid targets found for any eligible creature
+  })
 
   // Check for TAP ON HIT ability (Horned Devil, Wolf) - attacker will tap defender if damage dealt
   const attackerHasTapOnHit = gameState?.hasTapOnHit && gameState.hasTapOnHit(attackerInstance)
@@ -204,6 +235,7 @@ function DefenseOptionsPanel({
       setSelectedCardCreature(null)
       setSelectedDiscardCard(null)
       setSelectedMoraleTarget(null)
+      setSelectedSacrificeTarget(null)
     } else {
       setSelectedDefense(defenseType)
       if (defenseType !== 'unstoppable_hordes') {
@@ -214,6 +246,7 @@ function DefenseOptionsPanel({
         setSelectedCardCreature(null)
         setSelectedDiscardCard(null)
         setSelectedMoraleTarget(null)
+        setSelectedSacrificeTarget(null)
       }
     }
   }
@@ -224,6 +257,7 @@ function DefenseOptionsPanel({
     setSelectedImmediateCard(cardInfo)
     setSelectedDiscardCard(null) // Reset discard selection when card changes
     setSelectedMoraleTarget(null) // Reset morale target when card changes
+    setSelectedSacrificeTarget(null) // Reset sacrifice target when card changes
 
     if (cardInfo.eligibleCreatures.length === 1) {
       setSelectedCardCreature(cardInfo.eligibleCreatures[0])
@@ -236,6 +270,15 @@ function DefenseOptionsPanel({
           setSelectedMoraleTarget(adjacentEnemies[0])
         }
       }
+
+      // Auto-select sacrifice target if card has selfSacrificeAttack and only one valid target
+      if (cardInfo.card.selfSacrificeAttack) {
+        const cardUser = cardInfo.eligibleCreatures[0]
+        const adjacentEnemies = getAdjacentTappedEnemies(cardUser.position)
+        if (adjacentEnemies.length === 1) {
+          setSelectedSacrificeTarget(adjacentEnemies[0])
+        }
+      }
     } else {
       setSelectedCardCreature(null)
     }
@@ -245,12 +288,21 @@ function DefenseOptionsPanel({
   const handleSelectCardCreature = (creature) => {
     setSelectedCardCreature(creature)
     setSelectedMoraleTarget(null) // Reset morale target when creature changes
+    setSelectedSacrificeTarget(null) // Reset sacrifice target when creature changes
 
     // Auto-select morale target if card has moraleLossTargetType and only one valid target
     if (selectedImmediateCard?.card?.moraleLossTargetType === 'adjacent_tapped_enemy') {
       const adjacentEnemies = getAdjacentTappedEnemies(creature.position)
       if (adjacentEnemies.length === 1) {
         setSelectedMoraleTarget(adjacentEnemies[0])
+      }
+    }
+
+    // Auto-select sacrifice target if card has selfSacrificeAttack and only one valid target
+    if (selectedImmediateCard?.card?.selfSacrificeAttack) {
+      const adjacentEnemies = getAdjacentTappedEnemies(creature.position)
+      if (adjacentEnemies.length === 1) {
+        setSelectedSacrificeTarget(adjacentEnemies[0])
       }
     }
   }
@@ -278,15 +330,17 @@ function DefenseOptionsPanel({
       })
     } else if (selectedDefense === 'immediate_card') {
       if (selectedImmediateCard && selectedCardCreature) {
-        onDefenseSelected({
+        const defensePayload = {
           type: 'immediate_card',
           card: selectedImmediateCard.card,
           creature: selectedCardCreature,
           damageReduction: selectedImmediateCard.damagePrevented,
           moraleCost: selectedImmediateCard.moraleCost,
           discardCard: selectedDiscardCard, // Card player chose to discard (for Uncanny Dodge etc.)
-          moraleTarget: selectedMoraleTarget // Enemy creature for morale loss (Unexpected Resistance)
-        })
+          moraleTarget: selectedMoraleTarget, // Enemy creature for morale loss (Unexpected Resistance)
+          sacrificeTarget: selectedSacrificeTarget // Enemy creature for Savage Demise attack
+        }
+        onDefenseSelected(defensePayload)
       }
     } else {
       onDefenseSelected({ type: 'skip' })
@@ -299,6 +353,7 @@ function DefenseOptionsPanel({
     setSelectedCardCreature(null)
     setSelectedDiscardCard(null)
     setSelectedMoraleTarget(null)
+    setSelectedSacrificeTarget(null)
   }
 
   // O(1) - Handle skip
@@ -310,6 +365,7 @@ function DefenseOptionsPanel({
     setSelectedCardCreature(null)
     setSelectedDiscardCard(null)
     setSelectedMoraleTarget(null)
+    setSelectedSacrificeTarget(null)
   }
 
   const hasAnyDefense = cowerInfo?.canCower || unstoppableInfo?.canUse || adjacentUndead.length > 0 || immediateCards.length > 0
@@ -683,23 +739,25 @@ function DefenseOptionsPanel({
                         display: 'block'
                       }}
                     />
-                    {/* Damage Prevention Overlay */}
+                    {/* Damage Prevention Overlay / Sacrifice Attack indicator */}
                     <div
                       style={{
                         position: 'absolute',
                         bottom: '4px',
                         right: '4px',
                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        color: '#28a745',
+                        color: cardInfo.card.selfSacrificeAttack ? '#dc3545' : '#28a745',
                         padding: '2px 6px',
                         borderRadius: '4px',
                         fontSize: '0.7rem',
                         fontWeight: 'bold'
                       }}
                     >
-                      {cardInfo.moraleCost > 0
-                        ? `-${cardInfo.moraleCost}M / -${cardInfo.damagePrevented}dmg`
-                        : `-${cardInfo.damagePrevented}dmg`
+                      {cardInfo.card.selfSacrificeAttack
+                        ? '⚔️ SACRIFICE'
+                        : cardInfo.moraleCost > 0
+                          ? `-${cardInfo.moraleCost}M / -${cardInfo.damagePrevented}dmg`
+                          : `-${cardInfo.damagePrevented}dmg`
                       }
                     </div>
                     {/* Selected checkmark */}
@@ -1009,6 +1067,135 @@ function DefenseOptionsPanel({
                     </div>
                   )
                 })()}
+
+              {/* Sacrifice target selection - for cards like Savage Demise */}
+              {selectedDefense === 'immediate_card' && selectedImmediateCard && selectedCardCreature &&
+                selectedImmediateCard.card.selfSacrificeAttack && (() => {
+                  const adjacentEnemies = getAdjacentTappedEnemies(selectedCardCreature.position)
+                  // If no targets, card shouldn't be selectable (filtered earlier)
+                  if (adjacentEnemies.length === 0) return null
+
+                  // Calculate attack damage for display
+                  const attackDamage = selectedCardCreature.creature?.meleeAttack?.damage || 0
+
+                  return (
+                    <div
+                      className="mt-2 p-2"
+                      style={{ backgroundColor: 'rgba(220,53,69,0.3)', borderRadius: '6px', border: '2px solid #dc3545' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Warning about self-destruction */}
+                      <Alert
+                        variant="danger"
+                        className="py-1 px-2 mb-2"
+                        style={{ fontSize: '0.75rem', backgroundColor: 'rgba(220,53,69,0.4)' }}
+                      >
+                        <strong>⚠️ WARNING:</strong> Your creature will DIE after this attack!
+                      </Alert>
+
+                      <strong className="d-block mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}>
+                        Select enemy to attack ({attackDamage} damage):
+                      </strong>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(3, 1fr)',
+                          gap: '4px',
+                          maxHeight: '150px',
+                          overflowY: 'auto'
+                        }}
+                      >
+                        {adjacentEnemies.map((enemyInfo, index) => {
+                          const enemy = enemyInfo.creature
+                          const owner = gameState.players[enemyInfo.owner]
+                          return (
+                            <div
+                              key={`sacrifice-target-${enemy.instanceId}-${index}`}
+                              style={{
+                                cursor: 'pointer',
+                                borderRadius: '6px',
+                                border: selectedSacrificeTarget?.creature?.instanceId === enemy.instanceId
+                                  ? '3px solid #dc3545'
+                                  : '2px solid #444',
+                                overflow: 'hidden',
+                                position: 'relative',
+                                opacity: selectedSacrificeTarget?.creature?.instanceId === enemy.instanceId ? 1 : 0.8,
+                                backgroundColor: '#2c2f33'
+                              }}
+                              onClick={() => setSelectedSacrificeTarget(enemyInfo)}
+                              onMouseEnter={() => setHoverPreview({ type: 'creature', data: enemy })}
+                              onMouseLeave={() => setHoverPreview(null)}
+                            >
+                              <img
+                                src={enemy.creature?.imageUrl || enemy.imageUrl}
+                                alt={enemy.creature?.name || enemy.name}
+                                style={{
+                                  width: '100%',
+                                  height: 'auto',
+                                  display: 'block'
+                                }}
+                              />
+                              {/* Owner badge */}
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '2px',
+                                  left: '2px',
+                                  backgroundColor: '#dc3545',
+                                  color: 'white',
+                                  padding: '1px 4px',
+                                  borderRadius: '3px',
+                                  fontSize: '0.5rem',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                {owner?.commander?.name?.split(' ')[0] || 'Enemy'}
+                              </div>
+                              {/* HP display */}
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '2px',
+                                  left: '2px',
+                                  backgroundColor: 'rgba(0,0,0,0.8)',
+                                  color: enemy.currentHP <= attackDamage ? '#dc3545' : '#28a745',
+                                  padding: '1px 4px',
+                                  borderRadius: '3px',
+                                  fontSize: '0.5rem',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                {enemy.currentHP} HP
+                              </div>
+                              {/* Selected checkmark */}
+                              {selectedSacrificeTarget?.creature?.instanceId === enemy.instanceId && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    top: '2px',
+                                    right: '2px',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    borderRadius: '50%',
+                                    width: '14px',
+                                    height: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.6rem',
+                                    fontWeight: 'bold'
+                                  }}
+                                >
+                                  ✓
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
             </Card.Body>
           </Card>
         )}
@@ -1016,13 +1203,26 @@ function DefenseOptionsPanel({
         {/* Summary */}
         {selectedDefense && (
           <Alert
-            variant={finalDamage === 0 ? 'success' : finalDamage < incomingDamage ? 'info' : 'warning'}
+            variant={
+              selectedImmediateCard?.card?.selfSacrificeAttack ? 'danger'
+              : finalDamage === 0 ? 'success'
+              : finalDamage < incomingDamage ? 'info'
+              : 'warning'
+            }
             className="py-2 mt-2"
             style={{ fontSize: '0.8rem' }}
           >
             <strong>Summary:</strong>
             <br />
-            Incoming: {incomingDamage} | Reduced: {incomingDamage - finalDamage} | Final: <strong>{finalDamage}</strong>
+            {selectedImmediateCard?.card?.selfSacrificeAttack ? (
+              <>
+                Your creature will attack for {selectedCardCreature?.creature?.meleeAttack?.damage || 0} damage, then <strong style={{ color: '#dc3545' }}>DIE</strong>.
+                <br />
+                <span style={{ fontSize: '0.75rem', color: '#adb5bd' }}>Original attack will be negated.</span>
+              </>
+            ) : (
+              <>Incoming: {incomingDamage} | Reduced: {incomingDamage - finalDamage} | Final: <strong>{finalDamage}</strong></>
+            )}
           </Alert>
         )}
       </div>
@@ -1047,6 +1247,7 @@ function DefenseOptionsPanel({
             || (selectedDefense === 'immediate_card' && (!selectedImmediateCard || !selectedCardCreature))
             || (selectedDefense === 'immediate_card' && selectedImmediateCard?.discardCost > 0 && !selectedDiscardCard)
             || (selectedDefense === 'immediate_card' && selectedImmediateCard?.card?.moraleLossTargetType === 'adjacent_tapped_enemy' && selectedCardCreature && getAdjacentTappedEnemies(selectedCardCreature.position).length > 1 && !selectedMoraleTarget)
+            || (selectedDefense === 'immediate_card' && selectedImmediateCard?.card?.selfSacrificeAttack && !selectedSacrificeTarget)
           }
         >
           {selectedDefense === 'cower'

@@ -566,27 +566,37 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: overseersWhipImg
   },
-  // Card #21 - Savage Demise (IMMEDIATE but not damage prevention)
+  // Card #21 - Savage Demise (IMMEDIATE self-sacrifice attack) - ABILITY IMPLEMENTED
+  // Defensive card: sacrifice yourself to attack an adjacent tapped enemy
   {
     id: 'bog_ord_21',
     name: 'Savage Demise',
     level: 1,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Make a melee attack that deals this creature\'s base damage against 1 tapped creature. Destroy this creature. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals this creature\'s base damage against 1 tapped creature. Destroy this creature.',
     faction: FACTION_NAME,
-    imageUrl: savageDemise21Img
+    imageUrl: savageDemise21Img,
+    damagePrevented: 0, // No damage prevention - accepts death
+    destroySelfAfterUse: true, // Creature dies after using this card
+    selfSacrificeAttack: true, // Targets adjacent tapped enemy
+    useBaseMeleeDamage: true // Uses creature's base melee damage
   },
-  // Card #22 - Savage Demise (IMMEDIATE but not damage prevention)
+  // Card #22 - Savage Demise (IMMEDIATE self-sacrifice attack) - ABILITY IMPLEMENTED
+  // Defensive card: sacrifice yourself to attack an adjacent tapped enemy
   {
     id: 'bog_ord_22',
     name: 'Savage Demise',
     level: 1,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Make a melee attack that deals this creature\'s base damage against 1 tapped creature. Destroy this creature. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals this creature\'s base damage against 1 tapped creature. Destroy this creature.',
     faction: FACTION_NAME,
-    imageUrl: savageDemise22Img
+    imageUrl: savageDemise22Img,
+    damagePrevented: 0, // No damage prevention - accepts death
+    destroySelfAfterUse: true, // Creature dies after using this card
+    selfSacrificeAttack: true, // Targets adjacent tapped enemy
+    useBaseMeleeDamage: true // Uses creature's base melee damage
   },
   // Card #23 - Scent of Blood
   {

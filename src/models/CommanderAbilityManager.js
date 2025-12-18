@@ -638,12 +638,13 @@ export class CommanderAbilityManager {
     // Get all eligible creatures for 'self' protection (defender + adjacent friendly untapped)
     const selfProtectCreatures = this.getCreaturesForImmediateCard(defenderInstance)
 
-    // Find IMMEDIATE cards that prevent damage
+    // Find IMMEDIATE cards that prevent damage or have special defense effects
     const immediateCards = []
     for (const card of player.orderHand) {
-      // Card must prevent damage (either fixed amount or all damage)
+      // Card must prevent damage (either fixed amount or all damage) OR be a self-sacrifice attack (Savage Demise)
       const preventsDamage = (card.damagePrevented != null && card.damagePrevented > 0) || card.preventsAllDamage
-      if (card.isImmediate && card.isImmediate() && preventsDamage) {
+      const isSelfSacrifice = card.selfSacrificeAttack === true
+      if (card.isImmediate && card.isImmediate() && (preventsDamage || isSelfSacrifice)) {
         // Check discard cost - player needs the card itself + additional cards to discard
         // e.g., Uncanny Dodge requires discarding 1 card, so player needs at least 2 cards total
         if (card.discardCost && card.discardCost > 0) {

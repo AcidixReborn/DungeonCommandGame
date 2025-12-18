@@ -216,6 +216,18 @@ export function useAbilityModals() {
   })
 
   // ============================================
+  // SAVAGE DEMISE state (self-sacrifice attack)
+  // Used when a creature uses Savage Demise to counter-attack and die
+  // ============================================
+  const [savageDemisePending, setSavageDemisePending] = useState(null)
+  // { attacker: CreatureInstance (user of Savage Demise),
+  //   target: CreatureInstance (adjacent tapped enemy),
+  //   damage: number (base melee damage),
+  //   originalAttacker: CreatureInstance,
+  //   card: OrderCard,
+  //   originalAttackInfo: { attackType, damage, etc. } }
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -300,6 +312,13 @@ export function useAbilityModals() {
   }, [])
 
   /**
+   * Clear all Savage Demise state
+   */
+  const clearSavageDemiseState = useCallback(() => {
+    setSavageDemisePending(null)
+  }, [])
+
+  /**
    * Clear all ability modal state
    * Called at end of turn or game reset
    */
@@ -312,6 +331,7 @@ export function useAbilityModals() {
     clearSplashState()
     clearRangedSplashState()
     clearRiderState()
+    clearSavageDemiseState()
     setShowDamageNotification(false)
     setDamageNotificationData(null)
     setPendingPhaseAdvance(false)
@@ -342,7 +362,8 @@ export function useAbilityModals() {
     clearLightningBreathState,
     clearSplashState,
     clearRangedSplashState,
-    clearRiderState
+    clearRiderState,
+    clearSavageDemiseState
   ])
 
   return {
@@ -535,6 +556,11 @@ export function useAbilityModals() {
     setShowMoraleLossModal,
     moraleLossModalData,
     setMoraleLossModalData,
+
+    // Savage Demise (self-sacrifice attack)
+    savageDemisePending,
+    setSavageDemisePending,
+    clearSavageDemiseState,
 
     // Clear all
     clearAllAbilityModalState

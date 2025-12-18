@@ -233,6 +233,9 @@ function GameBoard({ onTurnInfoChange }) {
     // Morale Loss Notification (Unexpected Resistance)
     showMoraleLossModal, setShowMoraleLossModal,
     moraleLossModalData, setMoraleLossModalData,
+    // Savage Demise (self-sacrifice attack)
+    savageDemisePending, setSavageDemisePending,
+    clearSavageDemiseState,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -1427,6 +1430,121 @@ function GameBoard({ onTurnInfoChange }) {
         success: totalDamageReduction > 0
       })
     } else if (defense.type === 'immediate_card') {
+      // Check for SAVAGE DEMISE (self-sacrifice attack) FIRST before normal handling
+      if (defense.card.selfSacrificeAttack && defense.sacrificeTarget) {
+        // Savage Demise: Creature attacks adjacent tapped enemy, then dies
+        // Original attack is completely negated
+        // Target is TAPPED so they cannot defend - execute immediately
+
+        // Calculate attack damage (base melee damage of creature using the card)
+        const attackDamage = defense.creature.creature.meleeAttack?.damage || 0
+
+        // Discard the Savage Demise card from hand
+        const defenderPlayer = gameState.players[defenderInstance.owner]
+        const cardIndex = defenderPlayer.orderHand.findIndex(c => c.id === defense.card.id)
+        if (cardIndex !== -1) {
+          defenderPlayer.orderHand.splice(cardIndex, 1)
+          defenderPlayer.orderDiscard.push(defense.card)
+        }
+
+        // Get the sacrifice target and user
+        const sacrificeTarget = defense.sacrificeTarget.creature
+        const sacrificeUser = defense.creature
+
+        // Close the combat panel first
+        closeCombatPanel()
+
+        // Show toast about Savage Demise being used
+        addToast(`⚔️ SAVAGE DEMISE: ${sacrificeUser.creature.name} sacrifices itself to attack ${sacrificeTarget.creature.name}!`)
+
+        // === EXECUTE SAVAGE DEMISE ATTACK (no defense - target is tapped) ===
+        const savageDemiseResult = gameState.applySavageDemiseDamage(sacrificeTarget, sacrificeUser.owner, attackDamage, 0)
+
+        // Build damage message
+        let damageMsg = `⚔️ ${sacrificeUser.creature.name} attacks ${sacrificeTarget.creature.name} for ${savageDemiseResult.damage} damage!`
+        if (savageDemiseResult.destroyed) {
+          damageMsg += ` ${sacrificeTarget.creature.name} was destroyed!`
+          if (savageDemiseResult.moraleChange) {
+            damageMsg += ` Morale: ${sacrificeUser.owner} +${savageDemiseResult.moraleChange.attacker}, ${sacrificeTarget.owner} ${savageDemiseResult.moraleChange.defender}`
+          }
+        } else {
+          damageMsg += ` ${sacrificeTarget.creature.name} has ${savageDemiseResult.remainingHP} HP remaining.`
+        }
+        addToast(damageMsg)
+
+        // === CHECK FOR DEATH STRIKE (Boar/Wereboar) ===
+        // DEATH STRIKE hits the ORIGINAL ATTACKER, not the Savage Demise target
+        const hasDeathStrike = gameState.hasDeathStrike && gameState.hasDeathStrike(sacrificeUser)
+
+        if (hasDeathStrike) {
+          // DEATH STRIKE: Additional melee attack against the ORIGINAL ATTACKER (the creature that attacked the Boar/Wereboar)
+          const deathStrikeDamage = sacrificeUser.creature.meleeAttack?.damage || 0
+          const deathStrikeResult = gameState.applySavageDemiseDamage(attackerInstance, sacrificeUser.owner, deathStrikeDamage, 0)
+
+          let deathStrikeMsg = `💀 DEATH STRIKE: ${sacrificeUser.creature.name} strikes ${attackerInstance.creature.name} for ${deathStrikeDamage} damage!`
+          if (deathStrikeResult.destroyed) {
+            deathStrikeMsg += ` ${attackerInstance.creature.name} was destroyed!`
+            if (deathStrikeResult.moraleChange) {
+              deathStrikeMsg += ` Morale: ${sacrificeUser.owner} +${deathStrikeResult.moraleChange.attacker}, ${attackerInstance.owner} ${deathStrikeResult.moraleChange.defender}`
+            }
+          } else {
+            deathStrikeMsg += ` ${attackerInstance.creature.name} has ${deathStrikeResult.remainingHP} HP remaining.`
+          }
+          addToast(deathStrikeMsg)
+        }
+
+        // === SACRIFICE THE CREATURE (guaranteed death) ===
+        const sacrificeResult = gameState.sacrificeCreature(sacrificeUser)
+
+        addToast(`☠️ SACRIFICE: ${sacrificeUser.creature.name} dies from Savage Demise! (Morale -${sacrificeResult.moraleLost})`)
+
+        // Check for game over conditions
+        gameState.checkGameOver()
+
+        // Check for immediate elimination (sacrifice user's owner)
+        const sacrificeOwner = sacrificeUser.owner
+        const eliminationResult = gameState.checkAndEliminatePlayer(sacrificeOwner)
+        if (eliminationResult.eliminated) {
+          const reason = eliminationResult.reason === 'morale' ? 'Morale reduced to 0!' : 'All creatures destroyed!'
+          addToast(`🏳️ ${gameState.players[sacrificeOwner].commander.name} has been eliminated! ${reason}`)
+        }
+
+        // Check for Savage Demise target owner elimination
+        const targetOwner = sacrificeTarget.owner
+        const targetEliminationResult = gameState.checkAndEliminatePlayer(targetOwner)
+        if (targetEliminationResult.eliminated) {
+          const reason = targetEliminationResult.reason === 'morale' ? 'Morale reduced to 0!' : 'All creatures destroyed!'
+          addToast(`🏳️ ${gameState.players[targetOwner].commander.name} has been eliminated! ${reason}`)
+        }
+
+        // Check for original attacker owner elimination (DEATH STRIKE may have killed them)
+        const attackerOwner = attackerInstance.owner
+        if (attackerOwner !== targetOwner) { // Don't double-check if same player
+          const attackerEliminationResult = gameState.checkAndEliminatePlayer(attackerOwner)
+          if (attackerEliminationResult.eliminated) {
+            const reason = attackerEliminationResult.reason === 'morale' ? 'Morale reduced to 0!' : 'All creatures destroyed!'
+            addToast(`🏳️ ${gameState.players[attackerOwner].commander.name} has been eliminated! ${reason}`)
+          }
+        }
+
+        // === TAP THE ORIGINAL ATTACKER (they used their action even though attack was negated) ===
+        // The attacker consumed their action by attacking, so they should be tapped
+        if (attackerInstance && !attackerInstance.isTapped) {
+          attackerInstance.hasAttackedThisTurn = true
+          if (attackerInstance.hasMovedThisTurn) {
+            attackerInstance.tap()
+          }
+        }
+
+        // Clear pending attack (original attack is negated)
+        setPendingAttack(null)
+
+        // Force re-render
+        setRenderCounter(prev => prev + 1)
+
+        return // Original attack is completely negated
+      }
+
       // IMMEDIATE CARD: Prevent damage, discard card, tap creature
       // Pass discardCard if card has discard cost (e.g., Uncanny Dodge)
       const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
@@ -1608,16 +1726,33 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} defenseResult - { type, damageReduction, moraleCost, success, ... }
    */
   const executeAttackAfterDefense = (defenseResult) => {
-    if (!pendingAttack) return
+    console.log('[executeAttackAfterDefense] === CALLED ===')
+    console.log('[executeAttackAfterDefense] defenseResult:', defenseResult)
+    console.log('[executeAttackAfterDefense] pendingAttack:', pendingAttack)
+    console.log('[executeAttackAfterDefense] savageDemisePending:', savageDemisePending)
+
+    if (!pendingAttack) {
+      console.log('[executeAttackAfterDefense] No pendingAttack - returning early')
+      return
+    }
 
     const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze, isRangedSplash } = pendingAttack
 
     // Handle RANGED SPLASH damage (ACID BREATH / EXPLOSIVE BOLTS)
     if (isRangedSplash && rangedSplashAttackInfo) {
+      console.log('[executeAttackAfterDefense] Handling RANGED SPLASH')
       const damageReduction = defenseResult.damageReduction || 0
       handleRangedSplashDefenseComplete({ damageReduction })
       return
     }
+
+    // Handle SAVAGE DEMISE attack resolution
+    if (pendingAttack.isSavageDemise && savageDemisePending) {
+      console.log('[executeAttackAfterDefense] Routing to handleSavageDemiseResolution')
+      handleSavageDemiseResolution(defenseResult)
+      return
+    }
+    console.log('[executeAttackAfterDefense] Not Savage Demise, continuing with normal attack')
 
     let result
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
@@ -6209,6 +6344,132 @@ function GameBoard({ onTurnInfoChange }) {
     // Fallback - no defense
     closeCombatPanel()
     handleRangedSplashDefenseComplete({ damageReduction: 0 })
+  }
+
+  /**
+   * Handle Savage Demise attack resolution
+   * Called when the sacrifice target's defense phase completes
+   *
+   * Flow:
+   * 1. Apply Savage Demise damage to target (with defense reduction)
+   * 2. Check for DEATH STRIKE ability on the attacker (Boar/Wereboar)
+   * 3. If DEATH STRIKE, apply additional damage to the SAME target
+   * 4. Kill the creature that used Savage Demise (guaranteed death)
+   * 5. Clear savageDemisePending state and combat panels
+   *
+   * @param {Object} defenseResult - { damageReduction: number, type: string, ... }
+   */
+  const handleSavageDemiseResolution = (defenseResult) => {
+    console.log('[handleSavageDemiseResolution] === CALLED ===')
+    console.log('[handleSavageDemiseResolution] defenseResult:', defenseResult)
+    console.log('[handleSavageDemiseResolution] savageDemisePending:', savageDemisePending)
+    console.log('[handleSavageDemiseResolution] pendingAttack:', pendingAttack)
+
+    if (!savageDemisePending || !pendingAttack) {
+      console.log('[handleSavageDemiseResolution] Missing state - savageDemisePending:', !!savageDemisePending, 'pendingAttack:', !!pendingAttack)
+      return
+    }
+
+    const { attacker, target, damage, originalAttacker, card } = savageDemisePending
+    const damageReduction = defenseResult.damageReduction || 0
+
+    console.log('[handleSavageDemiseResolution] attacker:', attacker?.creature?.name)
+    console.log('[handleSavageDemiseResolution] target:', target?.creature?.name)
+    console.log('[handleSavageDemiseResolution] damage:', damage)
+    console.log('[handleSavageDemiseResolution] damageReduction:', damageReduction)
+
+    // Apply Savage Demise damage to target using the dedicated method
+    console.log('[handleSavageDemiseResolution] Calling applySavageDemiseDamage...')
+    const savageDemiseResult = gameState.applySavageDemiseDamage(target, attacker.owner, damage, damageReduction)
+    console.log('[handleSavageDemiseResolution] savageDemiseResult:', savageDemiseResult)
+    const finalDamage = savageDemiseResult.damage
+
+    // Build message
+    let message = ''
+    if (damageReduction > 0) {
+      message += `⚡ ${defenseResult.cardUsed || 'Defense'} prevented ${damageReduction} damage! `
+    }
+    message += `⚔️ SAVAGE DEMISE: ${attacker.creature.name} attacks ${target.creature.name} for ${finalDamage} damage!`
+
+    if (savageDemiseResult.destroyed) {
+      message += ` ${target.creature.name} was destroyed!`
+      if (savageDemiseResult.moraleChange) {
+        message += ` Morale: ${attacker.owner} +${savageDemiseResult.moraleChange.attacker}, ${target.owner} ${savageDemiseResult.moraleChange.defender}`
+      }
+    } else {
+      message += ` ${target.creature.name} has ${savageDemiseResult.remainingHP || target.currentHP} HP remaining.`
+    }
+    addToast(message)
+
+    // Check for DEATH STRIKE ability (Boar/Wereboar)
+    const hasDeathStrike = gameState.hasDeathStrike && gameState.hasDeathStrike(attacker)
+    if (hasDeathStrike) {
+      // DEATH STRIKE: Additional melee attack against the SAME target
+      // Only triggers if target is still alive (not destroyed by Savage Demise)
+      const targetStillAlive = !savageDemiseResult.destroyed
+
+      if (targetStillAlive) {
+        const deathStrikeDamage = attacker.creature.meleeAttack?.damage || 0
+        const deathStrikeResult = gameState.applySavageDemiseDamage(target, attacker.owner, deathStrikeDamage, 0)
+
+        let deathStrikeMsg = `💀 DEATH STRIKE: ${attacker.creature.name} strikes ${target.creature.name} for ${deathStrikeDamage} damage!`
+        if (deathStrikeResult.destroyed) {
+          deathStrikeMsg += ` ${target.creature.name} was destroyed!`
+          if (deathStrikeResult.moraleChange) {
+            deathStrikeMsg += ` Morale: ${attacker.owner} +${deathStrikeResult.moraleChange.attacker}, ${target.owner} ${deathStrikeResult.moraleChange.defender}`
+          }
+        } else {
+          deathStrikeMsg += ` ${target.creature.name} has ${deathStrikeResult.remainingHP || target.currentHP} HP remaining.`
+        }
+        addToast(deathStrikeMsg)
+      } else {
+        // Target already dead from Savage Demise, Death Strike doesn't trigger damage
+        addToast(`💀 DEATH STRIKE: ${attacker.creature.name}'s death strike cannot trigger - target already destroyed.`)
+      }
+    }
+
+    // Now kill the creature that used Savage Demise (guaranteed death)
+    const sacrificer = attacker
+    const sacrificerOwner = sacrificer.owner
+
+    console.log('[handleSavageDemiseResolution] Sacrificing creature:', sacrificer?.creature?.name)
+    console.log('[handleSavageDemiseResolution] Calling sacrificeCreature...')
+
+    // Apply death - creature dies, owner loses morale equal to creature level
+    const sacrificeDeathResult = gameState.sacrificeCreature(sacrificer)
+
+    console.log('[handleSavageDemiseResolution] sacrificeDeathResult:', sacrificeDeathResult)
+
+    addToast(`☠️ SACRIFICE: ${sacrificer.creature.name} dies from Savage Demise! (Morale -${sacrificeDeathResult.moraleLost})`)
+
+    // Check for game over conditions
+    gameState.checkGameOver()
+
+    // Check for immediate elimination
+    const eliminationResult = gameState.checkAndEliminatePlayer(sacrificerOwner)
+    if (eliminationResult.eliminated) {
+      const reason = eliminationResult.reason === 'morale'
+        ? 'Morale reduced to 0!'
+        : 'All creatures destroyed!'
+      addToast(`🏳️ ${gameState.players[sacrificerOwner].commander.name} has been eliminated! ${reason}`)
+    }
+
+    const targetEliminationResult = gameState.checkAndEliminatePlayer(target.owner)
+    if (targetEliminationResult.eliminated) {
+      const reason = targetEliminationResult.reason === 'morale'
+        ? 'Morale reduced to 0!'
+        : 'All creatures destroyed!'
+      addToast(`🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`)
+    }
+
+    // Clear Savage Demise state
+    console.log('[handleSavageDemiseResolution] Clearing state...')
+    clearSavageDemiseState()
+    setPendingAttack(null)
+
+    // Force re-render to update UI
+    setRenderCounter(prev => prev + 1)
+    console.log('[handleSavageDemiseResolution] === COMPLETE ===')
   }
 
   /**

@@ -93,7 +93,7 @@ Cards offering player a choice between effects.
 
 ---
 
-### Phase IMD-9: Morale Attack Cards
+### Phase IMD-9: Morale Attack Cards ✅ COMPLETE
 Cards that affect opponent morale as part of defense.
 
 | Card | Faction | Effect |
@@ -101,13 +101,17 @@ Cards that affect opponent morale as part of defense.
 | Unexpected Resistance (x2) | Blood of Gruumsh | Prevent 10 damage, adjacent tapped enemy's controller loses 1 morale |
 
 **Implementation**:
-- Add `opponentMoraleLoss` property
-- Add targeting for adjacent tapped enemy
-- Execute morale loss after damage prevention
+- ✅ Added `opponentMoraleLoss` property to OrderCard class
+- ✅ Added `moraleLossTargetType` property ('adjacent_tapped_enemy')
+- ✅ Updated DefenseOptionsPanel with morale target selection UI
+- ✅ If multiple adjacent tapped enemies: Player selects target
+- ✅ If single target: Auto-select
+- ✅ MoraleLossNotificationModal shows loss to affected player
+- ✅ AI evaluates morale loss value vs damage prevention
 
 ---
 
-### Phase IMD-10: Self-Sacrifice Cards
+### Phase IMD-10: Self-Sacrifice Cards ✅ COMPLETE
 Cards that destroy the user as part of their effect.
 
 | Card | Faction | Effect |
@@ -115,10 +119,16 @@ Cards that destroy the user as part of their effect.
 | Savage Demise (x2) | Blood of Gruumsh | Attack tapped creature with base damage, then destroy self |
 
 **Implementation**:
-- Add `destroySelfAfterUse` property
-- This is NOT damage prevention - it's a death trigger counter-attack
-- Execute attack against tapped target, then destroy user
-- AI evaluates trade value
+- ✅ Added `destroySelfAfterUse` property to OrderCard class
+- ✅ Added `selfSacrificeAttack` property (targets adjacent tapped enemy)
+- ✅ Added `useBaseMeleeDamage` property (uses creature's base melee damage)
+- ✅ DefenseOptionsPanel shows sacrifice target selection UI
+- ✅ Card only available when adjacent tapped enemies exist
+- ✅ Attack sequence: Savage Demise → DEATH STRIKE (if applicable) → Sacrifice
+- ✅ DEATH STRIKE hits the ORIGINAL ATTACKER (not sacrifice target)
+- ✅ Original attack is completely negated
+- ✅ Original attacker's action is consumed (tapped)
+- ✅ AI evaluates trade value (creature level vs target value)
 
 ---
 

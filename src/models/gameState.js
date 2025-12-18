@@ -884,6 +884,132 @@ export class GameState {
   }
 
   // ============================================================================
+  // SAVAGE DEMISE - Blood of Gruumsh IMMEDIATE Card
+  // Defensive self-sacrifice attack: Deal base melee damage to adjacent tapped
+  // enemy, then die. Original attack is negated.
+  // ============================================================================
+
+  /**
+   * Apply Savage Demise damage to a target creature
+   * Used when a creature uses the Savage Demise IMMEDIATE card during defense
+   *
+   * @param {CreatureInstance} targetInstance - The creature being attacked
+   * @param {string} attackerOwner - Player ID of the attacker (creature using Savage Demise)
+   * @param {number} damage - Base melee damage to deal
+   * @param {number} damageReduction - Amount reduced by defender's IMMEDIATE cards
+   * @returns {Object} { success, damage, destroyed, moraleChange, remainingHP, damageReduced }
+   */
+  applySavageDemiseDamage(targetInstance, attackerOwner, damage, damageReduction = 0) {
+    const actualDamage = Math.max(0, damage - damageReduction)
+
+    if (!targetInstance) {
+      return { success: false, message: 'Invalid target' }
+    }
+
+    // If all damage was prevented, no effect
+    if (actualDamage <= 0) {
+      return {
+        success: true,
+        damage: 0,
+        destroyed: false,
+        moraleChange: { attacker: 0, defender: 0 },
+        remainingHP: targetInstance.currentHP,
+        damageReduced: damageReduction
+      }
+    }
+
+    const defenderOwner = targetInstance.owner
+
+    // Apply damage using takeDamage
+    const wasDestroyed = targetInstance.takeDamage(actualDamage)
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
+
+      // Defender loses morale equal to creature's level
+      defenderPlayer.loseMorale(targetInstance.creature.level)
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level
+      }
+    }
+
+    return {
+      success: true,
+      damage: actualDamage,
+      destroyed: wasDestroyed,
+      moraleChange,
+      remainingHP: Math.max(0, targetInstance.currentHP),
+      damageReduced: damageReduction
+    }
+  }
+
+  /**
+   * Kill a creature due to self-sacrifice (Savage Demise)
+   * Handles removal, morale loss, and cleanup without attacker morale gain
+   *
+   * @param {CreatureInstance} creatureInstance - The creature sacrificing itself
+   * @returns {Object} { success, moraleLost }
+   */
+  sacrificeCreature(creatureInstance) {
+    if (!creatureInstance) {
+      return { success: false, message: 'Invalid creature' }
+    }
+
+    const owner = creatureInstance.owner
+    const player = this.players[owner]
+
+    // Clear the tile occupant
+    if (creatureInstance.position) {
+      const tile = this.getTile(creatureInstance.position.x, creatureInstance.position.y)
+      if (tile) {
+        tile.occupant = null
+      }
+    }
+
+    // Remove from battlefield
+    const index = player.creaturesInPlay.findIndex(c => c.instanceId === creatureInstance.instanceId)
+    if (index !== -1) {
+      player.creaturesInPlay.splice(index, 1)
+    }
+
+    // Add creature CARD to graveyard (not instance)
+    player.creatureGraveyard.push(creatureInstance.creature)
+
+    // Owner loses morale equal to creature's level (no attacker gain for self-sacrifice)
+    const moraleLost = creatureInstance.creature.level
+    player.loseMorale(moraleLost)
+
+    return {
+      success: true,
+      moraleLost
+    }
+  }
+
+  // ============================================================================
   // FLANKING - Halfling Sneak Ability (Heart of Cormyr)
   // +10 damage on melee attacks when at least 1 ally is adjacent to the target
   // Does NOT stack with multiple allies, does NOT apply to ability damage

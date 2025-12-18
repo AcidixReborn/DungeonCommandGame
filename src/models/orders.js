@@ -59,7 +59,10 @@ export class OrderCard {
     healAmount = 0, // Amount of healing this card provides when used proactively (e.g., Patch Up = 20)
     canHealProactively = false, // If true, can be used proactively during ACTIVATE to heal (e.g., Patch Up)
     opponentMoraleLoss = 0, // Morale opponent loses when this card is used (e.g., Unexpected Resistance = 1)
-    moraleLossTargetType = null // Target type for morale loss: 'adjacent_tapped_enemy' for Unexpected Resistance
+    moraleLossTargetType = null, // Target type for morale loss: 'adjacent_tapped_enemy' for Unexpected Resistance
+    destroySelfAfterUse = false, // If true, creature dies after using this card (e.g., Savage Demise)
+    selfSacrificeAttack = false, // If true, this is a sacrifice attack that targets adjacent tapped enemy
+    useBaseMeleeDamage = false // If true, attack uses creature's base melee damage (e.g., Savage Demise)
   }) {
     this.id = id
     this.name = name
@@ -93,6 +96,9 @@ export class OrderCard {
     this.canHealProactively = canHealProactively // If true, can be used proactively during ACTIVATE to heal
     this.opponentMoraleLoss = opponentMoraleLoss // Morale opponent loses when this card is used
     this.moraleLossTargetType = moraleLossTargetType // Target type for morale loss: 'adjacent_tapped_enemy'
+    this.destroySelfAfterUse = destroySelfAfterUse // If true, creature dies after using this card
+    this.selfSacrificeAttack = selfSacrificeAttack // If true, targets adjacent tapped enemy for sacrifice attack
+    this.useBaseMeleeDamage = useBaseMeleeDamage // If true, attack uses creature's base melee damage
   }
 
   /**

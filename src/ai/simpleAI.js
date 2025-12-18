@@ -2063,8 +2063,21 @@ export class SimpleAI {
     let bestCard = null
     let bestCreature = null
     let bestScore = -1
+    let bestSacrificeTarget = null // For Savage Demise
 
     for (const cardInfo of immediateCards) {
+      // Handle SAVAGE DEMISE (self-sacrifice attack) separately
+      if (cardInfo.card?.selfSacrificeAttack) {
+        const sacrificeResult = this.evaluateSavageDemise(cardInfo, defenderInstance, incomingDamage, wouldDie, creaturesInPlay)
+        if (sacrificeResult && sacrificeResult.score > bestScore) {
+          bestScore = sacrificeResult.score
+          bestCard = cardInfo
+          bestCreature = sacrificeResult.creature
+          bestSacrificeTarget = sacrificeResult.sacrificeTarget
+        }
+        continue // Skip normal damage prevention scoring
+      }
+
       const damagePrevented = cardInfo.damagePrevented || 0
 
       // Skip cards with no damage prevention implemented
@@ -2110,6 +2123,7 @@ export class SimpleAI {
         // Prefer defender to use the card if possible (keeps adjacent creatures untapped)
         bestCreature = cardInfo.eligibleCreatures.find(c => c.instanceId === defenderInstance.instanceId)
           || cardInfo.eligibleCreatures[0]
+        bestSacrificeTarget = null // Not a sacrifice card
       }
     }
 
@@ -2154,8 +2168,110 @@ export class SimpleAI {
       cardName: bestCard.card.name,
       hadOpportunity: true,
       discardCard: discardCard, // Card to discard as cost (for Uncanny Dodge)
-      moraleTarget: moraleTarget // Enemy creature for morale loss (for Unexpected Resistance)
+      moraleTarget: moraleTarget, // Enemy creature for morale loss (for Unexpected Resistance)
+      sacrificeTarget: bestSacrificeTarget // Enemy creature to attack (for Savage Demise)
     }
+  }
+
+  /**
+   * Evaluate Savage Demise card for defense
+   * Savage Demise is a self-sacrifice attack - creature attacks adjacent tapped enemy then dies
+   * Only use if the trade is favorable or we're going to die anyway
+   *
+   * Big O Complexity: O(e * t) where e = eligible creatures, t = adjacent tapped enemies
+   *
+   * @param {Object} cardInfo - Card info from defense options
+   * @param {CreatureInstance} defenderInstance - The creature being attacked
+   * @param {number} incomingDamage - Amount of damage incoming
+   * @param {boolean} wouldDie - Whether defender would die without defense
+   * @param {number} creaturesInPlay - Number of creatures AI has in play
+   * @returns {Object|null} { score, creature, sacrificeTarget } or null if shouldn't use
+   */
+  evaluateSavageDemise(cardInfo, defenderInstance, incomingDamage, wouldDie, creaturesInPlay) {
+    const eligibleCreatures = cardInfo.eligibleCreatures || []
+    if (eligibleCreatures.length === 0) return null
+
+    let bestResult = null
+    let bestScore = -Infinity
+
+    for (const creature of eligibleCreatures) {
+      // Get adjacent tapped enemies for this creature
+      const adjacentTappedEnemies = this.getAdjacentTappedEnemies(creature)
+      if (adjacentTappedEnemies.length === 0) continue // No valid targets for this creature
+
+      const sacrificerLevel = creature.creature.level || 1
+      const sacrificerDamage = creature.creature.meleeAttack?.damage || 0
+      const sacrificerValue = sacrificerLevel * 10 // Morale cost = level
+
+      // Check for DEATH STRIKE (Boar/Wereboar) - doubles the damage value
+      const hasDeathStrike = this.gameState?.hasDeathStrike && this.gameState.hasDeathStrike(creature)
+      const totalDamage = hasDeathStrike ? sacrificerDamage * 2 : sacrificerDamage
+
+      // Find the best target among adjacent tapped enemies
+      for (const enemyInfo of adjacentTappedEnemies) {
+        const targetCreature = enemyInfo.creature
+        const targetLevel = targetCreature.creature?.level || targetCreature.level || 1
+        const targetHP = targetCreature.currentHP || targetCreature.creature?.hitPoints || 0
+        const targetValue = targetLevel * 10
+
+        // Would this kill the target?
+        const wouldKillTarget = targetHP <= totalDamage
+
+        // Calculate trade score
+        // Positive = favorable trade, Negative = unfavorable trade
+        let score = targetValue - sacrificerValue
+
+        // Big bonus if we would kill the target
+        if (wouldKillTarget) {
+          score += 25
+        }
+
+        // Bonus for DEATH STRIKE (extra damage is valuable)
+        if (hasDeathStrike) {
+          score += 10
+        }
+
+        // If we're going to die anyway (wouldDie), Savage Demise is much more attractive
+        // We're trading a creature we'd lose for damage to an enemy
+        if (wouldDie) {
+          score += 30 // Big bonus - we're already losing this creature
+        }
+
+        // Bonus based on how much HP the target would have left
+        // The lower, the better (even if not a kill, setting up for next attack)
+        const remainingHP = Math.max(0, targetHP - totalDamage)
+        if (!wouldKillTarget && remainingHP <= 10) {
+          score += 5 // Almost dead is valuable
+        }
+
+        // Don't sacrifice high-level creatures for low-level targets unless desperate
+        if (sacrificerLevel >= 4 && targetLevel <= 2 && !wouldDie) {
+          score -= 20 // Penalty for poor trade
+        }
+
+        // Never sacrifice if we're low on creatures and wouldn't die anyway
+        if (creaturesInPlay <= 2 && !wouldDie && score < 0) {
+          continue // Skip this option
+        }
+
+        if (score > bestScore) {
+          bestScore = score
+          bestResult = {
+            score,
+            creature,
+            sacrificeTarget: enemyInfo
+          }
+        }
+      }
+    }
+
+    // Only return if score is positive OR we're going to die anyway
+    // (If dying anyway, any damage to enemy is better than nothing)
+    if (bestResult && (bestResult.score > 0 || wouldDie)) {
+      return bestResult
+    }
+
+    return null
   }
 
   /**

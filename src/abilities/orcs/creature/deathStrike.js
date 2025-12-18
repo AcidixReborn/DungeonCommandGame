@@ -21,10 +21,15 @@ export const DeathStrike = {
    * @returns {boolean} True if creature has DEATH STRIKE
    */
   has(creatureInstance) {
-    if (!creatureInstance?.creature?.specialAbilities) return false
+    if (!creatureInstance?.creature?.specialAbilities) {
+      return false
+    }
     return creatureInstance.creature.specialAbilities.some(
-      ability => (typeof ability === 'object' && ability.id === 'death_strike') ||
-                 (typeof ability === 'string' && ability.toUpperCase().includes('DEATH STRIKE'))
+      ability => {
+        const isObjectMatch = typeof ability === 'object' && ability.id === 'death_strike'
+        const isStringMatch = typeof ability === 'string' && ability.toUpperCase().includes('DEATH STRIKE')
+        return isObjectMatch || isStringMatch
+      }
     )
   },
 
