@@ -2575,6 +2575,193 @@ export class GameState {
   }
 
   // --------------------------------------------------------------------------
+  // 2B-2: IMMEDIATE CARD ATTACHMENTS (Leap Away, Mortal Wound, Tough as Nails)
+  // --------------------------------------------------------------------------
+
+  /**
+   * Check if creature has any movement-blocking attachment (Web or Leap Away)
+   * Big O: O(n) where n = number of attached cards (typically 0-2)
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {boolean} True if creature has a movement-blocking attachment
+   */
+  hasMovementBlockingAttachment(creatureInstance) {
+    if (!creatureInstance?.attachedCards?.length) return false
+    return creatureInstance.attachedCards.some(att =>
+      att.card?.name?.toUpperCase().includes('WEB') ||
+      att.card?.attachOnUse?.preventsMovement
+    )
+  }
+
+  /**
+   * Check if creature has Mortal Wound attached (destroy at Deploy phase)
+   * Big O: O(n) where n = number of attached cards (typically 0-2)
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {boolean} True if creature has Mortal Wound
+   */
+  hasMortalWound(creatureInstance) {
+    if (!creatureInstance?.attachedCards?.length) return false
+    return creatureInstance.attachedCards.some(att =>
+      att.card?.attachOnUse?.destroyAtDeploy
+    )
+  }
+
+  /**
+   * Get Block amount from all attachments (Tough as Nails grants Block 10)
+   * Block reduces damage from EACH source by this amount
+   * Big O: O(n) where n = number of attached cards (typically 0-2)
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {number} Total block amount (0 if none)
+   */
+  getBlockAmount(creatureInstance) {
+    if (!creatureInstance?.attachedCards?.length) return 0
+    return creatureInstance.attachedCards.reduce((total, att) =>
+      total + (att.card?.attachOnUse?.blockAmount || 0), 0
+    )
+  }
+
+  /**
+   * Apply an IMMEDIATE card attachment to a creature
+   * Handles cards that attach after use (Leap Away, Mortal Wound, Tough as Nails)
+   * Big O: O(n) where n = attached cards (if removesAllAttachments)
+   * @param {CreatureInstance} creatureInstance - The creature to attach to
+   * @param {OrderCard} card - The IMMEDIATE card being used
+   * @param {string} casterOwner - Player ID of the card owner
+   * @returns {Array} Array of removed cards (if any were cleansed)
+   */
+  applyImmediateCardAttachment(creatureInstance, card, casterOwner) {
+    if (!creatureInstance || !card) return []
+
+    // Initialize attachedCards if not present
+    if (!creatureInstance.attachedCards) {
+      creatureInstance.attachedCards = []
+    }
+
+    let removedCards = []
+
+    // If card removes all attachments first (Tough as Nails, Undaunted Surge)
+    if (card.removesAllAttachments) {
+      removedCards = this.removeAllAttachments(creatureInstance)
+    }
+
+    // Attach the card
+    creatureInstance.attachedCards.push({
+      card: card,
+      casterOwner: casterOwner,
+      attachedTurn: this.turnNumber
+    })
+
+    return removedCards
+  }
+
+  /**
+   * Remove all attachments from a creature
+   * Returns each card to its caster's discard pile
+   * Used by Tough as Nails, Undaunted Surge, Rally
+   * Big O: O(n) where n = attached cards
+   * @param {CreatureInstance} creatureInstance - The creature to cleanse
+   * @returns {Array} Array of removed attachment objects
+   */
+  removeAllAttachments(creatureInstance) {
+    if (!creatureInstance?.attachedCards?.length) return []
+
+    const removed = [...creatureInstance.attachedCards]
+
+    // Return each card to its caster's discard pile
+    for (const att of removed) {
+      const casterPlayer = this.players[att.casterOwner]
+      if (casterPlayer && att.card) {
+        casterPlayer.orderDiscard.push(att.card)
+      }
+    }
+
+    creatureInstance.attachedCards = []
+    return removed
+  }
+
+  /**
+   * Remove a specific attachment that can be removed as a STANDARD action
+   * Only works for attachments with removableAsStandard: true (Leap Away, Web)
+   * Big O: O(n) where n = attached cards
+   * @param {CreatureInstance} creatureInstance - The creature with attachment
+   * @param {OrderCard} attachmentCard - The attachment to remove
+   * @returns {Object} Result { success, reason, card }
+   */
+  removeAttachmentAsStandard(creatureInstance, attachmentCard) {
+    if (!creatureInstance?.attachedCards?.length) {
+      return { success: false, reason: 'No attachments found' }
+    }
+
+    // Web is always removable as standard
+    const isWeb = attachmentCard?.name?.toUpperCase().includes('WEB')
+
+    if (!isWeb && !attachmentCard?.attachOnUse?.removableAsStandard) {
+      return { success: false, reason: 'This attachment cannot be removed manually' }
+    }
+
+    const index = creatureInstance.attachedCards.findIndex(
+      att => att.card?.id === attachmentCard.id
+    )
+
+    if (index === -1) {
+      return { success: false, reason: 'Attachment not found' }
+    }
+
+    const [removed] = creatureInstance.attachedCards.splice(index, 1)
+
+    // Return to caster's discard pile
+    const casterPlayer = this.players[removed.casterOwner]
+    if (casterPlayer && removed.card) {
+      casterPlayer.orderDiscard.push(removed.card)
+    }
+
+    return { success: true, card: removed.card }
+  }
+
+  /**
+   * Get all removable attachments for a creature (for UI display)
+   * Returns attachments that can be removed as STANDARD action
+   * Big O: O(n) where n = attached cards
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {Array} Array of removable attachment cards
+   */
+  getRemovableAttachments(creatureInstance) {
+    if (!creatureInstance?.attachedCards?.length) return []
+
+    return creatureInstance.attachedCards.filter(att => {
+      const isWeb = att.card?.name?.toUpperCase().includes('WEB')
+      return isWeb || att.card?.attachOnUse?.removableAsStandard
+    }).map(att => att.card)
+  }
+
+  /**
+   * Process Deploy phase destructions for creatures with Mortal Wound
+   * Called at START of Deploy phase before creatures can be deployed
+   * Big O: O(c) where c = creatures in play
+   * @param {string} playerId - The player whose Deploy phase is starting
+   * @returns {Array} Array of { creature, reason } for each destroyed creature
+   */
+  processDeployPhaseDestructions(playerId) {
+    const player = this.players[playerId]
+    if (!player) return []
+
+    const destroyed = []
+
+    // Find creatures with Mortal Wound (destroyAtDeploy)
+    const creaturesWithMortalWound = player.creaturesInPlay.filter(c =>
+      this.hasMortalWound(c)
+    )
+
+    for (const creature of creaturesWithMortalWound) {
+      destroyed.push({
+        creature: creature,
+        reason: 'Mortal Wound'
+      })
+    }
+
+    return destroyed
+  }
+
+  // --------------------------------------------------------------------------
   // 2C: ADJACENT UNDEAD DEPLOY (Lich Necromancer)
   // --------------------------------------------------------------------------
 
@@ -3493,8 +3680,8 @@ export class GameState {
   getValidMovementTiles(creatureInstance, overrideSpeed = null) {
     if (!creatureInstance.position) return []
 
-    // WEB: Webbed creatures cannot move at all
-    if (this.isWebbed(creatureInstance)) {
+    // Movement-blocking attachments: Web, Leap Away (cannot move or shift)
+    if (this.hasMovementBlockingAttachment(creatureInstance)) {
       return []
     }
 

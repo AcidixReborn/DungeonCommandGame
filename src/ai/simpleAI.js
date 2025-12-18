@@ -104,6 +104,41 @@ export class SimpleAI {
   }
 
   /**
+   * Get all adjacent enemy creatures (tapped or untapped)
+   * @param {CreatureInstance} creature - The creature to check adjacency from
+   * @returns {Array} Array of { creature, owner } objects
+   */
+  getAdjacentEnemies(creature) {
+    if (!creature?.position || !this.gameState) return []
+
+    const adjacentEnemies = []
+    const ownerPlayerId = creature.owner || this.playerId
+
+    // Get all adjacent tiles (8-directional)
+    const adjacentTiles = this.gameState.getAdjacentTiles8Dir(creature.position.x, creature.position.y)
+
+    // Check each player's creatures
+    for (const [playerId, player] of Object.entries(this.gameState.players)) {
+      // Skip our own creatures
+      if (playerId === ownerPlayerId) continue
+
+      for (const enemyCreature of player.creaturesInPlay) {
+        const isAdjacent = adjacentTiles.some(
+          tile => tile.x === enemyCreature.position.x && tile.y === enemyCreature.position.y
+        )
+        if (isAdjacent) {
+          adjacentEnemies.push({
+            creature: enemyCreature,
+            owner: playerId
+          })
+        }
+      }
+    }
+
+    return adjacentEnemies
+  }
+
+  /**
    * Check if automatic creature abilities (like SCUTTLE) should trigger
    * These are abilities that happen automatically, not by choice
    * @returns {boolean} True if automatic abilities should trigger
@@ -383,6 +418,17 @@ export class SimpleAI {
     const patchUpHealActions = this.tryPatchUpHeal(player, availableCreatures)
     if (patchUpHealActions.length > 0) {
       actions.push(...patchUpHealActions)
+    }
+
+    // ============================================================================
+    // ORDER CARDS: Check for Tough as Nails proactive use (0/0/100 pattern - Hard only)
+    // Tough as Nails: Remove all attachments, attach, gain Block 10
+    // HIGH PRIORITY: Use to save creatures with Mortal Wound from Deploy phase death
+    // MEDIUM PRIORITY: Use on high-value creatures under attack for Block 10
+    // ============================================================================
+    const toughAsNailsActions = this.tryToughAsNails(player, availableCreatures)
+    if (toughAsNailsActions.length > 0) {
+      actions.push(...toughAsNailsActions)
     }
 
     // O(C) iterations - each creature can do BOTH move AND action
@@ -2079,20 +2125,22 @@ export class SimpleAI {
       }
 
       const damagePrevented = cardInfo.damagePrevented || 0
+      const preventsAllDamage = cardInfo.card?.preventsAllDamage || false
+      const attachConfig = cardInfo.card?.attachOnUse
 
-      // Skip cards with no damage prevention implemented
-      if (damagePrevented === 0) continue
+      // Skip cards with no damage prevention implemented (unless preventsAllDamage like Mortal Wound)
+      if (damagePrevented === 0 && !preventsAllDamage) continue
 
       // Score: prefer cards that prevent close to the incoming damage
       // Penalize overkill but don't completely avoid it
-      let score = damagePrevented
-      if (damagePrevented > incomingDamage) {
+      let score = preventsAllDamage ? incomingDamage : damagePrevented
+      if (!preventsAllDamage && damagePrevented > incomingDamage) {
         // Overkill penalty - still useful but not as efficient
         score = incomingDamage - (damagePrevented - incomingDamage) * 0.3
       }
 
       // Prefer cards that would fully prevent death
-      if (wouldDie && damagePrevented >= incomingDamage - defenderHP + 1) {
+      if (wouldDie && (preventsAllDamage || damagePrevented >= incomingDamage - defenderHP + 1)) {
         score += 20 // Bonus for preventing death
       }
 
@@ -2100,6 +2148,39 @@ export class SimpleAI {
       // Still worth using for high damage/lethal attacks, but less attractive otherwise
       if (cardInfo.opponentDrawsCards > 0) {
         score -= 10 * cardInfo.opponentDrawsCards // -10 points per card opponent draws
+      }
+
+      // === ATTACH CARD EVALUATION ===
+      // Handle cards that attach after use (Leap Away, Mortal Wound)
+      if (attachConfig) {
+        // MORTAL WOUND: destroyAtDeploy - ONLY use if creature would die anyway
+        // This is a last resort - creature survives this attack but dies at Deploy phase
+        if (attachConfig.destroyAtDeploy) {
+          if (!wouldDie) {
+            // Don't doom a creature that would have survived anyway
+            continue // Skip this card entirely
+          }
+          // Creature would die - Mortal Wound delays death by one turn
+          // Still penalize slightly since death is inevitable (unless Tough as Nails saves them)
+          score -= 15
+        }
+
+        // LEAP AWAY: preventsMovement - penalize if creature needs mobility
+        // Check if this creature is likely to need movement (near objectives, enemies, etc.)
+        if (attachConfig.preventsMovement) {
+          // Penalty for movement restriction
+          // Higher penalty for creatures far from objectives or that need to reposition
+          const creatureLevel = defenderInstance.creature.level || 1
+
+          // Higher-level creatures are more valuable mobile, penalty scales with level
+          score -= creatureLevel * 3
+
+          // If creature is already near enemies, being immobile is worse
+          const nearbyEnemies = this.getAdjacentEnemies(defenderInstance)
+          if (nearbyEnemies.length > 1) {
+            score -= 10 // Surrounded and can't escape
+          }
+        }
       }
 
       // Bonus for cards with morale loss effect (Unexpected Resistance)
@@ -2562,6 +2643,141 @@ export class SimpleAI {
         creatureInstance: best.creature,
         card: best.card,
         healAmount: best.healValue,
+        score: best.score
+      })
+    }
+
+    return actions
+  }
+
+  /**
+   * Try to use Tough as Nails order card proactively
+   * 0/0/100 pattern - only Hard AI uses order cards
+   *
+   * Strategy:
+   * - HIGH PRIORITY: Save creatures with Mortal Wound attachment (would die at Deploy)
+   * - MEDIUM PRIORITY: Use on high-value creatures near enemies for Block 10 protection
+   * - Also useful to remove Leap Away movement restriction
+   *
+   * @param {Object} player - The AI player state
+   * @param {Array} availableCreatures - Untapped creatures that can use the card
+   * @returns {Array} Array of tough_as_nails actions
+   */
+  tryToughAsNails(player, availableCreatures) {
+    const actions = []
+
+    // Only Hard AI uses order cards (0/0/100 pattern)
+    if (!this.canUseOrderCards()) {
+      return actions
+    }
+
+    // Get Tough as Nails cards from hand (canUseProactively = true with attachOnUse)
+    const toughAsNailsCards = player.orderHand?.filter(card =>
+      card && card.canUseProactively && card.removesAllAttachments && card.attachOnUse?.blockAmount > 0
+    ) || []
+
+    if (toughAsNailsCards.length === 0) return actions
+
+    // Find opportunities to use Tough as Nails
+    const opportunities = []
+
+    for (const creature of availableCreatures) {
+      // Skip if creature has already acted (proactive use consumes action)
+      if (creature.hasAttackedThisTurn) continue
+
+      // Skip if creature has no position
+      if (!creature.position) continue
+
+      // Find a Tough as Nails card this creature can use
+      for (const card of toughAsNailsCards) {
+        // Check level requirement
+        if (card.level > creature.creature.level) continue
+
+        // Check ability requirement (Tough as Nails requires CON)
+        if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+          const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+          const hasRequiredAbility = abilities.some(ability =>
+            creature.creature.abilities?.[ability] === true
+          )
+          if (!hasRequiredAbility) continue
+        }
+
+        // Calculate score based on situation
+        let score = 0
+        let reason = ''
+
+        // HIGH PRIORITY: Creature has Mortal Wound - save it from Deploy phase death!
+        const hasMortalWound = this.gameState.hasMortalWound && this.gameState.hasMortalWound(creature)
+        if (hasMortalWound) {
+          score += 100 + (creature.creature.level * 20) // Very high priority for higher level creatures
+          reason = 'remove Mortal Wound (save from Deploy death)'
+        }
+
+        // MEDIUM PRIORITY: Creature has movement-blocking attachment (Leap Away, Web)
+        const hasMovementBlock = this.gameState.hasMovementBlockingAttachment &&
+          this.gameState.hasMovementBlockingAttachment(creature)
+        if (hasMovementBlock && !hasMortalWound) {
+          // Only worth removing if creature needs to move
+          const nearbyEnemies = this.getAdjacentEnemies(creature)
+          if (nearbyEnemies.length > 1) {
+            score += 40 // Surrounded - needs mobility
+            reason = 'remove movement restriction (surrounded)'
+          } else if (nearbyEnemies.length === 0) {
+            score += 25 // No enemies nearby - might need to reposition
+            reason = 'remove movement restriction (needs to move)'
+          }
+        }
+
+        // LOW PRIORITY: Block 10 protection for valuable creatures near enemies
+        if (score === 0) {
+          const nearbyEnemies = this.getAdjacentEnemies(creature)
+          if (nearbyEnemies.length > 0) {
+            // Block 10 is useful if creature is in combat
+            score += 10 + (creature.creature.level * 5)
+            reason = 'gain Block 10 protection'
+          }
+        }
+
+        // Skip if not worth using
+        if (score <= 0) continue
+
+        opportunities.push({
+          creature,
+          card,
+          score,
+          reason,
+          hasMortalWound
+        })
+      }
+    }
+
+    // Sort by score (highest first)
+    opportunities.sort((a, b) => b.score - a.score)
+
+    // Use Tough as Nails for the best opportunity
+    // Prioritize Mortal Wound saves over other uses
+    if (opportunities.length > 0 && opportunities[0].score > 0) {
+      const best = opportunities[0]
+
+      // Apply the attachment (removes all attachments, then attaches Tough as Nails)
+      this.gameState.applyImmediateCardAttachment(best.creature, best.card, best.creature.owner)
+
+      // Mark as having acted (consumes action like STANDARD)
+      best.creature.hasAttackedThisTurn = true
+
+      // Remove card from hand
+      const cardIndex = player.orderHand.findIndex(c => c.id === best.card.id)
+      if (cardIndex !== -1) {
+        player.orderHand.splice(cardIndex, 1)
+      }
+
+      console.log(`[AI] Tough as Nails: ${best.creature.creature.name} - ${best.reason} (score: ${best.score})`)
+
+      actions.push({
+        type: 'tough_as_nails',
+        creatureInstance: best.creature,
+        card: best.card,
+        reason: best.reason,
         score: best.score
       })
     }

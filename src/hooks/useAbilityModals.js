@@ -228,6 +228,17 @@ export function useAbilityModals() {
   //   originalAttackInfo: { attackType, damage, etc. } }
 
   // ============================================
+  // TOUGH AS NAILS modal (proactive use during ACTIVATE)
+  // Cleanse attachments + gain Block 10
+  // ============================================
+  const [showToughAsNailsModal, setShowToughAsNailsModal] = useState(false)
+  const [toughAsNailsConfig, setToughAsNailsConfig] = useState({
+    card: null,
+    cardIndex: null,
+    creature: null
+  })
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -561,6 +572,12 @@ export function useAbilityModals() {
     savageDemisePending,
     setSavageDemisePending,
     clearSavageDemiseState,
+
+    // Tough as Nails (proactive use during ACTIVATE)
+    showToughAsNailsModal,
+    setShowToughAsNailsModal,
+    toughAsNailsConfig,
+    setToughAsNailsConfig,
 
     // Clear all
     clearAllAbilityModalState

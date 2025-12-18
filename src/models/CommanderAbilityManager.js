@@ -934,10 +934,21 @@ export class CommanderAbilityManager {
       player.loseMorale(moraleCost)
     }
 
-    // Remove card from hand (discard it)
+    // Remove card from hand
     player.orderHand.splice(cardIndex, 1)
-    if (player.orderDiscard) {
-      player.orderDiscard.push(card)
+
+    // If card has attachOnUse, attach it to the creature instead of discarding
+    let attachedCard = false
+    let removedAttachments = []
+    if (card.attachOnUse) {
+      // Use gameState's attachment method to handle cleansing (Tough as Nails)
+      removedAttachments = this.gameState.applyImmediateCardAttachment(usingCreature, card, usingCreature.owner)
+      attachedCard = true
+    } else {
+      // Normal discard behavior
+      if (player.orderDiscard) {
+        player.orderDiscard.push(card)
+      }
     }
 
     // Handle discard cost - discard the additional card (Uncanny Dodge)
@@ -1011,7 +1022,11 @@ export class CommanderAbilityManager {
       creatureToShift: shiftAfterUse > 0 ? usingCreature : null,
       counterAttack: counterAttack,
       discardedCardName: discardedCardName, // Name of card discarded as cost (e.g., Uncanny Dodge)
-      opponentDrawsCards: card.opponentDrawsCards || 0 // Cards opponent (attacker) draws (e.g., Recoil = 1)
+      opponentDrawsCards: card.opponentDrawsCards || 0, // Cards opponent (attacker) draws (e.g., Recoil = 1)
+      // Attachment info for cards that attach instead of discard (Leap Away, Mortal Wound, Tough as Nails)
+      attachedCard: attachedCard,
+      removedAttachments: removedAttachments,
+      attachOnUse: card.attachOnUse || null
     }
   }
 

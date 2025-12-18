@@ -88,6 +88,13 @@ function AttackConfirmPanel({
     : 0
   const damageAfterShieldBlock = Math.max(0, damageAfterMagicCircle - shieldBlockReduction)
 
+  // Check for BLOCK from attached cards (Tough as Nails = Block 10)
+  // This reduces damage from each source by the block amount
+  const attachmentBlockAmount = gameState?.getBlockAmount
+    ? gameState.getBlockAmount(defender)
+    : 0
+  const damageAfterAttachmentBlock = Math.max(0, damageAfterShieldBlock - attachmentBlockAmount)
+
   // Check for TAP ON HIT ability (Horned Devil, Wolf) - only on melee attacks
   const hasTapOnHit = gameState?.hasTapOnHit && gameState.hasTapOnHit(attacker)
   const tapOnHitApplies = hasTapOnHit && isMeleeAttack
@@ -100,7 +107,7 @@ function AttackConfirmPanel({
   // Check for DEATH STRIKE ability (Boar, Wereboar) - only on adjacent melee attacks that would kill
   // DEATH STRIKE triggers when defender would die, attack is melee, and attacker is truly adjacent (1 tile)
   const hasDeathStrike = gameState?.hasDeathStrike && gameState.hasDeathStrike(defender)
-  const attackWouldKill = damageAfterShieldBlock >= defender.currentHP
+  const attackWouldKill = damageAfterAttachmentBlock >= defender.currentHP
   const isTrulyAdjacent = attackInfo?.distance === 1 || (!isReachAttack && isMeleeAttack)
   const deathStrikeApplies = hasDeathStrike && isMeleeAttack && isTrulyAdjacent && attackWouldKill
   const deathStrikeDamage = deathStrikeApplies ? (defender.creature.meleeAttack?.damage || 0) : 0
@@ -212,6 +219,15 @@ function AttackConfirmPanel({
             <span style={{ color: '#2196f3' }}>SHIELD BLOCK:</span>
             <span style={{ color: '#2196f3' }}>
               Block {shieldBlockReduction} ({damageAfterMagicCircle} → {damageAfterShieldBlock})
+            </span>
+          </div>
+        )}
+        {/* BLOCK from attachments (Tough as Nails) - shows damage reduction from attached cards */}
+        {attachmentBlockAmount > 0 && (
+          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+            <span style={{ color: '#17a2b8' }}>🛡️ BLOCK (Tough as Nails):</span>
+            <span style={{ color: '#17a2b8' }}>
+              -{attachmentBlockAmount} dmg ({damageAfterShieldBlock} → {damageAfterAttachmentBlock})
             </span>
           </div>
         )}

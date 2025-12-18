@@ -113,7 +113,14 @@ function DefenseOptionsPanel({
   const shieldBlockReduction = gameState?.getShieldBlockReduction
     ? gameState.getShieldBlockReduction(defenderInstance)
     : 0
-  const incomingDamage = Math.max(0, damageAfterMagicCircle - shieldBlockReduction)
+  const damageAfterShieldBlock = Math.max(0, damageAfterMagicCircle - shieldBlockReduction)
+
+  // Check for BLOCK from attached cards (Tough as Nails = Block 10)
+  // This reduces damage from each source by the block amount
+  const attachmentBlockAmount = gameState?.getBlockAmount
+    ? gameState.getBlockAmount(defenderInstance)
+    : 0
+  const incomingDamage = Math.max(0, damageAfterShieldBlock - attachmentBlockAmount)
 
   // O(n) - Get defense options from gameState
   const defenseOptions = gameState?.getDefenseOptions
@@ -514,7 +521,16 @@ function DefenseOptionsPanel({
           <div className="combat-info-row" style={{ fontSize: '0.85rem' }}>
             <span style={{ color: '#2196f3' }}>SHIELD BLOCK:</span>
             <span style={{ color: '#2196f3' }}>
-              Block {shieldBlockReduction} ({damageAfterMagicCircle} → {incomingDamage})
+              Block {shieldBlockReduction} ({damageAfterMagicCircle} → {damageAfterShieldBlock})
+            </span>
+          </div>
+        )}
+        {/* BLOCK from attachments (Tough as Nails) - shows damage reduction from attached cards */}
+        {attachmentBlockAmount > 0 && (
+          <div className="combat-info-row" style={{ fontSize: '0.85rem' }}>
+            <span style={{ color: '#17a2b8' }}>🛡️ BLOCK (Tough as Nails):</span>
+            <span style={{ color: '#17a2b8' }}>
+              -{attachmentBlockAmount} dmg ({damageAfterShieldBlock} → {incomingDamage})
             </span>
           </div>
         )}
@@ -1222,6 +1238,16 @@ function DefenseOptionsPanel({
               </>
             ) : (
               <>Incoming: {incomingDamage} | Reduced: {incomingDamage - finalDamage} | Final: <strong>{finalDamage}</strong></>
+            )}
+            {/* Attachment warnings for cards like Leap Away, Mortal Wound */}
+            {selectedImmediateCard?.card?.attachOnUse && (
+              <div style={{ color: '#ffc107', fontSize: '0.75rem', marginTop: '4px' }}>
+                ⚠️ This card will attach to your creature
+                {selectedImmediateCard.card.attachOnUse.preventsMovement && ' (cannot move/shift)'}
+                {selectedImmediateCard.card.attachOnUse.destroyAtDeploy && <span style={{ color: '#dc3545' }}> (dies at Deploy phase!)</span>}
+                {selectedImmediateCard.card.attachOnUse.blockAmount > 0 &&
+                  ` (gains Block ${selectedImmediateCard.card.attachOnUse.blockAmount})`}
+              </div>
             )}
           </Alert>
         )}

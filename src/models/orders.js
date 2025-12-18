@@ -62,7 +62,11 @@ export class OrderCard {
     moraleLossTargetType = null, // Target type for morale loss: 'adjacent_tapped_enemy' for Unexpected Resistance
     destroySelfAfterUse = false, // If true, creature dies after using this card (e.g., Savage Demise)
     selfSacrificeAttack = false, // If true, this is a sacrifice attack that targets adjacent tapped enemy
-    useBaseMeleeDamage = false // If true, attack uses creature's base melee damage (e.g., Savage Demise)
+    useBaseMeleeDamage = false, // If true, attack uses creature's base melee damage (e.g., Savage Demise)
+    // Attachment properties for IMMEDIATE cards that attach after use
+    attachOnUse = null, // Config: { preventsMovement, removableAsStandard, destroyAtDeploy, blockAmount }
+    removesAllAttachments = false, // If true, removes all attached cards before attaching this one (Tough as Nails)
+    canUseProactively = false // If true, can be used proactively during ACTIVATE phase (e.g., Tough as Nails)
   }) {
     this.id = id
     this.name = name
@@ -99,6 +103,10 @@ export class OrderCard {
     this.destroySelfAfterUse = destroySelfAfterUse // If true, creature dies after using this card
     this.selfSacrificeAttack = selfSacrificeAttack // If true, targets adjacent tapped enemy for sacrifice attack
     this.useBaseMeleeDamage = useBaseMeleeDamage // If true, attack uses creature's base melee damage
+    // Attachment properties
+    this.attachOnUse = attachOnUse // Config: { preventsMovement, removableAsStandard, destroyAtDeploy, blockAmount }
+    this.removesAllAttachments = removesAllAttachments // If true, removes all attached cards first (Tough as Nails)
+    this.canUseProactively = canUseProactively // If true, can be used proactively during ACTIVATE phase
   }
 
   /**

@@ -461,16 +461,24 @@ export const orderCards = [
     damagePrevented: 30,
     moraleCost: 1
   },
-  // Card 13: Leap Away - Level 1, DEX, IMMEDIATE (Placeholder - complex attach mechanic)
+  // Card 13: Leap Away - Level 1, DEX, IMMEDIATE - ABILITY IMPLEMENTED
+  // Prevents 40 damage, attaches (blocks movement), removable as STANDARD action
   {
     id: 'tog_ord_13',
     name: 'Leap Away',
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 40 damage to this creature from 1 source. Attach this card to this creature. This creature cannot move or shift. (S): Remove this card as a standard action.',
+    effectDescription: 'Prevent 40 damage to this creature from 1 source. Attach this card to this creature. This creature cannot move or shift. (S): Remove this card.',
     faction: FACTION_NAME,
-    imageUrl: leapAwayOrder13Img
+    imageUrl: leapAwayOrder13Img,
+    damagePrevented: 40,
+    attachOnUse: {
+      preventsMovement: true,
+      removableAsStandard: true,
+      destroyAtDeploy: false,
+      blockAmount: 0
+    }
   },
   // Card 14: Loping Stride - Level 1, DEX, MINOR
   {
@@ -516,7 +524,8 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: mirrorImageOrder17Img
   },
-  // Card 18: Mortal Wound - Level 4, CON, IMMEDIATE (Placeholder - complex destroy mechanic)
+  // Card 18: Mortal Wound - Level 4, CON, IMMEDIATE - ABILITY IMPLEMENTED
+  // Prevents ALL damage, attaches, creature destroyed at start of owner's Deploy phase
   {
     id: 'tog_ord_18',
     name: 'Mortal Wound',
@@ -525,7 +534,14 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Prevent all damage to this creature from 1 source. Attach this card to this creature. Destroy this creature at the start of your Deploy phase.',
     faction: FACTION_NAME,
-    imageUrl: mortalWoundOrder18Img
+    imageUrl: mortalWoundOrder18Img,
+    preventsAllDamage: true,
+    attachOnUse: {
+      preventsMovement: false,
+      removableAsStandard: false,
+      destroyAtDeploy: true,
+      blockAmount: 0
+    }
   },
   // Card 19: Narrow Escape - Level 1, DEX, IMMEDIATE - ABILITY IMPLEMENTED
   {
@@ -706,7 +722,9 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: strengthInNumbersOrder33Img
   },
-  // Card 34: Tough as Nails - Level 2, CON, IMMEDIATE
+  // Card 34: Tough as Nails - Level 2, CON, IMMEDIATE - ABILITY IMPLEMENTED
+  // Proactive IMMEDIATE: Removes all attachments, attaches itself, grants Block 10
+  // Used during ACTIVATE phase (like Patch Up heal), NOT as defense reaction
   {
     id: 'tog_ord_34',
     name: 'Tough as Nails',
@@ -715,7 +733,16 @@ export const orderCards = [
     actionType: 'IMMEDIATE',
     effectDescription: 'Remove all cards attached to this creature. Attach this card to this creature. This creature gains Block 10 (Prevent 10 damage whenever a source deals damage to this creature).',
     faction: FACTION_NAME,
-    imageUrl: toughAsNailsOrder34Img
+    imageUrl: toughAsNailsOrder34Img,
+    damagePrevented: 0,
+    removesAllAttachments: true,
+    canUseProactively: true,
+    attachOnUse: {
+      preventsMovement: false,
+      removableAsStandard: false,
+      destroyAtDeploy: false,
+      blockAmount: 10
+    }
   },
   // Card 35: Undaunted Surge - Level 3, CON, MINOR
   {

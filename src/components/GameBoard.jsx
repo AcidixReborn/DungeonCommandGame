@@ -24,6 +24,7 @@ import FactionSelectModal from './FactionSelectModal'
 import ShiftDecisionModal from './ShiftDecisionModal'
 import CounterAttackTargetModal from './CounterAttackTargetModal'
 import PatchUpHealModal from './PatchUpHealModal'
+import ToughAsNailsModal from './ToughAsNailsModal'
 import MoraleLossNotificationModal from './MoraleLossNotificationModal'
 import './GameBoard.css'
 
@@ -236,6 +237,9 @@ function GameBoard({ onTurnInfoChange }) {
     // Savage Demise (self-sacrifice attack)
     savageDemisePending, setSavageDemisePending,
     clearSavageDemiseState,
+    // Tough as Nails (proactive use during ACTIVATE)
+    showToughAsNailsModal, setShowToughAsNailsModal,
+    toughAsNailsConfig, setToughAsNailsConfig,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -281,6 +285,7 @@ function GameBoard({ onTurnInfoChange }) {
   const clericDrawOrderResult = clericDrawOrderData
   // Alias webRemovalData to match existing variable name
   const webRemovalCreature = webRemovalData
+  const setWebRemovalCreature = setWebRemovalData
 
   // Treasure Discovery Modal state
   const [showTreasureDiscovery, setShowTreasureDiscovery] = useState(false)
@@ -813,8 +818,12 @@ function GameBoard({ onTurnInfoChange }) {
       if (tile.occupant) {
         // Select own creatures
         if (tile.occupant.owner === gameState.currentPlayer) {
-          // Check if creature is webbed - show Web Removal Modal
-          if (gameState.isWebbed && gameState.isWebbed(tile.occupant)) {
+          // Check if creature has any removable attachment (Web, Leap Away, etc.) - show Removal Modal
+          const removableAttachments = gameState.getRemovableAttachments
+            ? gameState.getRemovableAttachments(tile.occupant)
+            : []
+
+          if (removableAttachments.length > 0) {
             setWebRemovalCreature(tile.occupant)
             setShowWebRemovalModal(true)
             // Still select the creature for attacking
@@ -2735,6 +2744,74 @@ function GameBoard({ onTurnInfoChange }) {
     setPatchUpHealConfig({ card: null, creature: null, healAmount: 0 })
   }
 
+  /**
+   * Execute Tough as Nails proactive use
+   * Removes all attachments, attaches Tough as Nails, grants Block 10
+   * Consumes action (like STANDARD), does NOT tap unless already moved
+   */
+  const executeToughAsNails = () => {
+    console.log('[TOUGH AS NAILS] executeToughAsNails called', toughAsNailsConfig)
+    if (!toughAsNailsConfig?.card || !toughAsNailsConfig?.creature) {
+      console.log('[TOUGH AS NAILS] Missing config, aborting')
+      return
+    }
+
+    const { card, creature } = toughAsNailsConfig
+    const player = gameState.players[creature.owner]
+    console.log('[TOUGH AS NAILS] Player:', player?.id, 'Hand size:', player?.orderHand?.length)
+
+    // Find and remove card from hand
+    const handCardIndex = player.orderHand.findIndex(c => c.id === card.id)
+    console.log('[TOUGH AS NAILS] Card index in hand:', handCardIndex)
+    if (handCardIndex === -1) {
+      addToast(`Card not found in hand`)
+      setShowToughAsNailsModal(false)
+      setToughAsNailsConfig({ card: null, cardIndex: null, creature: null })
+      return
+    }
+
+    // Remove from hand
+    player.orderHand.splice(handCardIndex, 1)
+    console.log('[TOUGH AS NAILS] Card removed, new hand size:', player.orderHand.length)
+
+    // Apply attachment (cleanse + attach)
+    console.log('[TOUGH AS NAILS] Before attachment, creature.attachedCards:', creature.attachedCards)
+    const removedCards = gameState.applyImmediateCardAttachment(creature, card, creature.owner)
+    console.log('[TOUGH AS NAILS] After attachment, creature.attachedCards:', creature.attachedCards)
+    console.log('[TOUGH AS NAILS] Removed cards:', removedCards)
+
+    // Mark creature as having acted
+    creature.hasAttackedThisTurn = true
+    if (creature.hasMovedThisTurn) {
+      creature.tap()
+    }
+
+    // Show toast
+    let message = `🛡️ TOUGH AS NAILS: ${creature.creature.name} gains Block 10!`
+    if (removedCards.length > 0) {
+      const cardNames = removedCards.map(att => att.card?.name || 'Unknown').join(', ')
+      message = `🛡️ TOUGH AS NAILS: ${creature.creature.name} removes ${cardNames} and gains Block 10!`
+    }
+    console.log('[TOUGH AS NAILS] Toast message:', message)
+    addToast(message)
+
+    // Close modal and clear state
+    setShowToughAsNailsModal(false)
+    setToughAsNailsConfig({ card: null, cardIndex: null, creature: null })
+
+    // Force re-render
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Cancel Tough as Nails proactive use
+   */
+  const cancelToughAsNails = () => {
+    console.log('[TOUGH AS NAILS] Cancelled by user')
+    setShowToughAsNailsModal(false)
+    setToughAsNailsConfig({ card: null, cardIndex: null, creature: null })
+  }
+
   // Handle collect morale from treasure (show confirmation modal)
   const handleCollectMorale = () => {
     if (!selectedBoardCreature) {
@@ -4142,6 +4219,47 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // TOUGH AS NAILS PROACTIVE USE: Cleanse attachments and gain Block 10
+    // Show confirmation modal before applying
+    if (card.canUseProactively && card.attachOnUse) {
+      const creature = orderCardFilterCreature
+      console.log('[TOUGH AS NAILS] Checking eligibility', { card: card.name, creature: creature.creature.name })
+
+      // Check level requirement
+      if (card.level > creature.creature.level) {
+        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+        return
+      }
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+        const hasRequiredAbility = abilities.some(ability =>
+          creature.creature.abilities?.[ability] === true
+        )
+        if (!hasRequiredAbility) {
+          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+          return
+        }
+      }
+
+      // Check if creature has already acted (consumes action like STANDARD)
+      if (creature.hasAttackedThisTurn) {
+        addToast(`${creature.creature.name} has already acted this turn`)
+        return
+      }
+
+      // Show confirmation modal
+      console.log('[TOUGH AS NAILS] Showing confirmation modal')
+      setToughAsNailsConfig({
+        card,
+        cardIndex,
+        creature
+      })
+      setShowToughAsNailsModal(true)
+      return
+    }
+
     // GENERIC ORDER CARDS: Standard validation
     // Check level requirement: card level <= creature level
     if (card.level > orderCardFilterCreature.creature.level) {
@@ -4209,8 +4327,9 @@ function GameBoard({ onTurnInfoChange }) {
   }
 
   /**
-   * Handle Web Removal Modal - Remove Web
-   * Removes the web from creature, consumes standard action (but can still move)
+   * Handle Attachment Removal Modal - Remove Attachment
+   * Removes a removable attachment (Web, Leap Away, etc.) from creature
+   * Consumes standard action (but creature can still move after)
    */
   const handleRemoveWeb = () => {
     if (!webRemovalCreature || !gameState) {
@@ -4221,25 +4340,42 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if creature has already used its standard action (attacked)
     if (webRemovalCreature.hasAttackedThisTurn) {
-      addToast(`${webRemovalCreature.creature.name} has already used its action and cannot remove the web!`)
+      addToast(`${webRemovalCreature.creature.name} has already used its action and cannot remove the attachment!`)
       setShowWebRemovalModal(false)
       setWebRemovalCreature(null)
       return
     }
 
-    // Remove the web
-    const result = gameState.removeWeb(webRemovalCreature)
+    // Get the first removable attachment
+    const removableAttachments = gameState.getRemovableAttachments
+      ? gameState.getRemovableAttachments(webRemovalCreature)
+      : []
+
+    if (removableAttachments.length === 0) {
+      addToast(`No removable attachments found!`)
+      setShowWebRemovalModal(false)
+      setWebRemovalCreature(null)
+      return
+    }
+
+    const attachmentToRemove = removableAttachments[0]
+    const attachmentName = attachmentToRemove.name || 'attachment'
+    const isWeb = attachmentName.toUpperCase().includes('WEB')
+
+    // Remove the attachment using the generic method
+    const result = gameState.removeAttachmentAsStandard(webRemovalCreature, attachmentToRemove)
 
     if (result.success) {
       // Consume standard action (but creature can still move!)
       webRemovalCreature.hasAttackedThisTurn = true
-      addToast(`🕸️ Web removed from ${webRemovalCreature.creature.name} (action used, can still move)`)
+      const icon = isWeb ? '🕸️' : '🦘'
+      addToast(`${icon} ${attachmentName} removed from ${webRemovalCreature.creature.name} (action used, can still move)`)
       // Clear selection so player can re-select to move
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
       setValidAttackTargets([])
     } else {
-      addToast(`Failed to remove web: ${result.reason}`)
+      addToast(`Failed to remove ${attachmentName}: ${result.reason}`)
     }
 
     setShowWebRemovalModal(false)
@@ -6754,6 +6890,21 @@ function GameBoard({ onTurnInfoChange }) {
                 gameState.checkGameOver()
               }
             }
+
+            // Handle Mortal Wound destructions at start of Deploy phase
+            if (advanceResult?.mortalWoundDestructions?.length > 0) {
+              for (const { creature, reason } of advanceResult.mortalWoundDestructions) {
+                // Discard the Mortal Wound card before death
+                gameState.discardAttachedCards(creature)
+                // Process creature death (similar to sacrifice - no attacker morale gain)
+                const deathResult = gameState.sacrificeCreature(creature)
+                addToast(`☠️ MORTAL WOUND: ${creature.creature.name} succumbs to their mortal wound! (-${deathResult.moraleLost} morale)`)
+              }
+              // Clear the pending destructions
+              gameState.pendingMortalWoundDestructions = []
+              // Check for game over after Mortal Wound deaths
+              gameState.checkGameOver()
+            }
           }
         }
         break
@@ -7615,7 +7766,7 @@ function GameBoard({ onTurnInfoChange }) {
                       isLightningBreathSelected={isLightningBreathSelected}
                       lightningBreathTargetIndex={lightningBreathTargetIndex}
                       isOrderCardTarget={isOrderCardTarget}
-                      isWebbed={creature && gameState?.isWebbed?.(creature)}
+                      isWebbed={creature && gameState?.hasMovementBlockingAttachment?.(creature)}
                       isHealingTouchTarget={isHealingTouchTarget}
                       isShiftTile={isShiftTile}
                     />
@@ -8662,6 +8813,15 @@ function GameBoard({ onTurnInfoChange }) {
         healAmount={patchUpHealConfig?.healAmount || 0}
         onConfirm={executePatchUpHeal}
         onCancel={cancelPatchUpHeal}
+      />
+
+      {/* TOUGH AS NAILS MODAL (proactive use during ACTIVATE phase) */}
+      <ToughAsNailsModal
+        show={showToughAsNailsModal}
+        card={toughAsNailsConfig?.card}
+        creature={toughAsNailsConfig?.creature}
+        onConfirm={executeToughAsNails}
+        onCancel={cancelToughAsNails}
       />
 
       {/* MORALE LOSS NOTIFICATION MODAL (Unexpected Resistance) */}

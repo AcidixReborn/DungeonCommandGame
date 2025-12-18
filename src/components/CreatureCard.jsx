@@ -3,6 +3,18 @@ import { Card, Badge } from 'react-bootstrap'
 import './CreatureCard.css'
 
 /**
+ * Faction color mapping - maps faction names to hex colors
+ * Used for attached card glow effects
+ */
+const FACTION_COLORS = {
+  'Sting of Lolth': '#8b008b',      // Purple
+  'Heart of Cormyr': '#0066cc',     // Blue
+  'Tyranny of Goblins': '#cc0000',  // Red
+  'Curse of Undeath': '#4a0080',    // Dark Purple
+  'Blood of Gruumsh': '#8b4513'     // Brown/Orange
+}
+
+/**
  * CreatureCard - Displays a creature card with stats and abilities
  * Supports compact and full view modes, drag and drop
  * Now supports carousel view for attached order cards (e.g., Web)
@@ -71,17 +83,41 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
     }
   }
 
+  /**
+   * Get glow style for attached card based on the card's faction
+   * @param {Object} orderCard - The attached order card
+   * @returns {Object} Style object with boxShadow and border based on faction color
+   */
+  const getAttachedCardGlowStyle = (orderCard) => {
+    // Get the faction color from the card's faction, default to purple for Web/Sting of Lolth
+    const factionColor = FACTION_COLORS[orderCard?.faction] || '#8b008b'
+
+    // Convert hex to RGB for rgba() use
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 139, g: 0, b: 139 } // Default purple
+    }
+
+    const rgb = hexToRgb(factionColor)
+
+    return {
+      boxShadow: `0 0 8px 2px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7), inset 0 0 2px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`,
+      border: `3px solid ${factionColor}`
+    }
+  }
+
   if (compact) {
     // If showing an attached card (carousel index > 0), render it instead
     if (hasCarousel && carouselIndex > 0) {
       const attachedCard = attachedCards[carouselIndex - 1]
       const orderCard = attachedCard?.card
 
-      // Purple glow for Sting of Lolth faction order cards
-      const attachedCardGlowStyle = {
-        boxShadow: '0 0 8px 2px rgba(139, 0, 139, 0.7), inset 0 0 2px rgba(139, 0, 139, 0.3)',
-        border: '3px solid #8b008b'
-      }
+      // Get glow style based on the attached card's faction
+      const attachedCardGlowStyle = getAttachedCardGlowStyle(orderCard)
 
       return (
         <div
@@ -156,11 +192,11 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
 
     // If creature has an image, show image-only view
     if (creature.imageUrl) {
-      // Get faction color for attached card glow (Sting of Lolth = purple)
-      const attachedCardGlowStyle = hasCarousel ? {
-        boxShadow: '0 0 8px 2px rgba(139, 0, 139, 0.7), inset 0 0 2px rgba(139, 0, 139, 0.3)',
-        border: '3px solid #8b008b'
-      } : {}
+      // Get glow style based on the first attached card's faction (when viewing creature card)
+      // This shows the faction color border around the creature when it has attached cards
+      const attachedCardGlowStyle = hasCarousel
+        ? getAttachedCardGlowStyle(attachedCards[0]?.card)
+        : {}
 
       return (
         <div

@@ -132,19 +132,23 @@ Cards that destroy the user as part of their effect.
 
 ---
 
-### Phase IMD-11: Attach Cards (IMMEDIATE)
+### Phase IMD-11: Attach Cards (IMMEDIATE) ✅ COMPLETE
 IMMEDIATE cards that attach to creatures with lasting effects.
 
 | Card | Faction | Effect |
 |------|---------|--------|
-| Leap Away | Tyranny of Goblins | Prevent 40 damage, attach (can't move/shift), (S) to remove |
-| Mortal Wound | Tyranny of Goblins | Prevent ALL damage, attach, destroy at start of Deploy phase |
+| ✅ Leap Away | Tyranny of Goblins | Prevent 40 damage, attach (can't move/shift), (S) to remove |
+| ✅ Mortal Wound | Tyranny of Goblins | Prevent ALL damage, attach, destroy at start of Deploy phase |
+| ✅ Tough as Nails | Tyranny of Goblins | Remove all attachments, attach, gain Block 10 |
 
 **Implementation**:
-- Add attachment system to CreatureInstance
-- Add `attachOnUse` property with attachment effects
-- Track attached cards with removal conditions
-- Implement Deploy phase destruction check for Mortal Wound
+- ✅ Add attachment system to CreatureInstance (`attachedCards[]`)
+- ✅ Add `attachOnUse` property with attachment effects (`preventsMovement`, `removableAsStandard`, `destroyAtDeploy`, `blockAmount`)
+- ✅ Track attached cards with removal conditions
+- ✅ Implement Deploy phase destruction check for Mortal Wound
+- ✅ Generic WebRemovalModal supports any removable attachment (Web, Leap Away)
+- ✅ Block damage reduction displayed in AttackConfirmPanel and DefenseOptionsPanel
+- ✅ Faction-colored borders on creatures with attached cards
 
 ---
 

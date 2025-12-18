@@ -301,6 +301,7 @@ export class CombatResolver {
         magicCircleUsed: true,
         magicCircleOffered: true,
         shieldBlockReduction: 0,
+        attachmentBlockReduction: 0,
         insubstantialUsed: false,
         moraleChange: null
       }
@@ -318,6 +319,8 @@ export class CombatResolver {
           magicCircleReduction: magicCircleReduction,
           magicCircleUsed: magicCircleReduction > 0,
           magicCircleOffered: magicCircleOffered,
+          shieldBlockReduction: 0,
+          attachmentBlockReduction: 0,
           damageBlocked: workingDamage,
           insubstantialUsed: true,
           moraleChange: null
@@ -335,7 +338,17 @@ export class CombatResolver {
       }
     }
 
-    // Apply damage to defender (with SHIELD BLOCK reduction applied)
+    // Check BLOCK from attached cards (Tough as Nails grants Block 10)
+    // Block reduces damage from EACH source by the block amount
+    let attachmentBlockReduction = 0
+    if (this.gameState.getBlockAmount) {
+      attachmentBlockReduction = this.gameState.getBlockAmount(defenderInstance)
+      if (attachmentBlockReduction > 0) {
+        finalDamage = Math.max(0, finalDamage - attachmentBlockReduction)
+      }
+    }
+
+    // Apply damage to defender (with SHIELD BLOCK and attachment Block reduction applied)
     const wasDestroyed = defenderInstance.takeDamage(finalDamage)
 
     if (wasDestroyed) {
@@ -411,6 +424,7 @@ export class CombatResolver {
         magicCircleUsed: magicCircleReduction > 0,
         magicCircleOffered: magicCircleOffered,
         shieldBlockReduction: shieldBlockReduction,
+        attachmentBlockReduction: attachmentBlockReduction,
         moraleChange: {
           attacker: +1,
           defender: -defenderInstance.creature.level
@@ -457,6 +471,7 @@ export class CombatResolver {
       magicCircleUsed: magicCircleReduction > 0,
       magicCircleOffered: magicCircleOffered,
       shieldBlockReduction: shieldBlockReduction,
+      attachmentBlockReduction: attachmentBlockReduction,
       moraleChange: null,
       tapOnHitTriggered: tapOnHitData?.triggered || false,
       tapOnHitData: tapOnHitData

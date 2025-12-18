@@ -97,6 +97,8 @@ export class PhaseManager {
       waterDamageResults = this.applyWaterDamage()
     }
 
+    let mortalWoundDestructions = []
+
     if (currentIndex === phaseOrder.length - 1) {
       // End of turn - switch players
       this.endTurn()
@@ -109,9 +111,17 @@ export class PhaseManager {
         const player = gs.getCurrentPlayerState()
         player.increaseLeadership(1)
       }
+
+      // MORTAL WOUND: Process creature destructions at START of Deploy phase
+      // Creatures with Mortal Wound attached die before deployment can occur
+      if (nextPhase === GamePhases.DEPLOY && gs.processDeployPhaseDestructions) {
+        mortalWoundDestructions = gs.processDeployPhaseDestructions(gs.currentPlayer)
+        // Store for UI notification (GameBoard will handle the actual deaths)
+        gs.pendingMortalWoundDestructions = mortalWoundDestructions
+      }
     }
 
-    return { waterDamageResults }
+    return { waterDamageResults, mortalWoundDestructions }
   }
 
   /**
