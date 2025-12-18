@@ -62,6 +62,48 @@ export class SimpleAI {
   }
 
   /**
+   * Get adjacent tapped enemy creatures for morale loss targeting (Unexpected Resistance)
+   * Returns array of { creature: CreatureInstance, owner: playerId }
+   *
+   * Big O Complexity: O(p * c) where p = players, c = creatures per player
+   *
+   * @param {CreatureInstance} cardUser - The creature using the card
+   * @returns {Array} Array of { creature, owner } objects
+   */
+  getAdjacentTappedEnemies(cardUser) {
+    if (!cardUser?.position || !this.gameState) return []
+
+    const adjacentTappedEnemies = []
+    const cardUserOwner = this.playerId
+
+    // Get all adjacent tiles (8-directional)
+    const adjacentTiles = this.gameState.getAdjacentTiles8Dir(cardUser.position.x, cardUser.position.y)
+
+    // Check each player's creatures
+    for (const [playerId, player] of Object.entries(this.gameState.players)) {
+      // Skip our own creatures (can't target friendly creatures for morale loss)
+      if (playerId === cardUserOwner) continue
+
+      for (const creature of player.creaturesInPlay) {
+        // Check if creature is tapped AND adjacent to card user
+        if (creature.isTapped) {
+          const isAdjacent = adjacentTiles.some(
+            tile => tile.x === creature.position.x && tile.y === creature.position.y
+          )
+          if (isAdjacent) {
+            adjacentTappedEnemies.push({
+              creature,
+              owner: playerId
+            })
+          }
+        }
+      }
+    }
+
+    return adjacentTappedEnemies
+  }
+
+  /**
    * Check if automatic creature abilities (like SCUTTLE) should trigger
    * These are abilities that happen automatically, not by choice
    * @returns {boolean} True if automatic abilities should trigger
@@ -2047,6 +2089,21 @@ export class SimpleAI {
         score -= 10 * cardInfo.opponentDrawsCards // -10 points per card opponent draws
       }
 
+      // Bonus for cards with morale loss effect (Unexpected Resistance)
+      // This is secondary to damage prevention - the morale loss is a bonus
+      if (cardInfo.card?.moraleLossTargetType === 'adjacent_tapped_enemy' && cardInfo.card?.opponentMoraleLoss > 0) {
+        // Check if there would be valid morale targets
+        // We'll check against the best eligible creature (prefer defender)
+        const potentialCardUser = cardInfo.eligibleCreatures.find(c => c.instanceId === defenderInstance.instanceId)
+          || cardInfo.eligibleCreatures[0]
+        if (potentialCardUser) {
+          const adjacentTappedEnemies = this.getAdjacentTappedEnemies(potentialCardUser)
+          if (adjacentTappedEnemies.length > 0) {
+            score += 5 // Small bonus for morale drain opportunity
+          }
+        }
+      }
+
       if (score > bestScore && cardInfo.eligibleCreatures?.length > 0) {
         bestScore = score
         bestCard = cardInfo
@@ -2075,6 +2132,20 @@ export class SimpleAI {
       }
     }
 
+    // Handle morale target selection (Unexpected Resistance) - select highest level enemy
+    let moraleTarget = null
+    if (bestCard.card?.moraleLossTargetType === 'adjacent_tapped_enemy' && bestCard.card?.opponentMoraleLoss > 0) {
+      const adjacentTappedEnemies = this.getAdjacentTappedEnemies(bestCreature)
+      if (adjacentTappedEnemies.length > 0) {
+        // Select highest level creature as morale target (more impactful psychologically)
+        moraleTarget = adjacentTappedEnemies.sort((a, b) => {
+          const levelA = a.creature.creature?.level || a.creature.level || 1
+          const levelB = b.creature.creature?.level || b.creature.level || 1
+          return levelB - levelA
+        })[0]
+      }
+    }
+
     return {
       type: 'immediate_card',
       card: bestCard.card,
@@ -2082,7 +2153,8 @@ export class SimpleAI {
       damagePrevented: bestCard.damagePrevented || 0,
       cardName: bestCard.card.name,
       hadOpportunity: true,
-      discardCard: discardCard // Card to discard as cost (for Uncanny Dodge)
+      discardCard: discardCard, // Card to discard as cost (for Uncanny Dodge)
+      moraleTarget: moraleTarget // Enemy creature for morale loss (for Unexpected Resistance)
     }
   }
 

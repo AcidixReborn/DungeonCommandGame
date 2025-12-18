@@ -48,6 +48,7 @@ function DefenseOptionsPanel({
   const [selectedImmediateCard, setSelectedImmediateCard] = useState(null)
   const [selectedCardCreature, setSelectedCardCreature] = useState(null)
   const [selectedDiscardCard, setSelectedDiscardCard] = useState(null) // Card to discard for Uncanny Dodge etc.
+  const [selectedMoraleTarget, setSelectedMoraleTarget] = useState(null) // Enemy creature for morale loss (Unexpected Resistance)
   const [hoverPreview, setHoverPreview] = useState(null) // { type: 'order' | 'creature', data: cardInfo | creatureInstance }
 
   // O(1) - Reset state when defender changes
@@ -57,6 +58,7 @@ function DefenseOptionsPanel({
     setSelectedImmediateCard(null)
     setSelectedCardCreature(null)
     setSelectedDiscardCard(null)
+    setSelectedMoraleTarget(null)
   }, [defenderInstance?.instanceId])
 
   if (!defenderPlayerState || !defenderInstance || !attackerInstance) {
@@ -158,6 +160,41 @@ function DefenseOptionsPanel({
     return count
   }
 
+  // O(n) - Get adjacent tapped enemy creatures for morale loss targeting (Unexpected Resistance)
+  // Returns array of { creature: CreatureInstance, owner: playerId }
+  const getAdjacentTappedEnemies = (cardUserPosition) => {
+    if (!gameState || !cardUserPosition) return []
+
+    const adjacentTappedEnemies = []
+    const defenderOwner = defenderInstance.owner
+
+    // Get all adjacent tiles (8-directional)
+    const adjacentTiles = gameState.getAdjacentTiles8Dir(cardUserPosition.x, cardUserPosition.y)
+
+    // Check each player's creatures
+    for (const [playerId, player] of Object.entries(gameState.players)) {
+      // Skip our own creatures (can't target friendly creatures for morale loss)
+      if (playerId === defenderOwner) continue
+
+      for (const creature of player.creaturesInPlay) {
+        // Check if creature is tapped AND adjacent to card user
+        if (creature.isTapped) {
+          const isAdjacent = adjacentTiles.some(
+            tile => tile.x === creature.position.x && tile.y === creature.position.y
+          )
+          if (isAdjacent) {
+            adjacentTappedEnemies.push({
+              creature,
+              owner: playerId
+            })
+          }
+        }
+      }
+    }
+
+    return adjacentTappedEnemies
+  }
+
   // O(1) - Handle defense selection
   const handleSelectDefense = (defenseType) => {
     if (selectedDefense === defenseType) {
@@ -166,6 +203,7 @@ function DefenseOptionsPanel({
       setSelectedImmediateCard(null)
       setSelectedCardCreature(null)
       setSelectedDiscardCard(null)
+      setSelectedMoraleTarget(null)
     } else {
       setSelectedDefense(defenseType)
       if (defenseType !== 'unstoppable_hordes') {
@@ -175,6 +213,7 @@ function DefenseOptionsPanel({
         setSelectedImmediateCard(null)
         setSelectedCardCreature(null)
         setSelectedDiscardCard(null)
+        setSelectedMoraleTarget(null)
       }
     }
   }
@@ -184,10 +223,35 @@ function DefenseOptionsPanel({
     setSelectedDefense('immediate_card')
     setSelectedImmediateCard(cardInfo)
     setSelectedDiscardCard(null) // Reset discard selection when card changes
+    setSelectedMoraleTarget(null) // Reset morale target when card changes
+
     if (cardInfo.eligibleCreatures.length === 1) {
       setSelectedCardCreature(cardInfo.eligibleCreatures[0])
+
+      // Auto-select morale target if card has moraleLossTargetType and only one valid target
+      if (cardInfo.card.moraleLossTargetType === 'adjacent_tapped_enemy') {
+        const cardUser = cardInfo.eligibleCreatures[0]
+        const adjacentEnemies = getAdjacentTappedEnemies(cardUser.position)
+        if (adjacentEnemies.length === 1) {
+          setSelectedMoraleTarget(adjacentEnemies[0])
+        }
+      }
     } else {
       setSelectedCardCreature(null)
+    }
+  }
+
+  // O(1) - Handle card creature selection (when multiple creatures can use the card)
+  const handleSelectCardCreature = (creature) => {
+    setSelectedCardCreature(creature)
+    setSelectedMoraleTarget(null) // Reset morale target when creature changes
+
+    // Auto-select morale target if card has moraleLossTargetType and only one valid target
+    if (selectedImmediateCard?.card?.moraleLossTargetType === 'adjacent_tapped_enemy') {
+      const adjacentEnemies = getAdjacentTappedEnemies(creature.position)
+      if (adjacentEnemies.length === 1) {
+        setSelectedMoraleTarget(adjacentEnemies[0])
+      }
     }
   }
 
@@ -220,7 +284,8 @@ function DefenseOptionsPanel({
           creature: selectedCardCreature,
           damageReduction: selectedImmediateCard.damagePrevented,
           moraleCost: selectedImmediateCard.moraleCost,
-          discardCard: selectedDiscardCard // Card player chose to discard (for Uncanny Dodge etc.)
+          discardCard: selectedDiscardCard, // Card player chose to discard (for Uncanny Dodge etc.)
+          moraleTarget: selectedMoraleTarget // Enemy creature for morale loss (Unexpected Resistance)
         })
       }
     } else {
@@ -233,6 +298,7 @@ function DefenseOptionsPanel({
     setSelectedImmediateCard(null)
     setSelectedCardCreature(null)
     setSelectedDiscardCard(null)
+    setSelectedMoraleTarget(null)
   }
 
   // O(1) - Handle skip
@@ -243,6 +309,7 @@ function DefenseOptionsPanel({
     setSelectedImmediateCard(null)
     setSelectedCardCreature(null)
     setSelectedDiscardCard(null)
+    setSelectedMoraleTarget(null)
   }
 
   const hasAnyDefense = cowerInfo?.canCower || unstoppableInfo?.canUse || adjacentUndead.length > 0 || immediateCards.length > 0
@@ -688,7 +755,7 @@ function DefenseOptionsPanel({
                           overflow: 'hidden',
                           position: 'relative'
                         }}
-                        onClick={() => setSelectedCardCreature(creature)}
+                        onClick={() => handleSelectCardCreature(creature)}
                         onMouseEnter={() => setHoverPreview({ type: 'creature', data: creature })}
                         onMouseLeave={() => setHoverPreview(null)}
                       >
@@ -841,6 +908,107 @@ function DefenseOptionsPanel({
                   </div>
                 </div>
               )}
+
+              {/* Morale target selection - for cards like Unexpected Resistance */}
+              {selectedDefense === 'immediate_card' && selectedImmediateCard && selectedCardCreature &&
+                selectedImmediateCard.card.moraleLossTargetType === 'adjacent_tapped_enemy' && (() => {
+                  const adjacentEnemies = getAdjacentTappedEnemies(selectedCardCreature.position)
+                  // Only show selection if there are multiple targets
+                  if (adjacentEnemies.length <= 1) return null
+
+                  return (
+                    <div
+                      className="mt-2 p-2"
+                      style={{ backgroundColor: 'rgba(220,53,69,0.2)', borderRadius: '6px', border: '1px solid #dc3545' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <strong className="d-block mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}>
+                        Select enemy creature for morale loss:
+                      </strong>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(3, 1fr)',
+                          gap: '4px',
+                          maxHeight: '150px',
+                          overflowY: 'auto'
+                        }}
+                      >
+                        {adjacentEnemies.map((enemyInfo, index) => {
+                          const enemy = enemyInfo.creature
+                          const owner = gameState.players[enemyInfo.owner]
+                          return (
+                            <div
+                              key={`morale-target-${enemy.instanceId}-${index}`}
+                              style={{
+                                cursor: 'pointer',
+                                borderRadius: '6px',
+                                border: selectedMoraleTarget?.creature?.instanceId === enemy.instanceId
+                                  ? '3px solid #dc3545'
+                                  : '2px solid #444',
+                                overflow: 'hidden',
+                                position: 'relative',
+                                opacity: selectedMoraleTarget?.creature?.instanceId === enemy.instanceId ? 1 : 0.8,
+                                backgroundColor: '#2c2f33'
+                              }}
+                              onClick={() => setSelectedMoraleTarget(enemyInfo)}
+                              onMouseEnter={() => setHoverPreview({ type: 'creature', data: enemy })}
+                              onMouseLeave={() => setHoverPreview(null)}
+                            >
+                              <img
+                                src={enemy.creature?.imageUrl || enemy.imageUrl}
+                                alt={enemy.creature?.name || enemy.name}
+                                style={{
+                                  width: '100%',
+                                  height: 'auto',
+                                  display: 'block'
+                                }}
+                              />
+                              {/* Owner badge */}
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '2px',
+                                  left: '2px',
+                                  backgroundColor: '#dc3545',
+                                  color: 'white',
+                                  padding: '1px 4px',
+                                  borderRadius: '3px',
+                                  fontSize: '0.5rem',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                {owner?.commander?.name?.split(' ')[0] || 'Enemy'}
+                              </div>
+                              {/* Selected checkmark */}
+                              {selectedMoraleTarget?.creature?.instanceId === enemy.instanceId && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    top: '2px',
+                                    right: '2px',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    borderRadius: '50%',
+                                    width: '14px',
+                                    height: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.6rem',
+                                    fontWeight: 'bold'
+                                  }}
+                                >
+                                  ✓
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
             </Card.Body>
           </Card>
         )}
@@ -878,6 +1046,7 @@ function DefenseOptionsPanel({
             || (selectedDefense === 'unstoppable_hordes' && calculateUnstoppableMoraleCost() === 0)
             || (selectedDefense === 'immediate_card' && (!selectedImmediateCard || !selectedCardCreature))
             || (selectedDefense === 'immediate_card' && selectedImmediateCard?.discardCost > 0 && !selectedDiscardCard)
+            || (selectedDefense === 'immediate_card' && selectedImmediateCard?.card?.moraleLossTargetType === 'adjacent_tapped_enemy' && selectedCardCreature && getAdjacentTappedEnemies(selectedCardCreature.position).length > 1 && !selectedMoraleTarget)
           }
         >
           {selectedDefense === 'cower'

@@ -691,27 +691,33 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: turnUndeadImg
   },
-  // Card #32 - Unexpected Resistance (IMMEDIATE - low prevention + complex effect)
+  // Card #32 - Unexpected Resistance (IMMEDIATE - prevent 10 + morale attack) - ABILITY IMPLEMENTED
   {
     id: 'bog_ord_32',
     name: 'Unexpected Resistance',
     level: 3,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature\'s controller loses 1 Morale. PLACEHOLDER',
+    effectDescription: 'Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature\'s controller loses 1 Morale.',
     faction: FACTION_NAME,
-    imageUrl: unexpectedResistance32Img
+    imageUrl: unexpectedResistance32Img,
+    damagePrevented: 10,
+    opponentMoraleLoss: 1,
+    moraleLossTargetType: 'adjacent_tapped_enemy'
   },
-  // Card #33 - Unexpected Resistance (IMMEDIATE - low prevention + complex effect)
+  // Card #33 - Unexpected Resistance (IMMEDIATE - prevent 10 + morale attack) - ABILITY IMPLEMENTED
   {
     id: 'bog_ord_33',
     name: 'Unexpected Resistance',
     level: 3,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature\'s controller loses 1 Morale. PLACEHOLDER',
+    effectDescription: 'Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature\'s controller loses 1 Morale.',
     faction: FACTION_NAME,
-    imageUrl: unexpectedResistance33Img
+    imageUrl: unexpectedResistance33Img,
+    damagePrevented: 10,
+    opponentMoraleLoss: 1,
+    moraleLossTargetType: 'adjacent_tapped_enemy'
   },
   // Card #34 - Victorious Surge
   {

@@ -24,6 +24,7 @@ import FactionSelectModal from './FactionSelectModal'
 import ShiftDecisionModal from './ShiftDecisionModal'
 import CounterAttackTargetModal from './CounterAttackTargetModal'
 import PatchUpHealModal from './PatchUpHealModal'
+import MoraleLossNotificationModal from './MoraleLossNotificationModal'
 import './GameBoard.css'
 
 /**
@@ -229,6 +230,9 @@ function GameBoard({ onTurnInfoChange }) {
     // Patch Up Heal (proactive healing during ACTIVATE)
     showPatchUpHealModal, setShowPatchUpHealModal,
     patchUpHealConfig, setPatchUpHealConfig,
+    // Morale Loss Notification (Unexpected Resistance)
+    showMoraleLossModal, setShowMoraleLossModal,
+    moraleLossModalData, setMoraleLossModalData,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -499,6 +503,66 @@ function GameBoard({ onTurnInfoChange }) {
   }
 
   /**
+   * Handle morale loss from Unexpected Resistance card
+   * @param {Object} moraleTarget - { creature: CreatureInstance, owner: playerId }
+   * @param {string} cardName - Name of the card causing the morale loss
+   * @param {string} defenderPlayerId - Player ID of the defender using the card
+   * @param {string} attackerPlayerId - Player ID of the attacker
+   * @param {number} moraleLoss - Amount of morale to lose (default 1)
+   */
+  const handleMoraleLossEffect = (moraleTarget, cardName, defenderPlayerId, attackerPlayerId, moraleLoss = 1) => {
+    if (!moraleTarget || !moraleTarget.creature || !moraleTarget.owner) return
+
+    const targetPlayerId = moraleTarget.owner
+    const targetPlayer = gameState.players[targetPlayerId]
+    const defenderPlayer = gameState.players[defenderPlayerId]
+
+    // Apply morale loss
+    const wasDefeated = targetPlayer.loseMorale(moraleLoss)
+
+    // Toast for all players
+    const targetCreatureName = moraleTarget.creature.creature?.name || moraleTarget.creature.name
+    const defenderName = defenderPlayer.commander?.name || 'Player'
+    const targetPlayerName = targetPlayer.commander?.name || 'Player'
+    addToast(`${defenderName} used ${cardName} - ${targetPlayerName} loses ${moraleLoss} morale (${targetCreatureName} was adjacent)`)
+
+    // Show notification modal
+    const isAttacker = targetPlayerId === attackerPlayerId
+
+    if (isAttacker && !targetPlayer.isAI) {
+      // Attacker sees modal immediately
+      setMoraleLossModalData({
+        cardName,
+        defenderName,
+        targetCreatureName,
+        moraleLost: moraleLoss,
+        currentMorale: targetPlayer.morale,
+        wasDefeated
+      })
+      setShowMoraleLossModal(true)
+    } else if (!isAttacker && !targetPlayer.isAI) {
+      // Non-attacker human: queue for their ACTIVATE phase
+      if (!targetPlayer.pendingMoraleNotifications) {
+        targetPlayer.pendingMoraleNotifications = []
+      }
+      targetPlayer.pendingMoraleNotifications.push({
+        cardName,
+        defenderName,
+        targetCreatureName,
+        moraleLost: moraleLoss,
+        source: defenderPlayerId
+      })
+    }
+    // AI recipients don't need modal
+
+    // Handle defeat if morale reached 0
+    if (wasDefeated) {
+      // Defeat is handled by the game state's checkVictoryConditions
+      addToast(`${targetPlayerName} has been defeated! (Morale reduced to 0)`)
+    }
+  }
+
+  /**
    * Check for Magic Circle Aura state changes and show modal if needed
    * Called after creature movement to detect when Hobgoblin Sorcerer enters/leaves Magic Circle
    * @param {string} moverOwner - Owner of the creature that moved
@@ -622,6 +686,35 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
     }
+  }
+
+  /**
+   * Check for pending morale loss notifications (from Unexpected Resistance, etc.)
+   * Shows modal to human players about morale loss from opponent card effects
+   * Called at ACTIVATE phase after CardsDrawnModal closes
+   */
+  const checkPendingMoraleNotifications = () => {
+    if (!gameState?.currentPlayer) return
+    if (!isPlayerHuman(gameState.currentPlayer)) return
+
+    const player = gameState.getCurrentPlayerState()
+    if (!player?.pendingMoraleNotifications?.length) return
+
+    // Get the first pending notification and show it
+    const notification = player.pendingMoraleNotifications[0]
+
+    setMoraleLossModalData({
+      cardName: notification.cardName,
+      defenderName: notification.defenderName,
+      targetCreatureName: notification.targetCreatureName,
+      moraleLost: notification.moraleLost,
+      currentMorale: player.morale,
+      wasDefeated: player.morale <= 0
+    })
+    setShowMoraleLossModal(true)
+
+    // Remove from pending (shift array)
+    player.pendingMoraleNotifications.shift()
   }
 
   /**
@@ -1348,6 +1441,12 @@ function GameBoard({ onTurnInfoChange }) {
           handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
         }
 
+        // Handle opponent morale loss (Unexpected Resistance) - defender selected target
+        if (defense.moraleTarget && defense.card.opponentMoraleLoss > 0) {
+          const cardName = result.cardUsed?.name || defense.card.name
+          handleMoraleLossEffect(defense.moraleTarget, cardName, defenderInstance.owner, attackerInstance.owner, defense.card.opponentMoraleLoss)
+        }
+
         // Check if card grants a shift after use (Cloud of Bats)
         if (result.shiftAfterUse > 0 && result.creatureToShift) {
           // Store pending shift info and show decision modal
@@ -1939,6 +2038,12 @@ function GameBoard({ onTurnInfoChange }) {
         if (result.opponentDrawsCards > 0) {
           const cardName = result.cardUsed?.name || defense.card.name
           handleOpponentDrawEffect(result.opponentDrawsCards, cardName, targetInstance.owner, attackerInstance.owner)
+        }
+
+        // Handle opponent morale loss (Unexpected Resistance)
+        if (defense.moraleTarget && defense.card.opponentMoraleLoss > 0) {
+          const cardName = result.cardUsed?.name || defense.card.name
+          handleMoraleLossEffect(defense.moraleTarget, cardName, targetInstance.owner, attackerInstance.owner, defense.card.opponentMoraleLoss)
         }
       }
     }
@@ -6853,6 +6958,24 @@ function GameBoard({ onTurnInfoChange }) {
     }
   }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber])
 
+  // MORALE NOTIFICATIONS: Show pending morale loss notifications at ACTIVATE phase
+  // Only triggers if CardsDrawnModal isn't shown (fallback for edge cases)
+  useEffect(() => {
+    if (!gameState?.currentPlayer) return
+    if (!gameState?.currentPhase) return
+    if (!isPlayerHuman(gameState.currentPlayer)) return
+
+    // Only trigger at ACTIVATE phase
+    if (gameState.currentPhase === GamePhases.ACTIVATE) {
+      const player = gameState.getCurrentPlayerState()
+      // Only check if CardsDrawnModal won't be shown (cardsDrawnThisTurn is undefined)
+      // Otherwise the check happens in CardsDrawnModal's onContinue callback
+      if (player.cardsDrawnThisTurn === undefined && player.pendingMoraleNotifications?.length > 0) {
+        checkPendingMoraleNotifications()
+      }
+    }
+  }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber])
+
   const getPhaseButtonText = () => {
     if (!gameState) return 'Start Phase'
 
@@ -8224,6 +8347,8 @@ function GameBoard({ onTurnInfoChange }) {
             player.bonusDrawSourcesThisTurn = []
           }
           setBonusDrawSources([])
+          // Check for any pending morale loss notifications (from Unexpected Resistance, etc.)
+          checkPendingMoraleNotifications()
         }}
       />
 
@@ -8276,6 +8401,17 @@ function GameBoard({ onTurnInfoChange }) {
         healAmount={patchUpHealConfig?.healAmount || 0}
         onConfirm={executePatchUpHeal}
         onCancel={cancelPatchUpHeal}
+      />
+
+      {/* MORALE LOSS NOTIFICATION MODAL (Unexpected Resistance) */}
+      <MoraleLossNotificationModal
+        show={showMoraleLossModal}
+        data={moraleLossModalData}
+        onClose={() => {
+          setShowMoraleLossModal(false)
+          // Check for more pending morale notifications
+          checkPendingMoraleNotifications()
+        }}
       />
 
       {/* INSUBSTANTIAL ABILITY NOTIFICATION MODAL */}

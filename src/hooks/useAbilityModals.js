@@ -202,6 +202,20 @@ export function useAbilityModals() {
   })
 
   // ============================================
+  // MORALE LOSS NOTIFICATION modal (Unexpected Resistance)
+  // Shows when opponent loses morale from card effect
+  // ============================================
+  const [showMoraleLossModal, setShowMoraleLossModal] = useState(false)
+  const [moraleLossModalData, setMoraleLossModalData] = useState({
+    cardName: null,
+    defenderName: null,
+    targetCreatureName: null,
+    moraleLost: 0,
+    currentMorale: 0,
+    wasDefeated: false
+  })
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -515,6 +529,12 @@ export function useAbilityModals() {
     setShowPatchUpHealModal,
     patchUpHealConfig,
     setPatchUpHealConfig,
+
+    // Morale Loss Notification (Unexpected Resistance)
+    showMoraleLossModal,
+    setShowMoraleLossModal,
+    moraleLossModalData,
+    setMoraleLossModalData,
 
     // Clear all
     clearAllAbilityModalState

@@ -126,6 +126,7 @@ export class PlayerState {
     this.bonusDrawSources = []        // Names of cards that caused bonus draws (e.g., ["Parry", "Defensive Advantage"])
     this.cardsDrawnThisTurn = []      // Cards drawn during REFRESH (for modal display)
     this.pendingCardReveals = []      // Cards received from opponent effects (e.g., Recoil) to show at next ACTIVATE
+    this.pendingMoraleNotifications = [] // Morale loss notifications from opponent effects (e.g., Unexpected Resistance) to show at next ACTIVATE
 
     // Commander ability state tracking
     this.commanderAbilityState = {

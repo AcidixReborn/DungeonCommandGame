@@ -57,7 +57,9 @@ export class OrderCard {
     discardCost = 0, // Number of order cards player must discard to use this card (e.g., Uncanny Dodge = 1)
     opponentDrawsCards = 0, // Cards opponent (attacker) draws when this card is used (e.g., Recoil = 1)
     healAmount = 0, // Amount of healing this card provides when used proactively (e.g., Patch Up = 20)
-    canHealProactively = false // If true, can be used proactively during ACTIVATE to heal (e.g., Patch Up)
+    canHealProactively = false, // If true, can be used proactively during ACTIVATE to heal (e.g., Patch Up)
+    opponentMoraleLoss = 0, // Morale opponent loses when this card is used (e.g., Unexpected Resistance = 1)
+    moraleLossTargetType = null // Target type for morale loss: 'adjacent_tapped_enemy' for Unexpected Resistance
   }) {
     this.id = id
     this.name = name
@@ -89,6 +91,8 @@ export class OrderCard {
     this.opponentDrawsCards = opponentDrawsCards // Cards opponent (attacker) draws when this card is used
     this.healAmount = healAmount // Amount of healing this card provides when used proactively
     this.canHealProactively = canHealProactively // If true, can be used proactively during ACTIVATE to heal
+    this.opponentMoraleLoss = opponentMoraleLoss // Morale opponent loses when this card is used
+    this.moraleLossTargetType = moraleLossTargetType // Target type for morale loss: 'adjacent_tapped_enemy'
   }
 
   /**
