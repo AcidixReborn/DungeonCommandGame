@@ -86,6 +86,9 @@ function PlayerPanel({
   accumulatedDamageReduction = 0,
   defenderPlayerState = null,
   gameState = null,
+  damageBoostCard = null,
+  damageBoostBonus = 0,
+  damageBoostFlat = null,
   onConfirmAttack,
   onCancelAttack,
   onDefenseSelected,
@@ -328,6 +331,9 @@ function PlayerPanel({
                       attackInfo={attackInfo}
                       defenderPlayerState={defenderPlayerState}
                       gameState={gameState}
+                      damageBoostCard={damageBoostCard}
+                      damageBoostBonus={damageBoostBonus}
+                      damageBoostFlat={damageBoostFlat}
                       onConfirm={onConfirmAttack}
                       onCancel={onCancelAttack}
                       onLightningBreath={onLightningBreath}
@@ -342,6 +348,9 @@ function PlayerPanel({
                       defenderPlayerState={defenderPlayerState}
                       gameState={gameState}
                       accumulatedDamageReduction={accumulatedDamageReduction}
+                      damageBoostCard={damageBoostCard}
+                      damageBoostBonus={damageBoostBonus}
+                      damageBoostFlat={damageBoostFlat}
                       onDefenseSelected={onDefenseSelected}
                       onSkip={onSkipDefense}
                     />

@@ -39,9 +39,11 @@ export class CombatResolver {
    * @param {CreatureInstance} attackerInstance - The attacking creature
    * @param {CreatureInstance} defenderInstance - The defending creature
    * @param {string} attackType - 'melee' or 'ranged'
+   * @param {number} damageBoostBonus - Bonus damage from STANDARD order cards (Power Attack, Hacking Frenzy)
+   * @param {number|null} damageBoostFlat - Flat damage that replaces base (Killing Strike), or null if not used
    * @returns {Object} { valid: boolean, error?: string, damage?: number }
    */
-  validateAttack(attackerInstance, defenderInstance, attackType = 'melee') {
+  validateAttack(attackerInstance, defenderInstance, attackType = 'melee', damageBoostBonus = 0, damageBoostFlat = null) {
     // Safety check: ensure both creatures have valid positions
     if (!attackerInstance?.position || !defenderInstance?.position) {
       return { valid: false, error: 'Cannot attack: invalid creature position' }
@@ -104,26 +106,39 @@ export class CombatResolver {
     let baseDamage = 0
     let flankingBonus = 0
     let cutterBonus = 0
+    let orderCardBonus = damageBoostBonus || 0
+    const usedFlatDamage = damageBoostFlat !== null
 
     if (attackType === 'melee' && attackerInstance.creature.meleeAttack) {
-      baseDamage = attackerInstance.creature.meleeAttack.damage
-      // Check for FLANKING bonus (only on melee primary attacks)
-      if (this.gameState.hasFlanking && this.gameState.getFlankingBonus) {
-        flankingBonus = this.gameState.getFlankingBonus(attackerInstance, defenderInstance)
+      // Check for flat damage (Killing Strike) - replaces base damage entirely
+      if (usedFlatDamage) {
+        baseDamage = damageBoostFlat
+        // Flat damage ignores flanking/cutter bonuses
+        flankingBonus = 0
+        cutterBonus = 0
+        orderCardBonus = 0
+        damage = baseDamage
+      } else {
+        baseDamage = attackerInstance.creature.meleeAttack.damage
+        // Check for FLANKING bonus (only on melee primary attacks)
+        if (this.gameState.hasFlanking && this.gameState.getFlankingBonus) {
+          flankingBonus = this.gameState.getFlankingBonus(attackerInstance, defenderInstance)
+        }
+        // Check for CUTTER bonus (+10 vs tapped creatures)
+        if (this.gameState.hasCutter && this.gameState.getCutterBonus) {
+          cutterBonus = this.gameState.getCutterBonus(attackerInstance, defenderInstance)
+        }
+        damage = baseDamage + flankingBonus + cutterBonus + orderCardBonus
       }
-      // Check for CUTTER bonus (+10 vs tapped creatures)
-      if (this.gameState.hasCutter && this.gameState.getCutterBonus) {
-        cutterBonus = this.gameState.getCutterBonus(attackerInstance, defenderInstance)
-      }
-      damage = baseDamage + flankingBonus + cutterBonus
     } else if (attackType === 'ranged' && attackerInstance.creature.rangedAttack) {
       baseDamage = attackerInstance.creature.rangedAttack.damage
-      damage = baseDamage
+      // Ranged damage boost (Phase STD-2) - Gout of Fire adds +20 ranged damage
+      damage = baseDamage + orderCardBonus
     } else {
       return { valid: false, error: 'Invalid attack type' }
     }
 
-    return { valid: true, damage, baseDamage, flankingBonus, cutterBonus }
+    return { valid: true, damage, baseDamage, flankingBonus, cutterBonus, orderCardBonus, usedFlatDamage }
   }
 
   /**
@@ -139,11 +154,13 @@ export class CombatResolver {
    * @param {number} damageReduction - Amount to reduce damage by (default 0)
    * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
    * @param {boolean} skipDeathStrike - Skip DEATH STRIKE check (if already processed)
+   * @param {number} damageBoostBonus - Bonus damage from STANDARD order cards (default 0)
+   * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
    * @returns {Object} Attack result
    */
-  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', aiDifficulty = 'medium', damageReduction = 0, defenseType = null, skipDeathStrike = false) {
-    // Validate the attack
-    const validation = this.validateAttack(attackerInstance, defenderInstance, attackType)
+  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', aiDifficulty = 'medium', damageReduction = 0, defenseType = null, skipDeathStrike = false, damageBoostBonus = 0, damageBoostFlat = null) {
+    // Validate the attack (with damage boost parameters)
+    const validation = this.validateAttack(attackerInstance, defenderInstance, attackType, damageBoostBonus, damageBoostFlat)
     if (!validation.valid) {
       return { success: false, message: validation.error }
     }
@@ -243,7 +260,7 @@ export class CombatResolver {
 
   /**
    * Execute attack with defense options (COWER or UNSTOPPABLE HORDES)
-   * @deprecated Use executeAttack(attacker, defender, type, difficulty, damageReduction, defenseType, skipDeathStrike) instead
+   * @deprecated Use executeAttack(attacker, defender, type, difficulty, damageReduction, defenseType, skipDeathStrike, damageBoostBonus, damageBoostFlat) instead
    *
    * @param {CreatureInstance} attackerInstance - The attacking creature
    * @param {CreatureInstance} defenderInstance - The defending creature
@@ -252,11 +269,13 @@ export class CombatResolver {
    * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
    * @param {string} aiDifficulty - AI difficulty for 0/50/100 rule
    * @param {boolean} skipDeathStrike - Skip DEATH STRIKE check
+   * @param {number} damageBoostBonus - Bonus damage from STANDARD order cards (default 0)
+   * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
    * @returns {Object} Attack result
    */
-  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, aiDifficulty = 'medium', skipDeathStrike = false) {
+  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, aiDifficulty = 'medium', skipDeathStrike = false, damageBoostBonus = 0, damageBoostFlat = null) {
     // Delegate to consolidated executeAttack function
-    return this.executeAttack(attackerInstance, defenderInstance, attackType, aiDifficulty, damageReduction, defenseType, skipDeathStrike)
+    return this.executeAttack(attackerInstance, defenderInstance, attackType, aiDifficulty, damageReduction, defenseType, skipDeathStrike, damageBoostBonus, damageBoostFlat)
   }
 
   /**

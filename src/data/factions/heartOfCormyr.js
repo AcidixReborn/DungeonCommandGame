@@ -554,9 +554,10 @@ export const orderCards = [
     level: 5,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals 100 DAMAGE. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals 100 damage.',
     faction: FACTION_NAME,
-    imageUrl: killingStrikeImg
+    imageUrl: killingStrikeImg,
+    flatMeleeDamage: 100 // Replaces base damage (ignores flanking/cutter)
   },
   // Card #23 - Level Up (REQUIRES HUMANOID)
   {
@@ -588,9 +589,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +20 DAMAGE. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals +20 damage.',
     faction: FACTION_NAME,
-    imageUrl: powerAttack25Img
+    imageUrl: powerAttack25Img,
+    meleeDamageBonus: 20 // Added to base melee damage
   },
   // Card #26 - Power Attack
   {
@@ -599,9 +601,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +20 DAMAGE. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals +20 damage.',
     faction: FACTION_NAME,
-    imageUrl: powerAttack26Img
+    imageUrl: powerAttack26Img,
+    meleeDamageBonus: 20 // Added to base melee damage
   },
   // Card #27 - Quick Shot (REQUIRES RANGED)
   {

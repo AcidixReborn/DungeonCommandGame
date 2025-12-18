@@ -66,7 +66,12 @@ export class OrderCard {
     // Attachment properties for IMMEDIATE cards that attach after use
     attachOnUse = null, // Config: { preventsMovement, removableAsStandard, destroyAtDeploy, blockAmount }
     removesAllAttachments = false, // If true, removes all attached cards before attaching this one (Tough as Nails)
-    canUseProactively = false // If true, can be used proactively during ACTIVATE phase (e.g., Tough as Nails)
+    canUseProactively = false, // If true, can be used proactively during ACTIVATE phase (e.g., Tough as Nails)
+    // STANDARD damage boost properties (Phase STD-1)
+    meleeDamageBonus = 0, // Bonus damage added to melee attack (e.g., Power Attack = 20, Hacking Frenzy = 40)
+    flatMeleeDamage = null, // Flat damage that REPLACES base damage (e.g., Killing Strike = 100)
+    // STANDARD damage boost properties (Phase STD-2)
+    rangedDamageBonus = 0 // Bonus damage added to ranged attack (e.g., Gout of Fire = 20)
   }) {
     this.id = id
     this.name = name
@@ -107,6 +112,11 @@ export class OrderCard {
     this.attachOnUse = attachOnUse // Config: { preventsMovement, removableAsStandard, destroyAtDeploy, blockAmount }
     this.removesAllAttachments = removesAllAttachments // If true, removes all attached cards first (Tough as Nails)
     this.canUseProactively = canUseProactively // If true, can be used proactively during ACTIVATE phase
+    // STANDARD damage boost properties (Phase STD-1)
+    this.meleeDamageBonus = meleeDamageBonus // Bonus damage added to melee attack (e.g., Power Attack = 20)
+    this.flatMeleeDamage = flatMeleeDamage // Flat damage that REPLACES base damage (e.g., Killing Strike = 100)
+    // STANDARD damage boost properties (Phase STD-2)
+    this.rangedDamageBonus = rangedDamageBonus // Bonus damage added to ranged attack (e.g., Gout of Fire = 20)
   }
 
   /**

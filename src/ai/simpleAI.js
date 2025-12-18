@@ -62,6 +62,159 @@ export class SimpleAI {
   }
 
   /**
+   * Check if AI can use STANDARD damage boost order cards
+   * @returns {boolean} True if damage boost cards are enabled
+   */
+  canUseDamageBoostCards() {
+    // Easy/Medium: No damage boost cards
+    // Hard: Damage boost cards enabled
+    return this.difficulty === 'hard'
+  }
+
+  /**
+   * Get available damage boost cards for a creature
+   * Checks creature's level and abilities against card requirements
+   * Phase STD-1: Power Attack (+20 melee), Hacking Frenzy (+40 melee), Killing Strike (100 flat melee)
+   * Phase STD-2: Gout of Fire (+20 ranged)
+   *
+   * Big O Complexity: O(n) where n = cards in hand
+   *
+   * @param {CreatureInstance} creature - The creature that would use the card
+   * @param {Array} orderHand - Player's current order card hand
+   * @param {string} attackType - 'melee' or 'ranged' (optional, filters to specific attack type)
+   * @returns {Array} Array of { card, cardIndex, damageBonus, flatDamage, isRanged } objects
+   */
+  getDamageBoostCards(creature, orderHand, attackType = null) {
+    if (!creature || !orderHand || orderHand.length === 0) return []
+
+    const creatureLevel = creature.creature.level || 1
+    const creatureAbilities = creature.creature.abilityScores || []
+
+    const validCards = []
+
+    for (let i = 0; i < orderHand.length; i++) {
+      const card = orderHand[i]
+
+      // Must be a STANDARD action card with damage boost properties
+      if (card.actionType !== 'STANDARD') continue
+
+      // Check for melee or ranged damage boost properties
+      const isMeleeBoost = card.meleeDamageBonus > 0 || card.flatMeleeDamage !== null
+      const isRangedBoost = card.rangedDamageBonus > 0
+
+      if (!isMeleeBoost && !isRangedBoost) continue
+
+      // Check level requirement
+      if (creatureLevel < card.level) continue
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const hasAbility = creatureAbilities.includes(card.abilityRequired)
+        if (!hasAbility) continue
+      }
+
+      // Creature must not be tapped (STANDARD action requires untapped)
+      if (creature.isTapped) continue
+
+      // Check if creature has the required attack type
+      if (isMeleeBoost) {
+        // Melee boost cards require melee attack
+        if (!creature.creature.meleeAttack) continue
+        // If attackType specified, must match
+        if (attackType && attackType !== 'melee') continue
+
+        validCards.push({
+          card,
+          cardIndex: i,
+          damageBonus: card.meleeDamageBonus || 0,
+          flatDamage: card.flatMeleeDamage !== undefined ? card.flatMeleeDamage : null,
+          isRanged: false
+        })
+      } else if (isRangedBoost) {
+        // Ranged boost cards require ranged attack
+        if (!creature.creature.rangedAttack) continue
+        // If attackType specified, must match
+        if (attackType && attackType !== 'ranged') continue
+
+        validCards.push({
+          card,
+          cardIndex: i,
+          damageBonus: card.rangedDamageBonus || 0,
+          flatDamage: null, // Ranged boost doesn't have flat damage
+          isRanged: true
+        })
+      }
+    }
+
+    // Sort by damage value (highest first) - prefer flat damage over bonus
+    validCards.sort((a, b) => {
+      const aDamage = a.flatDamage !== null ? a.flatDamage : a.damageBonus
+      const bDamage = b.flatDamage !== null ? b.flatDamage : b.damageBonus
+      return bDamage - aDamage
+    })
+
+    return validCards
+  }
+
+  /**
+   * Select the best damage boost card for an attack
+   * Uses highest damage card that won't be wasted (target survives normal attack)
+   * Supports both melee and ranged boost cards (Phase STD-1 and STD-2)
+   *
+   * @param {CreatureInstance} attacker - Attacking creature
+   * @param {CreatureInstance} defender - Target creature
+   * @param {Array} availableCards - Valid damage boost cards (with isRanged property)
+   * @param {string} attackType - 'melee' or 'ranged' (optional, used to get correct base damage)
+   * @returns {Object|null} Best card info or null if none should be used
+   */
+  selectBestDamageBoostCard(attacker, defender, availableCards, attackType = null) {
+    if (!availableCards || availableCards.length === 0) return null
+
+    // Filter cards based on attack type if specified
+    const filteredCards = attackType
+      ? availableCards.filter(c => (attackType === 'ranged') === c.isRanged)
+      : availableCards
+
+    if (filteredCards.length === 0) return null
+
+    // Calculate base damage based on attack type
+    // If attackType not specified, check if cards are ranged or melee
+    const isRangedAttack = attackType === 'ranged' || (filteredCards[0]?.isRanged === true)
+    const baseDamage = isRangedAttack
+      ? (attacker.creature.rangedAttack?.damage || 0)
+      : (attacker.creature.meleeAttack?.damage || 0)
+
+    // Don't use a card if target would die from base damage anyway
+    if (baseDamage >= defender.currentHP) return null
+
+    // Find the lowest-damage card that would kill the target
+    // (we want to save high-damage cards for tougher targets)
+    for (let i = filteredCards.length - 1; i >= 0; i--) {
+      const cardInfo = filteredCards[i]
+      let totalDamage
+
+      if (cardInfo.flatDamage !== null) {
+        totalDamage = cardInfo.flatDamage
+      } else {
+        totalDamage = baseDamage + cardInfo.damageBonus
+      }
+
+      if (totalDamage >= defender.currentHP) {
+        return cardInfo // Return first (lowest) card that would kill
+      }
+    }
+
+    // If no card would kill, use highest damage card if target HP > 50%
+    // (save cards for when they matter more)
+    const targetHPPercent = defender.currentHP / defender.creature.hitPoints
+    if (targetHPPercent >= 0.5) {
+      return filteredCards[0] // Highest damage card
+    }
+
+    return null
+  }
+
+  /**
    * Get adjacent tapped enemy creatures for morale loss targeting (Unexpected Resistance)
    * Returns array of { creature: CreatureInstance, owner: playerId }
    *
@@ -600,11 +753,33 @@ export class SimpleAI {
         const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
         if (attackTargets.length > 0) {
           const target = this.selectWeakestTarget(attackTargets, creature)
+
+          // DAMAGE BOOST CARDS: Check if Hard AI should use a damage boost card
+          // Supports melee (Power Attack, Hacking Frenzy, Killing Strike) and ranged (Gout of Fire)
+          let damageBoostCard = null
+          let damageBoostBonus = 0
+          let damageBoostFlat = null
+
+          if (this.canUseDamageBoostCards() && (target.attackType === 'melee' || target.attackType === 'ranged')) {
+            const player = this.gameState.players[this.playerId]
+            const availableCards = this.getDamageBoostCards(creature, player.orderHand, target.attackType)
+            const selectedCard = this.selectBestDamageBoostCard(creature, target.creature, availableCards, target.attackType)
+
+            if (selectedCard) {
+              damageBoostCard = selectedCard.card
+              damageBoostBonus = selectedCard.damageBonus
+              damageBoostFlat = selectedCard.flatDamage
+            }
+          }
+
           actions.push({
             type: 'attack_intention',
             attackerInstance: creature,
             defenderInstance: target.creature,
-            targetInfo: target
+            targetInfo: target,
+            damageBoostCard,
+            damageBoostBonus,
+            damageBoostFlat
           })
           didAction = true
           hasAttackIntention = true  // FIX: Mark that we created an attack intention
@@ -652,11 +827,33 @@ export class SimpleAI {
         const attackTargets = this.gameState.getValidAttackTargets(creature, this.trackStats)
         if (attackTargets.length > 0) {
           const target = this.selectWeakestTarget(attackTargets, creature)
+
+          // DAMAGE BOOST CARDS: Check if Hard AI should use a damage boost card
+          // Supports melee (Power Attack, Hacking Frenzy, Killing Strike) and ranged (Gout of Fire)
+          let damageBoostCard = null
+          let damageBoostBonus = 0
+          let damageBoostFlat = null
+
+          if (this.canUseDamageBoostCards() && (target.attackType === 'melee' || target.attackType === 'ranged')) {
+            const player = this.gameState.players[this.playerId]
+            const availableCards = this.getDamageBoostCards(creature, player.orderHand, target.attackType)
+            const selectedCard = this.selectBestDamageBoostCard(creature, target.creature, availableCards, target.attackType)
+
+            if (selectedCard) {
+              damageBoostCard = selectedCard.card
+              damageBoostBonus = selectedCard.damageBonus
+              damageBoostFlat = selectedCard.flatDamage
+            }
+          }
+
           actions.push({
             type: 'attack_intention',
             attackerInstance: creature,
             defenderInstance: target.creature,
-            targetInfo: target
+            targetInfo: target,
+            damageBoostCard,
+            damageBoostBonus,
+            damageBoostFlat
           })
           didAction = true
           hasAttackIntention = true  // FIX: Mark that we created an attack intention

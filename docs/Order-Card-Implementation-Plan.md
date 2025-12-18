@@ -154,23 +154,34 @@ IMMEDIATE cards that attach to creatures with lasting effects.
 
 ## PART 2: STANDARD CARDS
 
-### Phase STD-1: Basic Damage Boost
+### Phase STD-1: Basic Damage Boost ✅ COMPLETE
 Simple melee attacks with bonus damage.
 
 | Card | Faction | Effect |
 |------|---------|--------|
 | Power Attack (x2) | Heart of Cormyr | Melee attack +20 damage |
 | Hacking Frenzy (x2) | Blood of Gruumsh | Melee attack +40 damage |
-| Killing Strike | Heart of Cormyr | Melee attack +100 damage |
+| Killing Strike | Heart of Cormyr | Melee attack 100 flat damage |
 
 **Implementation**:
-- Add `meleeDamageBonus` property
-- Integrate with attack flow
-- AI prioritizes high-value targets
+- ✅ Added `meleeDamageBonus` property to OrderCard class (bonus damage added to base)
+- ✅ Added `flatMeleeDamage` property to OrderCard class (replaces base damage entirely)
+- ✅ Created DamageBoostModal component for confirmation before target selection
+- ✅ Added damage boost state to useAbilityModals hook (showDamageBoostModal, damageBoostConfig, pendingDamageBoostAttack)
+- ✅ Updated GameBoard.jsx with card selection flow, target highlighting, and handlers
+- ✅ Updated CombatResolver.js to calculate damage with boost parameters
+- ✅ Updated AttackConfirmPanel.jsx to display damage boost card and bonus damage breakdown
+- ✅ Updated DefenseOptionsPanel.jsx to show incoming damage with card bonus/flat damage
+- ✅ Added Power Attack and Killing Strike to Heart of Cormyr faction
+- ✅ Added Hacking Frenzy to Blood of Gruumsh faction
+- ✅ AI (Hard difficulty) uses damage boost cards when beneficial
+- ✅ Flat damage (Killing Strike) ignores flanking/cutter bonuses
+- ✅ Card discarded only after attack confirms
+- ✅ Two-point cancel system (modal + AttackConfirmPanel)
 
 ---
 
-### Phase STD-2: Ranged Damage Boost
+### Phase STD-2: Ranged Damage Boost ✅ COMPLETE
 Ranged attacks with bonus damage.
 
 | Card | Faction | Effect |
@@ -178,9 +189,23 @@ Ranged attacks with bonus damage.
 | Gout of Fire (x2) | Curse of Undeath | Ranged attack +20 damage |
 
 **Implementation**:
-- Add `rangedDamageBonus` property
-- Validate creature has ranged attack
-- Integrate with ranged attack flow
+- ✅ Added `rangedDamageBonus` property to OrderCard class (orders.js)
+- ✅ Updated DamageBoostModal.jsx for dual melee/ranged support:
+  - Blue (#0d6efd) styling for ranged cards, red (#dc3545) for melee
+  - Dynamic text: "ranged attack" vs "melee attack"
+  - Correct base damage preview based on attack type
+- ✅ Updated GameBoard.jsx handleOrderCardRightClick to detect ranged boost cards
+- ✅ Updated confirmDamageBoost to filter ranged targets only for ranged cards
+- ✅ Updated CombatResolver.js validateAttack to apply rangedDamageBonus
+- ✅ Updated AttackConfirmPanel.jsx:
+  - Blue styling for ranged boost cards (border, shadows)
+  - Fire icon for ranged, sword for melee
+  - Text displays "ranged damage" vs "melee damage"
+- ✅ Added `rangedDamageBonus: 20` to Gout of Fire cards in curseOfUndeath.js
+- ✅ Updated AI (simpleAI.js):
+  - getDamageBoostCards() now accepts attackType parameter
+  - selectBestDamageBoostCard() filters by attack type
+  - Both melee and ranged boost cards supported on Hard difficulty
 
 ---
 

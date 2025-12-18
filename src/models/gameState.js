@@ -4058,11 +4058,13 @@ export class GameState {
    * @param {CreatureInstance} attackerInstance - The attacking creature
    * @param {CreatureInstance} defenderInstance - The defending creature
    * @param {string} attackType - 'melee' or 'ranged'
+   * @param {number} damageBoostBonus - Bonus damage from STANDARD order cards (default 0)
+   * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
    * @param {string} aiDifficulty - AI difficulty for DEATH STRIKE decision ('easy'|'medium'|'hard')
    * @returns {Object} Attack result
    */
-  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', aiDifficulty = 'medium') {
-    return this.combatResolver.executeAttack(attackerInstance, defenderInstance, attackType, aiDifficulty)
+  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', damageBoostBonus = 0, damageBoostFlat = null, aiDifficulty = 'medium') {
+    return this.combatResolver.executeAttack(attackerInstance, defenderInstance, attackType, aiDifficulty, 0, null, false, damageBoostBonus, damageBoostFlat)
   }
 
   /**
@@ -4072,11 +4074,13 @@ export class GameState {
    * @param {string} attackType - 'melee' or 'ranged'
    * @param {number} damageReduction - Amount to reduce damage by
    * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
+   * @param {number} damageBoostBonus - Bonus damage from STANDARD order cards (default 0)
+   * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
    * @param {string} aiDifficulty - AI difficulty for DEATH STRIKE decision ('easy'|'medium'|'hard')
    * @returns {Object} Attack result
    */
-  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, aiDifficulty = 'medium') {
-    return this.combatResolver.executeAttackWithDefense(attackerInstance, defenderInstance, attackType, damageReduction, defenseType, aiDifficulty)
+  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, damageBoostBonus = 0, damageBoostFlat = null, aiDifficulty = 'medium') {
+    return this.combatResolver.executeAttackWithDefense(attackerInstance, defenderInstance, attackType, damageReduction, defenseType, aiDifficulty, false, damageBoostBonus, damageBoostFlat)
   }
 
   /**

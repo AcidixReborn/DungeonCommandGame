@@ -69,6 +69,9 @@ export function useAbilityModals() {
   const [lightningBreathValidTargets, setLightningBreathValidTargets] = useState([])
   const [lightningBreathCurrentAttackIndex, setLightningBreathCurrentAttackIndex] = useState(0)
   const [lightningBreathResults, setLightningBreathResults] = useState([])
+  // Damage boost card used with Lightning Breath (e.g., Gout of Fire)
+  const [lightningBreathDamageBoostCard, setLightningBreathDamageBoostCard] = useState(null)
+  const [lightningBreathDamageBoostBonus, setLightningBreathDamageBoostBonus] = useState(0)
 
   // ============================================
   // DISCIPLE OF KYUSS ability state
@@ -239,6 +242,19 @@ export function useAbilityModals() {
   })
 
   // ============================================
+  // DAMAGE BOOST CARDS state (Phase STD-1)
+  // Power Attack, Hacking Frenzy, Killing Strike
+  // ============================================
+  const [showDamageBoostModal, setShowDamageBoostModal] = useState(false)
+  const [damageBoostConfig, setDamageBoostConfig] = useState({
+    card: null,
+    cardIndex: null,
+    creature: null
+  })
+  const [pendingDamageBoostAttack, setPendingDamageBoostAttack] = useState(null)
+  // { card, cardIndex, creature, damageBonus, flatDamage }
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -291,6 +307,9 @@ export function useAbilityModals() {
     setLightningBreathValidTargets([])
     setLightningBreathCurrentAttackIndex(0)
     setLightningBreathResults([])
+    // Clear damage boost card state
+    setLightningBreathDamageBoostCard(null)
+    setLightningBreathDamageBoostBonus(0)
   }, [])
 
   /**
@@ -330,6 +349,15 @@ export function useAbilityModals() {
   }, [])
 
   /**
+   * Clear all Damage Boost state (Power Attack, Hacking Frenzy, Killing Strike)
+   */
+  const clearDamageBoostState = useCallback(() => {
+    setShowDamageBoostModal(false)
+    setDamageBoostConfig({ card: null, cardIndex: null, creature: null })
+    setPendingDamageBoostAttack(null)
+  }, [])
+
+  /**
    * Clear all ability modal state
    * Called at end of turn or game reset
    */
@@ -343,6 +371,7 @@ export function useAbilityModals() {
     clearRangedSplashState()
     clearRiderState()
     clearSavageDemiseState()
+    clearDamageBoostState()
     setShowDamageNotification(false)
     setDamageNotificationData(null)
     setPendingPhaseAdvance(false)
@@ -374,7 +403,8 @@ export function useAbilityModals() {
     clearSplashState,
     clearRangedSplashState,
     clearRiderState,
-    clearSavageDemiseState
+    clearSavageDemiseState,
+    clearDamageBoostState
   ])
 
   return {
@@ -442,6 +472,10 @@ export function useAbilityModals() {
     setLightningBreathCurrentAttackIndex,
     lightningBreathResults,
     setLightningBreathResults,
+    lightningBreathDamageBoostCard,
+    setLightningBreathDamageBoostCard,
+    lightningBreathDamageBoostBonus,
+    setLightningBreathDamageBoostBonus,
     clearLightningBreathState,
 
     // Disciple of Kyuss
@@ -578,6 +612,15 @@ export function useAbilityModals() {
     setShowToughAsNailsModal,
     toughAsNailsConfig,
     setToughAsNailsConfig,
+
+    // Damage Boost Cards (Power Attack, Hacking Frenzy, Killing Strike)
+    showDamageBoostModal,
+    setShowDamageBoostModal,
+    damageBoostConfig,
+    setDamageBoostConfig,
+    pendingDamageBoostAttack,
+    setPendingDamageBoostAttack,
+    clearDamageBoostState,
 
     // Clear all
     clearAllAbilityModalState

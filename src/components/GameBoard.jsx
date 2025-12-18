@@ -25,6 +25,7 @@ import ShiftDecisionModal from './ShiftDecisionModal'
 import CounterAttackTargetModal from './CounterAttackTargetModal'
 import PatchUpHealModal from './PatchUpHealModal'
 import ToughAsNailsModal from './ToughAsNailsModal'
+import DamageBoostModal from './DamageBoostModal'
 import MoraleLossNotificationModal from './MoraleLossNotificationModal'
 import './GameBoard.css'
 
@@ -170,6 +171,8 @@ function GameBoard({ onTurnInfoChange }) {
     lightningBreathValidTargets, setLightningBreathValidTargets,
     lightningBreathCurrentAttackIndex, setLightningBreathCurrentAttackIndex,
     lightningBreathResults, setLightningBreathResults,
+    lightningBreathDamageBoostCard, setLightningBreathDamageBoostCard,
+    lightningBreathDamageBoostBonus, setLightningBreathDamageBoostBonus,
     clearLightningBreathState,
     // Disciple of Kyuss
     showDamageNotification, setShowDamageNotification,
@@ -240,6 +243,11 @@ function GameBoard({ onTurnInfoChange }) {
     // Tough as Nails (proactive use during ACTIVATE)
     showToughAsNailsModal, setShowToughAsNailsModal,
     toughAsNailsConfig, setToughAsNailsConfig,
+    // Damage Boost Cards (Power Attack, Hacking Frenzy, Killing Strike)
+    showDamageBoostModal, setShowDamageBoostModal,
+    damageBoostConfig, setDamageBoostConfig,
+    pendingDamageBoostAttack, setPendingDamageBoostAttack,
+    clearDamageBoostState,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -1058,6 +1066,26 @@ function GameBoard({ onTurnInfoChange }) {
     const targets = gameState.getValidAttackTargets(attackerInstance)
     const targetInfo = targets.find(t => t.creature.instanceId === defenderInstance.instanceId)
 
+    // Check if this attack has a pending damage boost card
+    let damageBoostCard = null
+    let damageBoostBonus = 0
+    let damageBoostFlat = null
+
+    if (pendingDamageBoostAttack &&
+        pendingDamageBoostAttack.creature?.instanceId === attackerInstance.instanceId) {
+      // Verify the attack type matches the damage boost card type
+      const isRangedBoost = pendingDamageBoostAttack.isRanged
+      const expectedAttackType = isRangedBoost ? 'ranged' : 'melee'
+      if (targetInfo && targetInfo.attackType !== expectedAttackType) {
+        addToast(`This damage boost card only works with ${expectedAttackType} attacks!`)
+        return
+      }
+
+      damageBoostCard = pendingDamageBoostAttack.card
+      damageBoostBonus = pendingDamageBoostAttack.damageBonus || 0
+      damageBoostFlat = pendingDamageBoostAttack.flatDamage
+    }
+
     if (!targetInfo) {
       addToast('Target is out of range!')
       return
@@ -1111,7 +1139,11 @@ function GameBoard({ onTurnInfoChange }) {
       setPendingAttack({
         attackerInstance,
         defenderInstance,
-        targetInfo
+        targetInfo,
+        // Damage boost card info (if active)
+        damageBoostCard,
+        damageBoostBonus,
+        damageBoostFlat
       })
       // Set combat panel to defense mode with creature highlights
       setCombatPanelMode('defense')
@@ -1126,10 +1158,20 @@ function GameBoard({ onTurnInfoChange }) {
       const defenderAI = new SimpleAI(gameState, defenderPlayerId, null, difficulty)
       const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
 
-      // Calculate incoming damage for defensive decisions
-      const incomingDamage = targetInfo.attackType === 'melee'
-        ? attackerInstance.creature.meleeAttack?.damage || 0
-        : attackerInstance.creature.rangedAttack?.damage || 0
+      // Calculate incoming damage for defensive decisions (accounting for damage boost cards)
+      let incomingDamage
+      if (damageBoostFlat !== null) {
+        // Flat damage replaces base damage
+        incomingDamage = damageBoostFlat
+      } else if (damageBoostBonus > 0) {
+        // Bonus damage adds to base
+        incomingDamage = (attackerInstance.creature.meleeAttack?.damage || 0) + damageBoostBonus
+      } else {
+        // No damage boost - normal calculation
+        incomingDamage = targetInfo.attackType === 'melee'
+          ? attackerInstance.creature.meleeAttack?.damage || 0
+          : attackerInstance.creature.rangedAttack?.damage || 0
+      }
 
       // AI decides whether to use defensive abilities (COWER, UNSTOPPABLE HORDES, or IMMEDIATE cards)
       const defenseDecision = defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
@@ -1209,16 +1251,34 @@ function GameBoard({ onTurnInfoChange }) {
         })
       }
 
+      // Discard damage boost card from hand before executing attack (card is committed at this point)
+      if (damageBoostCard && pendingDamageBoostAttack) {
+        const attackerPlayer = gameState.players[attackerInstance.owner]
+        const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+        if (cardIndex !== -1) {
+          attackerPlayer.orderHand.splice(cardIndex, 1)
+        }
+        // Clear pending damage boost state
+        clearDamageBoostState()
+      }
+
       // Execute attack immediately for AI defender (with or without defense)
+      // Pass damage boost info to executeAttack - CombatResolver will handle the bonus
       let result
       if (defenseResult && defenseResult.success) {
-        result = gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, defenseResult.damagePrevented, defenseResult.type)
+        result = gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, defenseResult.damagePrevented, defenseResult.type, damageBoostBonus, damageBoostFlat)
       } else {
-        result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+        result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType, damageBoostBonus, damageBoostFlat)
       }
 
       if (result.success) {
         let message = ''
+
+        // Add damage boost info to message
+        if (damageBoostCard) {
+          const damageText = damageBoostFlat !== null ? `${damageBoostFlat} damage` : `+${damageBoostBonus} bonus`
+          message += `⚔️ ${damageBoostCard.name} (${damageText})! `
+        }
 
         // Add defense info to message
         if (defenseResult && defenseResult.success) {
@@ -1374,13 +1434,26 @@ function GameBoard({ onTurnInfoChange }) {
     // Get current accumulated damage reduction (or initialize to 0)
     const accumulatedReduction = pendingAttack.accumulatedDamageReduction || 0
 
+    // Get damage boost info from pendingAttack
+    const { damageBoostBonus, damageBoostFlat } = pendingAttack
+
     // Calculate original incoming damage
     // For FLASHING BLADES, damage is always 10
-    const originalDamage = targetInfo.attackType === 'flashing_blades'
-      ? 10
-      : targetInfo.attackType === 'melee'
+    // For damage boost cards: flat damage (Killing Strike) replaces base, bonus adds to base
+    let originalDamage
+    if (targetInfo.attackType === 'flashing_blades') {
+      originalDamage = 10
+    } else if (damageBoostFlat !== null && damageBoostFlat !== undefined) {
+      // Flat damage from Killing Strike - replaces base damage entirely
+      originalDamage = damageBoostFlat
+    } else {
+      // Normal damage calculation + any bonus from damage boost cards
+      const baseDamage = targetInfo.attackType === 'melee'
         ? attackerInstance.creature.meleeAttack?.damage || 0
         : attackerInstance.creature.rangedAttack?.damage || 0
+      const bonus = damageBoostBonus || 0
+      originalDamage = baseDamage + bonus
+    }
 
     if (defense.type === 'skip') {
       // No more defense - execute attack with accumulated reduction
@@ -1745,7 +1818,7 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
-    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze, isRangedSplash } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze, isRangedSplash, damageBoostCard, damageBoostBonus, damageBoostFlat } = pendingAttack
 
     // Handle RANGED SPLASH damage (ACID BREATH / EXPLOSIVE BOLTS)
     if (isRangedSplash && rangedSplashAttackInfo) {
@@ -1762,6 +1835,17 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
     console.log('[executeAttackAfterDefense] Not Savage Demise, continuing with normal attack')
+
+    // Discard damage boost card from hand before executing attack (card is committed at this point)
+    if (damageBoostCard && pendingDamageBoostAttack) {
+      const attackerPlayer = gameState.players[attackerInstance.owner]
+      const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+      if (cardIndex !== -1) {
+        attackerPlayer.orderHand.splice(cardIndex, 1)
+      }
+      // Clear pending damage boost state
+      clearDamageBoostState()
+    }
 
     let result
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
@@ -1794,13 +1878,15 @@ function GameBoard({ onTurnInfoChange }) {
         attackerInstance.tap()
       }
     } else {
-      // Normal attack - execute with defense damage reduction
+      // Normal attack - execute with defense damage reduction AND damage boost info
       result = gameState.executeAttackWithDefense(
         attackerInstance,
         defenderInstance,
         targetInfo.attackType,
         defenseResult.damageReduction,
-        defenseResult.type
+        defenseResult.type,
+        damageBoostBonus || 0,
+        damageBoostFlat !== undefined ? damageBoostFlat : null
       )
     }
 
@@ -2262,7 +2348,18 @@ function GameBoard({ onTurnInfoChange }) {
   const executeAttackAfterReactions = (reactions) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze, damageBoostCard, damageBoostBonus, damageBoostFlat } = pendingAttack
+
+    // Discard damage boost card from hand before executing attack (card is committed at this point)
+    if (damageBoostCard && pendingDamageBoostAttack) {
+      const attackerPlayer = gameState.players[attackerInstance.owner]
+      const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+      if (cardIndex !== -1) {
+        attackerPlayer.orderHand.splice(cardIndex, 1)
+      }
+      // Clear pending damage boost state
+      clearDamageBoostState()
+    }
 
     let result
     if (isFlashingBlades || targetInfo.attackType === 'flashing_blades') {
@@ -2288,8 +2385,8 @@ function GameBoard({ onTurnInfoChange }) {
         attackerInstance.tap()
       }
     } else {
-      // Execute normal attack
-      result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+      // Execute normal attack with damage boost info (Power Attack, Hacking Frenzy, Killing Strike)
+      result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType, damageBoostBonus || 0, damageBoostFlat !== undefined ? damageBoostFlat : null)
     }
 
     if (result.success) {
@@ -4260,6 +4357,62 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // DAMAGE BOOST STANDARD CARDS: Power Attack, Hacking Frenzy, Killing Strike (melee), Gout of Fire (ranged)
+    // These cards add bonus damage to melee/ranged attacks or deal flat damage
+    const isMeleeDamageBoost = card.meleeDamageBonus > 0 || card.flatMeleeDamage !== null
+    const isRangedDamageBoost = card.rangedDamageBonus > 0
+    if (card.actionType === 'STANDARD' && (isMeleeDamageBoost || isRangedDamageBoost)) {
+      const creature = orderCardFilterCreature
+      // Check level requirement
+      if (card.level > creature.creature.level) {
+        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+        return
+      }
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+        const hasRequiredAbility = abilities.some(ability =>
+          creature.creature.abilities?.[ability] === true
+        )
+        if (!hasRequiredAbility) {
+          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+          return
+        }
+      }
+
+      // Check if creature has already acted
+      if (creature.hasAttackedThisTurn) {
+        addToast(`${creature.creature.name} has already acted this turn`)
+        return
+      }
+
+      // Check if creature is tapped
+      if (creature.isTapped) {
+        addToast(`${creature.creature.name} is tapped`)
+        return
+      }
+
+      // Check if creature has the required attack type
+      if (isRangedDamageBoost && !creature.creature.rangedAttack) {
+        addToast(`${creature.creature.name} has no ranged attack`)
+        return
+      }
+      if (isMeleeDamageBoost && !creature.creature.meleeAttack) {
+        addToast(`${creature.creature.name} has no melee attack`)
+        return
+      }
+
+      // Show confirmation modal
+      setDamageBoostConfig({
+        card,
+        cardIndex,
+        creature
+      })
+      setShowDamageBoostModal(true)
+      return
+    }
+
     // GENERIC ORDER CARDS: Standard validation
     // Check level requirement: card level <= creature level
     if (card.level > orderCardFilterCreature.creature.level) {
@@ -4311,6 +4464,73 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const clearOrderCardFilter = () => {
     setOrderCardFilterCreature(null)
+  }
+
+  /**
+   * Confirm Damage Boost modal - enters attack target selection mode
+   * Called when player confirms they want to use Power Attack, Hacking Frenzy, or Killing Strike
+   */
+  const confirmDamageBoost = () => {
+    if (!damageBoostConfig?.card || !damageBoostConfig?.creature || !gameState) {
+      cancelDamageBoostAttack()
+      return
+    }
+
+    const { card, cardIndex, creature } = damageBoostConfig
+
+    // Determine if this is a ranged or melee damage boost
+    const isRangedBoost = card.rangedDamageBonus > 0
+
+    // Store pending damage boost attack info (includes bonus/flat damage values and attack type)
+    setPendingDamageBoostAttack({
+      card,
+      cardIndex,
+      creature,
+      damageBonus: isRangedBoost ? card.rangedDamageBonus : (card.meleeDamageBonus || 0),
+      flatDamage: card.flatMeleeDamage,
+      isRanged: isRangedBoost
+    })
+
+    // Close modal
+    setShowDamageBoostModal(false)
+    setDamageBoostConfig({ card: null, cardIndex: null, creature: null })
+
+    // Select the creature and show valid attack targets
+    setSelectedBoardCreature(creature)
+
+    // Get valid targets based on attack type (melee or ranged)
+    const allTargets = gameState.getValidAttackTargets(creature)
+    const filteredTargets = isRangedBoost
+      ? allTargets.filter(t => t.attackType === 'ranged')
+      : allTargets.filter(t => t.attackType === 'melee')
+
+    const attackTypeText = isRangedBoost ? 'ranged' : 'melee'
+
+    if (filteredTargets.length === 0) {
+      addToast(`No valid ${attackTypeText} targets in range`)
+      cancelDamageBoostAttack()
+      return
+    }
+
+    // Set valid attack targets - reuse validAttackTargets state
+    setValidAttackTargets(filteredTargets)
+
+    // Toast instruction
+    const damageText = card.flatMeleeDamage !== null
+      ? `${card.flatMeleeDamage} damage`
+      : `+${isRangedBoost ? card.rangedDamageBonus : card.meleeDamageBonus} bonus damage`
+    addToast(`${card.name} active (${damageText}): Right-click an enemy to ${attackTypeText} attack`)
+  }
+
+  /**
+   * Cancel Damage Boost attack (from modal or during target selection)
+   * Returns card to hand and clears all damage boost state
+   */
+  const cancelDamageBoostAttack = () => {
+    clearDamageBoostState()
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
   }
 
   /**
@@ -4488,7 +4708,7 @@ function GameBoard({ onTurnInfoChange }) {
 
   // Process AI attack intention - check if defender is human and show modal if needed
   const processAIAttackIntention = (action) => {
-    const { attackerInstance, defenderInstance, targetInfo } = action
+    const { attackerInstance, defenderInstance, targetInfo, damageBoostCard, damageBoostBonus, damageBoostFlat } = action
 
     // VALIDATION: Skip attack if defender's owner is already eliminated
     if (!gameState.activePlayers.includes(defenderInstance.owner)) {
@@ -4572,10 +4792,25 @@ function GameBoard({ onTurnInfoChange }) {
       // O(1) state updates for panel mode and creature highlights
       // Panel handlers will call executeAttackAfterReactions which continues processing
       // ============================================
+
+      // If AI used a damage boost card, discard it now and toast
+      if (damageBoostCard) {
+        const attackerPlayer = gameState.players[attackerInstance.owner]
+        const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+        if (cardIndex !== -1) {
+          attackerPlayer.orderHand.splice(cardIndex, 1)
+          attackerPlayer.orderDiscard.push(damageBoostCard)
+          addToast(`🗡️ AI: ${attackerInstance.creature.name} uses ${damageBoostCard.name}!`)
+        }
+      }
+
       setPendingAttack({
         attackerInstance,
         defenderInstance,
-        targetInfo
+        targetInfo,
+        damageBoostCard,
+        damageBoostBonus: damageBoostBonus || 0,
+        damageBoostFlat: damageBoostFlat !== undefined ? damageBoostFlat : null
       })
       // Set combat panel to defense mode with creature highlights
       setCombatPanelMode('defense')
@@ -4591,10 +4826,28 @@ function GameBoard({ onTurnInfoChange }) {
       const defenderAI = new SimpleAI(gameState, defenderPlayerId, null, difficulty)
       const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
 
-      // Calculate incoming damage for defensive decisions
-      const incomingDamage = targetInfo.attackType === 'melee'
-        ? attackerInstance.creature.meleeAttack?.damage || 0
-        : attackerInstance.creature.rangedAttack?.damage || 0
+      // If AI attacker used a damage boost card, discard it now and toast
+      if (damageBoostCard) {
+        const attackerPlayer = gameState.players[attackerInstance.owner]
+        const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+        if (cardIndex !== -1) {
+          attackerPlayer.orderHand.splice(cardIndex, 1)
+          attackerPlayer.orderDiscard.push(damageBoostCard)
+          addToast(`🗡️ AI: ${attackerInstance.creature.name} uses ${damageBoostCard.name}!`)
+        }
+      }
+
+      // Calculate incoming damage for defensive decisions (accounting for damage boost cards)
+      let incomingDamage
+      if (damageBoostFlat !== null && damageBoostFlat !== undefined) {
+        // Flat damage replaces base damage
+        incomingDamage = damageBoostFlat
+      } else {
+        const baseDamage = targetInfo.attackType === 'melee'
+          ? attackerInstance.creature.meleeAttack?.damage || 0
+          : attackerInstance.creature.rangedAttack?.damage || 0
+        incomingDamage = baseDamage + (damageBoostBonus || 0)
+      }
 
       // AI decides whether to use defensive abilities (COWER, UNSTOPPABLE HORDES, or IMMEDIATE cards)
       const defenseDecision = defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
@@ -4675,11 +4928,19 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // Execute attack immediately for AI defender (with or without defense)
+      // Include damage boost card info if present
       let result
       if (defenseResult && defenseResult.success) {
-        result = gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, defenseResult.damagePrevented, defenseResult.type)
+        result = gameState.executeAttackWithDefense(
+          attackerInstance, defenderInstance, targetInfo.attackType,
+          defenseResult.damagePrevented, defenseResult.type,
+          damageBoostBonus || 0, damageBoostFlat !== undefined ? damageBoostFlat : null
+        )
       } else {
-        result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
+        result = gameState.executeAttack(
+          attackerInstance, defenderInstance, targetInfo.attackType,
+          damageBoostBonus || 0, damageBoostFlat !== undefined ? damageBoostFlat : null
+        )
       }
 
       if (result.success) {
@@ -5570,10 +5831,37 @@ function GameBoard({ onTurnInfoChange }) {
         target => target.creature.instanceId === tile.occupant.instanceId
       )
       if (attackInfo) {
+        // ============================================
+        // DAMAGE BOOST CARD FLOW: Check if pendingDamageBoostAttack is active
+        // Include the damage boost info in pendingRightClickAttack
+        // ============================================
+        let damageBoostCard = null
+        let damageBoostBonus = 0
+        let damageBoostFlat = null
+
+        if (pendingDamageBoostAttack &&
+            pendingDamageBoostAttack.creature?.instanceId === selectedBoardCreature.instanceId) {
+          // Verify the attack type matches the damage boost card type
+          const isRangedBoost = pendingDamageBoostAttack.isRanged
+          const expectedAttackType = isRangedBoost ? 'ranged' : 'melee'
+          if (attackInfo.attackType !== expectedAttackType) {
+            addToast(`This damage boost card only works with ${expectedAttackType} attacks!`)
+            // Clear the pending damage boost state
+            clearDamageBoostState()
+            return
+          }
+          damageBoostCard = pendingDamageBoostAttack.card
+          damageBoostBonus = pendingDamageBoostAttack.damageBonus || 0
+          damageBoostFlat = pendingDamageBoostAttack.flatDamage
+        }
+
         setPendingRightClickAttack({
           attacker: selectedBoardCreature,
           target: tile.occupant,
-          attackInfo: attackInfo
+          attackInfo: attackInfo,
+          damageBoostCard,
+          damageBoostBonus,
+          damageBoostFlat
         })
         // ============================================
         // COMBAT PANEL: Use panel instead of modal - O(1) state updates
@@ -5632,6 +5920,11 @@ function GameBoard({ onTurnInfoChange }) {
     setPendingRightClickAttack(null)
     setCombatPanelMode(null)
     setCombatHighlightCreatures({ attacker: null, defender: null })
+    // Clear damage boost state if active (returns card to hand by not discarding)
+    if (pendingDamageBoostAttack) {
+      clearDamageBoostState()
+      addToast('Attack cancelled - damage boost card returned to hand')
+    }
   }
 
   // ============================================
@@ -5645,7 +5938,7 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} attacker - The Dracolich creature instance
    * @param {Object} firstTarget - The initially right-clicked target (pre-selected)
    */
-  const handleLightningBreathStart = (attacker, firstTarget) => {
+  const handleLightningBreathStart = (attacker, firstTarget, damageBoostCard = null, damageBoostBonus = 0) => {
     // Get all valid targets
     const validTargets = gameState.getLightningBreathTargets(attacker)
 
@@ -5661,7 +5954,16 @@ function GameBoard({ onTurnInfoChange }) {
     setLightningBreathCurrentAttackIndex(0)
     setLightningBreathResults([])
 
-    addToast(`⚡ LIGHTNING BREATH: Select up to 2 more targets (1/3 selected)`)
+    // Store damage boost card info (e.g., Gout of Fire)
+    setLightningBreathDamageBoostCard(damageBoostCard)
+    setLightningBreathDamageBoostBonus(damageBoostBonus)
+
+    const totalDamage = gameState.getLightningBreathDamage(attacker) + damageBoostBonus
+    if (damageBoostCard) {
+      addToast(`⚡ LIGHTNING BREATH + ${damageBoostCard.name}: Select up to 2 more targets (1/3 selected, ${totalDamage} dmg each)`)
+    } else {
+      addToast(`⚡ LIGHTNING BREATH: Select up to 2 more targets (1/3 selected)`)
+    }
   }
 
   /**
@@ -5719,7 +6021,9 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Set up the first attack's defense panel
     const firstTarget = lightningBreathTargets[0]
-    const damage = gameState.getLightningBreathDamage(lightningBreathAttacker)
+    // Apply damage boost from order cards (e.g., Gout of Fire)
+    const baseDamage = gameState.getLightningBreathDamage(lightningBreathAttacker)
+    const damage = baseDamage + (lightningBreathDamageBoostBonus || 0)
 
     // Check if first target has INSUBSTANTIAL available
     if (gameState.canUseInsubstantial(firstTarget)) {
@@ -5748,22 +6052,76 @@ function GameBoard({ onTurnInfoChange }) {
       }
     }
 
-    setPendingAttack({
-      attackerInstance: lightningBreathAttacker,
-      defenderInstance: firstTarget,
-      targetInfo: { attackType: 'lightning_breath', damage },
-      isLightningBreath: true,
-      lightningBreathIndex: 0,
-      lightningBreathTotal: lightningBreathTargets.length
-    })
+    // Check if defender is human or AI
+    const defenderIsHuman = isPlayerHuman(firstTarget.owner)
 
-    setCombatPanelMode('defense')
-    setCombatHighlightCreatures({
-      attacker: lightningBreathAttacker.instanceId,
-      defender: firstTarget.instanceId
-    })
+    if (defenderIsHuman) {
+      // Human defender - show defense panel
+      setPendingAttack({
+        attackerInstance: lightningBreathAttacker,
+        defenderInstance: firstTarget,
+        targetInfo: { attackType: 'lightning_breath', damage },
+        isLightningBreath: true,
+        lightningBreathIndex: 0,
+        lightningBreathTotal: lightningBreathTargets.length,
+        // Include damage boost card info so DefenseOptionsPanel can display it
+        damageBoostCard: lightningBreathDamageBoostCard,
+        damageBoostBonus: lightningBreathDamageBoostBonus
+      })
 
-    addToast(`⚡ Lightning Breath Attack 1/${lightningBreathTargets.length}: ${firstTarget.creature.name}`)
+      setCombatPanelMode('defense')
+      setCombatHighlightCreatures({
+        attacker: lightningBreathAttacker.instanceId,
+        defender: firstTarget.instanceId
+      })
+
+      addToast(`⚡ Lightning Breath Attack 1/${lightningBreathTargets.length}: ${firstTarget.creature.name}`)
+    } else {
+      // AI defender - auto-select defense
+      const defenderPlayer = gameState.players[firstTarget.owner]
+      const difficulty = defenderPlayer?.aiDifficulty || gameConfig?.aiDifficulty || 'medium'
+      const defenderAI = new SimpleAI(gameState, firstTarget.owner, null, difficulty)
+
+      // AI decides defense (COWER, UNSTOPPABLE HORDES, IMMEDIATE cards, or take damage)
+      const defenseDecision = defenderAI.decideDefense(firstTarget, damage, lightningBreathAttacker.owner)
+
+      // Build defense object to pass to handleLightningBreathDefenseSelected
+      let defense = { type: 'skip' }
+
+      if (defenseDecision.type === 'cower') {
+        defense = { type: 'cower' }
+        addToast(`🛡️ AI ${firstTarget.creature.name} chooses to COWER!`)
+      } else if (defenseDecision.type === 'unstoppable_hordes') {
+        const creatures = []
+        if (defenseDecision.defenderCanUse) creatures.push(firstTarget)
+        if (defenseDecision.creatures) creatures.push(...defenseDecision.creatures)
+        defense = { type: 'unstoppable_hordes', creatures }
+        addToast(`💀 AI uses UNSTOPPABLE HORDES with ${creatures.length} Undead!`)
+      } else if (defenseDecision.type === 'immediate_card') {
+        defense = {
+          type: 'immediate_card',
+          card: defenseDecision.card,
+          creature: defenseDecision.creature,
+          discardCard: defenseDecision.discardCard || null
+        }
+        addToast(`⚡ AI uses ${defenseDecision.card.name} with ${defenseDecision.creature.creature.name}!`)
+      }
+
+      // Create attack info object to pass directly (not via state - state updates are async)
+      const attackInfoForAI = {
+        attackerInstance: lightningBreathAttacker,
+        defenderInstance: firstTarget,
+        targetInfo: { attackType: 'lightning_breath', damage },
+        isLightningBreath: true,
+        lightningBreathIndex: 0,
+        lightningBreathTotal: lightningBreathTargets.length
+      }
+
+      addToast(`⚡ Lightning Breath Attack 1/${lightningBreathTargets.length}: ${firstTarget.creature.name}`)
+
+      // Process AI's defense choice - pass attack info directly to avoid async state timing issue
+      handleLightningBreathDefenseSelected(defense, attackInfoForAI)
+    }
   }
 
   /**
@@ -5771,12 +6129,18 @@ function GameBoard({ onTurnInfoChange }) {
    * Called when player clicks "Cancel" during target selection
    */
   const handleLightningBreathCancel = () => {
+    // Clear Lightning Breath state (but don't discard the damage boost card - it stays in hand)
     setLightningBreathMode(false)
     setLightningBreathAttacker(null)
     setLightningBreathTargets([])
     setLightningBreathValidTargets([])
     setLightningBreathCurrentAttackIndex(0)
     setLightningBreathResults([])
+    // Clear damage boost card state (card stays in hand)
+    setLightningBreathDamageBoostCard(null)
+    setLightningBreathDamageBoostBonus(0)
+    // Clear the pending damage boost attack state too
+    clearDamageBoostState()
 
     addToast(`Lightning Breath cancelled`)
   }
@@ -5812,7 +6176,9 @@ function GameBoard({ onTurnInfoChange }) {
       // Move to next target
       setLightningBreathCurrentAttackIndex(nextIndex)
       const nextTarget = targets[nextIndex]
-      const damage = gameState.getLightningBreathDamage(attacker)
+      // Apply damage boost from order cards (e.g., Gout of Fire)
+      const baseDamage = gameState.getLightningBreathDamage(attacker)
+      const damage = baseDamage + (lightningBreathDamageBoostBonus || 0)
 
       // Check if next target has INSUBSTANTIAL available
       if (gameState.canUseInsubstantial(nextTarget)) {
@@ -5853,21 +6219,76 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
-      setPendingAttack({
-        attackerInstance: attacker,
-        defenderInstance: nextTarget,
-        targetInfo: { attackType: 'lightning_breath', damage },
-        isLightningBreath: true,
-        lightningBreathIndex: nextIndex,
-        lightningBreathTotal: targets.length
-      })
+      // Check if next defender is human or AI
+      const nextDefenderIsHuman = isPlayerHuman(nextTarget.owner)
 
-      setCombatHighlightCreatures({
-        attacker: attacker.instanceId,
-        defender: nextTarget.instanceId
-      })
+      if (nextDefenderIsHuman) {
+        // Human defender - show defense panel
+        setPendingAttack({
+          attackerInstance: attacker,
+          defenderInstance: nextTarget,
+          targetInfo: { attackType: 'lightning_breath', damage },
+          isLightningBreath: true,
+          lightningBreathIndex: nextIndex,
+          lightningBreathTotal: targets.length,
+          // Include damage boost card info so DefenseOptionsPanel can display it
+          damageBoostCard: lightningBreathDamageBoostCard,
+          damageBoostBonus: lightningBreathDamageBoostBonus
+        })
 
-      addToast(`⚡ Lightning Breath Attack ${nextIndex + 1}/${targets.length}: ${nextTarget.creature.name}`)
+        setCombatPanelMode('defense')
+        setCombatHighlightCreatures({
+          attacker: attacker.instanceId,
+          defender: nextTarget.instanceId
+        })
+
+        addToast(`⚡ Lightning Breath Attack ${nextIndex + 1}/${targets.length}: ${nextTarget.creature.name}`)
+      } else {
+        // AI defender - auto-select defense
+        const defenderPlayer = gameState.players[nextTarget.owner]
+        const difficulty = defenderPlayer?.aiDifficulty || gameConfig?.aiDifficulty || 'medium'
+        const defenderAI = new SimpleAI(gameState, nextTarget.owner, null, difficulty)
+
+        // AI decides defense (COWER, UNSTOPPABLE HORDES, IMMEDIATE cards, or take damage)
+        const defenseDecision = defenderAI.decideDefense(nextTarget, damage, attacker.owner)
+
+        // Build defense object to pass to handleLightningBreathDefenseSelected
+        let defense = { type: 'skip' }
+
+        if (defenseDecision.type === 'cower') {
+          defense = { type: 'cower' }
+          addToast(`🛡️ AI ${nextTarget.creature.name} chooses to COWER!`)
+        } else if (defenseDecision.type === 'unstoppable_hordes') {
+          const creatures = []
+          if (defenseDecision.defenderCanUse) creatures.push(nextTarget)
+          if (defenseDecision.creatures) creatures.push(...defenseDecision.creatures)
+          defense = { type: 'unstoppable_hordes', creatures }
+          addToast(`💀 AI uses UNSTOPPABLE HORDES with ${creatures.length} Undead!`)
+        } else if (defenseDecision.type === 'immediate_card') {
+          defense = {
+            type: 'immediate_card',
+            card: defenseDecision.card,
+            creature: defenseDecision.creature,
+            discardCard: defenseDecision.discardCard || null
+          }
+          addToast(`⚡ AI uses ${defenseDecision.card.name} with ${defenseDecision.creature.creature.name}!`)
+        }
+
+        // Create attack info object to pass directly (not via state - state updates are async)
+        const attackInfoForAI = {
+          attackerInstance: attacker,
+          defenderInstance: nextTarget,
+          targetInfo: { attackType: 'lightning_breath', damage },
+          isLightningBreath: true,
+          lightningBreathIndex: nextIndex,
+          lightningBreathTotal: targets.length
+        }
+
+        addToast(`⚡ Lightning Breath Attack ${nextIndex + 1}/${targets.length}: ${nextTarget.creature.name}`)
+
+        // Process AI's defense choice - pass attack info directly to avoid async state timing issue
+        handleLightningBreathDefenseSelected(defense, attackInfoForAI)
+      }
     } else {
       // All attacks resolved - finish up
       handleLightningBreathComplete(newResults)
@@ -5903,13 +6324,27 @@ function GameBoard({ onTurnInfoChange }) {
       }
     }
 
-    // Clear Lightning Breath state
+    // Discard damage boost card if one was used (e.g., Gout of Fire)
+    if (lightningBreathDamageBoostCard && attacker) {
+      const attackerPlayer = gameState.players[attacker.owner]
+      const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === lightningBreathDamageBoostCard.id)
+      if (cardIndex !== -1) {
+        attackerPlayer.orderHand.splice(cardIndex, 1)
+        addToast(`📜 ${lightningBreathDamageBoostCard.name} was discarded`)
+      }
+      // Also clear the pending damage boost attack state
+      clearDamageBoostState()
+    }
+
+    // Clear Lightning Breath state (including damage boost card/bonus)
     setLightningBreathMode(false)
     setLightningBreathAttacker(null)
     setLightningBreathTargets([])
     setLightningBreathValidTargets([])
     setLightningBreathCurrentAttackIndex(0)
     setLightningBreathResults([])
+    setLightningBreathDamageBoostCard(null)
+    setLightningBreathDamageBoostBonus(0)
 
     // Clear combat panel
     setPendingAttack(null)
@@ -5922,10 +6357,12 @@ function GameBoard({ onTurnInfoChange }) {
    * Similar to splash damage defense, but with sequential attack resolution
    * @param {Object} defense - Defense selection
    */
-  const handleLightningBreathDefenseSelected = (defense) => {
-    if (!pendingAttack || !pendingAttack.isLightningBreath) return
+  const handleLightningBreathDefenseSelected = (defense, attackInfoOverride = null) => {
+    // Use attackInfoOverride for AI calls (synchronous) or pendingAttack for human calls (after state update)
+    const attackInfo = attackInfoOverride || pendingAttack
+    if (!attackInfo || !attackInfo.isLightningBreath) return
 
-    const { attackerInstance, defenderInstance, targetInfo } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo } = attackInfo
     const damage = targetInfo.damage || gameState.getLightningBreathDamage(attackerInstance)
 
     let damageAfterDefense = damage
@@ -7839,6 +8276,9 @@ function GameBoard({ onTurnInfoChange }) {
                     : (pendingAttack ? gameState.players[pendingAttack.defenderInstance?.owner] : null)
                 }
                 gameState={gameState}
+                damageBoostCard={pendingAttack?.damageBoostCard || pendingRightClickAttack?.damageBoostCard || null}
+                damageBoostBonus={pendingAttack?.damageBoostBonus || pendingRightClickAttack?.damageBoostBonus || 0}
+                damageBoostFlat={pendingAttack?.damageBoostFlat !== undefined ? pendingAttack.damageBoostFlat : (pendingRightClickAttack?.damageBoostFlat !== undefined ? pendingRightClickAttack.damageBoostFlat : null)}
                 isFlashingBlades={pendingAttack?.isFlashingBlades || false}
                 isHiddenBlade={pendingAttack?.isHiddenBlade || false}
                 onConfirmAttack={
@@ -8822,6 +9262,15 @@ function GameBoard({ onTurnInfoChange }) {
         creature={toughAsNailsConfig?.creature}
         onConfirm={executeToughAsNails}
         onCancel={cancelToughAsNails}
+      />
+
+      {/* DAMAGE BOOST MODAL (Power Attack, Hacking Frenzy, Killing Strike) */}
+      <DamageBoostModal
+        show={showDamageBoostModal}
+        card={damageBoostConfig?.card}
+        creature={damageBoostConfig?.creature}
+        onConfirm={confirmDamageBoost}
+        onCancel={cancelDamageBoostAttack}
       />
 
       {/* MORALE LOSS NOTIFICATION MODAL (Unexpected Resistance) */}

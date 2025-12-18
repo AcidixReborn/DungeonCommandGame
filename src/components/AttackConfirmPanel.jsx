@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Button, Badge } from 'react-bootstrap'
 import CreatureCard from './CreatureCard'
 import './CombatPanel.css'
@@ -14,6 +15,9 @@ import './CombatPanel.css'
  * @param {CreatureInstance} defender - The target creature
  * @param {Object} attackInfo - Attack details { attackType: 'melee'|'ranged', creature, ... }
  * @param {Object} gameState - Game state for ability detection (LIFE DRAIN, LIGHTNING BREATH, etc.)
+ * @param {Object} damageBoostCard - STANDARD order card used for damage boost (null if none)
+ * @param {number} damageBoostBonus - Bonus damage from card (e.g., Power Attack +20)
+ * @param {number|null} damageBoostFlat - Flat damage replacing base (e.g., Killing Strike 100)
  * @param {Function} onConfirm - Callback when attack is confirmed
  * @param {Function} onCancel - Callback when attack is cancelled
  * @param {Function} onLightningBreath - Callback when Lightning Breath is selected (optional)
@@ -24,10 +28,16 @@ function AttackConfirmPanel({
   attackInfo,
   defenderPlayerState,
   gameState,
+  damageBoostCard = null,
+  damageBoostBonus = 0,
+  damageBoostFlat = null,
   onConfirm,
   onCancel,
   onLightningBreath
 }) {
+  // Hover state for order card preview
+  const [showOrderCardPreview, setShowOrderCardPreview] = useState(false)
+
   if (!attacker || !defender || !attackInfo) {
     return null
   }
@@ -50,15 +60,28 @@ function AttackConfirmPanel({
     ? gameState.getCutterBonus(attacker, defender)
     : 0
 
-  const baseDamage = isFlashingBlades || isHiddenBlade
-    ? 10
-    : isConfusionGaze
-      ? attacker.creature.meleeAttack?.damage || 30
-      : isMeleeAttack
-        ? attacker.creature.meleeAttack?.damage || 0
-        : attacker.creature.rangedAttack?.damage || 0
+  // Check if using flat damage from order card (Killing Strike)
+  const usedFlatDamage = damageBoostFlat !== null
+  const orderCardBonus = (!usedFlatDamage && damageBoostBonus > 0) ? damageBoostBonus : 0
 
-  const damage = baseDamage + flankingBonus + cutterBonus
+  // Calculate base damage - flat damage replaces creature's base damage
+  let baseDamage
+  if (usedFlatDamage) {
+    baseDamage = damageBoostFlat
+  } else if (isFlashingBlades || isHiddenBlade) {
+    baseDamage = 10
+  } else if (isConfusionGaze) {
+    baseDamage = attacker.creature.meleeAttack?.damage || 30
+  } else if (isMeleeAttack) {
+    baseDamage = attacker.creature.meleeAttack?.damage || 0
+  } else {
+    baseDamage = attacker.creature.rangedAttack?.damage || 0
+  }
+
+  // Flat damage ignores flanking/cutter bonuses, otherwise add them
+  const effectiveFlankingBonus = usedFlatDamage ? 0 : flankingBonus
+  const effectiveCutterBonus = usedFlatDamage ? 0 : cutterBonus
+  const damage = baseDamage + effectiveFlankingBonus + effectiveCutterBonus + orderCardBonus
 
   // Check for LIFE DRAIN ability (Vampire Stalker) - only triggers on melee attacks with damage > 0
   const hasLifeDrain = gameState?.hasLifeDrain && gameState.hasLifeDrain(attacker)
@@ -158,7 +181,15 @@ function AttackConfirmPanel({
         </div>
         <div className="combat-info-row">
           <span>Damage:</span>
-          {cutterBonus > 0 || flankingBonus > 0 ? (
+          {usedFlatDamage ? (
+            // Flat damage from order card (Killing Strike) - replaces base damage entirely
+            <span>
+              <Badge bg="danger">{damage}</Badge>
+              <span style={{ color: '#888', marginLeft: '6px', fontStyle: 'italic' }}>
+                (flat damage from {damageBoostCard?.name || 'Order Card'})
+              </span>
+            </span>
+          ) : (cutterBonus > 0 || flankingBonus > 0 || orderCardBonus > 0) ? (
             <span>
               <Badge bg="warning" text="dark">{baseDamage}</Badge>
               {flankingBonus > 0 && (
@@ -171,6 +202,12 @@ function AttackConfirmPanel({
                 <>
                   <span style={{ color: '#ff5722', marginLeft: '4px' }}>+{cutterBonus}</span>
                   <span style={{ color: '#888', marginLeft: '4px' }}>(CUTTER)</span>
+                </>
+              )}
+              {orderCardBonus > 0 && (
+                <>
+                  <span style={{ color: '#ff9800', marginLeft: '4px' }}>+{orderCardBonus}</span>
+                  <span style={{ color: '#888', marginLeft: '4px' }}>({damageBoostCard?.name || 'Order Card'})</span>
                 </>
               )}
               <span style={{ marginLeft: '4px' }}>=</span>
@@ -186,6 +223,93 @@ function AttackConfirmPanel({
             {defender.currentHP}/{defender.creature.hitPoints}
           </span>
         </div>
+
+        {/* ORDER CARD USED - Shows the damage boost card being used for this attack */}
+        {damageBoostCard && (() => {
+          // Determine if this is a ranged damage boost card (blue styling) or melee (red styling)
+          const isRangedBoostCard = damageBoostCard.rangedDamageBonus > 0
+          const cardAccentColor = isRangedBoostCard ? '#0d6efd' : '#dc3545'
+          const cardShadowColor = isRangedBoostCard ? 'rgba(13, 110, 253, 0.4)' : 'rgba(220, 53, 69, 0.4)'
+          const cardIcon = isRangedBoostCard ? '🔥' : '🗡️'
+          const damageTypeText = isRangedBoostCard ? 'ranged' : 'melee'
+
+          return (
+            <div style={{
+              borderTop: `2px solid ${cardAccentColor}`,
+              paddingTop: '12px',
+              marginTop: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              position: 'relative'
+            }}>
+              <div style={{ fontWeight: 'bold', color: cardAccentColor, fontSize: '1rem' }}>
+                {cardIcon} Using: {damageBoostCard.name}
+              </div>
+              <div
+                style={{ position: 'relative', cursor: 'pointer' }}
+                onMouseEnter={() => setShowOrderCardPreview(true)}
+                onMouseLeave={() => setShowOrderCardPreview(false)}
+              >
+                <img
+                  src={damageBoostCard.imageUrl}
+                  alt={damageBoostCard.name}
+                  style={{
+                    width: '160px',
+                    height: 'auto',
+                    borderRadius: '6px',
+                    border: `3px solid ${cardAccentColor}`,
+                    boxShadow: `0 4px 12px ${cardShadowColor}`,
+                    transition: 'transform 0.2s ease'
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '4px',
+                  right: '4px',
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                  color: '#aaa',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '0.65rem'
+                }}>
+                  Hover for details
+                </div>
+
+                {/* Hover Preview - Larger image, fixed position to the left of the panel */}
+                {showOrderCardPreview && (
+                  <div style={{
+                    position: 'fixed',
+                    right: '450px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 9999,
+                    pointerEvents: 'none'
+                  }}>
+                    <img
+                      src={damageBoostCard.imageUrl}
+                      alt={damageBoostCard.name}
+                      style={{
+                        width: '320px',
+                        height: 'auto',
+                        borderRadius: '8px',
+                        border: `3px solid ${cardAccentColor}`,
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.8)'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: '0.9rem', color: '#ff9800', fontWeight: 'bold' }}>
+                {usedFlatDamage
+                  ? `Deals ${damageBoostFlat} flat damage`
+                  : `+${damageBoostBonus} ${damageTypeText} damage`}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* LIFE DRAIN preview - shows potential healing on melee damage */}
         {lifeDrainApplies && (
           <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
@@ -302,12 +426,12 @@ function AttackConfirmPanel({
             variant="info"
             size="sm"
             onClick={() => {
-              console.log('[AttackConfirmPanel] LIGHTNING BREATH button clicked!')
-              onLightningBreath(attacker, defender)
+              // Pass damage boost info for Gout of Fire integration
+              onLightningBreath(attacker, defender, damageBoostCard, damageBoostBonus)
             }}
             title="Make up to 3 ranged attacks on different targets"
           >
-            ⚡ Lightning Breath (3x{lightningBreathDamage} dmg)
+            ⚡ Lightning Breath (3x{lightningBreathDamage + (damageBoostBonus || 0)} dmg)
           </Button>
         )}
         <Button variant="danger" size="sm" onClick={onConfirm}>

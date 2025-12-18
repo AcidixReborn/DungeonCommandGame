@@ -447,7 +447,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: fearOrder13Img
   },
-  // Card 14: Gout of Fire - Level 3, INT, STANDARD
+  // Card 14: Gout of Fire - Level 3, INT, STANDARD (Phase STD-2: Ranged Damage Boost)
   {
     id: 'cou_ord_14',
     name: 'Gout of Fire',
@@ -455,10 +455,11 @@ export const orderCards = [
     abilityRequired: 'INT',
     actionType: 'STANDARD',
     effectDescription: 'REQUIRES RANGED. Make a ranged attack that deals +20 damage.',
+    rangedDamageBonus: 20,
     faction: FACTION_NAME,
     imageUrl: goutOfFireOrder14Img
   },
-  // Card 15: Gout of Fire - Level 3, INT, STANDARD
+  // Card 15: Gout of Fire - Level 3, INT, STANDARD (Phase STD-2: Ranged Damage Boost)
   {
     id: 'cou_ord_15',
     name: 'Gout of Fire',
@@ -466,6 +467,7 @@ export const orderCards = [
     abilityRequired: 'INT',
     actionType: 'STANDARD',
     effectDescription: 'REQUIRES RANGED. Make a ranged attack that deals +20 damage.',
+    rangedDamageBonus: 20,
     faction: FACTION_NAME,
     imageUrl: goutOfFireOrder15Img
   },

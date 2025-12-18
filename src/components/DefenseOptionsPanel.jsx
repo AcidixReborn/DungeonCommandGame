@@ -27,6 +27,10 @@ import './CombatPanel.css'
  *    - Effect: Prevent 10 damage
  *    - Can be used by defender OR adjacent friendly untapped creatures
  *
+ * @param {Object} damageBoostCard - STANDARD order card used by attacker (null if none)
+ * @param {number} damageBoostBonus - Bonus damage from attacker's card (e.g., Power Attack +20)
+ * @param {number|null} damageBoostFlat - Flat damage replacing base (e.g., Killing Strike 100)
+ *
  * Big O Complexity:
  * - getDefenseOptions: O(n) where n = cards in hand + adjacent creatures
  * - Rendering: O(n) where n = adjacent creatures + immediate cards
@@ -40,6 +44,9 @@ function DefenseOptionsPanel({
   defenderPlayerState,
   gameState,
   accumulatedDamageReduction = 0,
+  damageBoostCard = null,
+  damageBoostBonus = 0,
+  damageBoostFlat = null,
   onDefenseSelected,
   onSkip
 }) {
@@ -71,17 +78,20 @@ function DefenseOptionsPanel({
   const attackType = attackInfo?.attackType || 'melee'
 
   // Calculate original damage based on attack type
-  // For special abilities (splash, flashing_blades, hidden_blade, confusion_gaze), use attackInfo.damage
+  // For special abilities (splash, flashing_blades, hidden_blade, confusion_gaze, lightning_breath), use attackInfo.damage
   // For normal attacks, calculate from creature stats
   let baseDamage
-  if (attackInfo?.damage !== undefined && (
+  // Track if this is an ability attack with pre-calculated damage (bonus already included)
+  const isAbilityAttackWithPreCalcDamage = attackInfo?.damage !== undefined && (
     attackType === 'splash' ||
     attackType === 'ranged_splash' ||
     attackType === 'flashing_blades' ||
     attackType === 'hidden_blade' ||
-    attackType === 'confusion_gaze'
-  )) {
-    // Special ability attacks have fixed damage in attackInfo
+    attackType === 'confusion_gaze' ||
+    attackType === 'lightning_breath'
+  )
+  if (isAbilityAttackWithPreCalcDamage) {
+    // Special ability attacks have fixed damage in attackInfo (bonus already included for lightning_breath)
     baseDamage = attackInfo.damage
   } else if (attackType === 'melee') {
     baseDamage = attackerInstance.creature.meleeAttack?.damage || 0
@@ -99,8 +109,25 @@ function DefenseOptionsPanel({
     ? gameState.getCutterBonus(attackerInstance, defenderInstance)
     : 0
 
-  // Total damage includes base + FLANKING + CUTTER bonuses
-  const originalDamage = baseDamage + flankingBonus + cutterBonus
+  // Check for ORDER CARD damage boost
+  const usedFlatDamage = damageBoostFlat !== null
+  // For ability attacks with pre-calculated damage (like Lightning Breath), bonus is already in baseDamage
+  // Only add orderCardBonus for normal melee/ranged attacks
+  const orderCardBonus = (!usedFlatDamage && damageBoostBonus > 0 && !isAbilityAttackWithPreCalcDamage) ? damageBoostBonus : 0
+  // For display purposes - track if ability attack has a bonus included
+  const abilityIncludesBonus = isAbilityAttackWithPreCalcDamage && damageBoostBonus > 0
+
+  // DEBUG: Log calculated values
+  console.log('[DefenseOptionsPanel] Calculated - isAbilityAttackWithPreCalcDamage:', isAbilityAttackWithPreCalcDamage, 'baseDamage:', baseDamage, 'orderCardBonus:', orderCardBonus, 'abilityIncludesBonus:', abilityIncludesBonus)
+
+  // Total damage calculation
+  // Flat damage (Killing Strike) replaces base damage and ignores flanking/cutter
+  let originalDamage
+  if (usedFlatDamage) {
+    originalDamage = damageBoostFlat
+  } else {
+    originalDamage = baseDamage + flankingBonus + cutterBonus + orderCardBonus
+  }
 
   // Check for MAGIC CIRCLE AURA passive (Hobgoblin Sorcerer on Magic Circle)
   // This is the FIRST damage reduction - prevents 10 damage for Goblin/Hobgoblin/Bugbear
@@ -466,6 +493,7 @@ function DefenseOptionsPanel({
               : attackType === 'flashing_blades' ? 'warning'
               : attackType === 'hidden_blade' ? 'secondary'
               : attackType === 'confusion_gaze' ? 'warning'
+              : attackType === 'lightning_breath' ? 'info'
               : 'danger'
             } style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
               {attackType === 'ranged' ? '🏹 Ranged'
@@ -474,12 +502,30 @@ function DefenseOptionsPanel({
                : attackType === 'flashing_blades' ? '⚔️ FLASHING BLADES'
                : attackType === 'hidden_blade' ? '🗡️ HIDDEN BLADE'
                : attackType === 'confusion_gaze' ? '😵 CONFUSION GAZE'
+               : attackType === 'lightning_breath' ? '⚡ LIGHTNING BREATH'
                : '⚔️ Melee'}
             </Badge>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span>Damage:</span>
-            {cutterBonus > 0 || flankingBonus > 0 ? (
+            {usedFlatDamage ? (
+              // Flat damage from order card (Killing Strike) - replaces base damage entirely
+              <span>
+                <Badge bg="danger" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{originalDamage}</Badge>
+                <span style={{ color: '#888', marginLeft: '4px', fontStyle: 'italic', fontSize: '0.7rem' }}>
+                  (flat from {damageBoostCard?.name || 'Order Card'})
+                </span>
+              </span>
+            ) : abilityIncludesBonus ? (
+              // Ability attack (like Lightning Breath) with damage boost already included
+              <span>
+                <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{baseDamage - damageBoostBonus}</Badge>
+                <span style={{ color: '#ff9800', marginLeft: '4px' }}>+{damageBoostBonus}</span>
+                <span style={{ color: '#888', marginLeft: '4px' }}>({damageBoostCard?.name || 'Order Card'})</span>
+                <span style={{ marginLeft: '4px' }}>=</span>
+                <Badge bg="success" style={{ marginLeft: '4px', fontSize: '0.7rem', padding: '2px 6px' }}>{originalDamage}</Badge>
+              </span>
+            ) : (cutterBonus > 0 || flankingBonus > 0 || orderCardBonus > 0) ? (
               <span>
                 <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{baseDamage}</Badge>
                 {flankingBonus > 0 && (
@@ -492,6 +538,12 @@ function DefenseOptionsPanel({
                   <>
                     <span style={{ color: '#ff5722', marginLeft: '4px' }}>+{cutterBonus}</span>
                     <span style={{ color: '#888', marginLeft: '4px' }}>(CUTTER)</span>
+                  </>
+                )}
+                {orderCardBonus > 0 && (
+                  <>
+                    <span style={{ color: '#ff9800', marginLeft: '4px' }}>+{orderCardBonus}</span>
+                    <span style={{ color: '#888', marginLeft: '4px' }}>({damageBoostCard?.name || 'Order Card'})</span>
                   </>
                 )}
                 <span style={{ marginLeft: '4px' }}>=</span>

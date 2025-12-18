@@ -518,9 +518,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +40 damage. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals +40 damage.',
     faction: FACTION_NAME,
-    imageUrl: hackingFrenzy16Img
+    imageUrl: hackingFrenzy16Img,
+    meleeDamageBonus: 40 // Added to base melee damage
   },
   // Card #17 - Hacking Frenzy
   {
@@ -529,9 +530,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +40 damage. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals +40 damage.',
     faction: FACTION_NAME,
-    imageUrl: hackingFrenzy17Img
+    imageUrl: hackingFrenzy17Img,
+    meleeDamageBonus: 40 // Added to base melee damage
   },
   // Card #18 - Hurl Rock
   {
