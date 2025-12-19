@@ -611,25 +611,29 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: scentOfBloodImg
   },
-  // Card #24 - Slice
+  // Card #24 - Slice (Phase STD-3: Melee Damage Boost + Card Draw)
   {
     id: 'bog_ord_24',
     name: 'Slice',
     level: 2,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 damage. Draw 1 Order card. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals +10 damage. Draw 1 Order card.',
+    meleeDamageBonus: 10,
+    drawCardsOnAttack: 1,
     faction: FACTION_NAME,
     imageUrl: slice24Img
   },
-  // Card #25 - Slice
+  // Card #25 - Slice (Phase STD-3: Melee Damage Boost + Card Draw)
   {
     id: 'bog_ord_25',
     name: 'Slice',
     level: 2,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 damage. Draw 1 Order card. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals +10 damage. Draw 1 Order card.',
+    meleeDamageBonus: 10,
+    drawCardsOnAttack: 1,
     faction: FACTION_NAME,
     imageUrl: slice25Img
   },

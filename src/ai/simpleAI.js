@@ -208,7 +208,20 @@ export class SimpleAI {
     // (save cards for when they matter more)
     const targetHPPercent = defender.currentHP / defender.creature.hitPoints
     if (targetHPPercent >= 0.5) {
+      // Prefer cards with card draw (Phase STD-3: Slice)
+      // Card advantage is valuable, so prioritize cards that draw
+      const cardsWithDraw = filteredCards.filter(c => c.card?.drawCardsOnAttack > 0)
+      if (cardsWithDraw.length > 0) {
+        return cardsWithDraw[0] // Use card with draw effect
+      }
       return filteredCards[0] // Highest damage card
+    }
+
+    // Even if target HP is low, still consider using a card with draw effect
+    // Card advantage is worth the card spend
+    const cardsWithDraw = filteredCards.filter(c => c.card?.drawCardsOnAttack > 0)
+    if (cardsWithDraw.length > 0) {
+      return cardsWithDraw[0]
     }
 
     return null

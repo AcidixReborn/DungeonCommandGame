@@ -131,6 +131,18 @@ function DamageBoostModal({
           )}
         </Alert>
 
+        {/* Card Draw Preview (Phase STD-3: Slice) */}
+        {card.drawCardsOnAttack > 0 && (
+          <Alert
+            variant="success"
+            style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '1px solid #28a745', marginBottom: '10px' }}
+          >
+            <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+              📜 Draw {card.drawCardsOnAttack} Order card{card.drawCardsOnAttack > 1 ? 's' : ''} after attack
+            </div>
+          </Alert>
+        )}
+
         {/* Warning about action consumption */}
         <Alert
           variant="warning"

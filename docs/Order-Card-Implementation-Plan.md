@@ -209,17 +209,22 @@ Ranged attacks with bonus damage.
 
 ---
 
-### Phase STD-3: Any Attack Boost
-Cards that boost either melee or ranged.
+### Phase STD-3: Melee Boost + Card Draw ✅ COMPLETE
+Cards that boost melee damage and draw cards on use.
 
 | Card | Faction | Effect |
 |------|---------|--------|
-| Slice (x2) | Blood of Gruumsh | Attack +10 damage, draw 1 card |
+| Slice (x2) | Blood of Gruumsh | Melee attack +10 damage, draw 1 Order card |
 
 **Implementation**:
-- Add `anyAttackDamageBonus` property
-- Add `drawCardsOnUse` for STANDARD cards
-- Works with melee or ranged
+- ✅ Added `drawCardsOnAttack` property to OrderCard class (orders.js)
+- ✅ Updated Slice cards in bloodOfGruumsh.js with `meleeDamageBonus: 10` and `drawCardsOnAttack: 1`
+- ✅ Added card draw logic to `executeAttackAfterDefense()` in GameBoard.jsx
+- ✅ Reuses existing `CardsDrawnModal` for human players
+- ✅ AI draws cards and shows toast notification
+- ✅ Updated `DamageBoostModal.jsx` to show "Draw X Order card(s)" preview
+- ✅ AI prioritizes cards with `drawCardsOnAttack` in `selectBestDamageBoostCard()`
+- ✅ Card draw happens after attack resolves, regardless of damage prevention
 
 ---
 

@@ -1967,6 +1967,29 @@ function GameBoard({ onTurnInfoChange }) {
       addToast(message)
       gameState.checkGameOver()
 
+      // STANDARD DAMAGE BOOST CARD DRAW (Phase STD-3: Slice)
+      // Draw cards if the damage boost card has drawCardsOnAttack property
+      if (damageBoostCard?.drawCardsOnAttack > 0) {
+        const attackerPlayer = gameState.players[attackerInstance.owner]
+        const drawnCards = attackerPlayer.drawOrderCards(damageBoostCard.drawCardsOnAttack)
+
+        const isAttackerHuman = isPlayerHuman(attackerInstance.owner)
+
+        if (isAttackerHuman) {
+          // Human attacker - show modal with drawn cards (or empty deck message)
+          setCardsDrawnData(drawnCards)
+          setBonusDrawSources([`${damageBoostCard.name}`])
+          setShowCardsDrawnModal(true)
+        } else {
+          // AI attacker - show toast
+          if (drawnCards.length > 0) {
+            addToast(`📜 AI drew ${drawnCards.length} card${drawnCards.length > 1 ? 's' : ''} from ${damageBoostCard.name}`)
+          } else {
+            addToast(`📜 AI ${damageBoostCard.name}: No cards to draw - deck is empty!`)
+          }
+        }
+      }
+
       // RIDER ability check - must be processed BEFORE other follow-up attacks
       // Supports both Curse of Undeath (Skeleton) and Tyranny of Goblins (Goblin/Wolf)
       if (result.riderTriggered && result.riderData) {
@@ -2444,6 +2467,29 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Check for game over
       gameState.checkGameOver()
+
+      // STANDARD DAMAGE BOOST CARD DRAW (Phase STD-3: Slice)
+      // Draw cards if the damage boost card has drawCardsOnAttack property
+      if (damageBoostCard?.drawCardsOnAttack > 0) {
+        const attackerPlayer = gameState.players[attackerInstance.owner]
+        const drawnCards = attackerPlayer.drawOrderCards(damageBoostCard.drawCardsOnAttack)
+
+        const isAttackerHuman = isPlayerHuman(attackerInstance.owner)
+
+        if (isAttackerHuman) {
+          // Human attacker - show modal with drawn cards (or empty deck message)
+          setCardsDrawnData(drawnCards)
+          setBonusDrawSources([`${damageBoostCard.name}`])
+          setShowCardsDrawnModal(true)
+        } else {
+          // AI attacker - show toast
+          if (drawnCards.length > 0) {
+            addToast(`📜 AI drew ${drawnCards.length} card${drawnCards.length > 1 ? 's' : ''} from ${damageBoostCard.name}`)
+          } else {
+            addToast(`📜 AI ${damageBoostCard.name}: No cards to draw - deck is empty!`)
+          }
+        }
+      }
 
       // RIDER ability check - must be processed BEFORE other follow-up attacks
       // Supports both Curse of Undeath (Skeleton) and Tyranny of Goblins (Goblin/Wolf)

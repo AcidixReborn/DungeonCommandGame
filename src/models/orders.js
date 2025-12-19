@@ -71,7 +71,9 @@ export class OrderCard {
     meleeDamageBonus = 0, // Bonus damage added to melee attack (e.g., Power Attack = 20, Hacking Frenzy = 40)
     flatMeleeDamage = null, // Flat damage that REPLACES base damage (e.g., Killing Strike = 100)
     // STANDARD damage boost properties (Phase STD-2)
-    rangedDamageBonus = 0 // Bonus damage added to ranged attack (e.g., Gout of Fire = 20)
+    rangedDamageBonus = 0, // Bonus damage added to ranged attack (e.g., Gout of Fire = 20)
+    // STANDARD damage boost properties (Phase STD-3)
+    drawCardsOnAttack = 0 // Cards to draw after STANDARD attack resolves (e.g., Slice = 1)
   }) {
     this.id = id
     this.name = name
@@ -117,6 +119,8 @@ export class OrderCard {
     this.flatMeleeDamage = flatMeleeDamage // Flat damage that REPLACES base damage (e.g., Killing Strike = 100)
     // STANDARD damage boost properties (Phase STD-2)
     this.rangedDamageBonus = rangedDamageBonus // Bonus damage added to ranged attack (e.g., Gout of Fire = 20)
+    // STANDARD damage boost properties (Phase STD-3)
+    this.drawCardsOnAttack = drawCardsOnAttack // Cards to draw after STANDARD attack resolves (e.g., Slice = 1)
   }
 
   /**
