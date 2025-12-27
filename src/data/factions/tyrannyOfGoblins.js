@@ -380,7 +380,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: deathSentenceOrder5Img
   },
-  // Card 6: Feral Vitality - Level 2, CON, STANDARD
+  // Card 6: Feral Vitality - Level 2, CON, STANDARD (Phase STD-6: Attack + Heal)
   {
     id: 'tog_ord_6',
     name: 'Feral Vitality',
@@ -388,6 +388,8 @@ export const orderCards = [
     abilityRequired: 'CON',
     actionType: 'STANDARD',
     effectDescription: 'Make a melee attack that deals +20 damage. This creature heals 10 damage.',
+    meleeDamageBonus: 20,
+    healOnAttack: 10,
     faction: FACTION_NAME,
     imageUrl: feralVitalityOrder6Img
   },

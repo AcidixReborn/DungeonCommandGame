@@ -739,25 +739,29 @@ export const orderCards = [
     opponentMoraleLoss: 1,
     moraleLossTargetType: 'adjacent_tapped_enemy'
   },
-  // Card #34 - Victorious Surge
+  // Card #34 - Victorious Surge (Phase STD-6: Attack + Heal)
   {
     id: 'bog_ord_34',
     name: 'Victorious Surge',
     level: 3,
     abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +20 damage. This creature heals 20 damage. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals +20 damage. This creature heals 20 damage.',
+    meleeDamageBonus: 20,
+    healOnAttack: 20,
     faction: FACTION_NAME,
     imageUrl: victoriousSurge34Img
   },
-  // Card #35 - Victorious Surge
+  // Card #35 - Victorious Surge (Phase STD-6: Attack + Heal)
   {
     id: 'bog_ord_35',
     name: 'Victorious Surge',
     level: 3,
     abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +20 damage. This creature heals 20 damage. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals +20 damage. This creature heals 20 damage.',
+    meleeDamageBonus: 20,
+    healOnAttack: 20,
     faction: FACTION_NAME,
     imageUrl: victoriousSurge35Img
   },

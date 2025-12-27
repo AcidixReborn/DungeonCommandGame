@@ -271,19 +271,30 @@ Full movement then attack.
 
 ---
 
-### Phase STD-6: Attack + Heal
+### Phase STD-6: Attack + Heal ✅ COMPLETE
 Attacks that heal the attacker.
 
 | Card | Faction | Effect |
 |------|---------|--------|
 | Feral Vitality | Tyranny of Goblins | Melee +20, heal 10 |
-| Victorious Surge (x2) | Blood of Gruumsh | Melee +10, heal 20 |
-| Vampiric Touch (x2) | Curse of Undeath | Melee +10, heal damage dealt |
+| Victorious Surge (x2) | Blood of Gruumsh | Melee +20, heal 20 |
+| Vampiric Touch (x2) | Curse of Undeath | 30 flat damage, heal 30 (if deals ≥10 damage) |
 
 **Implementation**:
-- Add `healOnAttack` property (fixed amount)
-- Add `healDamageDealt` property (for Vampiric Touch)
-- Execute heal after damage resolved
+- ✅ Added `healOnAttack` property to OrderCard class (fixed healing amount after attack)
+- ✅ Added `healOnAttackMinDamage` property (minimum damage required to trigger healing)
+- ✅ Updated Feral Vitality with `meleeDamageBonus: 20, healOnAttack: 10`
+- ✅ Updated Victorious Surge (x2) with `meleeDamageBonus: 20, healOnAttack: 20`
+- ✅ Updated Vampiric Touch (x2) with VAMPIRE AFFINITY:
+  - `flatMeleeDamage: 30` (replaces base damage)
+  - `healOnAttack: 30, healOnAttackMinDamage: 10`
+  - `affinityRequired: 'VAMPIRE', affinityOverridesRequirements: true`
+  - Only Vampire creatures can use (level and INT ability bypassed)
+- ✅ Added healing preview to DamageBoostModal.jsx with minimum damage warning
+- ✅ Implemented healing execution in GameBoard.jsx attack resolution flow
+- ✅ AI prioritizes healing cards when attacker is damaged (Hard mode only)
+- ✅ Fixed healing heals even if damage fully prevented (Feral Vitality, Victorious Surge)
+- ✅ Conditional healing only triggers if minimum damage dealt (Vampiric Touch)
 
 ---
 

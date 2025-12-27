@@ -2041,6 +2041,23 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
+      // STANDARD ATTACK + HEAL (Phase STD-6: Feral Vitality, Victorious Surge, Vampiric Touch)
+      // Heal attacker if the damage boost card has healOnAttack property
+      if (damageBoostCard?.healOnAttack > 0) {
+        const actualDamageDealt = result.damage // Damage after defense
+        const minDamageRequired = damageBoostCard.healOnAttackMinDamage || 0
+
+        if (actualDamageDealt >= minDamageRequired) {
+          const healAmount = damageBoostCard.healOnAttack
+          // Heal the attacker using the CreatureInstance heal method
+          attackerInstance.heal(healAmount)
+          addToast(`💚 ${attackerInstance.creature.name} heals ${healAmount} damage!`)
+        } else if (minDamageRequired > 0) {
+          // Only show "not enough damage" message if there was a minimum requirement
+          addToast(`${attackerInstance.creature.name} dealt only ${actualDamageDealt} damage - healing requires ${minDamageRequired}`)
+        }
+      }
+
       // RIDER ability check - must be processed BEFORE other follow-up attacks
       // Supports both Curse of Undeath (Skeleton) and Tyranny of Goblins (Goblin/Wolf)
       if (result.riderTriggered && result.riderData) {
@@ -2621,6 +2638,23 @@ function GameBoard({ onTurnInfoChange }) {
           } else {
             addToast(`📜 AI ${damageBoostCard.name}: No cards to draw - deck is empty!`)
           }
+        }
+      }
+
+      // STANDARD ATTACK + HEAL (Phase STD-6: Feral Vitality, Victorious Surge, Vampiric Touch)
+      // Heal attacker if the damage boost card has healOnAttack property
+      if (damageBoostCard?.healOnAttack > 0) {
+        const actualDamageDealt = result.damage // Damage after defense
+        const minDamageRequired = damageBoostCard.healOnAttackMinDamage || 0
+
+        if (actualDamageDealt >= minDamageRequired) {
+          const healAmount = damageBoostCard.healOnAttack
+          // Heal the attacker using the CreatureInstance heal method
+          attackerInstance.heal(healAmount)
+          addToast(`💚 ${attackerInstance.creature.name} heals ${healAmount} damage!`)
+        } else if (minDamageRequired > 0) {
+          // Only show "not enough damage" message if there was a minimum requirement
+          addToast(`${attackerInstance.creature.name} dealt only ${actualDamageDealt} damage - healing requires ${minDamageRequired}`)
         }
       }
 
@@ -4632,21 +4666,36 @@ function GameBoard({ onTurnInfoChange }) {
     if (card.actionType === 'STANDARD' && isShiftAttackCard) {
       const creature = orderCardFilterCreature
 
-      // Check level requirement
-      if (card.level > creature.creature.level) {
-        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
-        return
-      }
-
-      // Check ability requirement
-      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-        const hasRequiredAbility = abilities.some(ability =>
-          creature.creature.abilities?.[ability] === true
+      // AFFINITY CHECK: Cards with affinityRequired + affinityOverridesRequirements
+      // Creature MUST have matching type, level/ability requirements are bypassed
+      if (card.affinityRequired && card.affinityOverridesRequirements) {
+        const creatureTypes = creature.creature.type || []
+        const hasAffinity = creatureTypes.some(t =>
+          t.toUpperCase() === card.affinityRequired.toUpperCase()
         )
-        if (!hasRequiredAbility) {
-          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+        if (!hasAffinity) {
+          addToast(`${creature.creature.name} requires ${card.affinityRequired} affinity to use ${card.name}`)
           return
+        }
+        // Has affinity - skip level/ability checks below, proceed to other validations
+      } else {
+        // Normal requirement checks (no affinity override)
+        // Check level requirement
+        if (card.level > creature.creature.level) {
+          addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+          return
+        }
+
+        // Check ability requirement
+        if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+          const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+          const hasRequiredAbility = abilities.some(ability =>
+            creature.creature.abilities?.[ability] === true
+          )
+          if (!hasRequiredAbility) {
+            addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+            return
+          }
         }
       }
 
@@ -4745,21 +4794,37 @@ function GameBoard({ onTurnInfoChange }) {
     const isShiftAttackType = card.shiftBeforeAttack > 0
     if (card.actionType === 'STANDARD' && (isMeleeDamageBoost || isRangedDamageBoost) && !isChargeType && !isShiftAttackType) {
       const creature = orderCardFilterCreature
-      // Check level requirement
-      if (card.level > creature.creature.level) {
-        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
-        return
-      }
 
-      // Check ability requirement
-      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-        const hasRequiredAbility = abilities.some(ability =>
-          creature.creature.abilities?.[ability] === true
+      // AFFINITY CHECK: Cards with affinityRequired + affinityOverridesRequirements
+      // Creature MUST have matching type, level/ability requirements are bypassed
+      if (card.affinityRequired && card.affinityOverridesRequirements) {
+        const creatureTypes = creature.creature.type || []
+        const hasAffinity = creatureTypes.some(t =>
+          t.toUpperCase() === card.affinityRequired.toUpperCase()
         )
-        if (!hasRequiredAbility) {
-          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+        if (!hasAffinity) {
+          addToast(`${creature.creature.name} requires ${card.affinityRequired} affinity to use ${card.name}`)
           return
+        }
+        // Has affinity - skip level/ability checks below, proceed to other validations
+      } else {
+        // Normal requirement checks (no affinity override)
+        // Check level requirement
+        if (card.level > creature.creature.level) {
+          addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+          return
+        }
+
+        // Check ability requirement
+        if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+          const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+          const hasRequiredAbility = abilities.some(ability =>
+            creature.creature.abilities?.[ability] === true
+          )
+          if (!hasRequiredAbility) {
+            addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+            return
+          }
         }
       }
 

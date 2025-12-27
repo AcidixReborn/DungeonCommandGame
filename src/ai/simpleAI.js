@@ -112,13 +112,25 @@ export class SimpleAI {
       // Example: Charge (Blood of Gruumsh)
       if (card.moveBeforeAttack === 'speed') continue
 
-      // Check level requirement
-      if (creatureLevel < card.level) continue
+      // AFFINITY CHECK: Cards with affinityRequired + affinityOverridesRequirements
+      // Creature MUST have matching type, level/ability requirements are bypassed
+      if (card.affinityRequired && card.affinityOverridesRequirements) {
+        const creatureTypes = creature.creature.type || []
+        const hasAffinity = creatureTypes.some(t =>
+          t.toUpperCase() === card.affinityRequired.toUpperCase()
+        )
+        if (!hasAffinity) continue // Creature doesn't have required affinity
+        // Has affinity - skip level/ability checks below, proceed to other validations
+      } else {
+        // Normal requirement checks (no affinity override)
+        // Check level requirement
+        if (creatureLevel < card.level) continue
 
-      // Check ability requirement
-      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-        const hasAbility = creatureAbilities.includes(card.abilityRequired)
-        if (!hasAbility) continue
+        // Check ability requirement
+        if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+          const hasAbility = creatureAbilities.includes(card.abilityRequired)
+          if (!hasAbility) continue
+        }
       }
 
       // Creature must not be tapped (STANDARD action requires untapped)
@@ -216,6 +228,22 @@ export class SimpleAI {
     // (save cards for when they matter more)
     const targetHPPercent = defender.currentHP / defender.creature.hitPoints
     if (targetHPPercent >= 0.5) {
+      // Phase STD-6: Prioritize healing cards when attacker is damaged
+      // Healing is valuable - helps keep creatures alive
+      const attackerDamageTaken = attacker.damageTokens || 0
+      if (attackerDamageTaken > 0) {
+        const cardsWithHeal = filteredCards.filter(c => c.card?.healOnAttack > 0)
+        if (cardsWithHeal.length > 0) {
+          // Sort by heal amount - prefer cards that heal what we need
+          cardsWithHeal.sort((a, b) => {
+            const healA = Math.min(a.card.healOnAttack, attackerDamageTaken)
+            const healB = Math.min(b.card.healOnAttack, attackerDamageTaken)
+            return healB - healA // Higher effective heal first
+          })
+          return cardsWithHeal[0] // Use best healing card
+        }
+      }
+
       // Prefer cards with card draw (Phase STD-3: Slice)
       // Card advantage is valuable, so prioritize cards that draw
       const cardsWithDraw = filteredCards.filter(c => c.card?.drawCardsOnAttack > 0)
@@ -230,6 +258,16 @@ export class SimpleAI {
     const cardsWithDraw = filteredCards.filter(c => c.card?.drawCardsOnAttack > 0)
     if (cardsWithDraw.length > 0) {
       return cardsWithDraw[0]
+    }
+
+    // Phase STD-6: Also consider healing cards even on low HP targets
+    // If attacker is significantly damaged, healing is valuable
+    const attackerDamageTaken = attacker.damageTokens || 0
+    if (attackerDamageTaken >= 20) { // Only if at least 20 damage taken
+      const cardsWithHeal = filteredCards.filter(c => c.card?.healOnAttack > 0)
+      if (cardsWithHeal.length > 0) {
+        return cardsWithHeal[0]
+      }
     }
 
     return null

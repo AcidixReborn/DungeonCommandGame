@@ -664,7 +664,8 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: unendingHordeOrder32Img
   },
-  // Card 33: Vampiric Touch - Level 3, INT, STANDARD
+  // Card 33: Vampiric Touch - Level 3, INT, STANDARD (Phase STD-6: Attack + Heal with Vampire Affinity)
+  // VAMPIRE AFFINITY: Only Vampire creatures can use this - level and ability requirements are bypassed
   {
     id: 'cou_ord_33',
     name: 'Vampiric Touch',
@@ -672,10 +673,16 @@ export const orderCards = [
     abilityRequired: 'INT',
     actionType: 'STANDARD',
     effectDescription: 'VAMPIRE AFFINITY (Any Vampire creature can take this action.) Make a melee attack that deals 30 damage. If the target takes damage from this attack, this creature heals 30 damage.',
+    flatMeleeDamage: 30, // Fixed 30 damage (replaces base melee damage)
+    healOnAttack: 30,
+    healOnAttackMinDamage: 10, // Must deal at least 10 damage to trigger healing
+    affinityRequired: 'VAMPIRE',
+    affinityOverridesRequirements: true, // Level and INT ability don't matter - only Vampire type
     faction: FACTION_NAME,
     imageUrl: vampiricTouchOrder33Img
   },
-  // Card 34: Vampiric Touch - Level 3, INT, STANDARD
+  // Card 34: Vampiric Touch - Level 3, INT, STANDARD (Phase STD-6: Attack + Heal with Vampire Affinity)
+  // VAMPIRE AFFINITY: Only Vampire creatures can use this - level and ability requirements are bypassed
   {
     id: 'cou_ord_34',
     name: 'Vampiric Touch',
@@ -683,6 +690,11 @@ export const orderCards = [
     abilityRequired: 'INT',
     actionType: 'STANDARD',
     effectDescription: 'VAMPIRE AFFINITY (Any Vampire creature can take this action.) Make a melee attack that deals 30 damage. If the target takes damage from this attack, this creature heals 30 damage.',
+    flatMeleeDamage: 30, // Fixed 30 damage (replaces base melee damage)
+    healOnAttack: 30,
+    healOnAttackMinDamage: 10, // Must deal at least 10 damage to trigger healing
+    affinityRequired: 'VAMPIRE',
+    affinityOverridesRequirements: true, // Level and INT ability don't matter - only Vampire type
     faction: FACTION_NAME,
     imageUrl: vampiricTouchOrder34Img
   },

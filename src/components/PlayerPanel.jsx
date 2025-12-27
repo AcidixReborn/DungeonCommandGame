@@ -415,6 +415,18 @@ function PlayerPanel({
                             // Filter cards based on selected creature's level and abilities
                             const filteredCards = orderCardFilterCreature
                               ? player.orderHand.map((order, idx) => ({ order, idx })).filter(({ order }) => {
+                                  // AFFINITY OVERRIDE CHECK: If card has affinityRequired + affinityOverridesRequirements
+                                  // Creature MUST have matching type - if so, bypass ALL other requirements
+                                  // If creature doesn't have matching type, card is NOT usable at all
+                                  if (order.affinityRequired && order.affinityOverridesRequirements) {
+                                    const creatureTypes = orderCardFilterCreature.creature.type || []
+                                    const hasAffinity = creatureTypes.some(t =>
+                                      t.toUpperCase() === order.affinityRequired.toUpperCase()
+                                    )
+                                    // With affinityOverridesRequirements, affinity is the ONLY requirement
+                                    return hasAffinity
+                                  }
+
                                   // Level check: card level <= creature level
                                   if (order.level > orderCardFilterCreature.creature.level) return false
                                   // Ability check (ANY always passes)

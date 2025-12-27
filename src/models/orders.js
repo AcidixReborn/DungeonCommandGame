@@ -78,7 +78,10 @@ export class OrderCard {
     shiftBeforeAttack = 0, // Shift distance before attack (e.g., Nimble Strike = 3, Spring Attack = 3)
     shiftAfterAttack = 0, // Shift distance after attack (e.g., Spring Attack = 3)
     // STANDARD charge properties (Phase STD-5)
-    moveBeforeAttack = null // 'speed' for Charge cards - move creature's full speed before melee attack
+    moveBeforeAttack = null, // 'speed' for Charge cards - move creature's full speed before melee attack
+    // STANDARD attack + heal properties (Phase STD-6)
+    healOnAttack = 0, // Fixed healing after attack resolves (Feral Vitality=10, Victorious Surge=20, Vampiric Touch=30)
+    healOnAttackMinDamage = 0 // Minimum damage required to trigger healing (Vampiric Touch=10)
   }) {
     this.id = id
     this.name = name
@@ -131,6 +134,9 @@ export class OrderCard {
     this.shiftAfterAttack = shiftAfterAttack // Shift distance after attack (e.g., Spring Attack = 3)
     // STANDARD charge properties (Phase STD-5)
     this.moveBeforeAttack = moveBeforeAttack // 'speed' for Charge cards
+    // STANDARD attack + heal properties (Phase STD-6)
+    this.healOnAttack = healOnAttack // Fixed healing after attack resolves (e.g., Feral Vitality = 10)
+    this.healOnAttackMinDamage = healOnAttackMinDamage // Minimum damage required to trigger healing (e.g., Vampiric Touch = 10)
   }
 
   /**
@@ -160,10 +166,36 @@ export class OrderCard {
   /**
    * Check if a creature can use this order card
    * Checks level, creature type, and ability requirements
+   * Also handles affinity overrides (e.g., VAMPIRE AFFINITY bypasses level/ability requirements)
    * @param {Creature} creature - Creature to check
    * @returns {boolean} True if creature can use this card
    */
   canBeUsedBy(creature) {
+    // AFFINITY CHECK: If card has affinityRequired, check if creature has matching type
+    // When affinityOverridesRequirements is true:
+    //   - Creature with matching affinity BYPASSES level and ability requirements
+    //   - Creature WITHOUT matching affinity CANNOT use the card at all
+    if (this.affinityRequired) {
+      const hasAffinity = creature.type.some(t =>
+        t.toUpperCase() === this.affinityRequired.toUpperCase()
+      )
+
+      if (this.affinityOverridesRequirements) {
+        // Affinity overrides everything - creature MUST have matching type
+        // If they do, they can use it regardless of level/ability
+        // If they don't, they cannot use it at all
+        return hasAffinity
+      } else {
+        // Affinity is optional boost but creature must still meet requirements
+        // (currently not used, but supported for future cards)
+        if (!hasAffinity) {
+          // Fall through to normal requirement checks
+        } else {
+          // Has affinity - still check requirements below
+        }
+      }
+    }
+
     // Check level requirement: creature level must be >= card level
     if (creature.level < this.level) {
       return false

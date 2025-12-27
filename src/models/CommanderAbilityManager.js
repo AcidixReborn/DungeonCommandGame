@@ -673,21 +673,18 @@ export class CommanderAbilityManager {
         }
 
         const creaturesForCard = potentialCreatures.filter(creature => {
-          // Check if affinity overrides normal requirements (e.g., Cloud of Bats)
-          // When affinityOverridesRequirements is true and creature has the affinity,
-          // bypass normal level/ability requirements
+          // Check if affinity overrides normal requirements (e.g., Cloud of Bats, Vampiric Touch)
+          // When affinityOverridesRequirements is true:
+          // - Creature WITH matching affinity bypasses level/ability requirements
+          // - Creature WITHOUT matching affinity CANNOT use the card at all
           if (card.affinityRequired && card.affinityOverridesRequirements) {
             // Check creature type array for affinity match
             const creatureTypes = creature.creature.type || []
             const hasAffinity = creatureTypes.some(type =>
               type.toUpperCase() === card.affinityRequired.toUpperCase()
             )
-            if (hasAffinity) {
-              // Affinity match - bypass normal canBeUsedBy() check
-              // Creature is already checked for untapped status by eligibleCreatures filter
-              return true
-            }
-            // No affinity match - fall through to normal checks
+            // With affinityOverridesRequirements, affinity is the ONLY requirement
+            return hasAffinity
           }
 
           // Check standard requirements (level, ability, creature type)

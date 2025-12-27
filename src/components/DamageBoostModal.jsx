@@ -143,6 +143,23 @@ function DamageBoostModal({
           </Alert>
         )}
 
+        {/* Healing Preview (Phase STD-6: Attack + Heal) */}
+        {card.healOnAttack > 0 && (
+          <Alert
+            variant="success"
+            style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '1px solid #28a745', marginBottom: '10px' }}
+          >
+            <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+              💚 Heal {card.healOnAttack} damage after attack
+            </div>
+            {card.healOnAttackMinDamage > 0 && (
+              <div style={{ fontSize: '0.8rem', color: '#ffc107', marginTop: '5px' }}>
+                (Only if you deal at least {card.healOnAttackMinDamage} damage)
+              </div>
+            )}
+          </Alert>
+        )}
+
         {/* Warning about action consumption */}
         <Alert
           variant="warning"
