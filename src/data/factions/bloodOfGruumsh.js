@@ -371,25 +371,29 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: changeOfPlansImg
   },
-  // Card #4 - Charge
+  // Card #4 - Charge (Phase STD-5: Move + Attack)
   {
     id: 'bog_ord_4',
     name: 'Charge',
     level: 1,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'This creature moves its Speed. Make a melee attack that deals +10 damage. PLACEHOLDER',
+    effectDescription: 'This creature moves its Speed. Make a melee attack that deals +10 damage.',
+    moveBeforeAttack: 'speed', // Uses creature's full movement speed
+    meleeDamageBonus: 10,
     faction: FACTION_NAME,
     imageUrl: charge4Img
   },
-  // Card #5 - Charge
+  // Card #5 - Charge (Phase STD-5: Move + Attack)
   {
     id: 'bog_ord_5',
     name: 'Charge',
     level: 1,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'This creature moves its Speed. Make a melee attack that deals +10 damage. PLACEHOLDER',
+    effectDescription: 'This creature moves its Speed. Make a melee attack that deals +10 damage.',
+    moveBeforeAttack: 'speed', // Uses creature's full movement speed
+    meleeDamageBonus: 10,
     faction: FACTION_NAME,
     imageUrl: charge5Img
   },

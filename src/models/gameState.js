@@ -426,6 +426,24 @@ export class GameState {
   }
 
   /**
+   * Get all creatures occupying tiles adjacent (4-dir) to a position
+   * Used for Charge card to determine valid destinations (must end adjacent to enemy)
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @returns {Array} Array of creature instances on adjacent tiles
+   */
+  getAdjacentCreatures(x, y) {
+    const adjacentTiles = this.getAdjacentTiles(x, y)
+    const creatures = []
+    for (const tile of adjacentTiles) {
+      if (tile.occupant) {
+        creatures.push(tile.occupant)
+      }
+    }
+    return creatures
+  }
+
+  /**
    * Get tile at position - delegates to Board (O(1))
    * @param {number} x - X coordinate
    * @param {number} y - Y coordinate

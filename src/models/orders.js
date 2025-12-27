@@ -76,7 +76,9 @@ export class OrderCard {
     drawCardsOnAttack = 0, // Cards to draw after STANDARD attack resolves (e.g., Slice = 1)
     // STANDARD shift + attack properties (Phase STD-4)
     shiftBeforeAttack = 0, // Shift distance before attack (e.g., Nimble Strike = 3, Spring Attack = 3)
-    shiftAfterAttack = 0 // Shift distance after attack (e.g., Spring Attack = 3)
+    shiftAfterAttack = 0, // Shift distance after attack (e.g., Spring Attack = 3)
+    // STANDARD charge properties (Phase STD-5)
+    moveBeforeAttack = null // 'speed' for Charge cards - move creature's full speed before melee attack
   }) {
     this.id = id
     this.name = name
@@ -127,6 +129,8 @@ export class OrderCard {
     // STANDARD shift + attack properties (Phase STD-4)
     this.shiftBeforeAttack = shiftBeforeAttack // Shift distance before attack (e.g., Nimble Strike = 3)
     this.shiftAfterAttack = shiftAfterAttack // Shift distance after attack (e.g., Spring Attack = 3)
+    // STANDARD charge properties (Phase STD-5)
+    this.moveBeforeAttack = moveBeforeAttack // 'speed' for Charge cards
   }
 
   /**

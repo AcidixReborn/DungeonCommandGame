@@ -108,6 +108,10 @@ export class SimpleAI {
       // Examples: Nimble Strike, Spring Attack, Shadowy Ambush
       if (card.shiftBeforeAttack > 0) continue
 
+      // EXCLUDE charge cards - they require movement first
+      // Example: Charge (Blood of Gruumsh)
+      if (card.moveBeforeAttack === 'speed') continue
+
       // Check level requirement
       if (creatureLevel < card.level) continue
 
@@ -393,6 +397,139 @@ export class SimpleAI {
             card: card,
             cardIndex: cardInfo.cardIndex,
             shiftAfterAttack: cardInfo.shiftAfterAttack
+          }
+        }
+      }
+
+      // Restore original position
+      creature.position = originalPos
+    }
+
+    return bestOption
+  }
+
+  /**
+   * Get all valid Charge order cards for a creature (Phase STD-5)
+   * Charge cards: Move full speed, then melee attack with +10 damage
+   *
+   * @param {CreatureInstance} creature - The creature that would use the card
+   * @param {Array} orderHand - Player's current order card hand
+   * @returns {Array} Array of { card, cardIndex, meleeDamageBonus } objects
+   */
+  getChargeCards(creature, orderHand) {
+    if (!creature || !orderHand || orderHand.length === 0) return []
+
+    const creatureLevel = creature.creature.level || 1
+    const creatureAbilities = creature.creature.abilityScores || []
+
+    const validCards = []
+
+    for (let i = 0; i < orderHand.length; i++) {
+      const card = orderHand[i]
+
+      // Must be a STANDARD action card with moveBeforeAttack === 'speed'
+      if (card.actionType !== 'STANDARD') continue
+      if (card.moveBeforeAttack !== 'speed') continue
+
+      // Check level requirement
+      if (creatureLevel < card.level) continue
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const hasAbility = creatureAbilities.includes(card.abilityRequired)
+        if (!hasAbility) continue
+      }
+
+      // Creature must not be tapped (STANDARD action requires untapped)
+      if (creature.isTapped) continue
+
+      // Creature must not have moved yet (Charge uses movement)
+      if (creature.hasMovedThisTurn) continue
+
+      // Creature must have melee attack (Charge is melee only)
+      if (!creature.creature.meleeAttack) continue
+
+      validCards.push({
+        card,
+        cardIndex: i,
+        meleeDamageBonus: card.meleeDamageBonus || 0
+      })
+    }
+
+    // Sort by damage bonus (highest first)
+    validCards.sort((a, b) => b.meleeDamageBonus - a.meleeDamageBonus)
+
+    return validCards
+  }
+
+  /**
+   * Evaluate if a Charge card can reach a valuable target
+   * Returns the best movement destination and target for the card
+   *
+   * @param {CreatureInstance} creature - The creature using the card
+   * @param {Object} cardInfo - Charge card info from getChargeCards
+   * @returns {Object|null} { moveTo, target, damage } or null if no good option
+   */
+  evaluateChargeAttack(creature, cardInfo) {
+    if (!creature || !cardInfo) return null
+
+    const card = cardInfo.card
+
+    // Get valid movement tiles (full creature speed)
+    const allMoveTiles = this.gameState.getValidMovementTiles(creature)
+    if (!allMoveTiles || allMoveTiles.length === 0) return null
+
+    let bestOption = null
+    let bestScore = -1
+
+    // Evaluate each movement destination
+    for (const moveInfo of allMoveTiles) {
+      const moveTile = moveInfo.tile
+
+      // Must move at least 1 tile (can't charge in place)
+      if (moveTile.x === creature.position.x && moveTile.y === creature.position.y) continue
+
+      // Check if there's at least one adjacent enemy at this destination
+      const adjacentCreatures = this.gameState.getAdjacentCreatures(moveTile.x, moveTile.y)
+      const adjacentEnemies = adjacentCreatures.filter(c => c.owner !== creature.owner)
+
+      if (adjacentEnemies.length === 0) continue
+
+      // Temporarily move creature to evaluate attack options
+      const originalPos = { ...creature.position }
+      creature.position = { x: moveTile.x, y: moveTile.y }
+
+      // Get melee attack targets from new position
+      const attackTargets = this.gameState.getValidAttackTargets(creature, null)
+      const meleeTargets = attackTargets.filter(t => t.attackType === 'melee')
+
+      for (const targetInfo of meleeTargets) {
+        const target = targetInfo.creature
+        const baseDamage = creature.creature.meleeAttack?.damage || 0
+        const damage = baseDamage + cardInfo.meleeDamageBonus
+
+        // Score based on damage potential + kill potential
+        let score = damage
+
+        // Bonus for killing the target
+        if (damage >= target.currentHP) {
+          score += 100 + target.creature.level * 20 // Higher level kills are better
+        }
+
+        // Slight preference for targets that would survive normal attack but die to this
+        if (baseDamage < target.currentHP && damage >= target.currentHP) {
+          score += 50 // Card made the difference
+        }
+
+        if (score > bestScore) {
+          bestScore = score
+          bestOption = {
+            moveTo: moveTile,
+            target: target,
+            targetInfo: targetInfo,
+            damage: damage,
+            card: card,
+            cardIndex: cardInfo.cardIndex
           }
         }
       }
@@ -1007,6 +1144,40 @@ export class SimpleAI {
               didAction = true
               hasAttackIntention = true
               continue  // Don't fall through - shift+attack consumes action
+            }
+          }
+
+          // Phase STD-5: Check CHARGE cards (move full speed + melee attack)
+          // Charge requires creature hasn't moved yet
+          if (!creature.hasMovedThisTurn) {
+            const chargeCards = this.getChargeCards(creature, player.orderHand)
+
+            if (chargeCards.length > 0) {
+              // Evaluate each charge card to find best option
+              let bestCharge = null
+              for (const cardInfo of chargeCards) {
+                const option = this.evaluateChargeAttack(creature, cardInfo)
+                if (option && (!bestCharge || option.damage > bestCharge.damage)) {
+                  bestCharge = option
+                }
+              }
+
+              if (bestCharge) {
+                console.log(`[AI] CHARGE: ${creature.creature.name} using ${bestCharge.card.name} - move to (${bestCharge.moveTo.x},${bestCharge.moveTo.y}) then melee attack ${bestCharge.target.creature.name}`)
+
+                actions.push({
+                  type: 'charge_attack',
+                  attackerInstance: creature,
+                  defenderInstance: bestCharge.target,
+                  moveTo: bestCharge.moveTo,
+                  card: bestCharge.card,
+                  cardIndex: bestCharge.cardIndex,
+                  damage: bestCharge.damage
+                })
+                didAction = true
+                hasAttackIntention = true
+                continue  // Don't fall through - charge consumes movement + action
+              }
             }
           }
         }

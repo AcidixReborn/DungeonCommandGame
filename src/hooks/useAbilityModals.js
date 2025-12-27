@@ -270,6 +270,21 @@ export function useAbilityModals() {
   const [shiftAttackValidTiles, setShiftAttackValidTiles] = useState([])
 
   // ============================================
+  // CHARGE CARDS state (Phase STD-5)
+  // Move full speed then melee attack with bonus damage
+  // ============================================
+  const [showChargeModal, setShowChargeModal] = useState(false)
+  const [chargeConfig, setChargeConfig] = useState({
+    card: null,
+    cardIndex: null,
+    creature: null
+  })
+  const [pendingChargeAttack, setPendingChargeAttack] = useState(null)
+  // { card, cardIndex, creature, phase: 'moving'|'attacking', originalPosition }
+  const [chargeMode, setChargeMode] = useState(false)
+  const [chargeValidTiles, setChargeValidTiles] = useState([])
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -384,6 +399,17 @@ export function useAbilityModals() {
   }, [])
 
   /**
+   * Clear all Charge state (Charge card - move + attack)
+   */
+  const clearChargeState = useCallback(() => {
+    setShowChargeModal(false)
+    setChargeConfig({ card: null, cardIndex: null, creature: null })
+    setPendingChargeAttack(null)
+    setChargeMode(false)
+    setChargeValidTiles([])
+  }, [])
+
+  /**
    * Clear all ability modal state
    * Called at end of turn or game reset
    */
@@ -399,6 +425,7 @@ export function useAbilityModals() {
     clearSavageDemiseState()
     clearDamageBoostState()
     clearShiftAttackState()
+    clearChargeState()
     setShowDamageNotification(false)
     setDamageNotificationData(null)
     setPendingPhaseAdvance(false)
@@ -432,7 +459,8 @@ export function useAbilityModals() {
     clearRiderState,
     clearSavageDemiseState,
     clearDamageBoostState,
-    clearShiftAttackState
+    clearShiftAttackState,
+    clearChargeState
   ])
 
   return {
@@ -662,6 +690,19 @@ export function useAbilityModals() {
     shiftAttackValidTiles,
     setShiftAttackValidTiles,
     clearShiftAttackState,
+
+    // Charge Cards (move + melee attack with bonus damage)
+    showChargeModal,
+    setShowChargeModal,
+    chargeConfig,
+    setChargeConfig,
+    pendingChargeAttack,
+    setPendingChargeAttack,
+    chargeMode,
+    setChargeMode,
+    chargeValidTiles,
+    setChargeValidTiles,
+    clearChargeState,
 
     // Clear all
     clearAllAbilityModalState

@@ -27,6 +27,7 @@ import PatchUpHealModal from './PatchUpHealModal'
 import ToughAsNailsModal from './ToughAsNailsModal'
 import DamageBoostModal from './DamageBoostModal'
 import ShiftAttackModal from './ShiftAttackModal'
+import ChargeModal from './ChargeModal'
 import MoraleLossNotificationModal from './MoraleLossNotificationModal'
 import './GameBoard.css'
 
@@ -256,6 +257,13 @@ function GameBoard({ onTurnInfoChange }) {
     shiftAttackMode, setShiftAttackMode,
     shiftAttackValidTiles, setShiftAttackValidTiles,
     clearShiftAttackState,
+    // Charge Cards (move + melee attack with bonus damage)
+    showChargeModal, setShowChargeModal,
+    chargeConfig, setChargeConfig,
+    pendingChargeAttack, setPendingChargeAttack,
+    chargeMode, setChargeMode,
+    chargeValidTiles, setChargeValidTiles,
+    clearChargeState,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -297,6 +305,7 @@ function GameBoard({ onTurnInfoChange }) {
   const setChieftainCallPending = setChieftainCallData
   // Alias ogreDeployMoraleData to match existing variable name
   const ogreDeployMoraleResult = ogreDeployMoraleData
+  const setOgreDeployMoraleResult = setOgreDeployMoraleData
   // Alias clericDrawOrderData to match existing variable name
   const clericDrawOrderResult = clericDrawOrderData
   // Alias webRemovalData to match existing variable name
@@ -4669,11 +4678,72 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // CHARGE STANDARD CARDS: Move full speed, then melee attack with damage bonus
+    // Must be checked BEFORE regular damage boost cards since Charge also has meleeDamageBonus
+    if (card.actionType === 'STANDARD' && card.moveBeforeAttack === 'speed') {
+      const creature = orderCardFilterCreature
+
+      // Check level requirement
+      if (card.level > creature.creature.level) {
+        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+        return
+      }
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+        const hasRequiredAbility = abilities.some(ability =>
+          creature.creature.abilities?.[ability] === true
+        )
+        if (!hasRequiredAbility) {
+          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+          return
+        }
+      }
+
+      // Check if creature has already acted
+      if (creature.hasAttackedThisTurn) {
+        addToast(`${creature.creature.name} has already acted this turn`)
+        return
+      }
+
+      // Check if creature is tapped
+      if (creature.isTapped) {
+        addToast(`${creature.creature.name} is tapped`)
+        return
+      }
+
+      // Check if creature has already moved this turn (Charge uses movement)
+      if (creature.hasMovedThisTurn) {
+        addToast(`${creature.creature.name} has already moved this turn`)
+        return
+      }
+
+      // Check if creature has melee attack (required for Charge)
+      if (!creature.creature.meleeAttack) {
+        addToast(`${creature.creature.name} has no melee attack`)
+        return
+      }
+
+      // Show confirmation modal
+      setChargeConfig({
+        card,
+        cardIndex,
+        creature
+      })
+      setShowChargeModal(true)
+      return
+    }
+
     // DAMAGE BOOST STANDARD CARDS: Power Attack, Hacking Frenzy, Killing Strike (melee), Gout of Fire (ranged)
     // These cards add bonus damage to melee/ranged attacks or deal flat damage
+    // IMPORTANT: Exclude Charge cards (moveBeforeAttack === 'speed') and Shift+Attack cards (shiftBeforeAttack > 0)
+    // Those cards have their own handlers above
     const isMeleeDamageBoost = card.meleeDamageBonus > 0 || card.flatMeleeDamage !== null
     const isRangedDamageBoost = card.rangedDamageBonus > 0
-    if (card.actionType === 'STANDARD' && (isMeleeDamageBoost || isRangedDamageBoost)) {
+    const isChargeType = card.moveBeforeAttack === 'speed'
+    const isShiftAttackType = card.shiftBeforeAttack > 0
+    if (card.actionType === 'STANDARD' && (isMeleeDamageBoost || isRangedDamageBoost) && !isChargeType && !isShiftAttackType) {
       const creature = orderCardFilterCreature
       // Check level requirement
       if (card.level > creature.creature.level) {
@@ -5162,6 +5232,259 @@ function GameBoard({ onTurnInfoChange }) {
     clearShiftAttackState()
     setSelectedBoardCreature(null)
     setRenderCounter(prev => prev + 1)
+  }
+
+  // ============================================
+  // CHARGE CARD HANDLERS (Phase STD-5)
+  // Move full speed, then melee attack with bonus
+  // ============================================
+
+  /**
+   * Confirm Charge modal - enters movement tile selection mode
+   * Called when player confirms they want to use Charge
+   */
+  const confirmCharge = () => {
+    if (!chargeConfig?.card || !chargeConfig?.creature || !gameState) {
+      cancelCharge()
+      return
+    }
+
+    const { card, cardIndex, creature } = chargeConfig
+
+    // Close the modal
+    setShowChargeModal(false)
+    setChargeConfig({ card: null, cardIndex: null, creature: null })
+
+    // Store original position before movement
+    const originalPosition = { ...creature.position }
+
+    // Get all valid movement tiles (using creature's full speed)
+    const allMoveTiles = gameState.getValidMovementTiles
+      ? gameState.getValidMovementTiles(creature)
+      : []
+
+    // Filter to only tiles that:
+    // 1. Have at least one adjacent enemy (can attack after moving there)
+    // 2. Are not the current position (must move at least 1 tile)
+    const validChargeDestinations = allMoveTiles.filter(moveInfo => {
+      const { tile } = moveInfo
+      // Exclude current position
+      if (tile.x === creature.position.x && tile.y === creature.position.y) {
+        return false
+      }
+      // Check if there's at least one adjacent enemy at this destination
+      const adjacentEnemies = gameState.getAdjacentCreatures
+        ? gameState.getAdjacentCreatures(tile.x, tile.y).filter(c => c.owner !== creature.owner)
+        : []
+      return adjacentEnemies.length > 0
+    })
+
+    if (validChargeDestinations.length === 0) {
+      addToast(`No valid charge destinations - ${card.name} cancelled. Must move to a tile adjacent to an enemy.`)
+      clearChargeState()
+      return
+    }
+
+    // Set pending charge attack info (phase: 'moving')
+    const pendingInfo = {
+      card,
+      cardIndex,
+      creature,
+      phase: 'moving',
+      originalPosition
+    }
+    setPendingChargeAttack(pendingInfo)
+
+    // Enter movement tile selection mode
+    // Convert to simple {x, y} format for highlighting
+    const chargePositions = validChargeDestinations.map(m => ({ x: m.tile.x, y: m.tile.y }))
+    setChargeValidTiles(chargePositions)
+    setChargeMode(true)
+
+    // Select the creature so tiles highlight properly
+    setSelectedBoardCreature(creature)
+
+    // Toast instruction
+    addToast(`🏃 ${card.name}: Right-click a green tile to charge (must end adjacent to enemy)`)
+  }
+
+  /**
+   * Cancel Charge (from modal or during movement/attack selection)
+   * Returns card to hand and clears all charge state
+   */
+  const cancelCharge = () => {
+    clearChargeState()
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+  }
+
+  /**
+   * Handle tile/creature click during Charge mode
+   * Routes to appropriate handler based on current phase:
+   * - moving: Select movement destination tile
+   * - attacking: Select attack target (enemy creature)
+   */
+  const handleChargeTileClick = (tile) => {
+    if (!pendingChargeAttack || !gameState) return
+
+    const { phase } = pendingChargeAttack
+
+    switch (phase) {
+      case 'moving':
+        handleChargeMoveSelected(tile)
+        break
+      case 'attacking':
+        handleChargeAttackTarget(tile)
+        break
+      default:
+        console.warn('[CHARGE] Unknown phase:', phase)
+    }
+  }
+
+  /**
+   * Handle movement destination selection during 'moving' phase
+   * Called when player right-clicks a tile during movement selection
+   */
+  const handleChargeMoveSelected = (tile) => {
+    if (!pendingChargeAttack || !gameState) return
+
+    const { card, cardIndex, creature } = pendingChargeAttack
+
+    // Check if this is a valid charge tile
+    const isValidChargeTile = chargeValidTiles.some(
+      t => t.x === tile.x && t.y === tile.y
+    )
+
+    if (!isValidChargeTile) {
+      addToast('Invalid charge destination - select a highlighted green tile')
+      return
+    }
+
+    // COMMITTED: Move the creature to the new position
+    const oldPos = { ...creature.position }
+    creature.position = { x: tile.x, y: tile.y }
+
+    // Update board occupancy
+    const oldTile = gameState.board.getTile(oldPos.x, oldPos.y)
+    const newTile = gameState.board.getTile(tile.x, tile.y)
+    if (oldTile) oldTile.occupant = null
+    if (newTile) newTile.occupant = creature
+
+    // NOTE: Do NOT set hasMovedThisTurn = true here!
+    // Charge movement is part of the STANDARD action, not the creature's normal movement.
+    // The creature can still use its normal movement after using Charge.
+
+    // Discard the card from player's hand (point of no return)
+    const currentPlayer = gameState.players[creature.owner]
+    currentPlayer.orderHand.splice(cardIndex, 1)
+
+    // Clear charge tiles
+    setChargeValidTiles([])
+
+    // Update to attacking phase
+    setPendingChargeAttack({
+      ...pendingChargeAttack,
+      phase: 'attacking'
+    })
+
+    // Calculate valid melee attack targets from new position
+    const allTargets = gameState.getValidAttackTargets(creature)
+    const validTargets = allTargets.filter(t => t.attackType === 'melee')
+
+    if (validTargets.length === 0) {
+      // This shouldn't happen since we filtered destinations, but handle it
+      addToast(`No valid melee targets from this position. ${card.name} consumed but no attack.`)
+      creature.tap()
+      creature.hasAttackedThisTurn = true
+      clearChargeState()
+      setSelectedBoardCreature(null)
+      setRenderCounter(prev => prev + 1)
+      return
+    }
+
+    // Store valid targets and highlight them
+    setValidAttackTargets(validTargets)
+
+    // Exit charge mode, enter attack selection
+    setChargeMode(false)
+
+    // Toast instruction
+    addToast(`⚔️ ${card.name}: Right-click an enemy to melee attack with +${card.meleeDamageBonus} damage`)
+
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Handle attack target selection during 'attacking' phase
+   * Called when player right-clicks a creature during attack selection
+   */
+  const handleChargeAttackTarget = (tile) => {
+    if (!pendingChargeAttack || !gameState) return
+
+    const { card, creature } = pendingChargeAttack
+
+    // Check if tile has a valid target
+    const target = tile.occupant
+    if (!target) {
+      addToast('Click on an enemy creature to attack')
+      return
+    }
+
+    // Check if target is in validAttackTargets
+    const targetInfo = validAttackTargets.find(t => t.creature.instanceId === target.instanceId)
+    if (!targetInfo) {
+      addToast('Invalid target - select a highlighted enemy')
+      return
+    }
+
+    // Charge is melee only
+    const baseDamage = creature.creature.meleeAttack?.damage || 0
+    const bonusDamage = card.meleeDamageBonus || 0
+
+    // Clear attack targets highlight
+    setValidAttackTargets([])
+
+    // Clear charge mode state
+    setChargeMode(false)
+    setChargeValidTiles([])
+
+    // Set up attack info using pendingRightClickAttack pattern
+    const attackInfo = {
+      attackType: 'melee',
+      damage: baseDamage
+    }
+
+    setPendingRightClickAttack({
+      attacker: creature,
+      target: target,
+      attackInfo: attackInfo,
+      damageBoostCard: card,
+      damageBoostBonus: bonusDamage,
+      damageBoostFlat: null,
+      // Charge-specific properties
+      isChargeAttack: true
+    })
+
+    // Show attack confirmation panel
+    setPendingAttack({
+      attackerInstance: creature,
+      defenderInstance: target,
+      targetInfo: targetInfo,
+      damageBoostCard: card,
+      damageBoostBonus: bonusDamage,
+      damageBoostFlat: null,
+      isChargeAttack: true
+    })
+
+    setCombatPanelMode('attack')
+    setCombatHighlightCreatures({
+      attacker: creature.instanceId,
+      defender: target.instanceId
+    })
+
+    // Clear charge state - attack will complete through normal flow
+    clearChargeState()
   }
 
   /**
@@ -6142,6 +6465,15 @@ function GameBoard({ onTurnInfoChange }) {
     if (shiftAttackMode && pendingShiftAttack) {
       handleShiftAttackTileClick(tile)
       return // Don't process other right-click actions during shift+attack mode
+    }
+
+    // ============================================
+    // CHARGE MODE (Phase STD-5)
+    // Handle clicking on tiles or creatures based on current phase
+    // ============================================
+    if ((chargeMode || pendingChargeAttack) && pendingChargeAttack) {
+      handleChargeTileClick(tile)
+      return // Don't process other right-click actions during charge mode
     }
 
     // ============================================
@@ -8341,6 +8673,55 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // ============================================
+      // CHARGE AI EXECUTION
+      // Phase STD-5: Charge (Blood of Gruumsh)
+      // Process charge actions - move creature full speed, discard card, then queue attack
+      // ============================================
+      const chargeActions = actions.filter(action => action.type === 'charge_attack')
+      for (const chargeAction of chargeActions) {
+        const { attackerInstance, defenderInstance, moveTo, card, cardIndex, damage } = chargeAction
+
+        // 1. Move creature to charge destination
+        const originalPos = { ...attackerInstance.position }
+        const oldTile = gameState.getTile(originalPos.x, originalPos.y)
+        const newTile = gameState.getTile(moveTo.x, moveTo.y)
+
+        if (oldTile) oldTile.occupant = null
+        attackerInstance.position = { x: moveTo.x, y: moveTo.y }
+        if (newTile) newTile.occupant = attackerInstance
+
+        // Mark creature as having moved
+        attackerInstance.hasMovedThisTurn = true
+
+        // 2. Discard the card from AI player's hand
+        const aiPlayer = gameState.players[currentPlayerId]
+        if (cardIndex >= 0 && cardIndex < aiPlayer.orderHand.length) {
+          aiPlayer.orderHand.splice(cardIndex, 1)
+        }
+
+        addToast(`🏃 AI: ${attackerInstance.creature.name} uses ${card.name} - charges to (${moveTo.x},${moveTo.y})`)
+
+        // 3. Queue this as an attack intention for the pending actions system
+        const chargeAttackIntention = {
+          type: 'attack_intention',
+          attackerInstance,
+          defenderInstance,
+          targetInfo: {
+            creature: defenderInstance,
+            attackType: 'melee',
+            position: defenderInstance.position
+          },
+          damageBoostCard: card,
+          damageBoostBonus: card.meleeDamageBonus || 0,
+          damageBoostFlat: null,
+          isChargeAttack: true
+        }
+
+        // Add to attack intentions to be processed
+        attackIntentions.push(chargeAttackIntention)
+      }
+
+      // ============================================
       // HORDE PROTECTION FIX FOR AI
       // If AI used HORDE deployment during REFRESH, clear protection for creatures
       // deployed this turn. This mirrors the human HORDE logic at lines 1612-1615.
@@ -8654,6 +9035,13 @@ function GameBoard({ onTurnInfoChange }) {
                     shiftAttackValidTiles.some(t => t.x === x && t.y === y)
 
                   // ============================================
+                  // CHARGE HIGHLIGHTS: Show valid movement destinations (green)
+                  // ============================================
+                  const isChargeTile = chargeMode &&
+                    pendingChargeAttack?.phase === 'moving' &&
+                    chargeValidTiles.some(t => t.x === x && t.y === y)
+
+                  // ============================================
                   // LIGHTNING BREATH HIGHLIGHTS: Show valid targets and selected targets
                   // ============================================
                   const isLightningBreathValidTarget = lightningBreathMode &&
@@ -8906,6 +9294,7 @@ function GameBoard({ onTurnInfoChange }) {
                       isWebbed={creature && gameState?.hasMovementBlockingAttachment?.(creature)}
                       isHealingTouchTarget={isHealingTouchTarget}
                       isShiftTile={isShiftTile || isShiftAttackTile}
+                      isChargeTile={isChargeTile}
                     />
                   )
                 })}
@@ -9980,6 +10369,15 @@ function GameBoard({ onTurnInfoChange }) {
         creature={shiftAttackConfig?.creature}
         onConfirm={confirmShiftAttack}
         onCancel={cancelShiftAttack}
+      />
+
+      {/* CHARGE MODAL (Phase STD-5 - Move + Attack) */}
+      <ChargeModal
+        show={showChargeModal}
+        card={chargeConfig?.card}
+        creature={chargeConfig?.creature}
+        onConfirm={confirmCharge}
+        onCancel={cancelCharge}
       />
 
       {/* MORALE LOSS NOTIFICATION MODAL (Unexpected Resistance) */}

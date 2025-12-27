@@ -249,17 +249,25 @@ Movement before or after attack.
 
 ---
 
-### Phase STD-5: Charge (Move + Attack)
+### Phase STD-5: Charge (Move + Attack) ✅ COMPLETE
 Full movement then attack.
 
 | Card | Faction | Effect |
 |------|---------|--------|
-| Charge (x2) | Blood of Gruumsh | Move speed, melee +20 |
+| Charge (x2) | Blood of Gruumsh | Move speed, melee +10 |
 
 **Implementation**:
-- Add `moveBeforeAttack` property (uses full movement)
-- Must end adjacent to target
-- Integrate with pathfinding
+- ✅ Added `moveBeforeAttack: 'speed'` property to OrderCard class
+- ✅ Created ChargeModal component for card confirmation
+- ✅ Implemented charge tile selection UI with green highlighting for valid tiles
+- ✅ Move → Attack flow with proper state management (phase: 'moving' | 'attacking')
+- ✅ Only valid destinations are tiles adjacent to enemies (must have attack target)
+- ✅ Must move at least 1 tile (no zero-movement charges)
+- ✅ Respects terrain costs via getValidMovementTiles pathfinding
+- ✅ AI support: getChargeCards() and evaluateChargeAttack() functions
+- ✅ AI executes charge_attack actions in GameBoard
+- ✅ Charge movement is part of STANDARD action (doesn't consume creature's normal movement)
+- ✅ Creature can still move after using Charge (if movement wasn't already used)
 
 ---
 

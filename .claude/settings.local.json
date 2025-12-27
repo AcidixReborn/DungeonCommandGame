@@ -41,7 +41,10 @@
       "Bash(timeout 10 npm run dev:*)",
       "Bash(del \"c:\\Users\\dougl\\Desktop\\GitRepository\\DungeonCommandGame\\test-tapOnHit.js\")",
       "Bash(timeout 60 npx vite-node:*)",
-      "Bash(del \"c:\\Users\\dougl\\Desktop\\GitRepository\\DungeonCommandGame\\Master_Plan.md\")"
+      "Bash(del \"c:\\Users\\dougl\\Desktop\\GitRepository\\DungeonCommandGame\\Master_Plan.md\")",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(del \"c:\\\\Users\\\\dougl\\\\Desktop\\\\GitRepository\\\\DungeonCommandGame\\\\nul\")"
     ],
     "deny": [],
     "ask": []

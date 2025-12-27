@@ -215,6 +215,7 @@ function ShiftAttackModal({
           Cancel
         </Button>
         <Button
+          variant="primary"
           style={{ backgroundColor: accentColor, borderColor: accentColor }}
           onClick={onConfirm}
         >
