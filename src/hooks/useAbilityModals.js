@@ -255,6 +255,21 @@ export function useAbilityModals() {
   // { card, cardIndex, creature, damageBonus, flatDamage }
 
   // ============================================
+  // SHIFT + ATTACK CARDS state (Phase STD-4)
+  // Nimble Strike, Spring Attack, Shadowy Ambush
+  // ============================================
+  const [showShiftAttackModal, setShowShiftAttackModal] = useState(false)
+  const [shiftAttackConfig, setShiftAttackConfig] = useState({
+    card: null,
+    cardIndex: null,
+    creature: null
+  })
+  const [pendingShiftAttack, setPendingShiftAttack] = useState(null)
+  // { card, cardIndex, creature, phase: 'pre-shift'|'attacking'|'post-shift', originalPosition }
+  const [shiftAttackMode, setShiftAttackMode] = useState(false)
+  const [shiftAttackValidTiles, setShiftAttackValidTiles] = useState([])
+
+  // ============================================
   // CLEAR STATE FUNCTIONS
   // ============================================
 
@@ -358,6 +373,17 @@ export function useAbilityModals() {
   }, [])
 
   /**
+   * Clear all Shift + Attack state (Nimble Strike, Spring Attack, Shadowy Ambush)
+   */
+  const clearShiftAttackState = useCallback(() => {
+    setShowShiftAttackModal(false)
+    setShiftAttackConfig({ card: null, cardIndex: null, creature: null })
+    setPendingShiftAttack(null)
+    setShiftAttackMode(false)
+    setShiftAttackValidTiles([])
+  }, [])
+
+  /**
    * Clear all ability modal state
    * Called at end of turn or game reset
    */
@@ -372,6 +398,7 @@ export function useAbilityModals() {
     clearRiderState()
     clearSavageDemiseState()
     clearDamageBoostState()
+    clearShiftAttackState()
     setShowDamageNotification(false)
     setDamageNotificationData(null)
     setPendingPhaseAdvance(false)
@@ -404,7 +431,8 @@ export function useAbilityModals() {
     clearRangedSplashState,
     clearRiderState,
     clearSavageDemiseState,
-    clearDamageBoostState
+    clearDamageBoostState,
+    clearShiftAttackState
   ])
 
   return {
@@ -621,6 +649,19 @@ export function useAbilityModals() {
     pendingDamageBoostAttack,
     setPendingDamageBoostAttack,
     clearDamageBoostState,
+
+    // Shift + Attack Cards (Nimble Strike, Spring Attack, Shadowy Ambush)
+    showShiftAttackModal,
+    setShowShiftAttackModal,
+    shiftAttackConfig,
+    setShiftAttackConfig,
+    pendingShiftAttack,
+    setPendingShiftAttack,
+    shiftAttackMode,
+    setShiftAttackMode,
+    shiftAttackValidTiles,
+    setShiftAttackValidTiles,
+    clearShiftAttackState,
 
     // Clear all
     clearAllAbilityModalState

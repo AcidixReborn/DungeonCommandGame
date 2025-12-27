@@ -569,14 +569,17 @@ export const orderCards = [
     damagePrevented: 20,
     moraleCost: 0
   },
-  // Card 21: Nimble Strike - Level 1, DEX, STANDARD
+  // Card 21: Nimble Strike - Level 1, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
     id: 'tog_ord_21',
     name: 'Nimble Strike',
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Shift 3 squares. Make a melee or ranged attack that deals +10 damage.',
+    effectDescription: 'Shift up to 3 squares. Make a melee or ranged attack that deals +10 damage.',
+    shiftBeforeAttack: 3,
+    meleeDamageBonus: 10,
+    rangedDamageBonus: 10,
     faction: FACTION_NAME,
     imageUrl: nimbleStrikeOrder21Img
   },

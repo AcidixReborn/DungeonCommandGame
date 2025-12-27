@@ -228,7 +228,7 @@ Cards that boost melee damage and draw cards on use.
 
 ---
 
-### Phase STD-4: Shift + Attack
+### Phase STD-4: Shift + Attack ✅ COMPLETE
 Movement before or after attack.
 
 | Card | Faction | Effect |
@@ -238,9 +238,14 @@ Movement before or after attack.
 | Shadowy Ambush (x2) | Sting of Lolth | Shift 3, melee +30 |
 
 **Implementation**:
-- Add `shiftBeforeAttack` and `shiftAfterAttack` properties
-- Create shift selection UI
-- AI calculates optimal positioning
+- ✅ Added `shiftBeforeAttack` and `shiftAfterAttack` properties to OrderCard class
+- ✅ Created ShiftAttackModal component for shift+attack card confirmation
+- ✅ Implemented shift tile selection UI with blue highlighting for valid tiles
+- ✅ Pre-shift → Attack → Post-shift flow with proper state management
+- ✅ Added `pendingShiftAttack` state to track shift+attack phases
+- ✅ Integration with HIDDEN BLADE ability - triggers AFTER all shifting completes
+- ✅ Creatures with HIDDEN BLADE defer tapping until after ability resolves
+- ✅ AI calculates optimal positioning for shift+attack cards
 
 ---
 

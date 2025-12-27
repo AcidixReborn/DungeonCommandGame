@@ -527,23 +527,29 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: secretPassage23Img
   },
+  // Card 24: Shadowy Ambush - Level 3, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
     id: 'sol_ord_24',
     name: 'Shadowy Ambush',
     level: 3,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Shift 2 squares. Make a melee attack that deals 50 DAMAGE.',
+    effectDescription: 'Shift up to 2 squares. Make a melee attack that deals 50 DAMAGE.',
+    shiftBeforeAttack: 2,
+    flatMeleeDamage: 50,
     faction: FACTION_NAME,
     imageUrl: shadowyAmbush24Img
   },
+  // Card 25: Shadowy Ambush - Level 3, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
     id: 'sol_ord_25',
     name: 'Shadowy Ambush',
     level: 3,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Shift 2 squares. Make a melee attack that deals 50 DAMAGE.',
+    effectDescription: 'Shift up to 2 squares. Make a melee attack that deals 50 DAMAGE.',
+    shiftBeforeAttack: 2,
+    flatMeleeDamage: 50,
     faction: FACTION_NAME,
     imageUrl: shadowyAmbush25Img
   },
@@ -557,23 +563,29 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: sneakAttack26Img
   },
+  // Card 27: Spring Attack - Level 2, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
     id: 'sol_ord_27',
     name: 'Spring Attack',
     level: 2,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Shift 6 squares. Make an attack. Shift 6 squares.',
+    effectDescription: 'Shift up to 6 squares. Make an attack. Shift up to 6 squares.',
+    shiftBeforeAttack: 6,
+    shiftAfterAttack: 6,
     faction: FACTION_NAME,
     imageUrl: springAttack27Img
   },
+  // Card 28: Spring Attack - Level 2, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
     id: 'sol_ord_28',
     name: 'Spring Attack',
     level: 2,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Shift 6 squares. Make an attack. Shift 6 squares.',
+    effectDescription: 'Shift up to 6 squares. Make an attack. Shift up to 6 squares.',
+    shiftBeforeAttack: 6,
+    shiftAfterAttack: 6,
     faction: FACTION_NAME,
     imageUrl: springAttack28Img
   },

@@ -73,7 +73,10 @@ export class OrderCard {
     // STANDARD damage boost properties (Phase STD-2)
     rangedDamageBonus = 0, // Bonus damage added to ranged attack (e.g., Gout of Fire = 20)
     // STANDARD damage boost properties (Phase STD-3)
-    drawCardsOnAttack = 0 // Cards to draw after STANDARD attack resolves (e.g., Slice = 1)
+    drawCardsOnAttack = 0, // Cards to draw after STANDARD attack resolves (e.g., Slice = 1)
+    // STANDARD shift + attack properties (Phase STD-4)
+    shiftBeforeAttack = 0, // Shift distance before attack (e.g., Nimble Strike = 3, Spring Attack = 3)
+    shiftAfterAttack = 0 // Shift distance after attack (e.g., Spring Attack = 3)
   }) {
     this.id = id
     this.name = name
@@ -121,6 +124,9 @@ export class OrderCard {
     this.rangedDamageBonus = rangedDamageBonus // Bonus damage added to ranged attack (e.g., Gout of Fire = 20)
     // STANDARD damage boost properties (Phase STD-3)
     this.drawCardsOnAttack = drawCardsOnAttack // Cards to draw after STANDARD attack resolves (e.g., Slice = 1)
+    // STANDARD shift + attack properties (Phase STD-4)
+    this.shiftBeforeAttack = shiftBeforeAttack // Shift distance before attack (e.g., Nimble Strike = 3)
+    this.shiftAfterAttack = shiftAfterAttack // Shift distance after attack (e.g., Spring Attack = 3)
   }
 
   /**

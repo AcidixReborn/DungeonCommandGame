@@ -226,12 +226,20 @@ function AttackConfirmPanel({
 
         {/* ORDER CARD USED - Shows the damage boost card being used for this attack */}
         {damageBoostCard && (() => {
-          // Determine if this is a ranged damage boost card (blue styling) or melee (red styling)
+          // Determine card styling based on attack type or card type
+          // For shift+attack cards (Spring Attack), use the actual attack type being made
+          const isShiftAttackCard = damageBoostCard.shiftBeforeAttack > 0
           const isRangedBoostCard = damageBoostCard.rangedDamageBonus > 0
-          const cardAccentColor = isRangedBoostCard ? '#0d6efd' : '#dc3545'
-          const cardShadowColor = isRangedBoostCard ? 'rgba(13, 110, 253, 0.4)' : 'rgba(220, 53, 69, 0.4)'
-          const cardIcon = isRangedBoostCard ? '🔥' : '🗡️'
-          const damageTypeText = isRangedBoostCard ? 'ranged' : 'melee'
+          const isRangedAttack = attackInfo.attackType === 'ranged'
+
+          // Use attack type for styling if it's a shift+attack card, otherwise use card type
+          const useRangedStyle = isShiftAttackCard ? isRangedAttack : isRangedBoostCard
+          const cardAccentColor = useRangedStyle ? '#0d6efd' : '#dc3545'
+          const cardShadowColor = useRangedStyle ? 'rgba(13, 110, 253, 0.4)' : 'rgba(220, 53, 69, 0.4)'
+          const cardIcon = useRangedStyle ? '🔥' : '🗡️'
+
+          // For damage text: don't show attack type if bonus is 0 (like Spring Attack)
+          const hasDamageBonus = damageBoostBonus > 0 || damageBoostFlat > 0
 
           return (
             <div style={{
@@ -301,11 +309,14 @@ function AttackConfirmPanel({
                   </div>
                 )}
               </div>
-              <div style={{ fontSize: '0.9rem', color: '#ff9800', fontWeight: 'bold' }}>
-                {usedFlatDamage
-                  ? `Deals ${damageBoostFlat} flat damage`
-                  : `+${damageBoostBonus} ${damageTypeText} damage`}
-              </div>
+              {/* Only show damage bonus line if there's actually a bonus */}
+              {(usedFlatDamage || hasDamageBonus) && (
+                <div style={{ fontSize: '0.9rem', color: '#ff9800', fontWeight: 'bold' }}>
+                  {usedFlatDamage
+                    ? `Deals ${damageBoostFlat} flat damage`
+                    : `+${damageBoostBonus} damage`}
+                </div>
+              )}
             </div>
           )
         })()}

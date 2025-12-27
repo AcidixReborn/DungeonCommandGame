@@ -26,6 +26,7 @@ import CounterAttackTargetModal from './CounterAttackTargetModal'
 import PatchUpHealModal from './PatchUpHealModal'
 import ToughAsNailsModal from './ToughAsNailsModal'
 import DamageBoostModal from './DamageBoostModal'
+import ShiftAttackModal from './ShiftAttackModal'
 import MoraleLossNotificationModal from './MoraleLossNotificationModal'
 import './GameBoard.css'
 
@@ -248,6 +249,13 @@ function GameBoard({ onTurnInfoChange }) {
     damageBoostConfig, setDamageBoostConfig,
     pendingDamageBoostAttack, setPendingDamageBoostAttack,
     clearDamageBoostState,
+    // Shift + Attack Cards (Nimble Strike, Spring Attack, Shadowy Ambush)
+    showShiftAttackModal, setShowShiftAttackModal,
+    shiftAttackConfig, setShiftAttackConfig,
+    pendingShiftAttack, setPendingShiftAttack,
+    shiftAttackMode, setShiftAttackMode,
+    shiftAttackValidTiles, setShiftAttackValidTiles,
+    clearShiftAttackState,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -1070,6 +1078,9 @@ function GameBoard({ onTurnInfoChange }) {
     let damageBoostCard = null
     let damageBoostBonus = 0
     let damageBoostFlat = null
+    let isShiftAttack = false
+    let hasPostAttackShift = false
+    let postAttackShiftDistance = 0
 
     if (pendingDamageBoostAttack &&
         pendingDamageBoostAttack.creature?.instanceId === attackerInstance.instanceId) {
@@ -1084,6 +1095,28 @@ function GameBoard({ onTurnInfoChange }) {
       damageBoostCard = pendingDamageBoostAttack.card
       damageBoostBonus = pendingDamageBoostAttack.damageBonus || 0
       damageBoostFlat = pendingDamageBoostAttack.flatDamage
+    }
+
+    // Check if this is a shift+attack (Nimble Strike, Spring Attack, Shadowy Ambush)
+    if (pendingShiftAttack &&
+        pendingShiftAttack.creature?.instanceId === attackerInstance.instanceId &&
+        pendingShiftAttack.phase === 'attacking') {
+      const card = pendingShiftAttack.card
+      damageBoostCard = card
+      isShiftAttack = true
+      hasPostAttackShift = card.shiftAfterAttack > 0
+      postAttackShiftDistance = card.shiftAfterAttack
+
+      // Calculate damage bonus based on attack type
+      if (targetInfo.attackType === 'melee') {
+        if (card.flatMeleeDamage !== null && card.flatMeleeDamage !== undefined) {
+          damageBoostFlat = card.flatMeleeDamage
+        } else {
+          damageBoostBonus = card.meleeDamageBonus || 0
+        }
+      } else {
+        damageBoostBonus = card.rangedDamageBonus || 0
+      }
     }
 
     if (!targetInfo) {
@@ -1143,7 +1176,11 @@ function GameBoard({ onTurnInfoChange }) {
         // Damage boost card info (if active)
         damageBoostCard,
         damageBoostBonus,
-        damageBoostFlat
+        damageBoostFlat,
+        // Shift+attack info (for post-attack shift)
+        isShiftAttack,
+        hasPostAttackShift,
+        postAttackShiftDistance
       })
       // Set combat panel to defense mode with creature highlights
       setCombatPanelMode('defense')
@@ -1457,8 +1494,12 @@ function GameBoard({ onTurnInfoChange }) {
 
     if (defense.type === 'skip') {
       // No more defense - execute attack with accumulated reduction
+      console.log('[handleDefenseSelected] SKIP defense, accumulatedReduction:', accumulatedReduction)
+      console.log('[handleDefenseSelected] pendingAttack.isHiddenBlade:', pendingAttack?.isHiddenBlade)
+      console.log('[handleDefenseSelected] targetInfo.attackType:', targetInfo?.attackType)
       closeCombatPanel()
       if (accumulatedReduction > 0) {
+        console.log('[handleDefenseSelected] Calling executeAttackAfterDefense with stacked_defense')
         executeAttackAfterDefense({
           type: 'stacked_defense',
           damageReduction: accumulatedReduction,
@@ -1466,6 +1507,7 @@ function GameBoard({ onTurnInfoChange }) {
           success: true
         })
       } else {
+        console.log('[handleDefenseSelected] Calling executeAttackAfterReactions')
         executeAttackAfterReactions([])
       }
       return
@@ -2070,10 +2112,30 @@ function GameBoard({ onTurnInfoChange }) {
         return
       }
 
+      // TAP CREATURE FOR SHIFT+ATTACK CARDS (must happen BEFORE ability triggers which may return early)
+      // Shift+Attack cards (Nimble Strike, Spring Attack, Shadowy Ambush) complete the STANDARD action
+      // after the attack resolves. We must tap now because ability triggers (SLAM, Flashing Blades, etc.)
+      // may return early and skip the normal end-of-function tapping code.
+      // EXCEPTION: If creature has HIDDEN BLADE, defer tapping until after Hidden Blade resolves
+      // (Hidden Blade might trigger, and we want the creature untapped until that flow completes)
+      if (pendingShiftAttack && !pendingAttack?.hasPostAttackShift) {
+        // No post-shift: tap now (Shadowy Ambush, Nimble Strike)
+        attackerInstance.hasAttackedThisTurn = true
+        const creatureHasHiddenBlade = gameState.hasHiddenBlade(attackerInstance)
+        if (attackerInstance.hasMovedThisTurn && !creatureHasHiddenBlade) {
+          // Tap now for creatures without Hidden Blade
+          attackerInstance.tap()
+        }
+        // Creatures with Hidden Blade will be tapped after Hidden Blade resolves (used or skipped)
+      }
+
       // Check for FLASHING BLADES trigger after defense (only for normal melee attacks, not splash/ability attacks)
+      console.log('[executeAttackAfterDefense] Checking ability triggers - isFlashingBlades:', isFlashingBlades, 'isHiddenBlade:', isHiddenBlade, 'isConfusionGaze:', isConfusionGaze)
+      console.log('[executeAttackAfterDefense] targetInfo.attackType:', targetInfo.attackType)
       if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades' &&
           !isHiddenBlade && targetInfo.attackType !== 'hidden_blade' &&
           !isConfusionGaze && targetInfo.attackType !== 'confusion_gaze') {
+        console.log('[executeAttackAfterDefense] Passed ability trigger condition check - checking FLASHING BLADES and HIDDEN BLADE')
         if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
           // Modal shown - don't clear state yet, wait for modal response
           // BUT we DO need to trigger a re-render to show destroyed creature being removed
@@ -2084,7 +2146,10 @@ function GameBoard({ onTurnInfoChange }) {
         // Check for HIDDEN BLADE trigger after defense (for any attack type - melee OR ranged)
         // HIDDEN BLADE checks for adjacent TAPPED enemies, so it must be checked AFTER defense
         // (using defense cards taps the defender)
-        if (checkHiddenBladeTrigger(attackerInstance, result)) {
+        // EXCEPTION: If there's a pending post-shift (Spring Attack), defer Hidden Blade check
+        // until AFTER the post-shift completes (checked in handleShiftAttackPostShift)
+        const hasPostShift = pendingAttack?.hasPostAttackShift && pendingShiftAttack
+        if (!hasPostShift && checkHiddenBladeTrigger(attackerInstance, result)) {
           // Modal shown - don't clear state yet, wait for modal response
           setRenderCounter(prev => prev + 1)
           return
@@ -2162,6 +2227,55 @@ function GameBoard({ onTurnInfoChange }) {
     if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
       setConfusionGazePending(null)
       setConfusionGazeMode(null)
+    }
+
+    // Check for POST-ATTACK SHIFT (Spring Attack)
+    // If this was a shift+attack with post-shift, trigger the post-shift phase
+    if (pendingAttack?.isShiftAttack && pendingAttack?.hasPostAttackShift && pendingShiftAttack) {
+      const postShiftDistance = pendingAttack.postAttackShiftDistance || 0
+      const creature = attackerInstance
+
+      if (postShiftDistance > 0 && creature.position) {
+        // Calculate valid shift tiles for post-attack shift
+        const validTiles = gameState.getValidShiftTiles
+          ? gameState.getValidShiftTiles(creature, postShiftDistance)
+          : []
+
+        if (validTiles.length > 0) {
+          // Check if attacker is human
+          const isAttackerHuman = isPlayerHuman(creature.owner)
+
+          if (isAttackerHuman) {
+            // Enter post-shift mode
+            setPendingShiftAttack({
+              ...pendingShiftAttack,
+              phase: 'post-shift'
+            })
+            setShiftAttackValidTiles(validTiles)
+            setShiftAttackMode(true)
+            setSelectedBoardCreature(creature)
+
+            // Clear combat panel state but keep shift attack state
+            setPendingAttack(null)
+            setCombatPanelMode(null)
+            setCombatHighlightCreatures({ attacker: null, defender: null })
+
+            addToast(`🏃 Spring Attack: Shift 1-${postShiftDistance} squares after attack!`)
+            setRenderCounter(prev => prev + 1)
+            return // Wait for post-shift selection
+          } else {
+            // AI handles post-shift - simple strategy: shift away from enemies
+            // For now, just skip (AI will handle in Step 10)
+            addToast(`🏃 AI could shift after attack (Spring Attack)`)
+          }
+        }
+      }
+      // Clear shift attack state if no valid tiles or AI
+      clearShiftAttackState()
+    } else if (pendingShiftAttack) {
+      // Shift+Attack WITHOUT post-shift (Shadowy Ambush, Nimble Strike)
+      // Tapping already happened earlier (before ability triggers) - just clear state
+      clearShiftAttackState()
     }
 
     setSelectedBoardCreature(null)
@@ -2369,9 +2483,15 @@ function GameBoard({ onTurnInfoChange }) {
 
   // Execute the attack after reactions have been handled
   const executeAttackAfterReactions = (reactions) => {
-    if (!pendingAttack) return
+    console.log('[executeAttackAfterReactions] === CALLED ===')
+    console.log('[executeAttackAfterReactions] pendingAttack:', pendingAttack)
+    if (!pendingAttack) {
+      console.log('[executeAttackAfterReactions] EARLY RETURN - no pendingAttack')
+      return
+    }
 
     const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze, damageBoostCard, damageBoostBonus, damageBoostFlat } = pendingAttack
+    console.log('[executeAttackAfterReactions] isHiddenBlade:', isHiddenBlade, 'targetInfo.attackType:', targetInfo?.attackType)
 
     // Discard damage boost card from hand before executing attack (card is committed at this point)
     if (damageBoostCard && pendingDamageBoostAttack) {
@@ -2394,7 +2514,11 @@ function GameBoard({ onTurnInfoChange }) {
       }
     } else if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
       // HIDDEN BLADE attack - use special handling
+      console.log('[executeAttackAfterReactions] Executing HIDDEN BLADE attack')
+      console.log('[executeAttackAfterReactions] defenderInstance:', defenderInstance?.creature?.name, 'HP before:', defenderInstance?.currentHP)
       result = gameState.applyHiddenBlade(defenderInstance, attackerInstance.owner)
+      console.log('[executeAttackAfterReactions] HIDDEN BLADE result:', result)
+      console.log('[executeAttackAfterReactions] defenderInstance HP after:', defenderInstance?.currentHP)
       // Now tap the attacker (deferred from original attack)
       if (attackerInstance.hasMovedThisTurn) {
         attackerInstance.tap()
@@ -2661,6 +2785,82 @@ function GameBoard({ onTurnInfoChange }) {
     if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
       setConfusionGazePending(null)
       setConfusionGazeMode(null)
+    }
+
+    // Check for POST-ATTACK SHIFT (Spring Attack)
+    // If this was a shift+attack with post-shift, trigger the post-shift phase
+    if (pendingAttack?.isShiftAttack && pendingAttack?.hasPostAttackShift && pendingShiftAttack) {
+      const postShiftDistance = pendingAttack.postAttackShiftDistance || 0
+      const creature = attackerInstance
+
+      if (postShiftDistance > 0 && creature.position) {
+        // Calculate valid shift tiles for post-attack shift
+        const validTiles = gameState.getValidShiftTiles
+          ? gameState.getValidShiftTiles(creature, postShiftDistance)
+          : []
+
+        if (validTiles.length > 0) {
+          // Check if attacker is human
+          const isAttackerHuman = isPlayerHuman(creature.owner)
+
+          if (isAttackerHuman) {
+            // Enter post-shift mode
+            setPendingShiftAttack({
+              ...pendingShiftAttack,
+              phase: 'post-shift'
+            })
+            setShiftAttackValidTiles(validTiles)
+            setShiftAttackMode(true)
+            setSelectedBoardCreature(creature)
+
+            // Clear combat panel state but keep shift attack state
+            setPendingAttack(null)
+            setCombatPanelMode(null)
+            setCombatHighlightCreatures({ attacker: null, defender: null })
+
+            addToast(`🏃 Spring Attack: Shift 1-${postShiftDistance} squares after attack!`)
+            setRenderCounter(prev => prev + 1)
+            return // Wait for post-shift selection
+          } else {
+            // AI handles post-shift - select best escape tile (farthest from enemies)
+            let bestTile = null
+            let bestScore = -Infinity
+
+            for (const tile of validTiles) {
+              // Score based on distance from enemies (higher = better escape)
+              let minEnemyDist = Infinity
+              for (const [playerId, player] of Object.entries(gameState.players)) {
+                if (playerId === creature.owner) continue
+                for (const enemyCreature of player.creaturesInPlay) {
+                  if (!enemyCreature.position) continue
+                  const dist = Math.abs(tile.x - enemyCreature.position.x) + Math.abs(tile.y - enemyCreature.position.y)
+                  minEnemyDist = Math.min(minEnemyDist, dist)
+                }
+              }
+              if (minEnemyDist > bestScore) {
+                bestScore = minEnemyDist
+                bestTile = tile
+              }
+            }
+
+            if (bestTile) {
+              // Execute the shift
+              const oldTile = gameState.getTile(creature.position.x, creature.position.y)
+              const newTile = gameState.getTile(bestTile.x, bestTile.y)
+              if (oldTile) oldTile.occupant = null
+              creature.position = { x: bestTile.x, y: bestTile.y }
+              if (newTile) newTile.occupant = creature
+
+              addToast(`🏃 AI Spring Attack: ${creature.creature.name} shifts to (${bestTile.x},${bestTile.y})`)
+            }
+          }
+        }
+      }
+      // Clear shift attack state if no valid tiles or AI
+      clearShiftAttackState()
+    } else if (pendingShiftAttack) {
+      // Clear shift attack state for non-post-shift attacks
+      clearShiftAttackState()
     }
 
     setSelectedBoardCreature(null)
@@ -3626,7 +3826,9 @@ function GameBoard({ onTurnInfoChange }) {
 
   // User chose to use HIDDEN BLADE - enter target selection mode
   const handleHiddenBladeUse = () => {
-    if (!hiddenBladePending) return
+    if (!hiddenBladePending) {
+      return
+    }
 
     // Close the modal and enter target selection mode
     setShowHiddenBladeModal(false)
@@ -3660,7 +3862,9 @@ function GameBoard({ onTurnInfoChange }) {
 
   // User right-clicked on a valid HIDDEN BLADE target - initiate attack
   const handleHiddenBladeTargetSelected = (targetInstance) => {
-    if (!hiddenBladePending || !targetInstance) return
+    if (!hiddenBladePending || !targetInstance) {
+      return
+    }
 
     // Set up a pending attack for the damage
     const attackerInstance = hiddenBladePending.attacker
@@ -3693,7 +3897,9 @@ function GameBoard({ onTurnInfoChange }) {
 
   // User confirmed HIDDEN BLADE attack from the attack panel
   const handleHiddenBladeConfirmAttack = () => {
-    if (!pendingAttack || !pendingAttack.isHiddenBlade) return
+    if (!pendingAttack || !pendingAttack.isHiddenBlade) {
+      return
+    }
 
     const { attackerInstance, defenderInstance } = pendingAttack
     const hiddenBladeDamage = 10
@@ -3785,14 +3991,21 @@ function GameBoard({ onTurnInfoChange }) {
    * @returns {boolean} True if HIDDEN BLADE was triggered (modal shown)
    */
   const checkHiddenBladeTrigger = (attackerInstance, attackResult) => {
-    // Only trigger if attack dealt damage
-    if (!attackResult.success || attackResult.damage <= 0) return false
+    // Only trigger if attack was successful (hit the target)
+    // Note: Hidden Blade triggers even if all damage was prevented by defense
+    if (!attackResult.success) {
+      return false
+    }
 
     // Check if attacker has HIDDEN BLADE
-    if (!gameState.hasHiddenBlade(attackerInstance)) return false
+    if (!gameState.hasHiddenBlade(attackerInstance)) {
+      return false
+    }
 
     // Only show modal for human player (AI is handled separately)
-    if (!isCurrentPlayerHumanCheck()) return false
+    if (!isCurrentPlayerHumanCheck()) {
+      return false
+    }
 
     // Get valid targets - adjacent TAPPED enemies (checked AFTER attack/defense resolves)
     const validTargets = gameState.getHiddenBladeTargets(attackerInstance)
@@ -3803,7 +4016,6 @@ function GameBoard({ onTurnInfoChange }) {
       }
       return false
     }
-
     // Set up the pending ability and show modal
     setHiddenBladePending({
       attacker: attackerInstance,
@@ -4403,6 +4615,60 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // SHIFT + ATTACK STANDARD CARDS: Nimble Strike, Spring Attack, Shadowy Ambush
+    // These cards shift first, then attack with damage bonus
+    // Must check BEFORE damage boost cards since shift+attack also have damage bonus properties
+    const isShiftAttackCard = card.shiftBeforeAttack > 0 &&
+      (card.meleeDamageBonus > 0 || card.rangedDamageBonus > 0 || card.flatMeleeDamage !== null || card.shiftAfterAttack > 0)
+    if (card.actionType === 'STANDARD' && isShiftAttackCard) {
+      const creature = orderCardFilterCreature
+
+      // Check level requirement
+      if (card.level > creature.creature.level) {
+        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+        return
+      }
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
+        const hasRequiredAbility = abilities.some(ability =>
+          creature.creature.abilities?.[ability] === true
+        )
+        if (!hasRequiredAbility) {
+          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+          return
+        }
+      }
+
+      // Check if creature has already acted
+      if (creature.hasAttackedThisTurn) {
+        addToast(`${creature.creature.name} has already acted this turn`)
+        return
+      }
+
+      // Check if creature is tapped
+      if (creature.isTapped) {
+        addToast(`${creature.creature.name} is tapped`)
+        return
+      }
+
+      // Check if creature has melee attack (required for all shift+attack cards)
+      if (!creature.creature.meleeAttack) {
+        addToast(`${creature.creature.name} has no melee attack`)
+        return
+      }
+
+      // Show confirmation modal
+      setShiftAttackConfig({
+        card,
+        cardIndex,
+        creature
+      })
+      setShowShiftAttackModal(true)
+      return
+    }
+
     // DAMAGE BOOST STANDARD CARDS: Power Attack, Hacking Frenzy, Killing Strike (melee), Gout of Fire (ranged)
     // These cards add bonus damage to melee/ranged attacks or deal flat damage
     const isMeleeDamageBoost = card.meleeDamageBonus > 0 || card.flatMeleeDamage !== null
@@ -4580,6 +4846,325 @@ function GameBoard({ onTurnInfoChange }) {
   }
 
   /**
+   * Confirm Shift Attack modal - enters shift tile selection mode
+   * Called when player confirms they want to use Nimble Strike, Spring Attack, or Shadowy Ambush
+   */
+  const confirmShiftAttack = () => {
+    if (!shiftAttackConfig?.card || !shiftAttackConfig?.creature || !gameState) {
+      cancelShiftAttack()
+      return
+    }
+
+    const { card, cardIndex, creature } = shiftAttackConfig
+
+    // Close the modal
+    setShowShiftAttackModal(false)
+    setShiftAttackConfig({ card: null, cardIndex: null, creature: null })
+
+    // Store original position before shift
+    const originalPosition = { ...creature.position }
+
+    // Set pending shift attack info (phase: 'pre-shift')
+    setPendingShiftAttack({
+      card,
+      cardIndex,
+      creature,
+      phase: 'pre-shift',
+      originalPosition
+    })
+
+    // Calculate valid shift tiles (1 to maxShift distance, excluding current tile)
+    const validTiles = gameState.getValidShiftTiles
+      ? gameState.getValidShiftTiles(creature, card.shiftBeforeAttack)
+      : []
+
+    if (validTiles.length === 0) {
+      addToast(`No valid tiles to shift to - ${card.name} cancelled`)
+      clearShiftAttackState()
+      return
+    }
+
+    // Enter shift tile selection mode
+    setShiftAttackValidTiles(validTiles)
+    setShiftAttackMode(true)
+
+    // Select the creature so tiles highlight properly
+    setSelectedBoardCreature(creature)
+
+    // Toast instruction
+    addToast(`🏃 ${card.name}: Right-click a purple tile to shift 1-${card.shiftBeforeAttack} squares`)
+  }
+
+  /**
+   * Cancel Shift Attack (from modal or during shift/attack selection)
+   * Returns card to hand and clears all shift attack state
+   */
+  const cancelShiftAttack = () => {
+    clearShiftAttackState()
+    setSelectedBoardCreature(null)
+    setValidMoveTiles([])
+    setValidAttackTargets([])
+  }
+
+  /**
+   * Handle tile/creature click during Shift + Attack mode
+   * Routes to appropriate handler based on current phase:
+   * - pre-shift: Select shift destination tile
+   * - attacking: Select attack target (enemy creature)
+   * - post-shift: Select post-attack shift destination (Spring Attack)
+   */
+  const handleShiftAttackTileClick = (tile) => {
+    if (!pendingShiftAttack || !gameState) return
+
+    const { phase } = pendingShiftAttack
+
+    switch (phase) {
+      case 'pre-shift':
+        handleShiftAttackPreShift(tile)
+        break
+      case 'attacking':
+        handleShiftAttackTarget(tile)
+        break
+      case 'post-shift':
+        handleShiftAttackPostShift(tile)
+        break
+      default:
+        console.warn('[SHIFT ATTACK] Unknown phase:', phase)
+    }
+  }
+
+  /**
+   * Handle pre-attack shift destination selection
+   * Called when player right-clicks a tile during 'pre-shift' phase
+   */
+  const handleShiftAttackPreShift = (tile) => {
+    if (!pendingShiftAttack || !gameState) return
+
+    const { card, cardIndex, creature, originalPosition } = pendingShiftAttack
+
+    // Check if this is a valid shift tile
+    const isValidShiftTile = shiftAttackValidTiles.some(
+      t => t.x === tile.x && t.y === tile.y
+    )
+
+    if (!isValidShiftTile) {
+      addToast('Invalid shift destination - select a highlighted purple tile')
+      return
+    }
+
+    // Cannot shift to current position (min 1 square)
+    if (tile.x === creature.position.x && tile.y === creature.position.y) {
+      addToast('You must shift at least 1 square')
+      return
+    }
+
+    // COMMITTED: Move the creature to the new position
+    const oldPos = { ...creature.position }
+    creature.position = { x: tile.x, y: tile.y }
+
+    // Update board occupancy
+    const oldTile = gameState.board.getTile(oldPos.x, oldPos.y)
+    const newTile = gameState.board.getTile(tile.x, tile.y)
+    if (oldTile) oldTile.occupant = null
+    if (newTile) newTile.occupant = creature
+
+    // Discard the card from player's hand (point of no return)
+    const currentPlayer = gameState.players[creature.owner]
+    currentPlayer.orderHand.splice(cardIndex, 1)
+
+    // Clear shift tiles
+    setShiftAttackValidTiles([])
+
+    // Update to attacking phase
+    setPendingShiftAttack({
+      ...pendingShiftAttack,
+      phase: 'attacking'
+    })
+
+    // Calculate valid attack targets from new position
+    const allTargets = gameState.getValidAttackTargets(creature)
+
+    // Filter based on card type:
+    // - Nimble Strike: melee OR ranged (has rangedDamageBonus)
+    // - Spring Attack: melee OR ranged (has shiftAfterAttack - allows any attack type)
+    // - Shadowy Ambush: melee only (has flatMeleeDamage, no ranged bonus, no post-shift)
+    const hasRangedBonus = card.rangedDamageBonus > 0
+    const allowsAnyAttack = card.shiftAfterAttack > 0 // Spring Attack allows any attack type
+    let validTargets
+
+    if (hasRangedBonus || allowsAnyAttack) {
+      // Nimble Strike or Spring Attack - can use melee or ranged
+      validTargets = allTargets
+    } else {
+      // Shadowy Ambush - melee only (flat melee damage)
+      validTargets = allTargets.filter(t => t.attackType === 'melee')
+    }
+
+    if (validTargets.length === 0) {
+      // No valid targets after shift - creature still commits, just loses the attack
+      addToast(`No valid attack targets from this position. ${card.name} consumed but no attack.`)
+      // Tap the creature and clear state
+      creature.tap()
+      creature.hasAttackedThisTurn = true
+      clearShiftAttackState()
+      setSelectedBoardCreature(null)
+      setRenderCounter(prev => prev + 1)
+      return
+    }
+
+    // Store valid targets and highlight them
+    setValidAttackTargets(validTargets)
+
+    // Toast instruction
+    const attackTypeText = (hasRangedBonus || allowsAnyAttack) ? 'melee or ranged' : 'melee'
+    addToast(`⚔️ ${card.name}: Right-click an enemy to ${attackTypeText} attack`)
+
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
+   * Handle attack target selection during 'attacking' phase
+   * Called when player right-clicks a creature during attack selection
+   */
+  const handleShiftAttackTarget = (tile) => {
+    if (!pendingShiftAttack || !gameState) return
+
+    const { card, creature } = pendingShiftAttack
+
+    // Check if tile has a valid target
+    const target = tile.occupant
+    if (!target) {
+      addToast('Click on an enemy creature to attack')
+      return
+    }
+
+    // Check if target is in validAttackTargets
+    // Note: validAttackTargets uses 'creature' property, not 'target'
+    const targetInfo = validAttackTargets.find(t => t.creature.instanceId === target.instanceId)
+    if (!targetInfo) {
+      addToast('Invalid target - select a highlighted enemy')
+      return
+    }
+
+    // Determine attack type and damage
+    const attackType = targetInfo.attackType
+    let baseDamage, bonusDamage, damageBoostFlat = null
+
+    if (attackType === 'melee') {
+      baseDamage = creature.creature.meleeAttack?.damage || 0
+      if (card.flatMeleeDamage !== null && card.flatMeleeDamage !== undefined) {
+        // Flat damage replaces base
+        damageBoostFlat = card.flatMeleeDamage
+        bonusDamage = 0
+      } else {
+        bonusDamage = card.meleeDamageBonus || 0
+      }
+    } else {
+      // Ranged
+      baseDamage = creature.creature.rangedAttack?.damage || 0
+      bonusDamage = card.rangedDamageBonus || 0
+    }
+
+    // Clear attack targets highlight (we're about to show attack panel)
+    setValidAttackTargets([])
+
+    // Exit shift attack mode for now (will check pendingShiftAttack for post-shift)
+    setShiftAttackMode(false)
+    setShiftAttackValidTiles([])
+
+    // Set up attack info using pendingRightClickAttack pattern
+    const attackInfo = {
+      attackType: attackType,
+      damage: baseDamage
+    }
+
+    setPendingRightClickAttack({
+      attacker: creature,
+      target: target,
+      attackInfo: attackInfo,
+      damageBoostCard: card,
+      damageBoostBonus: bonusDamage,
+      damageBoostFlat: damageBoostFlat,
+      // Shift attack specific properties
+      isShiftAttack: true,
+      hasPostAttackShift: card.shiftAfterAttack > 0,
+      postAttackShiftDistance: card.shiftAfterAttack
+    })
+
+    // Show attack confirmation panel
+    setCombatPanelMode('attack')
+    setCombatHighlightCreatures({
+      attacker: creature.instanceId,
+      defender: target.instanceId
+    })
+  }
+
+  /**
+   * Handle post-attack shift destination selection (Spring Attack)
+   * Called when player right-clicks a tile during 'post-shift' phase
+   */
+  const handleShiftAttackPostShift = (tile) => {
+    if (!pendingShiftAttack || !gameState) return
+
+    const { card, creature } = pendingShiftAttack
+
+    // Check if this is a valid shift tile
+    const isValidShiftTile = shiftAttackValidTiles.some(
+      t => t.x === tile.x && t.y === tile.y
+    )
+
+    if (!isValidShiftTile) {
+      addToast('Invalid shift destination - select a highlighted purple tile')
+      return
+    }
+
+    // Cannot shift to current position (min 1 square for post-shift too)
+    if (tile.x === creature.position.x && tile.y === creature.position.y) {
+      addToast('You must shift at least 1 square')
+      return
+    }
+
+    // Move the creature to the new position
+    const oldPos = { ...creature.position }
+    creature.position = { x: tile.x, y: tile.y }
+
+    // Update board occupancy
+    const oldTile = gameState.board.getTile(oldPos.x, oldPos.y)
+    const newTile = gameState.board.getTile(tile.x, tile.y)
+    if (oldTile) oldTile.occupant = null
+    if (newTile) newTile.occupant = creature
+
+    addToast(`🏃 ${creature.creature.name} shifted after attack!`)
+
+    // Check for HIDDEN BLADE trigger AFTER post-shift completes
+    // Hidden Blade checks for adjacent TAPPED enemies at the creature's NEW position
+    if (gameState.hasHiddenBlade(creature)) {
+      const validTargets = gameState.getHiddenBladeTargets(creature)
+      if (validTargets.length > 0 && isPlayerHuman(creature.owner)) {
+        // Set up Hidden Blade modal - defer tapping until after Hidden Blade resolves
+        setHiddenBladePending({ attacker: creature, validTargets })
+        setShowHiddenBladeModal(true)
+        // Clear shift state but DON'T tap yet - Hidden Blade handlers will tap
+        clearShiftAttackState()
+        setSelectedBoardCreature(null)
+        setRenderCounter(prev => prev + 1)
+        return // Wait for Hidden Blade decision
+      }
+    }
+
+    // Tap the creature - STANDARD action is now complete
+    creature.hasAttackedThisTurn = true
+    if (creature.hasMovedThisTurn) {
+      creature.tap()
+    }
+
+    // Clear all state - action complete
+    clearShiftAttackState()
+    setSelectedBoardCreature(null)
+    setRenderCounter(prev => prev + 1)
+  }
+
+  /**
    * Handle Web Removal Modal - Keep Web
    * Closes the modal and allows creature to attack (but not move)
    */
@@ -4754,7 +5339,7 @@ function GameBoard({ onTurnInfoChange }) {
 
   // Process AI attack intention - check if defender is human and show modal if needed
   const processAIAttackIntention = (action) => {
-    const { attackerInstance, defenderInstance, targetInfo, damageBoostCard, damageBoostBonus, damageBoostFlat } = action
+    const { attackerInstance, defenderInstance, targetInfo, damageBoostCard, damageBoostBonus, damageBoostFlat, isShiftAttack, shiftAfterAttack } = action
 
     // VALIDATION: Skip attack if defender's owner is already eliminated
     if (!gameState.activePlayers.includes(defenderInstance.owner)) {
@@ -4856,7 +5441,11 @@ function GameBoard({ onTurnInfoChange }) {
         targetInfo,
         damageBoostCard,
         damageBoostBonus: damageBoostBonus || 0,
-        damageBoostFlat: damageBoostFlat !== undefined ? damageBoostFlat : null
+        damageBoostFlat: damageBoostFlat !== undefined ? damageBoostFlat : null,
+        // Shift+Attack fields (Phase STD-4)
+        isShiftAttack: isShiftAttack || false,
+        hasPostAttackShift: (shiftAfterAttack || 0) > 0,
+        postAttackShiftDistance: shiftAfterAttack || 0
       })
       // Set combat panel to defense mode with creature highlights
       setCombatPanelMode('defense')
@@ -5544,6 +6133,15 @@ function GameBoard({ onTurnInfoChange }) {
     if (shiftSelectionMode && pendingShiftAfterDefense) {
       handleShiftTileSelected(tile)
       return // Don't process other right-click actions during shift selection
+    }
+
+    // ============================================
+    // SHIFT + ATTACK MODE (Nimble Strike, Spring Attack, Shadowy Ambush)
+    // Handle clicking on tiles or creatures based on current phase
+    // ============================================
+    if (shiftAttackMode && pendingShiftAttack) {
+      handleShiftAttackTileClick(tile)
+      return // Don't process other right-click actions during shift+attack mode
     }
 
     // ============================================
@@ -7694,6 +8292,55 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // ============================================
+      // SHIFT+ATTACK AI EXECUTION
+      // Phase STD-4: Nimble Strike, Spring Attack, Shadowy Ambush
+      // Process shift+attack actions - shift creature, discard card, then queue attack
+      // ============================================
+      const shiftAttackActions = actions.filter(action => action.type === 'shift_attack')
+      for (const shiftAction of shiftAttackActions) {
+        const { attackerInstance, defenderInstance, shiftTo, attackType, card, cardIndex, damage, shiftAfterAttack } = shiftAction
+
+        // 1. Move creature to shift destination
+        const originalPos = { ...attackerInstance.position }
+        const oldTile = gameState.getTile(originalPos.x, originalPos.y)
+        const newTile = gameState.getTile(shiftTo.x, shiftTo.y)
+
+        if (oldTile) oldTile.occupant = null
+        attackerInstance.position = { x: shiftTo.x, y: shiftTo.y }
+        if (newTile) newTile.occupant = attackerInstance
+
+        // 2. Discard the card from AI player's hand
+        const aiPlayer = gameState.players[currentPlayerId]
+        if (cardIndex >= 0 && cardIndex < aiPlayer.orderHand.length) {
+          aiPlayer.orderHand.splice(cardIndex, 1)
+        }
+
+        addToast(`🏃 AI: ${attackerInstance.creature.name} uses ${card.name} - shifts to (${shiftTo.x},${shiftTo.y})`)
+
+        // 3. Queue this as an attack intention for the pending actions system
+        // This allows defense options to be offered to human defenders
+        const shiftAttackIntention = {
+          type: 'attack_intention',
+          attackerInstance,
+          defenderInstance,
+          targetInfo: {
+            creature: defenderInstance,
+            attackType: attackType,
+            position: defenderInstance.position
+          },
+          damageBoostCard: card,
+          damageBoostBonus: attackType === 'melee' ? (card.meleeDamageBonus || 0) : (card.rangedDamageBonus || 0),
+          damageBoostFlat: card.flatMeleeDamage !== undefined ? card.flatMeleeDamage : null,
+          // Store shift+attack specific info for post-attack shift
+          isShiftAttack: true,
+          shiftAfterAttack: shiftAfterAttack
+        }
+
+        // Add to attack intentions to be processed
+        attackIntentions.push(shiftAttackIntention)
+      }
+
+      // ============================================
       // HORDE PROTECTION FIX FOR AI
       // If AI used HORDE deployment during REFRESH, clear protection for creatures
       // deployed this turn. This mirrors the human HORDE logic at lines 1612-1615.
@@ -8000,6 +8647,13 @@ function GameBoard({ onTurnInfoChange }) {
                     shiftValidTiles.some(t => t.x === x && t.y === y)
 
                   // ============================================
+                  // SHIFT+ATTACK HIGHLIGHTS: Show valid shift destinations (pre-shift or post-shift phase)
+                  // ============================================
+                  const isShiftAttackTile = shiftAttackMode &&
+                    (pendingShiftAttack?.phase === 'pre-shift' || pendingShiftAttack?.phase === 'post-shift') &&
+                    shiftAttackValidTiles.some(t => t.x === x && t.y === y)
+
+                  // ============================================
                   // LIGHTNING BREATH HIGHLIGHTS: Show valid targets and selected targets
                   // ============================================
                   const isLightningBreathValidTarget = lightningBreathMode &&
@@ -8251,7 +8905,7 @@ function GameBoard({ onTurnInfoChange }) {
                       isOrderCardTarget={isOrderCardTarget}
                       isWebbed={creature && gameState?.hasMovementBlockingAttachment?.(creature)}
                       isHealingTouchTarget={isHealingTouchTarget}
-                      isShiftTile={isShiftTile}
+                      isShiftTile={isShiftTile || isShiftAttackTile}
                     />
                   )
                 })}
@@ -9317,6 +9971,15 @@ function GameBoard({ onTurnInfoChange }) {
         creature={damageBoostConfig?.creature}
         onConfirm={confirmDamageBoost}
         onCancel={cancelDamageBoostAttack}
+      />
+
+      {/* SHIFT + ATTACK MODAL (Nimble Strike, Spring Attack, Shadowy Ambush) */}
+      <ShiftAttackModal
+        show={showShiftAttackModal}
+        card={shiftAttackConfig?.card}
+        creature={shiftAttackConfig?.creature}
+        onConfirm={confirmShiftAttack}
+        onCancel={cancelShiftAttack}
       />
 
       {/* MORALE LOSS NOTIFICATION MODAL (Unexpected Resistance) */}

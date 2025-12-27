@@ -104,6 +104,10 @@ export class SimpleAI {
 
       if (!isMeleeBoost && !isRangedBoost) continue
 
+      // EXCLUDE shift+attack cards - they require special handling (shift before attack)
+      // Examples: Nimble Strike, Spring Attack, Shadowy Ambush
+      if (card.shiftBeforeAttack > 0) continue
+
       // Check level requirement
       if (creatureLevel < card.level) continue
 
@@ -225,6 +229,179 @@ export class SimpleAI {
     }
 
     return null
+  }
+
+  /**
+   * Get available shift+attack cards for a creature
+   * Phase STD-4: Nimble Strike, Spring Attack, Shadowy Ambush
+   *
+   * Big O Complexity: O(n) where n = cards in hand
+   *
+   * @param {CreatureInstance} creature - The creature that would use the card
+   * @param {Array} orderHand - Player's current order card hand
+   * @returns {Array} Array of { card, cardIndex, shiftDistance, meleeDamageBonus, rangedDamageBonus, flatMeleeDamage, shiftAfterAttack } objects
+   */
+  getShiftAttackCards(creature, orderHand) {
+    if (!creature || !orderHand || orderHand.length === 0) return []
+
+    const creatureLevel = creature.creature.level || 1
+    const creatureAbilities = creature.creature.abilityScores || []
+
+    const validCards = []
+
+    for (let i = 0; i < orderHand.length; i++) {
+      const card = orderHand[i]
+
+      // Must be a STANDARD action card with shiftBeforeAttack
+      if (card.actionType !== 'STANDARD') continue
+      if (!card.shiftBeforeAttack || card.shiftBeforeAttack <= 0) continue
+
+      // Check level requirement
+      if (creatureLevel < card.level) continue
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const hasAbility = creatureAbilities.includes(card.abilityRequired)
+        if (!hasAbility) continue
+      }
+
+      // Creature must not be tapped (STANDARD action requires untapped)
+      if (creature.isTapped) continue
+
+      // Must have some form of attack capability
+      const hasMeleeBoost = card.meleeDamageBonus > 0 || card.flatMeleeDamage !== null
+      const hasRangedBoost = card.rangedDamageBonus > 0
+      const hasPostShift = card.shiftAfterAttack > 0 // Spring Attack
+
+      // Determine which attack types this card allows:
+      // - Nimble Strike: melee OR ranged (has rangedDamageBonus)
+      // - Spring Attack: melee OR ranged (has shiftAfterAttack - allows any attack type)
+      // - Shadowy Ambush: melee only (has flatMeleeDamage, no ranged bonus, no post-shift)
+      const canMelee = creature.creature.meleeAttack && (hasMeleeBoost || hasPostShift)
+      const canRanged = creature.creature.rangedAttack && (hasRangedBoost || hasPostShift)
+
+      if (!canMelee && !canRanged) continue
+
+      validCards.push({
+        card,
+        cardIndex: i,
+        shiftDistance: card.shiftBeforeAttack,
+        meleeDamageBonus: card.meleeDamageBonus || 0,
+        rangedDamageBonus: card.rangedDamageBonus || 0,
+        flatMeleeDamage: card.flatMeleeDamage !== null ? card.flatMeleeDamage : null,
+        shiftAfterAttack: card.shiftAfterAttack || 0
+      })
+    }
+
+    // Sort by total damage potential (highest first)
+    validCards.sort((a, b) => {
+      const aDamage = a.flatMeleeDamage !== null ? a.flatMeleeDamage :
+        Math.max(a.meleeDamageBonus, a.rangedDamageBonus)
+      const bDamage = b.flatMeleeDamage !== null ? b.flatMeleeDamage :
+        Math.max(b.meleeDamageBonus, b.rangedDamageBonus)
+      return bDamage - aDamage
+    })
+
+    return validCards
+  }
+
+  /**
+   * Evaluate if a shift+attack card can reach a valuable target
+   * Returns the best shift destination and target for the card
+   *
+   * @param {CreatureInstance} creature - The creature using the card
+   * @param {Object} cardInfo - Shift attack card info from getShiftAttackCards
+   * @returns {Object|null} { shiftTo, target, attackType, damage } or null if no good option
+   */
+  evaluateShiftAttack(creature, cardInfo) {
+    if (!creature || !cardInfo) return null
+
+    const card = cardInfo.card
+    const shiftDistance = cardInfo.shiftDistance
+
+    // Get valid shift destinations (1 to shiftDistance squares, excluding current position)
+    const validShiftTiles = this.gameState.getValidShiftTiles(creature, shiftDistance)
+    if (!validShiftTiles || validShiftTiles.length === 0) return null
+
+    let bestOption = null
+    let bestScore = -1
+
+    // Evaluate each shift destination
+    for (const shiftTile of validShiftTiles) {
+      // Temporarily move creature to evaluate attack options
+      const originalPos = { ...creature.position }
+      creature.position = shiftTile
+
+      // Get attack targets from new position
+      const attackTargets = this.gameState.getValidAttackTargets(creature, null)
+
+      for (const targetInfo of attackTargets) {
+        const target = targetInfo.creature
+        let attackType = targetInfo.attackType
+        let damage = 0
+
+        // Calculate damage based on attack type
+        // Spring Attack (shiftAfterAttack > 0) allows any attack type without bonus
+        const allowsAnyAttack = cardInfo.shiftAfterAttack > 0
+
+        if (attackType === 'melee') {
+          if (cardInfo.flatMeleeDamage !== null) {
+            damage = cardInfo.flatMeleeDamage
+          } else {
+            const baseDamage = creature.creature.meleeAttack?.damage || 0
+            damage = baseDamage + cardInfo.meleeDamageBonus
+          }
+        } else if (attackType === 'ranged' && (cardInfo.rangedDamageBonus > 0 || allowsAnyAttack)) {
+          // Ranged allowed if card has ranged bonus OR allows any attack (Spring Attack)
+          const baseDamage = creature.creature.rangedAttack?.damage || 0
+          damage = baseDamage + cardInfo.rangedDamageBonus
+        } else {
+          // Skip if ranged attack but card only boosts melee (Shadowy Ambush)
+          creature.position = originalPos
+          continue
+        }
+
+        // Score based on: damage potential + kill potential + escape potential (post-shift)
+        let score = damage
+
+        // Bonus for killing the target
+        if (damage >= target.currentHP) {
+          score += 100 + target.creature.level * 20 // Higher level kills are better
+        }
+
+        // Bonus for post-attack shift (Spring Attack escape)
+        if (cardInfo.shiftAfterAttack > 0) {
+          score += 20 // Escape potential is valuable
+        }
+
+        // Slight preference for targets that would survive normal attack but die to this
+        const normalDamage = attackType === 'melee'
+          ? (creature.creature.meleeAttack?.damage || 0)
+          : (creature.creature.rangedAttack?.damage || 0)
+        if (normalDamage < target.currentHP && damage >= target.currentHP) {
+          score += 50 // Card made the difference
+        }
+
+        if (score > bestScore) {
+          bestScore = score
+          bestOption = {
+            shiftTo: shiftTile,
+            target: target,
+            targetInfo: targetInfo,
+            attackType: attackType,
+            damage: damage,
+            card: card,
+            cardIndex: cardInfo.cardIndex,
+            shiftAfterAttack: cardInfo.shiftAfterAttack
+          }
+        }
+      }
+
+      // Restore original position
+      creature.position = originalPos
+    }
+
+    return bestOption
   }
 
   /**
@@ -797,6 +974,41 @@ export class SimpleAI {
           didAction = true
           hasAttackIntention = true  // FIX: Mark that we created an attack intention
           // DON'T continue - creature can still move after attacking!
+        } else if (this.canUseDamageBoostCards()) {
+          // No attack targets from current position - check if SHIFT+ATTACK cards can reach targets
+          // Phase STD-4: Nimble Strike, Spring Attack, Shadowy Ambush
+          const player = this.gameState.players[this.playerId]
+          const shiftAttackCards = this.getShiftAttackCards(creature, player.orderHand)
+
+          if (shiftAttackCards.length > 0) {
+            // Evaluate each shift+attack card to find best option
+            let bestShiftAttack = null
+            for (const cardInfo of shiftAttackCards) {
+              const option = this.evaluateShiftAttack(creature, cardInfo)
+              if (option && (!bestShiftAttack || option.damage > bestShiftAttack.damage)) {
+                bestShiftAttack = option
+              }
+            }
+
+            if (bestShiftAttack) {
+              console.log(`[AI] SHIFT+ATTACK: ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`)
+
+              actions.push({
+                type: 'shift_attack',
+                attackerInstance: creature,
+                defenderInstance: bestShiftAttack.target,
+                shiftTo: bestShiftAttack.shiftTo,
+                attackType: bestShiftAttack.attackType,
+                card: bestShiftAttack.card,
+                cardIndex: bestShiftAttack.cardIndex,
+                damage: bestShiftAttack.damage,
+                shiftAfterAttack: bestShiftAttack.shiftAfterAttack
+              })
+              didAction = true
+              hasAttackIntention = true
+              continue  // Don't fall through - shift+attack consumes action
+            }
+          }
         }
       }
 
@@ -870,6 +1082,40 @@ export class SimpleAI {
           })
           didAction = true
           hasAttackIntention = true  // FIX: Mark that we created an attack intention
+        } else if (this.canUseDamageBoostCards()) {
+          // No attack targets after moving - check if SHIFT+ATTACK cards can reach targets
+          // Phase STD-4: Nimble Strike, Spring Attack, Shadowy Ambush
+          const player = this.gameState.players[this.playerId]
+          const shiftAttackCards = this.getShiftAttackCards(creature, player.orderHand)
+
+          if (shiftAttackCards.length > 0) {
+            // Evaluate each shift+attack card to find best option
+            let bestShiftAttack = null
+            for (const cardInfo of shiftAttackCards) {
+              const option = this.evaluateShiftAttack(creature, cardInfo)
+              if (option && (!bestShiftAttack || option.damage > bestShiftAttack.damage)) {
+                bestShiftAttack = option
+              }
+            }
+
+            if (bestShiftAttack) {
+              console.log(`[AI] SHIFT+ATTACK (post-move): ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`)
+
+              actions.push({
+                type: 'shift_attack',
+                attackerInstance: creature,
+                defenderInstance: bestShiftAttack.target,
+                shiftTo: bestShiftAttack.shiftTo,
+                attackType: bestShiftAttack.attackType,
+                card: bestShiftAttack.card,
+                cardIndex: bestShiftAttack.cardIndex,
+                damage: bestShiftAttack.damage,
+                shiftAfterAttack: bestShiftAttack.shiftAfterAttack
+              })
+              didAction = true
+              hasAttackIntention = true
+            }
+          }
         }
       }
     }
