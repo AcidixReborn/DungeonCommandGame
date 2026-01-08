@@ -120,23 +120,7 @@
   border-radius: 5px;
 }
 
-.card-hand-horizontal::-webkit-scrollbar {
-  width: 8px;
-}
-
-.card-hand-horizontal::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
-
-.card-hand-horizontal::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-}
-
-.card-hand-horizontal::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
+/* Scrollbar styling moved to global index.css */
 
 .card-hand-vertical {
   display: flex;
@@ -152,23 +136,7 @@
   align-content: flex-start;
 }
 
-.card-hand-vertical::-webkit-scrollbar {
-  width: 8px;
-}
-
-.card-hand-vertical::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
-
-.card-hand-vertical::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-}
-
-.card-hand-vertical::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
+/* Scrollbar styling moved to global index.css */
 
 /* ============================================
    PANEL COLLAPSE TOGGLE BUTTON
@@ -240,7 +208,7 @@
   font-weight: bold;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -409,20 +377,4 @@
   align-content: flex-start;
 }
 
-.faction-creatures-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-
-.faction-creatures-scroll::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
-
-.faction-creatures-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 215, 0, 0.4);
-  border-radius: 4px;
-}
-
-.faction-creatures-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 215, 0, 0.6);
-}
+/* Scrollbar styling moved to global index.css */

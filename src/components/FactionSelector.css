@@ -4,7 +4,7 @@
 
 .faction-card {
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: var(--transition-medium);
   border-width: 2px;
   background-color: rgba(0, 0, 0, 0.8) !important;
   color: #ffffff !important;

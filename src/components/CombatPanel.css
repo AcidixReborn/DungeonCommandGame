@@ -16,7 +16,7 @@
   flex-direction: column;
   gap: 6px;
   padding: 8px;
-  background: linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.95) 100%);
+  background: var(--panel-bg);
   border-radius: 10px;
   border: 2px solid #555;
   height: 100%;
@@ -24,23 +24,7 @@
   overflow-x: hidden;
 }
 
-.combat-panel::-webkit-scrollbar {
-  width: 8px;
-}
-
-.combat-panel::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
-
-.combat-panel::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-}
-
-.combat-panel::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
+/* Scrollbar styling moved to global index.css */
 
 /* ============================================
    ATTACK CONFIRM PANEL SPECIFIC STYLES
@@ -321,7 +305,7 @@
   border: 2px solid #555;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   min-width: 70px;
 }
 
@@ -370,7 +354,7 @@
   border: 2px solid #555;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .immediate-card-option:hover {
@@ -506,27 +490,11 @@
   padding-right: 4px;
 }
 
-.defense-options-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.defense-options-scroll::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 3px;
-}
-
-.defense-options-scroll::-webkit-scrollbar-thumb {
-  background: rgba(77, 208, 225, 0.5);
-  border-radius: 3px;
-}
-
-.defense-options-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(77, 208, 225, 0.7);
-}
+/* Scrollbar styling moved to global index.css */
 
 /* Defense option cards styling */
 .defense-option-card {
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .defense-option-card:hover {

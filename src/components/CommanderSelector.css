@@ -4,7 +4,7 @@
 
 .commander-card {
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: var(--transition-medium);
   border-width: 3px;
   border-color: #444 !important;
   background-color: #000 !important;
@@ -25,7 +25,7 @@
 }
 
 .commander-card img {
-  transition: all 0.3s ease;
+  transition: var(--transition-medium);
 }
 
 .commander-card:hover img {

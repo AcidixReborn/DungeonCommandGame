@@ -11,6 +11,50 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* ============================================
+     GLOBAL CSS CUSTOM PROPERTIES
+     Use these variables throughout the codebase
+     to maintain consistency and ease updates
+     ============================================ */
+
+  /* Card styling */
+  --card-border-radius: 12px;
+  --card-border: 3px solid #555;
+  --card-glow-default: 0 0 10px rgba(255, 255, 255, 0.1);
+  --card-glow-hover: 0 0 15px rgba(255, 255, 255, 0.2);
+
+  /* Border radius scale (for reference - not replacing hardcoded values to preserve layout) */
+  --border-radius-panel: 10px;     /* Large panels */
+  --border-radius-section: 8px;    /* Sections within panels */
+  --border-radius-button: 6px;     /* Buttons and medium elements */
+  --border-radius-small: 4px;      /* Small UI elements */
+  --border-radius-tiny: 2px;       /* Badges, indicators */
+
+  /* Panel backgrounds */
+  --panel-bg: linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.95) 100%);
+
+  /* Text effects */
+  --text-shadow-default: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  --button-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+
+  /* Transitions */
+  --transition-fast: all 0.2s ease;
+  --transition-medium: all 0.3s ease;
+  --transition-slow: all 0.5s ease;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 6px;
+  --spacing-md: 8px;
+  --spacing-lg: 10px;
+
+  /* Z-index scale */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-tooltip: 1060;
 }
 
 body {
@@ -25,4 +69,26 @@ body {
   width: 100%;
   margin: 0;
   padding: 0;
+}
+
+/* ============================================
+   GLOBAL SCROLLBAR STYLING
+   Consolidated from multiple component files
+   ============================================ */
+*::-webkit-scrollbar {
+  width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }

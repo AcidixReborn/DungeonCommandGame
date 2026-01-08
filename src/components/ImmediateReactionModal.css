@@ -11,5 +11,5 @@
 }
 
 .immediate-reaction-modal .reaction-card {
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }

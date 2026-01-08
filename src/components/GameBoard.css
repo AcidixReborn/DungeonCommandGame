@@ -336,7 +336,7 @@
 
 /* Toast notification styling */
 .toast-notification {
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 /* Expanded log overlay animation */

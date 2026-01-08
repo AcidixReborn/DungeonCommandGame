@@ -294,7 +294,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   padding: 0;
   line-height: 1;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
@@ -337,7 +337,7 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.6);
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 .carousel-dot.active {
