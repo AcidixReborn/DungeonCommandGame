@@ -64,7 +64,7 @@ function GraveyardPanel({
   return (
     <div className="combat-panel graveyard-panel">
       {/* Header with faction cycling buttons */}
-      <div className="combat-panel-header graveyard-header" style={{ backgroundColor: '#1a1a2e' }}>
+      <div className="combat-panel-header graveyard-header" style={{ backgroundColor: '#2a2a3e' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
           <h5 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '1.2rem' }}>&#9904;</span> Graveyard
