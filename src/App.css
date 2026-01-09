@@ -159,29 +159,35 @@ html, body {
 }
 
 /* ============================================
-   CARTOON-STYLE MODAL - ENHANCED
+   MODAL STYLES
+   Instant appearance (no transitions/animations)
+   to prevent visual flashing on state updates
    ============================================ */
 
-/* ENHANCED VERSION */
-/* Modal backdrop with subtle animation and blur */
+/*
+ * Override Bootstrap modal transitions - required to prevent
+ * background flashing when modals open during state updates.
+ * !important needed to override Bootstrap's inline styles.
+ */
+.modal,
+.modal.fade,
+.modal.show {
+  transition: none !important;
+  animation: none !important;
+}
+
+.modal-dialog {
+  transition: none !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+/* Hide backdrop entirely to prevent darkening flash */
 .modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.3s ease-in-out;
+  display: none !important;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-  }
-  to {
-    opacity: 1;
-    backdrop-filter: blur(4px);
-  }
-}
-
-/* Modal content with enhanced depth and subtle pattern */
+/* Modal content styling */
 .modal-content {
   background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
   border: 3px solid #3a3a3a;
@@ -193,47 +199,8 @@ html, body {
     0 10px 40px rgba(0, 0, 0, 0.5),
     inset 2px 2px 0px rgba(255, 255, 255, 0.05);
   border-radius: 10px;
-  animation: modalBounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   position: relative;
   overflow: hidden;
-}
-
-/* Subtle texture overlay for modals */
-.modal-content::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 2px,
-    rgba(255, 255, 255, 0.01) 2px,
-    rgba(255, 255, 255, 0.01) 4px
-  );
-  pointer-events: none;
-  z-index: 1;
-}
-
-.modal-content > * {
-  position: relative;
-  z-index: 2;
-}
-
-@keyframes modalBounceIn {
-  0% {
-    transform: scale(0.7) translateY(-50px);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.05) translateY(0);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-  }
 }
 
 /* Modal header with enhanced styling */

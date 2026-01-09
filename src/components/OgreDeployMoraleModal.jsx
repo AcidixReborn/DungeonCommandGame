@@ -20,7 +20,7 @@ function OgreDeployMoraleModal({ show, onDismiss, result }) {
   const { creatureInstance, oldMorale, newMorale } = result
 
   return (
-    <Modal show={show} onHide={onDismiss} centered size="sm">
+    <Modal show={show} onHide={onDismiss} centered size="sm" backdrop="static">
       <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #8B4513' }}>
         <Modal.Title>+1 MORALE!</Modal.Title>
       </Modal.Header>

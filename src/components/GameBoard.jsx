@@ -9503,6 +9503,7 @@ function GameBoard({ onTurnInfoChange }) {
         onHide={cancelMove}
         dialogClassName="move-confirm-modal"
         centered
+        backdrop="static"
       >
         <Modal.Header closeButton className="py-2">
           <Modal.Title style={{ fontSize: '1rem', color: '#000' }}>Confirm Movement</Modal.Title>
@@ -9570,6 +9571,7 @@ function GameBoard({ onTurnInfoChange }) {
         show={showTreasureDiscovery}
         onHide={() => setShowTreasureDiscovery(false)}
         centered
+        backdrop="static"
       >
         <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)', color: '#000' }}>
           <Modal.Title style={{ fontSize: '1.2rem' }}>💎 Treasure Discovered!</Modal.Title>
@@ -9616,6 +9618,7 @@ function GameBoard({ onTurnInfoChange }) {
         show={showCollectConfirm}
         onHide={cancelCollectMorale}
         centered
+        backdrop="static"
       >
         <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)', color: '#000' }}>
           <Modal.Title style={{ fontSize: '1.2rem' }}>💎 Collect Morale?</Modal.Title>
@@ -9745,7 +9748,7 @@ function GameBoard({ onTurnInfoChange }) {
         </div>
       )}
 
-      {/* Backdrop for deploy confirmation */}
+      {/* Click-away backdrop for deploy confirmation (transparent to prevent flash) */}
       {showDeployConfirm && (
         <div
           style={{
@@ -9754,7 +9757,6 @@ function GameBoard({ onTurnInfoChange }) {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             zIndex: 1049
           }}
           onClick={handleDeployCancel}
@@ -9978,6 +9980,7 @@ function GameBoard({ onTurnInfoChange }) {
         show={showSlamConfirmModal}
         onHide={handleSlamConfirmCancel}
         centered
+        backdrop="static"
       >
         <Modal.Header style={{ backgroundColor: '#8B4513', color: 'white' }}>
           <Modal.Title>Confirm Slam Location</Modal.Title>
@@ -10107,6 +10110,7 @@ function GameBoard({ onTurnInfoChange }) {
           setScrollbookCardIndex(null)
         }}
         centered
+        backdrop="static"
       >
         <Modal.Header closeButton style={{ backgroundColor: '#17a2b8', color: 'white', borderBottom: '1px solid #138496' }}>
           <Modal.Title>📜 SCROLLBOOK</Modal.Title>
@@ -10666,6 +10670,7 @@ function GameBoard({ onTurnInfoChange }) {
         onHide={() => setShowMagicCircleModal(false)}
         centered
         size="md"
+        backdrop="static"
         className="damage-notification-modal"
       >
         <Modal.Header closeButton style={{

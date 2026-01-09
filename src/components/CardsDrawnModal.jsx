@@ -24,7 +24,7 @@ function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [], titl
   const hasBonusSources = bonusSources && bonusSources.length > 0
 
   return (
-    <Modal show={show} onHide={onContinue} centered size="md">
+    <Modal show={show} onHide={onContinue} centered size="md" backdrop="static">
       <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}>
         <Modal.Title>
           {title
