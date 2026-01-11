@@ -305,6 +305,12 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
+    meleeDamageBonus: 10, // +10 melee damage - triggers DamageBoostModal
+    attachOnUse: {
+      preventsMovement: false,
+      removableAsStandard: false,
+      damageOnActivation: 10 // 10 damage at start of activation
+    },
     effectDescription: 'Make a melee attack that deals +10 DAMAGE. Attach this card to the target. At the start of its activation, this creature takes 10 DAMAGE.',
     faction: FACTION_NAME,
     imageUrl: deepWound3Img
@@ -315,6 +321,12 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
+    meleeDamageBonus: 10, // +10 melee damage - triggers DamageBoostModal
+    attachOnUse: {
+      preventsMovement: false,
+      removableAsStandard: false,
+      damageOnActivation: 10 // 10 damage at start of activation
+    },
     effectDescription: 'Make a melee attack that deals +10 DAMAGE. Attach this card to the target. At the start of its activation, this creature takes 10 DAMAGE.',
     faction: FACTION_NAME,
     imageUrl: deepWound4Img
@@ -661,6 +673,9 @@ export const orderCards = [
     abilityRequired: 'INT',
     actionType: 'MINOR',
     effectDescription: 'SPIDER AFFINITY. Attach this card to 1 creature within 10 squares. This creature cannot move or shift. Remove this card as a standard action.',
+    attachOnUse: {
+      preventsMovement: true
+    },
     faction: FACTION_NAME,
     imageUrl: web35Img
   },
@@ -671,6 +686,9 @@ export const orderCards = [
     abilityRequired: 'INT',
     actionType: 'MINOR',
     effectDescription: 'SPIDER AFFINITY. Attach this card to 1 creature within 10 squares. This creature cannot move or shift. Remove this card as a standard action.',
+    attachOnUse: {
+      preventsMovement: true
+    },
     faction: FACTION_NAME,
     imageUrl: web36Img
   }

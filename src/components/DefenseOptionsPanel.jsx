@@ -625,6 +625,62 @@ function DefenseOptionsPanel({
         )}
       </div>
 
+      {/* Attacker's Order Card Display - shows which card is boosting this attack */}
+      {damageBoostCard && (
+        <div style={{
+          backgroundColor: 'rgba(255, 152, 0, 0.15)',
+          border: '1px solid #ff9800',
+          borderRadius: '8px',
+          padding: '8px',
+          marginBottom: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          {/* Card Image */}
+          <div
+            style={{ cursor: 'pointer' }}
+            onMouseEnter={() => setHoverPreview({ type: 'order', data: { card: damageBoostCard } })}
+            onMouseLeave={() => setHoverPreview(null)}
+          >
+            <img
+              src={damageBoostCard.imageUrl}
+              alt={damageBoostCard.name}
+              style={{
+                height: '80px',
+                borderRadius: '4px',
+                border: '2px solid #ff9800',
+                boxShadow: '0 2px 8px rgba(255, 152, 0, 0.3)'
+              }}
+            />
+          </div>
+          {/* Card Info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontWeight: 'bold',
+              color: '#ff9800',
+              fontSize: '0.9rem',
+              marginBottom: '4px'
+            }}>
+              Attack Boosted By: {damageBoostCard.name}
+            </div>
+            <div style={{
+              fontSize: '0.75rem',
+              color: '#adb5bd',
+              fontStyle: 'italic',
+              lineHeight: 1.3,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical'
+            }}>
+              {damageBoostCard.effectDescription}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Scrollable Defense Options */}
       <div className="defense-options-scroll">
         {!hasAnyDefense && (

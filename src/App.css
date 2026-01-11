@@ -170,10 +170,20 @@ html, body {
  * !important needed to override Bootstrap's inline styles.
  */
 .modal,
-.modal.fade,
+.modal.fade {
+  transition: none !important;
+  animation: none !important;
+}
+
 .modal.show {
   transition: none !important;
   animation: none !important;
+}
+
+/* Ensure hidden modals don't block clicks */
+.modal:not(.show) {
+  pointer-events: none !important;
+  display: none !important;
 }
 
 .modal-dialog {
@@ -182,9 +192,10 @@ html, body {
   animation: none !important;
 }
 
-/* Hide backdrop entirely to prevent darkening flash */
+/* Hide backdrop entirely to prevent darkening flash and click-blocking */
 .modal-backdrop {
   display: none !important;
+  pointer-events: none !important;
 }
 
 /* Modal content styling */

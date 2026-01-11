@@ -122,6 +122,12 @@ export function useAbilityModals() {
   const [healingTouchData, setHealingTouchData] = useState(null)
 
   // ============================================
+  // HARMFUL ATTACHMENTS modal (Deep Wound, Web, Mortal Wound, Shattered Weapon)
+  // ============================================
+  const [showHarmfulAttachmentsModal, setShowHarmfulAttachmentsModal] = useState(false)
+  const [harmfulAttachmentsData, setHarmfulAttachmentsData] = useState(null)
+
+  // ============================================
   // CHIEFTAIN CALL modal
   // ============================================
   const [showChieftainCallModal, setShowChieftainCallModal] = useState(false)
@@ -436,6 +442,8 @@ export function useAbilityModals() {
     setPendingMagicCircleNotifications({})
     setShowHealingTouchModal(false)
     setHealingTouchData(null)
+    setShowHarmfulAttachmentsModal(false)
+    setHarmfulAttachmentsData(null)
     setShowChieftainCallModal(false)
     setChieftainCallData(null)
     setShowOgreDeployMoraleModal(false)
@@ -583,6 +591,12 @@ export function useAbilityModals() {
     setShowHealingTouchModal,
     healingTouchData,
     setHealingTouchData,
+
+    // Harmful Attachments (Deep Wound, Web, Mortal Wound, Shattered Weapon)
+    showHarmfulAttachmentsModal,
+    setShowHarmfulAttachmentsModal,
+    harmfulAttachmentsData,
+    setHarmfulAttachmentsData,
 
     // Chieftain Call
     showChieftainCallModal,

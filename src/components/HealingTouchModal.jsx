@@ -44,6 +44,8 @@ function HealingTouchModal({
   // Get attached cards
   const attachedCards = targetInstance.attachedCards || []
   const hasAttachedCards = attachedCards.length > 0
+  console.log('[HEALING TOUCH DEBUG] targetInstance.attachedCards:', targetInstance.attachedCards,
+    'hasAttachedCards:', hasAttachedCards, 'target:', target.name)
 
   return (
     <Modal

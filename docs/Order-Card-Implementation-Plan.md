@@ -298,18 +298,23 @@ Attacks that heal the attacker.
 
 ---
 
-### Phase STD-7: Attack + Status Effect
+### Phase STD-7: Attack + Status Effect ✅ COMPLETE
 Attacks that apply conditions to target.
 
 | Card | Faction | Effect |
 |------|---------|--------|
 | Ray of Frost | Tyranny of Goblins | 30 damage within 5, tap target |
-| Deep Wound (x2) | Sting of Lolth | Melee +10, attach to target (-10 damage dealt) |
+| Deep Wound (x2) | Sting of Lolth | Melee +10, attach to target (10 damage at Activate start) |
 
 **Implementation**:
-- Add `tapTargetOnHit` property
-- Add `attachToTarget` property for debuffs
-- Create debuff attachment system
+- ✅ Added `attachToTarget` property for debuffs that attach to the defender
+- ✅ Added `damageOnActivation` property (10 for Deep Wound - deals damage at start of Activate phase)
+- ✅ Created HarmfulAttachmentsModal component to notify players at Activate phase start
+- ✅ Added `getHarmfulAttachments()` helper to gameState.js for detecting harmful effects
+- ✅ Modal shows categorized effects: Damage (Deep Wound), Movement Blocked (Web), Pending Death (Mortal Wound), Damage Penalty (Shattered Weapon)
+- ✅ Added `attachOnUse.preventsMovement` to Web cards for proper detection
+- ✅ Integrated modal into phase flow (after CardsDrawnModal, before MoraleLossNotificationModal)
+- ✅ AI players get toast notifications instead of modal
 
 ---
 

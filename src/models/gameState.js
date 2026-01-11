@@ -1993,10 +1993,14 @@ export class GameState {
    * @param {CreatureInstance} attackerInstance - The Umber Hulk (for damage value)
    * @param {CreatureInstance} targetInstance - The creature receiving damage
    * @param {number} damageReduction - Amount of damage prevented by defense
+   * @param {number} damageBoostBonus - Bonus damage from order cards (default 0)
+   * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
    * @returns {Object} { success, damage, destroyed, moraleChange, remainingHP }
    */
-  applyConfusionGazeWithDefense(attackerInstance, targetInstance, damageReduction = 0) {
-    const BASE_DAMAGE = attackerInstance.creature.meleeAttack?.damage || 30
+  applyConfusionGazeWithDefense(attackerInstance, targetInstance, damageReduction = 0, damageBoostBonus = 0, damageBoostFlat = null) {
+    // Calculate base damage with optional order card boost
+    const baseDamage = attackerInstance.creature.meleeAttack?.damage || 30
+    const BASE_DAMAGE = damageBoostFlat !== null ? damageBoostFlat : baseDamage + damageBoostBonus
     const actualDamage = Math.max(0, BASE_DAMAGE - damageReduction)
 
     if (!targetInstance) {
@@ -2624,6 +2628,20 @@ export class GameState {
   }
 
   /**
+   * Check if creature has any damageOnActivation attachment (Deep Wound)
+   * These deal damage at the start of the creature's owner's Activate phase
+   * Big O: O(n) where n = number of attached cards (typically 0-2)
+   * @param {CreatureInstance} creatureInstance - The creature to check
+   * @returns {boolean} True if creature has a damageOnActivation attachment
+   */
+  hasDamageOnActivationAttachment(creatureInstance) {
+    if (!creatureInstance?.attachedCards?.length) return false
+    return creatureInstance.attachedCards.some(att =>
+      att.attachOnUse?.damageOnActivation > 0
+    )
+  }
+
+  /**
    * Get Block amount from all attachments (Tough as Nails grants Block 10)
    * Block reduces damage from EACH source by this amount
    * Big O: O(n) where n = number of attached cards (typically 0-2)
@@ -2752,6 +2770,81 @@ export class GameState {
   }
 
   /**
+   * Get all harmful attachments for a player's creatures (for UI notification modal)
+   * Categorizes attachments by their effect type:
+   * - damageEffects: Cards that deal damage on activation (Deep Wound)
+   * - movementBlocked: Cards that prevent movement (Web, Leap Away)
+   * - pendingDeath: Cards that destroy at Deploy phase (Mortal Wound)
+   * - damagePenalty: Cards that reduce damage output (Shattered Weapon)
+   * Big O: O(c * a) where c = creatures in play, a = attachments per creature
+   * @param {string} playerId - The player to check
+   * @returns {Object} { damageEffects, movementBlocked, pendingDeath, damagePenalty }
+   */
+  getHarmfulAttachments(playerId) {
+    const player = this.players[playerId]
+    if (!player) return { damageEffects: [], movementBlocked: [], pendingDeath: [], damagePenalty: [] }
+
+    const effects = {
+      damageEffects: [],      // damageOnActivation (Deep Wound)
+      movementBlocked: [],    // preventsMovement (Web, Leap Away)
+      pendingDeath: [],       // destroyAtDeploy (Mortal Wound)
+      damagePenalty: []       // Shattered Weapon (-10 melee)
+    }
+
+    for (const creature of player.creaturesInPlay) {
+      if (!creature.attachedCards?.length) continue
+
+      for (const attachment of creature.attachedCards) {
+        const card = attachment.card
+        const attachOnUse = attachment.attachOnUse || card?.attachOnUse
+
+        // Damage on activation (Deep Wound)
+        if (attachOnUse?.damageOnActivation > 0) {
+          effects.damageEffects.push({
+            creature: creature,
+            creatureName: creature.creature?.name || 'Unknown',
+            damage: attachOnUse.damageOnActivation,
+            destroyed: creature.currentHP <= 0,
+            currentHP: creature.currentHP,
+            maxHP: creature.creature?.hitPoints || 0,
+            source: card?.name || 'Unknown'
+          })
+        }
+
+        // Movement blocked (Web, Leap Away)
+        if (attachOnUse?.preventsMovement) {
+          effects.movementBlocked.push({
+            creature: creature,
+            creatureName: creature.creature?.name || 'Unknown',
+            source: card?.name || 'Unknown'
+          })
+        }
+
+        // Pending death (Mortal Wound)
+        if (attachOnUse?.destroyAtDeploy) {
+          effects.pendingDeath.push({
+            creature: creature,
+            creatureName: creature.creature?.name || 'Unknown',
+            source: card?.name || 'Unknown'
+          })
+        }
+
+        // Shattered Weapon (check by card name since it's a custom debuff)
+        if (card?.name?.toUpperCase().includes('SHATTERED WEAPON')) {
+          effects.damagePenalty.push({
+            creature: creature,
+            creatureName: creature.creature?.name || 'Unknown',
+            source: card?.name || 'Unknown',
+            penalty: 10
+          })
+        }
+      }
+    }
+
+    return effects
+  }
+
+  /**
    * Process Deploy phase destructions for creatures with Mortal Wound
    * Called at START of Deploy phase before creatures can be deployed
    * Big O: O(c) where c = creatures in play
@@ -2777,6 +2870,67 @@ export class GameState {
     }
 
     return destroyed
+  }
+
+  /**
+   * Process Activate phase damage for creatures with damageOnActivation attachments (Deep Wound)
+   * Called at START of Activate phase before creatures can act
+   * Damage is dealt to creatures owned by the current player with damageOnActivation attachments
+   * Big O: O(c * a) where c = creatures in play, a = attachments per creature
+   * @param {string} playerId - The player whose Activate phase is starting
+   * @returns {Array} Array of { creature, damage, destroyed, source } for each affected creature
+   */
+  processActivatePhaseDamage(playerId) {
+    const player = this.players[playerId]
+    if (!player) return []
+
+    const damageResults = []
+
+    for (const creature of player.creaturesInPlay) {
+      if (!creature.attachedCards?.length) continue
+
+      // Find attachments with damageOnActivation
+      for (const attachment of creature.attachedCards) {
+        const damageOnActivation = attachment.attachOnUse?.damageOnActivation
+        if (damageOnActivation && damageOnActivation > 0) {
+          // Apply damage
+          const actualDamage = creature.takeDamage(damageOnActivation)
+          const destroyed = creature.currentHP <= 0
+
+          damageResults.push({
+            creature: creature,
+            creatureName: creature.creature?.name || creature.name,
+            damage: actualDamage,
+            destroyed: destroyed,
+            source: attachment.card?.name || 'Unknown',
+            sourceCard: attachment.card
+          })
+
+          // Handle creature death if destroyed
+          if (destroyed) {
+            // Remove from board
+            if (creature.position) {
+              const tile = this.getTile(creature.position.x, creature.position.y)
+              if (tile) {
+                tile.occupant = null
+              }
+            }
+
+            // Remove from player's creaturesInPlay and add to graveyard
+            const index = player.creaturesInPlay.indexOf(creature)
+            if (index !== -1) {
+              player.creaturesInPlay.splice(index, 1)
+            }
+            player.creatureGraveyard.push(creature.creature)
+
+            // Return attached order cards to graveyard
+            this.returnAttachedCardsToGraveyard(creature)
+          }
+        }
+      }
+    }
+
+    return damageResults
   }
 
   // --------------------------------------------------------------------------

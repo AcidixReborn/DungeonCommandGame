@@ -98,6 +98,7 @@ export class PhaseManager {
     }
 
     let mortalWoundDestructions = []
+    let activatePhaseDamageResults = []
 
     if (currentIndex === phaseOrder.length - 1) {
       // End of turn - switch players
@@ -105,6 +106,14 @@ export class PhaseManager {
     } else {
       const nextPhase = phaseOrder[currentIndex + 1]
       gs.currentPhase = nextPhase
+
+      // DEEP WOUND: Process damageOnActivation at START of Activate phase
+      // Creatures with Deep Wound attached take damage before they can act
+      if (nextPhase === GamePhases.ACTIVATE && gs.processActivatePhaseDamage) {
+        activatePhaseDamageResults = gs.processActivatePhaseDamage(gs.currentPlayer)
+        // Store for UI notification (GameBoard will handle the modal display)
+        gs.pendingActivatePhaseDamage = activatePhaseDamageResults
+      }
 
       // Increase leadership by 1 when entering Deploy phase (but not on turn 1)
       if (nextPhase === GamePhases.DEPLOY && gs.turnNumber > 1) {
@@ -121,7 +130,7 @@ export class PhaseManager {
       }
     }
 
-    return { waterDamageResults, mortalWoundDestructions }
+    return { waterDamageResults, mortalWoundDestructions, activatePhaseDamageResults }
   }
 
   /**
@@ -370,8 +379,9 @@ export class PhaseManager {
       gs.lastRegenerateResult = regeneratedCreatures
     }
 
-    // Auto-advance to activate phase
-    this.advancePhase()
+    // Auto-advance to activate phase and return phase advance results
+    // This includes activatePhaseDamageResults from Deep Wound
+    return this.advancePhase()
   }
 
   /**

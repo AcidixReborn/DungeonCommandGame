@@ -638,12 +638,18 @@ export const orderCards = [
     imageUrl: rallyOrder25Img
   },
   // Card 26: Ray of Frost - Level 2, INT, STANDARD
+  // NOTE: This is a spell that deals flat 30 damage, not creature's ranged attack + bonus
+  // TODO: Properly implement flatRangedDamage support; for now using rangedDamageBonus
   {
     id: 'tog_ord_26',
     name: 'Ray of Frost',
     level: 2,
     abilityRequired: 'INT',
     actionType: 'STANDARD',
+    rangedDamageBonus: 30, // Triggers DamageBoostModal - shows as spell damage
+    tapTargetOnHit: true,  // Taps target if damage dealt
+    targetRange: 5,        // 5 squares range
+    isSpellDamage: true,   // Flag: this is spell damage, not creature's ranged attack
     effectDescription: 'Deal 30 damage to 1 creature within 5 squares. If the target takes damage from this attack, tap it.',
     faction: FACTION_NAME,
     imageUrl: rayOfFrostOrder26Img

@@ -61,7 +61,7 @@ const factionIcons = {
  * @param {Array} rangedLOSFactions - Array of player IDs (owners) whose ranged creatures can hit this tile
  * @param {boolean} isSelectedCreatureRangedLOS - Whether tile is in LOS of the currently selected ranged creature (brighter highlight)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSlamTile = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isOrcDruidHighlight = false, orcDruidFactionColor = null, isArcanePortalHighlight = false, arcanePortalFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false, isOrderCardTarget = false, isWebbed = false, isHealingTouchTarget = false, isShiftTile = false, isChargeTile = false }) {
+function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSlamTile = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isOrcDruidHighlight = false, orcDruidFactionColor = null, isArcanePortalHighlight = false, arcanePortalFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false, isOrderCardTarget = false, isWebbed = false, hasDeepWound = false, isHealingTouchTarget = false, isShiftTile = false, isChargeTile = false }) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -688,6 +688,19 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
               zIndex: 10
             }} title="Webbed - Cannot move">
               🕸️
+            </div>
+          )}
+          {/* DEEP WOUND indicator - creature takes damage at start of activation */}
+          {hasDeepWound && (
+            <div className="deep-wound-indicator" style={{
+              position: 'absolute',
+              top: '-8px',
+              left: isWebbed ? '12px' : '-8px',
+              fontSize: '16px',
+              textShadow: '0 0 6px rgba(220, 53, 69, 0.9), 0 0 10px rgba(255, 0, 0, 0.8)',
+              zIndex: 10
+            }} title="Deep Wound - Takes 10 damage at start of activation">
+              🩸
             </div>
           )}
         </div>

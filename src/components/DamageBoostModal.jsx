@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Modal, Button, Alert } from 'react-bootstrap'
 
 /**
@@ -24,7 +25,30 @@ function DamageBoostModal({
   onConfirm,
   onCancel
 }) {
+  // Track if modal just opened to prevent instant confirmation
+  const [canConfirm, setCanConfirm] = useState(false)
+
+  // Reset canConfirm when modal opens/closes
+  useEffect(() => {
+    if (show) {
+      // Add small delay before allowing confirmation to prevent accidental double-clicks
+      setCanConfirm(false)
+      const timer = setTimeout(() => setCanConfirm(true), 200)
+      return () => clearTimeout(timer)
+    }
+  }, [show])
+
   if (!show || !card || !creature) return null
+
+  // Handle confirm with guard
+  const handleConfirm = (e) => {
+    e.stopPropagation()
+    if (canConfirm) {
+      onConfirm()
+    } else {
+      console.log('[DamageBoostModal] Blocked early confirm - modal just opened')
+    }
+  }
 
   // Determine if this is a ranged or melee boost card
   const isRangedBoost = card.rangedDamageBonus > 0
@@ -55,7 +79,7 @@ function DamageBoostModal({
   const attackTypeText = isRangedBoost ? 'ranged' : 'melee'
 
   return (
-    <Modal show={show} onHide={onCancel} centered size="md" backdrop="static">
+    <Modal show={show} onHide={onCancel} centered size="md" backdrop="static" keyboard={false}>
       <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: `2px solid ${accentColor}` }}>
         <Modal.Title>Use {card.name}</Modal.Title>
       </Modal.Header>
@@ -173,10 +197,14 @@ function DamageBoostModal({
         </Alert>
       </Modal.Body>
       <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444' }}>
-        <Button variant="secondary" onClick={onCancel}>
+        <Button variant="secondary" onClick={(e) => { e.stopPropagation(); onCancel(); }}>
           Cancel
         </Button>
-        <Button variant={isRangedBoost ? 'primary' : 'danger'} onClick={onConfirm}>
+        <Button
+          variant={isRangedBoost ? 'primary' : 'danger'}
+          onClick={handleConfirm}
+          disabled={!canConfirm}
+        >
           Select Target
         </Button>
       </Modal.Footer>

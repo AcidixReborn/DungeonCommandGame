@@ -29,6 +29,7 @@ import DamageBoostModal from './DamageBoostModal'
 import ShiftAttackModal from './ShiftAttackModal'
 import ChargeModal from './ChargeModal'
 import MoraleLossNotificationModal from './MoraleLossNotificationModal'
+import HarmfulAttachmentsModal from './HarmfulAttachmentsModal'
 import './GameBoard.css'
 
 /**
@@ -264,6 +265,9 @@ function GameBoard({ onTurnInfoChange }) {
     chargeMode, setChargeMode,
     chargeValidTiles, setChargeValidTiles,
     clearChargeState,
+    // Harmful Attachments Notification (Deep Wound, Web, Mortal Wound, Shattered Weapon)
+    showHarmfulAttachmentsModal, setShowHarmfulAttachmentsModal,
+    harmfulAttachmentsData, setHarmfulAttachmentsData,
     // Clear all
     clearAllAbilityModalState
   } = useAbilityModals()
@@ -748,6 +752,30 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Remove from pending (shift array)
     player.pendingMoraleNotifications.shift()
+  }
+
+  /**
+   * Check for harmful attachments on the current player's creatures
+   * Shows modal to inform player about Deep Wound damage, Web movement blocks, etc.
+   * Called at ACTIVATE phase start after CardsDrawnModal closes
+   */
+  const checkHarmfulAttachments = () => {
+    if (!gameState?.currentPlayer) return false
+    if (!isPlayerHuman(gameState.currentPlayer)) return false
+
+    const harmfulEffects = gameState.getHarmfulAttachments(gameState.currentPlayer)
+    const hasHarmfulEffects =
+      harmfulEffects.damageEffects.length > 0 ||
+      harmfulEffects.movementBlocked.length > 0 ||
+      harmfulEffects.pendingDeath.length > 0 ||
+      harmfulEffects.damagePenalty.length > 0
+
+    if (hasHarmfulEffects) {
+      setHarmfulAttachmentsData(harmfulEffects)
+      setShowHarmfulAttachmentsModal(true)
+      return true
+    }
+    return false
   }
 
   /**
@@ -1921,8 +1949,15 @@ function GameBoard({ onTurnInfoChange }) {
       }
     } else if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
       // CONFUSION GAZE attack - use the dedicated method with defense reduction
+      // Now supports damage boost from order cards (e.g., Deep Wound)
       const damageReduction = defenseResult.damageReduction || 0
-      result = gameState.applyConfusionGazeWithDefense(attackerInstance, defenderInstance, damageReduction)
+      result = gameState.applyConfusionGazeWithDefense(
+        attackerInstance,
+        defenderInstance,
+        damageReduction,
+        damageBoostBonus || 0,
+        damageBoostFlat !== undefined ? damageBoostFlat : null
+      )
       // Mark attacker as attacked and tap if moved
       attackerInstance.hasAttackedThisTurn = true
       if (attackerInstance.hasMovedThisTurn) {
@@ -2056,6 +2091,23 @@ function GameBoard({ onTurnInfoChange }) {
           // Only show "not enough damage" message if there was a minimum requirement
           addToast(`${attackerInstance.creature.name} dealt only ${actualDamageDealt} damage - healing requires ${minDamageRequired}`)
         }
+      }
+
+      // STANDARD ATTACK + ATTACH (Phase STD-7: Deep Wound)
+      // Attach card to target if damageBoostCard has attachOnUse property and damage was dealt
+      if (damageBoostCard?.attachOnUse && result.damage > 0 && !result.destroyed) {
+        // Only attach if target wasn't destroyed (makes sense - can't attach to dead creature)
+        defenderInstance.attachedCards = defenderInstance.attachedCards || []
+        defenderInstance.attachedCards.push({
+          card: damageBoostCard,
+          casterOwner: attackerInstance.owner,
+          attachedTurn: gameState.turnNumber,
+          attachOnUse: damageBoostCard.attachOnUse  // Contains damageOnActivation: 10
+        })
+        console.log('[DEEP WOUND DEBUG] Attached to', defenderInstance.creature.name,
+          'attachedCards:', defenderInstance.attachedCards,
+          'card:', damageBoostCard.name)
+        addToast(`🩸 ${damageBoostCard.name} attached to ${defenderInstance.creature.name}!`)
       }
 
       // RIDER ability check - must be processed BEFORE other follow-up attacks
@@ -2656,6 +2708,23 @@ function GameBoard({ onTurnInfoChange }) {
           // Only show "not enough damage" message if there was a minimum requirement
           addToast(`${attackerInstance.creature.name} dealt only ${actualDamageDealt} damage - healing requires ${minDamageRequired}`)
         }
+      }
+
+      // STANDARD ATTACK + ATTACH (Phase STD-7: Deep Wound)
+      // Attach card to target if damageBoostCard has attachOnUse property and damage was dealt
+      if (damageBoostCard?.attachOnUse && result.damage > 0 && !result.destroyed) {
+        // Only attach if target wasn't destroyed (makes sense - can't attach to dead creature)
+        defenderInstance.attachedCards = defenderInstance.attachedCards || []
+        defenderInstance.attachedCards.push({
+          card: damageBoostCard,
+          casterOwner: attackerInstance.owner,
+          attachedTurn: gameState.turnNumber,
+          attachOnUse: damageBoostCard.attachOnUse  // Contains damageOnActivation: 10
+        })
+        console.log('[DEEP WOUND DEBUG] Attached to', defenderInstance.creature.name,
+          'attachedCards:', defenderInstance.attachedCards,
+          'card:', damageBoostCard.name)
+        addToast(`🩸 ${damageBoostCard.name} attached to ${defenderInstance.creature.name}!`)
       }
 
       // RIDER ability check - must be processed BEFORE other follow-up attacks
@@ -4170,7 +4239,60 @@ function GameBoard({ onTurnInfoChange }) {
         defender: target.instanceId
       })
     } else {
-      addToast('Target is not in range for a normal attack')
+      // Target is not adjacent - show error modal and let player try again
+      // Keep the damage boost state active so they can select another target
+      setNotAdjacentErrorModal({
+        show: true,
+        attacker: attacker,
+        target: target,
+        hasDamageBoost: !!pendingDamageBoostAttack
+      })
+    }
+  }
+
+  // State for "not adjacent" error modal
+  const [notAdjacentErrorModal, setNotAdjacentErrorModal] = useState({
+    show: false,
+    attacker: null,
+    target: null,
+    hasDamageBoost: false
+  })
+
+  // Handler to dismiss not adjacent error and let player try again
+  const handleNotAdjacentErrorDismiss = () => {
+    const { attacker, hasDamageBoost } = notAdjacentErrorModal
+    setNotAdjacentErrorModal({ show: false, attacker: null, target: null, hasDamageBoost: false })
+
+    // Re-select the attacker so they can choose another target
+    if (attacker && hasDamageBoost && pendingDamageBoostAttack) {
+      // Re-show valid targets including Confusion Gaze targets
+      setSelectedBoardCreature(attacker)
+
+      // Rebuild target list (same logic as confirmDamageBoost)
+      const allTargets = gameState.getValidAttackTargets(attacker)
+      let filteredTargets = allTargets.filter(t => t.attackType === 'melee')
+
+      // Add Confusion Gaze targets
+      if (gameState.hasConfusionGaze && gameState.hasConfusionGaze(attacker)) {
+        const gazeTargets = gameState.getConfusionGazeTargets(attacker)
+        for (const gazeTarget of gazeTargets) {
+          const alreadyInList = filteredTargets.some(t =>
+            t.creature?.instanceId === gazeTarget.instanceId ||
+            t.instanceId === gazeTarget.instanceId
+          )
+          if (!alreadyInList) {
+            filteredTargets.push({
+              creature: gazeTarget,
+              instanceId: gazeTarget.instanceId,
+              attackType: 'confusion_gaze',
+              position: gazeTarget.position
+            })
+          }
+        }
+      }
+
+      setValidAttackTargets(filteredTargets)
+      addToast('Select another target or use Confusion Gaze on a distant enemy')
     }
   }
 
@@ -4226,14 +4348,35 @@ function GameBoard({ onTurnInfoChange }) {
     if (!confusionGazePending) return
 
     const { attacker } = confusionGazePending
-    const damage = attacker.creature.meleeAttack?.damage || 30
+    const baseDamage = attacker.creature.meleeAttack?.damage || 30
+
+    // Check if there's an active damage boost (e.g., Deep Wound)
+    // Confusion Gaze can use melee damage boost cards
+    let damageBoostCard = null
+    let damageBoostBonus = 0
+    let damageBoostFlat = null
+
+    if (pendingDamageBoostAttack &&
+        pendingDamageBoostAttack.creature?.instanceId === attacker.instanceId &&
+        !pendingDamageBoostAttack.isRanged) {
+      // Melee damage boost applies to Confusion Gaze
+      damageBoostCard = pendingDamageBoostAttack.card
+      damageBoostBonus = pendingDamageBoostAttack.damageBonus || 0
+      damageBoostFlat = pendingDamageBoostAttack.flatDamage
+    }
+
+    // Calculate total damage (flat damage replaces base, otherwise add bonus)
+    const damage = damageBoostFlat !== null ? damageBoostFlat : baseDamage + damageBoostBonus
 
     // Set up pending attack for confirmation
     setPendingAttack({
       attackerInstance: attacker,
       defenderInstance: attackTarget,
       targetInfo: { attackType: 'confusion_gaze', damage },
-      isConfusionGaze: true
+      isConfusionGaze: true,
+      damageBoostCard,
+      damageBoostBonus,
+      damageBoostFlat
     })
 
     // Keep confusionGazePending so we can access attacker info later for tap logic
@@ -4252,8 +4395,9 @@ function GameBoard({ onTurnInfoChange }) {
   const handleConfusionGazeConfirmAttack = () => {
     if (!pendingAttack || !pendingAttack.isConfusionGaze) return
 
-    const { attackerInstance, defenderInstance } = pendingAttack
-    const damage = attackerInstance.creature.meleeAttack?.damage || 30
+    const { attackerInstance, defenderInstance, targetInfo, damageBoostCard, damageBoostBonus, damageBoostFlat } = pendingAttack
+    // Use damage from targetInfo which already includes any damage boost
+    const damage = targetInfo?.damage || attackerInstance.creature.meleeAttack?.damage || 30
 
     // Check if defender has INSUBSTANTIAL available - triggers before defense panel
     if (gameState.canUseInsubstantial(defenderInstance)) {
@@ -4524,7 +4668,27 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {number} cardIndex - Index in the order hand
    */
   const handleOrderCardRightClick = (card, cardIndex) => {
+    // [STD-ORDER DEBUG] Log entry point
+    console.log('[STD-ORDER DEBUG] handleOrderCardRightClick START', {
+      cardName: card?.name,
+      cardId: card?.id,
+      actionType: card?.actionType,
+      creatureName: orderCardFilterCreature?.creature?.name,
+      phase: gameState?.currentPhase,
+      allCardProps: card
+    })
+
     if (!gameState) {
+      return
+    }
+
+    // Guard: Prevent re-triggering if damage boost modal is showing or attack targeting is active
+    if (showDamageBoostModal) {
+      console.log('[STD-ORDER DEBUG] BLOCKED - damage boost modal is showing')
+      return
+    }
+    if (pendingDamageBoostAttack) {
+      console.log('[STD-ORDER DEBUG] BLOCKED - pending damage boost attack is active')
       return
     }
 
@@ -4792,6 +4956,21 @@ function GameBoard({ onTurnInfoChange }) {
     const isRangedDamageBoost = card.rangedDamageBonus > 0
     const isChargeType = card.moveBeforeAttack === 'speed'
     const isShiftAttackType = card.shiftBeforeAttack > 0
+
+    // [STD-ORDER DEBUG] Log STANDARD card property checks
+    console.log('[STD-ORDER DEBUG] STANDARD card property check', {
+      cardName: card.name,
+      actionType: card.actionType,
+      meleeDamageBonus: card.meleeDamageBonus,
+      rangedDamageBonus: card.rangedDamageBonus,
+      flatMeleeDamage: card.flatMeleeDamage,
+      isMeleeDamageBoost,
+      isRangedDamageBoost,
+      isChargeType,
+      isShiftAttackType,
+      willEnterDamageBoostBlock: card.actionType === 'STANDARD' && (isMeleeDamageBoost || isRangedDamageBoost) && !isChargeType && !isShiftAttackType
+    })
+
     if (card.actionType === 'STANDARD' && (isMeleeDamageBoost || isRangedDamageBoost) && !isChargeType && !isShiftAttackType) {
       const creature = orderCardFilterCreature
 
@@ -4841,7 +5020,8 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // Check if creature has the required attack type
-      if (isRangedDamageBoost && !creature.creature.rangedAttack) {
+      // EXCEPTION: Spell damage cards (isSpellDamage: true) don't require creature to have ranged attack
+      if (isRangedDamageBoost && !creature.creature.rangedAttack && !card.isSpellDamage) {
         addToast(`${creature.creature.name} has no ranged attack`)
         return
       }
@@ -4851,6 +5031,12 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // Show confirmation modal
+      // [STD-ORDER DEBUG] Log DamageBoostModal being shown
+      console.log('[STD-ORDER DEBUG] SHOWING DamageBoostModal', {
+        cardName: card.name,
+        creatureName: creature.creature.name,
+        config: { card, cardIndex, creature: creature.creature.name }
+      })
       setDamageBoostConfig({
         card,
         cardIndex,
@@ -4859,6 +5045,13 @@ function GameBoard({ onTurnInfoChange }) {
       setShowDamageBoostModal(true)
       return
     }
+
+    // [STD-ORDER DEBUG] Log fallthrough to generic handler
+    console.log('[STD-ORDER DEBUG] FALLTHROUGH to generic targeting mode', {
+      cardName: card.name,
+      actionType: card.actionType,
+      reason: 'Did not match any specialized handler (DamageBoost, Charge, ShiftAttack, etc.)'
+    })
 
     // GENERIC ORDER CARDS: Standard validation
     // Check level requirement: card level <= creature level
@@ -4918,7 +5111,15 @@ function GameBoard({ onTurnInfoChange }) {
    * Called when player confirms they want to use Power Attack, Hacking Frenzy, or Killing Strike
    */
   const confirmDamageBoost = () => {
+    // [STD-ORDER DEBUG] Log confirmDamageBoost entry
+    console.log('[STD-ORDER DEBUG] confirmDamageBoost called', {
+      hasConfig: !!damageBoostConfig,
+      cardName: damageBoostConfig?.card?.name,
+      creatureName: damageBoostConfig?.creature?.creature?.name
+    })
+
     if (!damageBoostConfig?.card || !damageBoostConfig?.creature || !gameState) {
+      console.log('[STD-ORDER DEBUG] confirmDamageBoost EARLY EXIT - missing config')
       cancelDamageBoostAttack()
       return
     }
@@ -4947,9 +5148,32 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Get valid targets based on attack type (melee or ranged)
     const allTargets = gameState.getValidAttackTargets(creature)
-    const filteredTargets = isRangedBoost
+    let filteredTargets = isRangedBoost
       ? allTargets.filter(t => t.attackType === 'ranged')
       : allTargets.filter(t => t.attackType === 'melee')
+
+    // CONFUSION GAZE SUPPORT: For melee damage boosts, also include Confusion Gaze targets
+    // Umbra Hulk (and creatures with Confusion Gaze) can attack enemies within 5 tiles using the gaze
+    // The damage boost applies to the melee attack after the slide
+    if (!isRangedBoost && gameState.hasConfusionGaze && gameState.hasConfusionGaze(creature)) {
+      const gazeTargets = gameState.getConfusionGazeTargets(creature)
+      // Add gaze targets that aren't already in the list (as melee targets)
+      for (const gazeTarget of gazeTargets) {
+        const alreadyInList = filteredTargets.some(t =>
+          t.creature?.instanceId === gazeTarget.instanceId ||
+          t.instanceId === gazeTarget.instanceId
+        )
+        if (!alreadyInList) {
+          // Add as a special "confusion_gaze" attack type target
+          filteredTargets.push({
+            creature: gazeTarget,
+            instanceId: gazeTarget.instanceId,
+            attackType: 'confusion_gaze',
+            position: gazeTarget.position
+          })
+        }
+      }
+    }
 
     const attackTypeText = isRangedBoost ? 'ranged' : 'melee'
 
@@ -4966,7 +5190,11 @@ function GameBoard({ onTurnInfoChange }) {
     const damageText = card.flatMeleeDamage !== null
       ? `${card.flatMeleeDamage} damage`
       : `+${isRangedBoost ? card.rangedDamageBonus : card.meleeDamageBonus} bonus damage`
-    addToast(`${card.name} active (${damageText}): Right-click an enemy to ${attackTypeText} attack`)
+
+    // Mention Confusion Gaze if available
+    const hasConfusionGaze = !isRangedBoost && gameState.hasConfusionGaze && gameState.hasConfusionGaze(creature)
+    const gazeNote = hasConfusionGaze ? ' (includes Confusion Gaze targets)' : ''
+    addToast(`${card.name} active (${damageText}): Right-click an enemy to ${attackTypeText} attack${gazeNote}`)
   }
 
   /**
@@ -5633,8 +5861,7 @@ function GameBoard({ onTurnInfoChange }) {
   const handleHealingTouchHeal = () => {
     if (!healingTouchHealer || !healingTouchTarget || !gameState) {
       setShowHealingTouchModal(false)
-      setHealingTouchHealer(null)
-      setHealingTouchTarget(null)
+      setHealingTouchData(null)
       return
     }
 
@@ -5653,8 +5880,7 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     setShowHealingTouchModal(false)
-    setHealingTouchHealer(null)
-    setHealingTouchTarget(null)
+    setHealingTouchData(null)
   }
 
   /**
@@ -5665,8 +5891,7 @@ function GameBoard({ onTurnInfoChange }) {
   const handleHealingTouchRemoveCard = (cardIndex) => {
     if (!healingTouchHealer || !healingTouchTarget || !gameState) {
       setShowHealingTouchModal(false)
-      setHealingTouchHealer(null)
-      setHealingTouchTarget(null)
+      setHealingTouchData(null)
       return
     }
 
@@ -5685,8 +5910,7 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     setShowHealingTouchModal(false)
-    setHealingTouchHealer(null)
-    setHealingTouchTarget(null)
+    setHealingTouchData(null)
   }
 
   /**
@@ -5695,8 +5919,7 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const handleHealingTouchCancel = () => {
     setShowHealingTouchModal(false)
-    setHealingTouchHealer(null)
-    setHealingTouchTarget(null)
+    setHealingTouchData(null)
   }
 
   // Confirm morale collection
@@ -6831,8 +7054,10 @@ function GameBoard({ onTurnInfoChange }) {
       // Check if target is valid for HEALING TOUCH
       if (gameState.isValidHealingTouchTarget(selectedBoardCreature, tile.occupant)) {
         // Show Healing Touch modal
-        setHealingTouchHealer(selectedBoardCreature)
-        setHealingTouchTarget(tile.occupant)
+        setHealingTouchData({
+          healer: selectedBoardCreature,
+          target: tile.occupant
+        })
         setShowHealingTouchModal(true)
         return
       }
@@ -8315,9 +8540,27 @@ function GameBoard({ onTurnInfoChange }) {
             }
           })
           setHordeRefreshExecuted(false)
-          gameState.advancePhase()
+          const hordeAdvanceResult = gameState.advancePhase()
+
+          // Handle Deep Wound damage at start of ACTIVATE phase
+          if (hordeAdvanceResult?.activatePhaseDamageResults?.length > 0) {
+            for (const damageResult of hordeAdvanceResult.activatePhaseDamageResults) {
+              if (damageResult.destroyed) {
+                addToast(`🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source} and was destroyed!`)
+              } else {
+                addToast(`🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source}!`)
+              }
+            }
+            // Clear pending damage
+            gameState.pendingActivatePhaseDamage = []
+            // Check for game over after deaths
+            const hasDeaths = hordeAdvanceResult.activatePhaseDamageResults.some(r => r.destroyed)
+            if (hasDeaths) {
+              gameState.checkGameOver()
+            }
+          }
         } else {
-          gameState.executeRefreshPhase()
+          const refreshResult = gameState.executeRefreshPhase()
 
           // Check for REGENERATE results and show toast
           if (gameState.lastRegenerateResult?.length > 0) {
@@ -8325,6 +8568,24 @@ function GameBoard({ onTurnInfoChange }) {
               addToast(`🩹 REGENERATE: ${creature.creature.name} regenerated ${healAmount} HP!`)
             }
             gameState.lastRegenerateResult = null // Clear after showing
+          }
+
+          // Handle Deep Wound damage at start of ACTIVATE phase
+          if (refreshResult?.activatePhaseDamageResults?.length > 0) {
+            for (const damageResult of refreshResult.activatePhaseDamageResults) {
+              if (damageResult.destroyed) {
+                addToast(`🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source} and was destroyed!`)
+              } else {
+                addToast(`🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source}!`)
+              }
+            }
+            // Clear pending damage
+            gameState.pendingActivatePhaseDamage = []
+            // Check for game over after deaths
+            const hasDeaths = refreshResult.activatePhaseDamageResults.some(r => r.destroyed)
+            if (hasDeaths) {
+              gameState.checkGameOver()
+            }
           }
         }
         break
@@ -8946,7 +9207,7 @@ function GameBoard({ onTurnInfoChange }) {
     }
   }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber])
 
-  // MORALE NOTIFICATIONS: Show pending morale loss notifications at ACTIVATE phase
+  // FALLBACK NOTIFICATIONS: Show harmful attachments and morale notifications at ACTIVATE phase
   // Only triggers if CardsDrawnModal isn't shown (fallback for edge cases)
   useEffect(() => {
     if (!gameState?.currentPlayer) return
@@ -8958,8 +9219,13 @@ function GameBoard({ onTurnInfoChange }) {
       const player = gameState.getCurrentPlayerState()
       // Only check if CardsDrawnModal won't be shown (cardsDrawnThisTurn is undefined)
       // Otherwise the check happens in CardsDrawnModal's onContinue callback
-      if (player.cardsDrawnThisTurn === undefined && player.pendingMoraleNotifications?.length > 0) {
-        checkPendingMoraleNotifications()
+      if (player.cardsDrawnThisTurn === undefined) {
+        // Check harmful attachments first, then morale notifications
+        if (!checkHarmfulAttachments()) {
+          if (player.pendingMoraleNotifications?.length > 0) {
+            checkPendingMoraleNotifications()
+          }
+        }
       }
     }
   }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber])
@@ -9357,6 +9623,7 @@ function GameBoard({ onTurnInfoChange }) {
                       lightningBreathTargetIndex={lightningBreathTargetIndex}
                       isOrderCardTarget={isOrderCardTarget}
                       isWebbed={creature && gameState?.hasMovementBlockingAttachment?.(creature)}
+                      hasDeepWound={creature && gameState?.hasDamageOnActivationAttachment?.(creature)}
                       isHealingTouchTarget={isHealingTouchTarget}
                       isShiftTile={isShiftTile || isShiftAttackTile}
                       isChargeTile={isChargeTile}
@@ -9941,6 +10208,43 @@ function GameBoard({ onTurnInfoChange }) {
         </Modal.Footer>
       </Modal>
 
+      {/* NOT ADJACENT ERROR Modal - Target not in melee range for normal attack */}
+      <Modal
+        show={notAdjacentErrorModal.show}
+        onHide={handleNotAdjacentErrorDismiss}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header style={{ backgroundColor: '#dc3545', color: 'white' }}>
+          <Modal.Title>⚠️ Target Not Adjacent</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          <div>
+            <p>
+              <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
+                {notAdjacentErrorModal.target?.creature?.name || 'Target'}
+              </span>{' '}
+              is not adjacent to{' '}
+              <strong>{notAdjacentErrorModal.attacker?.creature?.name || 'your creature'}</strong>.
+            </p>
+            <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
+              Normal melee attacks require the target to be in an adjacent tile.
+            </p>
+            {notAdjacentErrorModal.hasDamageBoost && (
+              <p style={{ fontSize: '0.9rem', color: '#ffc107', marginTop: '10px' }}>
+                💡 <strong>Tip:</strong> Use <strong>Confusion Gaze</strong> to attack distant enemies
+                (up to 5 tiles away). The damage boost will still apply!
+              </p>
+            )}
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center' }}>
+          <Button variant="primary" onClick={handleNotAdjacentErrorDismiss}>
+            Try Again
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       {/* SLAM Decision Modal - Choose to slide the damaged creature */}
       <Modal
         show={showSlamModal}
@@ -10357,8 +10661,11 @@ function GameBoard({ onTurnInfoChange }) {
             player.bonusDrawSourcesThisTurn = []
           }
           setBonusDrawSources([])
-          // Check for any pending morale loss notifications (from Unexpected Resistance, etc.)
-          checkPendingMoraleNotifications()
+          // Check for harmful attachments first (Deep Wound, Web, etc.)
+          // If no harmful attachments, then check morale notifications
+          if (!checkHarmfulAttachments()) {
+            checkPendingMoraleNotifications()
+          }
         }}
       />
 
@@ -10456,6 +10763,18 @@ function GameBoard({ onTurnInfoChange }) {
         onClose={() => {
           setShowMoraleLossModal(false)
           // Check for more pending morale notifications
+          checkPendingMoraleNotifications()
+        }}
+      />
+
+      {/* HARMFUL ATTACHMENTS NOTIFICATION MODAL (Deep Wound, Web, Mortal Wound, Shattered Weapon) */}
+      <HarmfulAttachmentsModal
+        show={showHarmfulAttachmentsModal}
+        attachmentEffects={harmfulAttachmentsData}
+        onContinue={() => {
+          setShowHarmfulAttachmentsModal(false)
+          setHarmfulAttachmentsData(null)
+          // After harmful attachments modal, check for morale notifications
           checkPendingMoraleNotifications()
         }}
       />
