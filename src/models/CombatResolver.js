@@ -17,6 +17,7 @@
 
 import { COMBAT, TERRAIN } from '../constants/gameConstants.js'
 import { TerrainTypes } from './Board.js'
+import { logger } from '../utils/logger.js'
 
 /**
  * CombatResolver class
@@ -138,6 +139,18 @@ export class CombatResolver {
       return { valid: false, error: 'Invalid attack type' }
     }
 
+    logger.combat('Attack validated', {
+      attacker: attackerInstance.creature.name,
+      defender: defenderInstance.creature.name,
+      attackType,
+      baseDamage,
+      flankingBonus,
+      cutterBonus,
+      orderCardBonus,
+      totalDamage: damage,
+      usedFlatDamage
+    })
+
     return { valid: true, damage, baseDamage, flankingBonus, cutterBonus, orderCardBonus, usedFlatDamage }
   }
 
@@ -159,9 +172,22 @@ export class CombatResolver {
    * @returns {Object} Attack result
    */
   executeAttack(attackerInstance, defenderInstance, attackType = 'melee', aiDifficulty = 'medium', damageReduction = 0, defenseType = null, skipDeathStrike = false, damageBoostBonus = 0, damageBoostFlat = null) {
+    logger.combat('Attack initiated', {
+      attacker: attackerInstance.creature.name,
+      attackerOwner: attackerInstance.owner,
+      defender: defenderInstance.creature.name,
+      defenderOwner: defenderInstance.owner,
+      attackType,
+      damageBoostBonus,
+      damageBoostFlat,
+      defenseType,
+      damageReduction
+    })
+
     // Validate the attack (with damage boost parameters)
     const validation = this.validateAttack(attackerInstance, defenderInstance, attackType, damageBoostBonus, damageBoostFlat)
     if (!validation.valid) {
+      logger.combat('Attack validation failed', { error: validation.error })
       return { success: false, message: validation.error }
     }
 
@@ -293,6 +319,13 @@ export class CombatResolver {
     const attackerOwner = attackerInstance.owner
     const defenderOwner = defenderInstance.owner
 
+    logger.combat('Resolving attack damage', {
+      attacker: attackerInstance.creature.name,
+      defender: defenderInstance.creature.name,
+      incomingDamage: damageAmount,
+      defenderHP: defenderInstance.currentHP
+    })
+
     // ========== MAGIC CIRCLE AURA - First damage prevention step ==========
     // Hobgoblin Sorcerer on Magic Circle provides "Prevent 10 damage from 1 source"
     // to all friendly Goblins, Hobgoblins, and Bugbears (once per turn per creature)
@@ -312,6 +345,10 @@ export class CombatResolver {
 
     // If damage fully absorbed by Magic Circle Aura, return early
     if (workingDamage === 0 && magicCircleReduction > 0) {
+      logger.ability('MAGIC CIRCLE AURA blocked all damage', {
+        defender: defenderInstance.creature.name,
+        damageBlocked: magicCircleReduction
+      })
       return {
         destroyed: false,
         damage: 0,
@@ -331,6 +368,10 @@ export class CombatResolver {
     if (this.gameState.canUseInsubstantial(defenderInstance)) {
       const blocked = this.gameState.useInsubstantial(defenderInstance, workingDamage, attackerOwner)
       if (blocked) {
+        logger.ability('INSUBSTANTIAL blocked all damage', {
+          defender: defenderInstance.creature.name,
+          damageBlocked: workingDamage
+        })
         return {
           destroyed: false,
           damage: 0,
@@ -367,8 +408,28 @@ export class CombatResolver {
       }
     }
 
+    // Log damage reductions if any were applied
+    if (magicCircleReduction > 0 || shieldBlockReduction > 0 || attachmentBlockReduction > 0) {
+      logger.damage('Damage reductions applied', {
+        defender: defenderInstance.creature.name,
+        originalDamage: damageAmount,
+        magicCircleReduction,
+        shieldBlockReduction,
+        attachmentBlockReduction,
+        finalDamage
+      })
+    }
+
     // Apply damage to defender (with SHIELD BLOCK and attachment Block reduction applied)
     const wasDestroyed = defenderInstance.takeDamage(finalDamage)
+
+    logger.damage('Damage applied', {
+      defender: defenderInstance.creature.name,
+      finalDamage,
+      hpBefore: defenderInstance.currentHP + finalDamage,
+      hpAfter: defenderInstance.currentHP,
+      destroyed: wasDestroyed
+    })
 
     if (wasDestroyed) {
       // Clear the tile occupant first
@@ -396,12 +457,25 @@ export class CombatResolver {
       const attackerPlayer = this.gameState.players[attackerOwner]
       attackerPlayer.gainMorale(1)
 
+      logger.gameEvent('Creature destroyed', {
+        creature: defenderInstance.creature.name,
+        owner: defenderOwner,
+        level: defenderInstance.creature.level,
+        attackerMoraleGained: 1,
+        defenderMoraleLost: defenderInstance.creature.level
+      })
+
       // BLOODTHIRSTY ability: Gain +1 Leadership on kill (Curse of Undeath)
       let leadershipGained = 0
       if (this.gameState.hasCommanderAbility(attackerOwner, 'bloodthirsty')) {
         if (attackerPlayer.commander && attackerPlayer.commander.faction === 'Curse of Undeath') {
           attackerPlayer.leadership = (attackerPlayer.leadership || 0) + 1
           leadershipGained = 1
+          logger.ability('BLOODTHIRSTY triggered', {
+            player: attackerOwner,
+            leadershipGained: 1,
+            newLeadership: attackerPlayer.leadership
+          })
         }
       }
 
@@ -419,6 +493,11 @@ export class CombatResolver {
           position: defenderInstance.position ? { ...defenderInstance.position } : null,
           ownerPlayerId: defenderOwner
         }
+        logger.ability('RIDER triggered', {
+          dyingCreature: defenderInstance.creature.name,
+          position: defenderInstance.position,
+          faction: defenderInstance.creature.faction
+        })
       }
 
       // UNTAP ON KILL ability: Check if a Bugbear Berserker should untap
@@ -470,6 +549,11 @@ export class CombatResolver {
           defenderName: defenderInstance.creature.name,
           damageDealt: finalDamage
         }
+        logger.ability('TAP ON HIT triggered', {
+          attacker: attackerInstance.creature.name,
+          defender: defenderInstance.creature.name,
+          tapped: true
+        })
       } else {
         // Defender was already tapped, ability triggered but had no effect
         tapOnHitData = {
@@ -479,6 +563,11 @@ export class CombatResolver {
           defenderName: defenderInstance.creature.name,
           damageDealt: finalDamage
         }
+        logger.ability('TAP ON HIT triggered (already tapped)', {
+          attacker: attackerInstance.creature.name,
+          defender: defenderInstance.creature.name,
+          alreadyTapped: true
+        })
       }
     }
 
@@ -514,6 +603,13 @@ export class CombatResolver {
 
     // Apply the healing
     const healAmount = this.gameState.applyLifeDrain(attackerInstance)
+
+    logger.ability('LIFE DRAIN triggered', {
+      creature: attackerInstance.creature.name,
+      healAmount,
+      currentHP: attackerInstance.currentHP,
+      maxHP: attackerInstance.creature.hitPoints
+    })
 
     return {
       triggered: true,
@@ -588,6 +684,12 @@ export class CombatResolver {
     const deathStrikeDamage = defenderInstance.creature.meleeAttack?.damage || 0
     const attackerOwner = attackerInstance.owner
     const defenderOwner = defenderInstance.owner
+
+    logger.ability('DEATH STRIKE triggered', {
+      defender: defenderInstance.creature.name,
+      attacker: attackerInstance.creature.name,
+      counterDamage: deathStrikeDamage
+    })
 
     // Apply DEATH STRIKE damage to attacker
     // Note: DEATH STRIKE damage can be reduced by defender's defenses (Cower, order cards, etc.)

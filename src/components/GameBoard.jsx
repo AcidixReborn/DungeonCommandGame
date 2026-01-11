@@ -30,6 +30,7 @@ import ShiftAttackModal from './ShiftAttackModal'
 import ChargeModal from './ChargeModal'
 import MoraleLossNotificationModal from './MoraleLossNotificationModal'
 import HarmfulAttachmentsModal from './HarmfulAttachmentsModal'
+import { clearDebugLog, logger } from '../utils/logger'
 import './GameBoard.css'
 
 /**
@@ -812,6 +813,16 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} config - Complete game configuration with commanders
    */
   const startNewGame = (config) => {
+    // Clear debug log for new game session
+    clearDebugLog()
+
+    // Log game start with configuration
+    logger.gameEvent('Game started', {
+      numPlayers: config.numPlayers || 2,
+      player1: { faction: config.player1?.faction, commander: config.player1?.commander?.name },
+      player2: { faction: config.player2?.faction, commander: config.player2?.commander?.name }
+    })
+
     // Store the final game configuration (with commanders selected)
     setGameConfig(config)
 
@@ -1531,12 +1542,14 @@ function GameBoard({ onTurnInfoChange }) {
 
     if (defense.type === 'skip') {
       // No more defense - execute attack with accumulated reduction
-      console.log('[handleDefenseSelected] SKIP defense, accumulatedReduction:', accumulatedReduction)
-      console.log('[handleDefenseSelected] pendingAttack.isHiddenBlade:', pendingAttack?.isHiddenBlade)
-      console.log('[handleDefenseSelected] targetInfo.attackType:', targetInfo?.attackType)
+      logger.defense('Defense skipped', {
+        defender: defenderInstance.creature.name,
+        accumulatedReduction,
+        isHiddenBlade: pendingAttack?.isHiddenBlade,
+        attackType: targetInfo?.attackType
+      })
       closeCombatPanel()
       if (accumulatedReduction > 0) {
-        console.log('[handleDefenseSelected] Calling executeAttackAfterDefense with stacked_defense')
         executeAttackAfterDefense({
           type: 'stacked_defense',
           damageReduction: accumulatedReduction,
@@ -1544,7 +1557,6 @@ function GameBoard({ onTurnInfoChange }) {
           success: true
         })
       } else {
-        console.log('[handleDefenseSelected] Calling executeAttackAfterReactions')
         executeAttackAfterReactions([])
       }
       return
@@ -1557,6 +1569,13 @@ function GameBoard({ onTurnInfoChange }) {
         originalDamage,
         attackerInstance.owner
       )
+
+      logger.defense('COWER used', {
+        defender: defenderInstance.creature.name,
+        damageAvoided: cowerResult.damageAvoided,
+        moraleCost: cowerResult.moraleCost,
+        extraCost: cowerResult.extraCost
+      })
 
       closeCombatPanel()
       executeAttackAfterDefense({
@@ -1580,6 +1599,13 @@ function GameBoard({ onTurnInfoChange }) {
           totalMoraleCost += result.moraleCost
           tappedCreatures.push(creature.creature.name)
         }
+      })
+
+      logger.defense('UNSTOPPABLE HORDES used', {
+        defender: defenderInstance.creature.name,
+        totalDamageReduction,
+        totalMoraleCost,
+        tappedCreatures
       })
 
       closeCombatPanel()
@@ -1711,6 +1737,13 @@ function GameBoard({ onTurnInfoChange }) {
       const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
 
       if (result.success) {
+        logger.card(defense.card.name, 'played as IMMEDIATE defense', {
+          user: defense.creature.creature.name,
+          defender: defenderInstance.creature.name,
+          damagePrevented: result.damagePrevented,
+          creatureTapped: defense.creature.creature.name
+        })
+
         const newAccumulatedReduction = accumulatedReduction + result.damagePrevented
         const remainingDamage = originalDamage - newAccumulatedReduction
 
@@ -1909,11 +1942,9 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Handle SAVAGE DEMISE attack resolution
     if (pendingAttack.isSavageDemise && savageDemisePending) {
-      console.log('[executeAttackAfterDefense] Routing to handleSavageDemiseResolution')
       handleSavageDemiseResolution(defenseResult)
       return
     }
-    console.log('[executeAttackAfterDefense] Not Savage Demise, continuing with normal attack')
 
     // Discard damage boost card from hand before executing attack (card is committed at this point)
     if (damageBoostCard && pendingDamageBoostAttack) {
@@ -1921,6 +1952,12 @@ function GameBoard({ onTurnInfoChange }) {
       const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
       if (cardIndex !== -1) {
         attackerPlayer.orderHand.splice(cardIndex, 1)
+        logger.card(damageBoostCard.name, 'played as STANDARD attack boost', {
+          user: attackerInstance.creature.name,
+          attackType: targetInfo.attackType,
+          damageBonus: damageBoostBonus,
+          flatDamage: damageBoostFlat
+        })
       }
       // Clear pending damage boost state
       clearDamageBoostState()
@@ -3695,6 +3732,17 @@ function GameBoard({ onTurnInfoChange }) {
     // Add to play
     currentPlayer.creaturesInPlay.push(creatureInstance)
     tile.occupant = creatureInstance
+
+    // Log the deployment
+    logger.deploy(creature.name, {
+      owner: gameState.currentPlayer,
+      position: { x: tile.x, y: tile.y },
+      level: creature.level,
+      fromGraveyard: isFromGraveyard,
+      source: isOrcScoutDeploy ? 'ORC SCOUT' : isShadowStalkerDeploy ? 'SHADOW STALKER' :
+              isSummonSpiderDeploy ? 'SUMMON SPIDER' : isLichNecromancerDeploy ? 'LICH NECROMANCER' :
+              isOrcDruidDeploy ? 'ORC DRUID' : 'standard'
+    })
 
     // Remove from source (hand or graveyard)
     if (isFromGraveyard) {

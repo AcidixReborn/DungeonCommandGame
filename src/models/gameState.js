@@ -1,5 +1,6 @@
 // Game state management for Dungeon Command
 import { getValidMovementTiles as pathfindingGetValidMovement } from '../utils/pathfinding.js'
+import { logger } from '../utils/logger.js'
 // Import Board class for grid operations
 import { Board, TerrainTypes } from './Board.js'
 // Import CombatResolver for combat operations
@@ -182,6 +183,11 @@ export class PlayerState {
       const card = this.creatureDeck.pop()
       this.creatureHand.push(card)
       drawn.push(card)
+      logger.card(card.name, 'drawn to creature hand', {
+        owner: this.id,
+        level: card.level,
+        deckRemaining: this.creatureDeck.length
+      })
     }
     return drawn
   }
@@ -197,6 +203,12 @@ export class PlayerState {
       const card = this.orderDeck.pop()
       this.orderHand.push(card)
       drawn.push(card)
+      logger.card(card.name, 'drawn to order hand', {
+        owner: this.id,
+        level: card.level,
+        actionType: card.actionType,
+        deckRemaining: this.orderDeck.length
+      })
     }
     return drawn
   }
@@ -385,6 +397,7 @@ export class GameState {
    * Initialize game - shuffle decks and draw starting hands for all players
    */
   initializeGame() {
+    logger.gameEvent('Initializing game - shuffling decks and drawing starting hands')
     // Shuffle both decks and draw starting hands for all active players
     this.activePlayers.forEach(playerId => {
       const player = this.players[playerId]
@@ -392,6 +405,13 @@ export class GameState {
       // Shuffle both decks
       player.shuffleCreatureDeck()
       player.shuffleOrderDeck()
+
+      logger.gameEvent('Drawing starting hand', {
+        player: playerId,
+        commander: player.commander?.name,
+        creatureCards: player.commander.startingCreatureHandSize,
+        orderCards: player.commander.startingOrderHandSize
+      })
 
       // Draw starting hands from commander stats
       player.drawCreatureCards(player.commander.startingCreatureHandSize)
@@ -4038,9 +4058,21 @@ export class GameState {
     creatureInstance.position = { x: targetTile.x, y: targetTile.y }
     targetTile.occupant = creatureInstance
 
+    // Log the movement
+    logger.movement(creatureInstance.creature.name, {
+      owner: creatureInstance.owner,
+      from: oldPosition,
+      to: { x: targetTile.x, y: targetTile.y },
+      versatileMove: creatureInstance.usingVersatileMove || false
+    })
+
     // Reveal treasure if creature moves onto it - O(1)
     if (targetTile.treasure && !targetTile.treasure.isRevealed) {
       targetTile.treasure.reveal()
+      logger.gameEvent('Treasure revealed', {
+        position: { x: targetTile.x, y: targetTile.y },
+        morale: targetTile.treasure.moraleValue
+      })
     }
 
     // Mark as moved
@@ -4049,6 +4081,7 @@ export class GameState {
     // Tap the creature if it has both moved AND attacked
     if (creatureInstance.hasAttackedThisTurn) {
       creatureInstance.tap()
+      logger.tap(creatureInstance.creature.name, 'tapped', { reason: 'moved after attacking' })
     }
 
     // MAGIC CIRCLE AURA: Check for state changes (Sorcerer entering/leaving Magic Circle)
@@ -4064,6 +4097,11 @@ export class GameState {
         owner: creatureInstance.owner,
         timestamp: Date.now()
       }
+      logger.ability('MAGIC CIRCLE AURA', {
+        sorcerer: creatureInstance.creature.name,
+        entered: enteredMagicCircle,
+        left: leftMagicCircle
+      })
     }
 
     return true

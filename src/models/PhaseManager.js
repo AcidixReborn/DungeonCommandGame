@@ -3,6 +3,7 @@
 
 import { TerrainTypes } from './Board.js'
 import { TERRAIN, GAME_RULES } from '../constants/gameConstants.js'
+import { logger } from '../utils/logger.js'
 
 // Game phase constants - defines the turn sequence
 export const GamePhases = {
@@ -58,6 +59,15 @@ export class PhaseManager {
           destroyed: creature.currentHP <= 0
         })
 
+        logger.damage('Water damage', {
+          creature: creature.creature.name,
+          position: { x: tile.x, y: tile.y },
+          damage: damageTaken,
+          hpBefore: creature.currentHP + damageTaken,
+          hpAfter: creature.currentHP,
+          destroyed: creature.currentHP <= 0
+        })
+
         // If creature died, handle death
         if (creature.currentHP <= 0) {
           const owner = creature.owner
@@ -102,10 +112,13 @@ export class PhaseManager {
 
     if (currentIndex === phaseOrder.length - 1) {
       // End of turn - switch players
+      logger.phase('CLEANUP ending', gs.currentPlayer)
       this.endTurn()
     } else {
       const nextPhase = phaseOrder[currentIndex + 1]
       gs.currentPhase = nextPhase
+
+      logger.phase(nextPhase, gs.currentPlayer)
 
       // DEEP WOUND: Process damageOnActivation at START of Activate phase
       // Creatures with Deep Wound attached take damage before they can act
@@ -113,12 +126,23 @@ export class PhaseManager {
         activatePhaseDamageResults = gs.processActivatePhaseDamage(gs.currentPlayer)
         // Store for UI notification (GameBoard will handle the modal display)
         gs.pendingActivatePhaseDamage = activatePhaseDamageResults
+        if (activatePhaseDamageResults.length > 0) {
+          logger.ability('DEEP WOUND damage processed', {
+            creatures: activatePhaseDamageResults.map(r => ({ name: r.creature, damage: r.damage }))
+          })
+        }
       }
 
       // Increase leadership by 1 when entering Deploy phase (but not on turn 1)
       if (nextPhase === GamePhases.DEPLOY && gs.turnNumber > 1) {
         const player = gs.getCurrentPlayerState()
+        const oldLeadership = player.leadership
         player.increaseLeadership(1)
+        logger.gameEvent('Leadership increased', {
+          player: gs.currentPlayer,
+          from: oldLeadership,
+          to: player.leadership
+        })
       }
 
       // MORTAL WOUND: Process creature destructions at START of Deploy phase
@@ -127,6 +151,11 @@ export class PhaseManager {
         mortalWoundDestructions = gs.processDeployPhaseDestructions(gs.currentPlayer)
         // Store for UI notification (GameBoard will handle the actual deaths)
         gs.pendingMortalWoundDestructions = mortalWoundDestructions
+        if (mortalWoundDestructions.length > 0) {
+          logger.ability('MORTAL WOUND destructions', {
+            creatures: mortalWoundDestructions.map(r => r.creature)
+          })
+        }
       }
     }
 
@@ -139,6 +168,12 @@ export class PhaseManager {
    */
   endTurn() {
     const gs = this.gameState
+    const previousPlayer = gs.currentPlayer
+
+    logger.gameEvent('Turn ending', {
+      player: previousPlayer,
+      turnNumber: gs.turnNumber
+    })
 
     // Check for defeated players and eliminate them
     const defeatedPlayers = gs.activePlayers.filter(
@@ -148,6 +183,10 @@ export class PhaseManager {
     // Eliminate defeated players (remove their creatures from board)
     for (const playerId of defeatedPlayers) {
       this.eliminatePlayer(playerId)
+      logger.gameEvent('Player eliminated', {
+        player: playerId,
+        reason: gs.players[playerId].morale <= 0 ? 'morale' : 'no creatures'
+      })
     }
 
     // Remove defeated players from active players list
@@ -159,6 +198,10 @@ export class PhaseManager {
     if (gs.activePlayers.length <= 1) {
       gs.gameOver = true
       gs.winner = gs.activePlayers[0] || null
+      logger.gameEvent('Game over', {
+        winner: gs.winner,
+        reason: 'last player standing'
+      })
       return
     }
 
@@ -184,6 +227,12 @@ export class PhaseManager {
     } else {
       gs.currentPhase = GamePhases.REFRESH
     }
+
+    logger.gameEvent('Turn started', {
+      player: gs.currentPlayer,
+      turnNumber: gs.turnNumber,
+      phase: gs.currentPhase
+    })
 
     // Check for game over conditions (handles turn limit, etc.)
     this.checkGameOver()
@@ -296,12 +345,22 @@ export class PhaseManager {
     const gs = this.gameState
     const player = gs.getCurrentPlayerState()
 
+    logger.phase('REFRESH executing', gs.currentPlayer)
+
     // Reset commander ability state for new turn
     player.resetAbilitiesForNewTurn()
 
     // Calculate total cards to draw (1 normal + any bonus from Parry/Defensive Advantage)
     const bonusDraws = player.bonusOrderCardsToDraw || 0
     const totalCardsToDraw = 1 + bonusDraws
+
+    logger.gameEvent('Refresh phase card draw', {
+      player: gs.currentPlayer,
+      normalDraw: 1,
+      bonusDraws: bonusDraws,
+      totalCards: totalCardsToDraw,
+      bonusSources: player.bonusDrawSources || []
+    })
 
     // Store bonus draw sources before resetting (for modal display)
     player.bonusDrawSourcesThisTurn = [...(player.bonusDrawSources || [])]
@@ -322,13 +381,24 @@ export class PhaseManager {
         // Add source to bonus sources (so modal shows "Received from Recoil")
         if (!player.bonusDrawSourcesThisTurn) player.bonusDrawSourcesThisTurn = []
         player.bonusDrawSourcesThisTurn.push(`Received from ${reveal.source}`)
+        logger.card(reveal.card.name, 'received from opponent effect', {
+          source: reveal.source,
+          fromPlayer: reveal.fromPlayer
+        })
       })
       // Clear pending reveals after processing
       player.pendingCardReveals = []
     }
 
     // Untap all creatures
+    const untappedCount = player.creaturesInPlay.filter(c => c.isTapped).length
     player.creaturesInPlay.forEach(creature => creature.untap())
+    if (untappedCount > 0) {
+      logger.gameEvent('Creatures untapped', {
+        player: gs.currentPlayer,
+        count: untappedCount
+      })
+    }
 
     // Clear deployment protection from creatures deployed on previous turns
     player.creaturesInPlay.forEach(creature => {
@@ -345,6 +415,7 @@ export class PhaseManager {
           creature.insubstantialUsed = false
         }
       })
+      logger.ability('INSUBSTANTIAL reset', { faction: 'Curse of Undeath' })
     }
 
     // MAGIC CIRCLE AURA: Reset shields for Tyranny of Goblins creatures
@@ -355,6 +426,7 @@ export class PhaseManager {
           creature.magicCircleShieldUsed = false
         }
       })
+      logger.ability('MAGIC CIRCLE AURA shields reset', { faction: 'Tyranny of Goblins' })
     }
 
     // REGENERATE: Heal creatures with Regenerate ability at start of refresh
@@ -370,6 +442,11 @@ export class PhaseManager {
           const healAmount = Math.min(gs.getRegenerateAmount(creature), creature.damageTokens)
           creature.heal(gs.getRegenerateAmount(creature))
           regeneratedCreatures.push({ creature, healAmount })
+          logger.ability('REGENERATE', {
+            creature: creature.creature.name,
+            healAmount: healAmount,
+            hpAfter: creature.currentHP
+          })
         }
       }
     })
@@ -410,12 +487,29 @@ export class PhaseManager {
     const gs = this.gameState
     const player = gs.getCurrentPlayerState()
 
+    logger.phase('CLEANUP executing', gs.currentPlayer)
+
     // Untap only current player's creatures (not opponent's)
+    const untappedCount = player.creaturesInPlay.filter(c => c.isTapped).length
     player.creaturesInPlay.forEach(creature => creature.untap())
+    if (untappedCount > 0) {
+      logger.gameEvent('Cleanup phase untap', {
+        player: gs.currentPlayer,
+        creaturesUntapped: untappedCount
+      })
+    }
 
     // Draw creature cards back to hand limit from commander stats
     const creatureHandLimit = player.commander.startingCreatureHandSize
     const cardsToDraw = Math.max(0, creatureHandLimit - player.creatureHand.length)
+    if (cardsToDraw > 0) {
+      logger.gameEvent('Cleanup phase creature draw', {
+        player: gs.currentPlayer,
+        handLimit: creatureHandLimit,
+        currentHand: player.creatureHand.length,
+        drawing: cardsToDraw
+      })
+    }
     player.drawCreatureCards(cardsToDraw)
 
     // Auto-advance (which will end turn)

@@ -1,106 +1,160 @@
 /**
  * Logger utility for DungeonCommandGame
  *
- * Provides centralized logging with development-only debug logging.
- * In production, debug logs are suppressed for performance.
+ * Provides centralized logging with:
+ * - Console output for development
+ * - File-based persistent logging via Electron IPC
+ *
+ * The debug.log file is cleared when a new game starts and accumulates
+ * all events during the session for post-mortem debugging.
  *
  * Usage:
- *   import { logger } from '../utils/logger.js'
- *   logger.debug('Debug message', data)  // Only shows in development
- *   logger.info('Info message')          // Always shows
- *   logger.warn('Warning')               // Always shows
- *   logger.error('Error', errorObj)      // Always shows
+ *   import { logger, clearDebugLog } from '../utils/logger.js'
+ *   clearDebugLog()                    // Call on game start
+ *   logger.info('Info message')        // Logs to console and file
+ *   logger.phase('ACTIVATE', 'player1') // Game phase changes
+ *   logger.combat('Attack', details)   // Combat events
  */
 
-const isDev = typeof process !== 'undefined'
-  ? process.env.NODE_ENV === 'development'
-  : true // Default to true for browser environments without process
+// Format timestamp for log entries
+const timestamp = () => new Date().toISOString().replace('T', ' ').substring(0, 19)
+
+// Write to file via Electron IPC (async, fire-and-forget)
+// FILE-ONLY OUTPUT - no console logging
+const writeToFile = (level, category, message, data) => {
+  if (window.electronAPI?.writeLog) {
+    const dataStr = data !== undefined && data !== null ? ' ' + JSON.stringify(data) : ''
+    const entry = `[${timestamp()}] [${level}] [${category}] ${message}${dataStr}`
+    window.electronAPI.writeLog(entry)
+  }
+}
+
+/**
+ * Clear the debug log file - call this when starting a new game
+ * The log file persists until this is called again
+ */
+export const clearDebugLog = () => {
+  if (window.electronAPI?.clearLog) {
+    window.electronAPI.clearLog()
+    console.log('[LOGGER] Debug log cleared')
+  }
+}
+
+/**
+ * Get the path to the debug log file
+ * @returns {Promise<string>} Path to the log file
+ */
+export const getLogPath = async () => {
+  if (window.electronAPI?.getLogPath) {
+    return await window.electronAPI.getLogPath()
+  }
+  return null
+}
 
 export const logger = {
   /**
-   * Debug logging - only shows in development mode
-   * Use for detailed debugging info that shouldn't appear in production
-   * @param {...any} args - Arguments to log
+   * Info logging - file only
    */
-  debug: (...args) => {
-    if (isDev) {
-      console.log('[DEBUG]', ...args)
-    }
+  info: (msg, data) => {
+    writeToFile('INFO', 'GENERAL', msg, data)
   },
 
   /**
-   * Info logging - always shows
-   * Use for important information that should be visible in production
-   * @param {...any} args - Arguments to log
+   * Warning logging - file only
    */
-  info: (...args) => {
-    console.log('[INFO]', ...args)
+  warn: (msg, data) => {
+    writeToFile('WARN', 'GENERAL', msg, data)
   },
 
   /**
-   * Warning logging - always shows
-   * Use for potential issues that don't break functionality
-   * @param {...any} args - Arguments to log
+   * Error logging - file only
    */
-  warn: (...args) => {
-    console.warn('[WARN]', ...args)
+  error: (msg, data) => {
+    writeToFile('ERROR', 'GENERAL', msg, data)
   },
 
   /**
-   * Error logging - always shows
-   * Use for actual errors that need attention
-   * @param {...any} args - Arguments to log
+   * Game event logging - key game state changes
    */
-  error: (...args) => {
-    console.error('[ERROR]', ...args)
+  gameEvent: (event, data) => {
+    writeToFile('INFO', 'GAME', event, data)
   },
 
   /**
-   * Game event logging - only shows in development
-   * Use for game state changes and events
-   * @param {string} event - Event name
-   * @param {Object} data - Event data
+   * Phase logging - phase transitions
    */
-  gameEvent: (event, data = {}) => {
-    if (isDev) {
-      console.log(`[GAME] ${event}`, data)
-    }
+  phase: (phase, player) => {
+    writeToFile('INFO', 'PHASE', `${phase} - Player ${player}`)
   },
 
   /**
-   * AI decision logging - only shows in development
-   * Use for AI decision making and reasoning
-   * @param {string} decision - Decision description
-   * @param {Object} context - Decision context
+   * Combat logging - attacks, damage, defense
    */
-  ai: (decision, context = {}) => {
-    if (isDev) {
-      console.log(`[AI] ${decision}`, context)
-    }
+  combat: (action, details) => {
+    writeToFile('INFO', 'COMBAT', action, details)
   },
 
   /**
-   * Combat logging - only shows in development
-   * Use for combat calculations and results
-   * @param {string} action - Combat action
-   * @param {Object} details - Combat details
+   * Card logging - order card usage and draws
    */
-  combat: (action, details = {}) => {
-    if (isDev) {
-      console.log(`[COMBAT] ${action}`, details)
-    }
+  card: (cardName, action, details) => {
+    writeToFile('INFO', 'CARD', `${cardName}: ${action}`, details)
   },
 
   /**
-   * Ability logging - only shows in development
-   * Use for ability triggers and effects
-   * @param {string} ability - Ability name
-   * @param {Object} details - Ability details
+   * Ability logging - creature abilities
    */
-  ability: (ability, details = {}) => {
-    if (isDev) {
-      console.log(`[ABILITY] ${ability}`, details)
-    }
+  ability: (ability, details) => {
+    writeToFile('INFO', 'ABILITY', ability, details)
+  },
+
+  /**
+   * AI logging - AI decisions
+   */
+  ai: (decision, context) => {
+    writeToFile('INFO', 'AI', decision, context)
+  },
+
+  /**
+   * Modal logging - modal opens/closes
+   */
+  modal: (modalName, action, details) => {
+    writeToFile('INFO', 'MODAL', `${modalName}: ${action}`, details)
+  },
+
+  /**
+   * Damage logging - damage dealt/prevented
+   */
+  damage: (action, details) => {
+    writeToFile('INFO', 'DAMAGE', action, details)
+  },
+
+  /**
+   * Movement logging - creature movement
+   */
+  movement: (creatureName, details) => {
+    writeToFile('INFO', 'MOVEMENT', `${creatureName} moved`, details)
+  },
+
+  /**
+   * Tap logging - creature tap/untap
+   */
+  tap: (creatureName, action, details) => {
+    writeToFile('INFO', 'TAP', `${creatureName}: ${action}`, details)
+  },
+
+  /**
+   * Deploy logging - creature deployment
+   */
+  deploy: (creatureName, details) => {
+    writeToFile('INFO', 'DEPLOY', `${creatureName} deployed`, details)
+  },
+
+  /**
+   * Defense logging - defense actions
+   */
+  defense: (action, details) => {
+    writeToFile('INFO', 'DEFENSE', action, details)
   }
 }
 
