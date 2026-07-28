@@ -26,7 +26,7 @@ export const ExplosiveBolts = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('EXPLOSIVE BOLTS')
+      (a) => typeof a === 'string' && a.toUpperCase().includes('EXPLOSIVE BOLTS')
     )
   },
 
@@ -75,7 +75,7 @@ export const ExplosiveBolts = {
     }
 
     return targets
-  }
+  },
 }
 
 export default ExplosiveBolts

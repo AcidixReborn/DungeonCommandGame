@@ -20,7 +20,7 @@ const CONFIG = {
   MAX_TURNS_PER_GAME: 100,
   PLAYER_COUNTS_TO_TEST: [2], // Focus on 2-player for ability testing
   VERBOSE_LOGGING: false,
-  TRACK_ABILITY_USAGE: true
+  TRACK_ABILITY_USAGE: true,
 }
 
 // ============================================================================
@@ -67,117 +67,117 @@ const stats = {
     gruumsh_commands_it: {
       name: 'GRUUMSH COMMANDS IT',
       type: 'PASSIVE',
-      timesTriggered: 0,           // Times terrain cost reduced
-      tilesMovedOnDifficult: 0,    // Tiles moved through difficult terrain at cost 1
-      movementSaved: 0,            // Total movement points saved
-      errors: []
+      timesTriggered: 0, // Times terrain cost reduced
+      tilesMovedOnDifficult: 0, // Tiles moved through difficult terrain at cost 1
+      movementSaved: 0, // Total movement points saved
+      errors: [],
     },
     orc_scout: {
       name: 'ORC SCOUT',
       type: 'ACTIVE',
-      timesUsed: 0,                // Times ability was used
-      timesAvailable: 0,           // Times ability could have been used
-      orcsDeployedToTreasure: 0,   // Orcs deployed to treasure tiles
-      errors: []
+      timesUsed: 0, // Times ability was used
+      timesAvailable: 0, // Times ability could have been used
+      orcsDeployedToTreasure: 0, // Orcs deployed to treasure tiles
+      errors: [],
     },
 
     // Sting of Lolth
     walls_of_web: {
       name: 'WALLS OF WEB',
       type: 'PASSIVE',
-      timesApplied: 0,             // Times speed bonus applied
-      creaturesAffected: 0,        // Unique creatures that benefited
-      extraTilesMoved: 0,          // Additional tiles moved due to +2 speed
-      errors: []
+      timesApplied: 0, // Times speed bonus applied
+      creaturesAffected: 0, // Unique creatures that benefited
+      extraTilesMoved: 0, // Additional tiles moved due to +2 speed
+      errors: [],
     },
     sellsword: {
       name: 'SELLSWORD',
       type: 'ACTIVE',
-      timesTriggered: 0,           // Times Drow collected treasure
-      choseMorale: 0,              // Times player chose +1 morale
-      choseCard: 0,                // Times player chose draw card
-      errors: []
+      timesTriggered: 0, // Times Drow collected treasure
+      choseMorale: 0, // Times player chose +1 morale
+      choseCard: 0, // Times player chose draw card
+      errors: [],
     },
 
     // Curse of Undeath
     bloodthirsty: {
       name: 'BLOODTHIRSTY',
       type: 'PASSIVE',
-      timesTriggered: 0,           // Times enemy was killed
-      leadershipGained: 0,         // Total leadership gained
-      errors: []
+      timesTriggered: 0, // Times enemy was killed
+      leadershipGained: 0, // Total leadership gained
+      errors: [],
     },
     unstoppable_hordes: {
       name: 'UNSTOPPABLE HORDES',
       type: 'PASSIVE',
-      timesUsed: 0,                // Times ability was used
-      creaturesUsed: 0,            // Total Undead creatures that used this ability
-      moraleLost: 0,               // Total morale lost (1 per creature)
-      damagePrevented: 0,          // Total damage prevented (20 per creature)
-      adjacentUndeadHelped: 0,     // Times adjacent Undead helped defend
-      errors: []
+      timesUsed: 0, // Times ability was used
+      creaturesUsed: 0, // Total Undead creatures that used this ability
+      moraleLost: 0, // Total morale lost (1 per creature)
+      damagePrevented: 0, // Total damage prevented (20 per creature)
+      adjacentUndeadHelped: 0, // Times adjacent Undead helped defend
+      errors: [],
     },
 
     // Universal Game Mechanic (not commander-specific)
     cower: {
       name: 'COWER',
       type: 'UNIVERSAL',
-      timesUsed: 0,                // Times any creature cowered
-      moraleLost: 0,               // Total morale lost from cowering
-      damageAvoided: 0,            // Total damage avoided (all damage from attack)
-      blackHandOfBaneExtra: 0,     // Extra morale paid due to BLACK HAND OF BANE
-      errors: []
+      timesUsed: 0, // Times any creature cowered
+      moraleLost: 0, // Total morale lost from cowering
+      damageAvoided: 0, // Total damage avoided (all damage from attack)
+      blackHandOfBaneExtra: 0, // Extra morale paid due to BLACK HAND OF BANE
+      errors: [],
     },
     immediate_card: {
       name: 'IMMEDIATE CARD',
       type: 'UNIVERSAL',
-      timesUsed: 0,                // Times IMMEDIATE cards were used for defense
-      damagePrevented: 0,          // Total damage prevented
-      cardsUsed: 0,                // Total cards discarded
-      creaturesTapped: 0,          // Total creatures tapped
-      cardNames: {},               // Track which cards were used (name -> count)
-      errors: []
+      timesUsed: 0, // Times IMMEDIATE cards were used for defense
+      damagePrevented: 0, // Total damage prevented
+      cardsUsed: 0, // Total cards discarded
+      creaturesTapped: 0, // Total creatures tapped
+      cardNames: {}, // Track which cards were used (name -> count)
+      errors: [],
     },
 
     // Tyranny of Goblins
     horde: {
       name: 'HORDE',
       type: 'PASSIVE',
-      timesUsed: 0,                // Times deployed in Refresh phase
-      creaturesDeployed: 0,        // Creatures deployed during Refresh
-      errors: []
+      timesUsed: 0, // Times deployed in Refresh phase
+      creaturesDeployed: 0, // Creatures deployed during Refresh
+      errors: [],
     },
     black_hand_of_bane: {
       name: 'BLACK HAND OF BANE',
       type: 'PASSIVE',
-      timesTriggered: 0,           // Times enemy cowered
-      extraMoraleDrained: 0,       // Extra morale drained
-      errors: []
+      timesTriggered: 0, // Times enemy cowered
+      extraMoraleDrained: 0, // Extra morale drained
+      errors: [],
     },
 
     // Heart of Cormyr
     scrollbook: {
       name: 'SCROLLBOOK',
       type: 'ACTIVE',
-      timesUsed: 0,                // Times ability was used
-      timesAvailable: 0,           // Times ability could have been used (per turn)
-      cardsDiscarded: 0,           // Cards discarded
-      cardsDrawn: 0,               // Cards drawn
-      errors: []
+      timesUsed: 0, // Times ability was used
+      timesAvailable: 0, // Times ability could have been used (per turn)
+      cardsDiscarded: 0, // Cards discarded
+      cardsDrawn: 0, // Cards drawn
+      errors: [],
     },
     versatile: {
       name: 'VERSATILE',
       type: 'ACTIVE',
-      timesTriggered: 0,           // Times Adventurer moved
-      extraMovesUsed: 0,           // Times extra move was used
-      extraMoveDeclined: 0,        // Times extra move was declined
-      totalExtraTilesMoved: 0,     // Tiles moved on second move
-      errors: []
-    }
+      timesTriggered: 0, // Times Adventurer moved
+      extraMovesUsed: 0, // Times extra move was used
+      extraMoveDeclined: 0, // Times extra move was declined
+      totalExtraTilesMoved: 0, // Tiles moved on second move
+      errors: [],
+    },
   },
 
   // ===== Per-Commander Ability Usage =====
-  commanderAbilityUsage: {}
+  commanderAbilityUsage: {},
 }
 
 // ============================================================================
@@ -214,7 +214,7 @@ function initBalanceTracking(faction, commanderName) {
     stats.commanderAbilityUsage[commanderName] = {
       gamesPlayed: 0,
       abilitiesTriggered: 0,
-      abilityDetails: {}
+      abilityDetails: {},
     }
   }
   stats.commanderAbilityUsage[commanderName].gamesPlayed++
@@ -226,7 +226,7 @@ function initBalanceTracking(faction, commanderName) {
  */
 function createCreatureDeck(faction) {
   // Create single copy of each creature (12 total per faction)
-  return sampleCreatures[faction].map(c => new Creature(c))
+  return sampleCreatures[faction].map((c) => new Creature(c))
 }
 
 /**
@@ -236,7 +236,7 @@ function createCreatureDeck(faction) {
  */
 function createOrderDeck(faction) {
   // Create single copy of each order card (no duplicates)
-  const deck = sampleOrderCards[faction].map(o => new OrderCard(o))
+  const deck = sampleOrderCards[faction].map((o) => new OrderCard(o))
   return deck
 }
 
@@ -259,7 +259,7 @@ function trackAbility(abilityId, detail = {}) {
         break
       case 'bloodthirsty':
         abilityStats.timesTriggered++
-        abilityStats.leadershipGained += (detail.leadershipGained || 1)
+        abilityStats.leadershipGained += detail.leadershipGained || 1
         break
       case 'sellsword':
         abilityStats.timesTriggered++
@@ -272,30 +272,31 @@ function trackAbility(abilityId, detail = {}) {
         break
       case 'black_hand_of_bane':
         abilityStats.timesTriggered++
-        abilityStats.extraMoraleDrained += (detail.extraMorale || 1)
+        abilityStats.extraMoraleDrained += detail.extraMorale || 1
         break
       case 'unstoppable_hordes':
         if (detail.used) {
           abilityStats.timesUsed++
-          abilityStats.creaturesUsed += (detail.creaturesUsed || 1)
-          abilityStats.moraleLost += (detail.moraleLost || detail.creaturesUsed || 1)
-          abilityStats.damagePrevented += (detail.damagePrevented || (detail.creaturesUsed || 1) * 20)
+          abilityStats.creaturesUsed += detail.creaturesUsed || 1
+          abilityStats.moraleLost += detail.moraleLost || detail.creaturesUsed || 1
+          abilityStats.damagePrevented += detail.damagePrevented || (detail.creaturesUsed || 1) * 20
           if (detail.adjacentHelped) abilityStats.adjacentUndeadHelped += detail.adjacentHelped
         }
         break
       case 'cower':
         abilityStats.timesUsed++
-        abilityStats.moraleLost += (detail.moraleLost || 0)
-        abilityStats.damageAvoided += (detail.damageAvoided || 0)
+        abilityStats.moraleLost += detail.moraleLost || 0
+        abilityStats.damageAvoided += detail.damageAvoided || 0
         if (detail.blackHandExtra) abilityStats.blackHandOfBaneExtra += detail.blackHandExtra
         break
       case 'immediate_card':
         abilityStats.timesUsed++
-        abilityStats.damagePrevented += (detail.damagePrevented || 0)
+        abilityStats.damagePrevented += detail.damagePrevented || 0
         abilityStats.cardsUsed++
         abilityStats.creaturesTapped++
         if (detail.cardName) {
-          abilityStats.cardNames[detail.cardName] = (abilityStats.cardNames[detail.cardName] || 0) + 1
+          abilityStats.cardNames[detail.cardName] =
+            (abilityStats.cardNames[detail.cardName] || 0) + 1
         }
         break
       case 'scrollbook':
@@ -310,7 +311,7 @@ function trackAbility(abilityId, detail = {}) {
         abilityStats.timesTriggered++
         if (detail.extraMoveUsed) {
           abilityStats.extraMovesUsed++
-          abilityStats.totalExtraTilesMoved += (detail.tilesMoved || 0)
+          abilityStats.totalExtraTilesMoved += detail.tilesMoved || 0
         } else {
           abilityStats.extraMoveDeclined++
         }
@@ -337,7 +338,7 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
     attacksProcessed: 0,
     attacksSuccessful: 0,
     damageDealt: 0,
-    creaturesDestroyed: 0
+    creaturesDestroyed: 0,
   }
 
   for (const intention of attackIntentions) {
@@ -361,9 +362,10 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
     }
 
     // Calculate incoming damage for defensive options
-    const incomingDamage = targetInfo.attackType === 'melee'
-      ? attackerInstance.creature.meleeAttack?.damage || 0
-      : attackerInstance.creature.rangedAttack?.damage || 0
+    const incomingDamage =
+      targetInfo.attackType === 'melee'
+        ? attackerInstance.creature.meleeAttack?.damage || 0
+        : attackerInstance.creature.rangedAttack?.damage || 0
 
     // Check if defender can use defensive abilities (AI decision)
     const defenderOwner = defenderInstance.owner
@@ -390,7 +392,7 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
         trackAbility('cower', {
           moraleLost: cowerResult.moraleCost,
           damageAvoided: cowerResult.damageAvoided,
-          blackHandExtra: cowerResult.extraCost || 0
+          blackHandExtra: cowerResult.extraCost || 0,
         })
 
         // Track BLACK HAND OF BANE if extra cost was applied
@@ -399,7 +401,9 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
         }
 
         if (CONFIG.VERBOSE_LOGGING) {
-          console.log(`  [COWER] ${defenderInstance.creature.name} avoids ${damageReduction} damage!`)
+          console.log(
+            `  [COWER] ${defenderInstance.creature.name} avoids ${damageReduction} damage!`
+          )
         }
       }
     } else if (defenseDecision.type === 'unstoppable_hordes') {
@@ -443,11 +447,13 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
           creaturesUsed,
           moraleLost: creaturesUsed,
           damagePrevented: totalDamageReduction,
-          adjacentHelped
+          adjacentHelped,
         })
 
         if (CONFIG.VERBOSE_LOGGING) {
-          console.log(`  [UNSTOPPABLE HORDES] ${creaturesUsed} Undead prevent ${totalDamageReduction} damage!`)
+          console.log(
+            `  [UNSTOPPABLE HORDES] ${creaturesUsed} Undead prevent ${totalDamageReduction} damage!`
+          )
         }
       }
     } else if (defenseDecision.type === 'immediate_card') {
@@ -463,18 +469,26 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
         // Track IMMEDIATE card usage
         trackAbility('immediate_card', {
           damagePrevented: result.damagePrevented,
-          cardName: defenseDecision.card?.name || 'Unknown'
+          cardName: defenseDecision.card?.name || 'Unknown',
         })
 
         if (CONFIG.VERBOSE_LOGGING) {
-          console.log(`  [IMMEDIATE CARD] ${defenseDecision.card?.name} prevents ${result.damagePrevented} damage! (${defenseDecision.creature.creature.name} tapped)`)
+          console.log(
+            `  [IMMEDIATE CARD] ${defenseDecision.card?.name} prevents ${result.damagePrevented} damage! (${defenseDecision.creature.creature.name} tapped)`
+          )
         }
       }
     }
 
     // Execute the attack with damage reduction
     const attackResult = gameState.executeAttackWithDefense
-      ? gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, damageReduction, defenseType)
+      ? gameState.executeAttackWithDefense(
+          attackerInstance,
+          defenderInstance,
+          targetInfo.attackType,
+          damageReduction,
+          defenseType
+        )
       : gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType)
 
     if (attackResult.success) {
@@ -496,7 +510,9 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
           trackAbility('bloodthirsty', { leadershipGained: 1 })
 
           if (CONFIG.VERBOSE_LOGGING) {
-            console.log(`  [BLOODTHIRSTY] +1 Leadership for killing ${defenderInstance.creature.name}`)
+            console.log(
+              `  [BLOODTHIRSTY] +1 Leadership for killing ${defenderInstance.creature.name}`
+            )
           }
         }
       }
@@ -517,7 +533,7 @@ function executeAITurn(gameState, currentPlayerId) {
     movementActions: 0,
     attackActions: 0,
     deploymentActions: 0,
-    abilitiesTriggered: []
+    abilitiesTriggered: [],
   }
 
   try {
@@ -540,9 +556,9 @@ function executeAITurn(gameState, currentPlayerId) {
           // Track ORC SCOUT ability
           if (gameState.hasCommanderAbility(currentPlayerId, 'orc_scout')) {
             if (action.creature && action.creature.includes && action.creature.includes('Orc')) {
-              const treasureTiles = gameState.treasures.map(t => t.position)
+              const treasureTiles = gameState.treasures.map((t) => t.position)
               const isTreasureTile = treasureTiles.some(
-                t => t.x === action.position.x && t.y === action.position.y
+                (t) => t.x === action.position.x && t.y === action.position.y
               )
               if (isTreasureTile) {
                 trackAbility('orc_scout', { used: true })
@@ -559,10 +575,14 @@ function executeAITurn(gameState, currentPlayerId) {
             if (action.to) {
               const tile = gameState.getTile(action.to.x, action.to.y)
               const terrain = tile?.terrain
-              if (terrain === TerrainTypes.FOREST || terrain === TerrainTypes.DIFFICULT || terrain === TerrainTypes.WATER) {
+              if (
+                terrain === TerrainTypes.FOREST ||
+                terrain === TerrainTypes.DIFFICULT ||
+                terrain === TerrainTypes.WATER
+              ) {
                 trackAbility('gruumsh_commands_it', {
                   tilesMoved: 1,
-                  movementSaved: 1
+                  movementSaved: 1,
                 })
               }
             }
@@ -572,10 +592,12 @@ function executeAITurn(gameState, currentPlayerId) {
           if (gameState.hasCommanderAbility(currentPlayerId, 'walls_of_web')) {
             // Check if it's a Drow or Spider creature by finding the instance
             const creatures = player.creaturesInPlay || []
-            const movedCreature = creatures.find(c =>
-              c.position && action.to &&
-              c.position.x === action.to.x &&
-              c.position.y === action.to.y
+            const movedCreature = creatures.find(
+              (c) =>
+                c.position &&
+                action.to &&
+                c.position.x === action.to.x &&
+                c.position.y === action.to.y
             )
             if (movedCreature) {
               const types = movedCreature.creature.type || []
@@ -590,10 +612,11 @@ function executeAITurn(gameState, currentPlayerId) {
           // Track SELLSWORD for Drow treasure collection
           if (gameState.hasCommanderAbility(currentPlayerId, 'sellsword')) {
             const creatures = player.creaturesInPlay || []
-            const collector = creatures.find(c =>
-              c.position &&
-              c.position.x === action.position.x &&
-              c.position.y === action.position.y
+            const collector = creatures.find(
+              (c) =>
+                c.position &&
+                c.position.x === action.position.x &&
+                c.position.y === action.position.y
             )
             if (collector) {
               const types = collector.creature.type || []
@@ -623,15 +646,23 @@ function executeAITurn(gameState, currentPlayerId) {
     }
 
     // Track VERSATILE ability for Adventurers after movement
-    if (gameState.currentPhase === GamePhases.ACTIVATE && gameState.hasCommanderAbility(currentPlayerId, 'versatile')) {
+    if (
+      gameState.currentPhase === GamePhases.ACTIVATE &&
+      gameState.hasCommanderAbility(currentPlayerId, 'versatile')
+    ) {
       const creatures = player.creaturesInPlay || []
-      const adventurers = creatures.filter(c => c.creature.type?.includes('Adventurer') && !c.isTapped)
+      const adventurers = creatures.filter(
+        (c) => c.creature.type?.includes('Adventurer') && !c.isTapped
+      )
 
       for (const adventurer of adventurers) {
         if (result.movementActions > 0) {
           // AI decision to use VERSATILE
           const useVersatile = Math.random() < 0.4 // 40% chance to use
-          trackAbility('versatile', { extraMoveUsed: useVersatile, tilesMoved: useVersatile ? adventurer.creature.speed : 0 })
+          trackAbility('versatile', {
+            extraMoveUsed: useVersatile,
+            tilesMoved: useVersatile ? adventurer.creature.speed : 0,
+          })
         }
       }
     }
@@ -652,12 +683,14 @@ function executeAITurn(gameState, currentPlayerId) {
     }
 
     // Track HORDE ability (deploy during refresh phase)
-    if (gameState.currentPhase === GamePhases.REFRESH && gameState.canDeployInRefreshPhase(currentPlayerId)) {
+    if (
+      gameState.currentPhase === GamePhases.REFRESH &&
+      gameState.canDeployInRefreshPhase(currentPlayerId)
+    ) {
       if (result.deploymentActions > 0) {
         trackAbility('horde', { creaturesDeployed: result.deploymentActions })
       }
     }
-
   } catch (e) {
     stats.errors.push(`AI Turn Error (${currentPlayerId}): ${e.message}`)
   }
@@ -680,7 +713,7 @@ function runGameSimulation(gameNum, numPlayers = 2) {
     winner: null,
     turns: 0,
     error: null,
-    abilitiesTriggered: []
+    abilitiesTriggered: [],
   }
 
   try {
@@ -690,7 +723,13 @@ function runGameSimulation(gameNum, numPlayers = 2) {
 
     // Setup players
     const playerSetups = []
-    const playerIds = [Players.PLAYER1, Players.PLAYER2, Players.PLAYER3, Players.PLAYER4, Players.PLAYER5]
+    const playerIds = [
+      Players.PLAYER1,
+      Players.PLAYER2,
+      Players.PLAYER3,
+      Players.PLAYER4,
+      Players.PLAYER5,
+    ]
 
     for (let i = 0; i < numPlayers; i++) {
       const playerId = playerIds[i]
@@ -706,12 +745,12 @@ function runGameSimulation(gameNum, numPlayers = 2) {
         commander: new Commander(commander),
         creatures: createCreatureDeck(faction),
         orders: createOrderDeck(faction),
-        faction
+        faction,
       })
 
       gameResult[playerId] = {
         faction,
-        commander: commander.name
+        commander: commander.name,
       }
     }
 
@@ -781,7 +820,7 @@ function runGameSimulation(gameNum, numPlayers = 2) {
       gameState.gameOver = true
       let highestMorale = -1
       let winner = null
-      gameState.activePlayers.forEach(playerId => {
+      gameState.activePlayers.forEach((playerId) => {
         const morale = gameState.players[playerId].morale
         if (morale > highestMorale) {
           highestMorale = morale
@@ -806,14 +845,13 @@ function runGameSimulation(gameNum, numPlayers = 2) {
       if (gameState.winner) {
         stats.winsByPlayer[gameState.winner] = (stats.winsByPlayer[gameState.winner] || 0) + 1
 
-        const winnerSetup = playerSetups.find(p => p.playerId === gameState.winner)
+        const winnerSetup = playerSetups.find((p) => p.playerId === gameState.winner)
         if (winnerSetup) {
           stats.factionWins[winnerSetup.faction]++
           stats.commanderWins[winnerSetup.commander.name]++
         }
       }
     }
-
   } catch (e) {
     stats.gamesErrored++
     stats.errors.push(`Game ${gameNum}: Fatal error - ${e.message}`)
@@ -851,11 +889,14 @@ function printResults() {
   console.log(`  Total Simulations: ${CONFIG.NUM_SIMULATIONS}`)
   console.log(`  Games Completed: ${stats.gamesCompleted}`)
   console.log(`  Games Errored: ${stats.gamesErrored}`)
-  console.log(`  Success Rate: ${((stats.gamesCompleted / CONFIG.NUM_SIMULATIONS) * 100).toFixed(1)}%`)
+  console.log(
+    `  Success Rate: ${((stats.gamesCompleted / CONFIG.NUM_SIMULATIONS) * 100).toFixed(1)}%`
+  )
 
   // ===== Turn Statistics =====
   console.log('\n[TURN STATISTICS]')
-  const avgTurns = stats.gamesCompleted > 0 ? (stats.totalTurns / stats.gamesCompleted).toFixed(2) : 'N/A'
+  const avgTurns =
+    stats.gamesCompleted > 0 ? (stats.totalTurns / stats.gamesCompleted).toFixed(2) : 'N/A'
   console.log(`  Average Turns per Game: ${avgTurns}`)
   console.log(`  Min Turns: ${stats.minTurns === Infinity ? 'N/A' : stats.minTurns}`)
   console.log(`  Max Turns: ${stats.maxTurns}`)
@@ -865,11 +906,21 @@ function printResults() {
   // ===== Combat Statistics =====
   console.log('\n[COMBAT STATISTICS]')
   console.log(`                              TOTAL       AVG/GAME`)
-  console.log(`  Attacks Attempted:         ${String(stats.attacksAttempted).padStart(6)}       ${avgPerGame(stats.attacksAttempted)}`)
-  console.log(`  Attacks Successful:        ${String(stats.attacksSuccessful).padStart(6)}       ${avgPerGame(stats.attacksSuccessful)}`)
-  console.log(`  Total Damage Dealt:        ${String(stats.totalDamageDealt).padStart(6)}       ${avgPerGame(stats.totalDamageDealt)}`)
-  console.log(`  Creatures Destroyed:       ${String(stats.creaturesDestroyed).padStart(6)}       ${avgPerGame(stats.creaturesDestroyed)}`)
-  console.log(`  Creatures Deployed:        ${String(stats.creaturesDeployed).padStart(6)}       ${avgPerGame(stats.creaturesDeployed)}`)
+  console.log(
+    `  Attacks Attempted:         ${String(stats.attacksAttempted).padStart(6)}       ${avgPerGame(stats.attacksAttempted)}`
+  )
+  console.log(
+    `  Attacks Successful:        ${String(stats.attacksSuccessful).padStart(6)}       ${avgPerGame(stats.attacksSuccessful)}`
+  )
+  console.log(
+    `  Total Damage Dealt:        ${String(stats.totalDamageDealt).padStart(6)}       ${avgPerGame(stats.totalDamageDealt)}`
+  )
+  console.log(
+    `  Creatures Destroyed:       ${String(stats.creaturesDestroyed).padStart(6)}       ${avgPerGame(stats.creaturesDestroyed)}`
+  )
+  console.log(
+    `  Creatures Deployed:        ${String(stats.creaturesDeployed).padStart(6)}       ${avgPerGame(stats.creaturesDeployed)}`
+  )
 
   // ===== COMMANDER ABILITY STATISTICS =====
   console.log('\n' + divider)
@@ -879,83 +930,160 @@ function printResults() {
   // Blood of Gruumsh
   console.log('\n[BLOOD OF GRUUMSH]')
   console.log(`  GRUUMSH COMMANDS IT (PASSIVE - Ignore Difficult Terrain):`)
-  console.log(`    Times Triggered:           ${String(stats.abilityStats.gruumsh_commands_it.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.gruumsh_commands_it.timesTriggered)}/game)`)
-  console.log(`    Tiles on Difficult:        ${String(stats.abilityStats.gruumsh_commands_it.tilesMovedOnDifficult).padStart(6)}    (${avgPerGame(stats.abilityStats.gruumsh_commands_it.tilesMovedOnDifficult)}/game)`)
-  console.log(`    Movement Points Saved:     ${String(stats.abilityStats.gruumsh_commands_it.movementSaved).padStart(6)}    (${avgPerGame(stats.abilityStats.gruumsh_commands_it.movementSaved)}/game)`)
+  console.log(
+    `    Times Triggered:           ${String(stats.abilityStats.gruumsh_commands_it.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.gruumsh_commands_it.timesTriggered)}/game)`
+  )
+  console.log(
+    `    Tiles on Difficult:        ${String(stats.abilityStats.gruumsh_commands_it.tilesMovedOnDifficult).padStart(6)}    (${avgPerGame(stats.abilityStats.gruumsh_commands_it.tilesMovedOnDifficult)}/game)`
+  )
+  console.log(
+    `    Movement Points Saved:     ${String(stats.abilityStats.gruumsh_commands_it.movementSaved).padStart(6)}    (${avgPerGame(stats.abilityStats.gruumsh_commands_it.movementSaved)}/game)`
+  )
 
   console.log(`  ORC SCOUT (ACTIVE - Deploy Orc to Treasure):`)
-  console.log(`    Times Available:           ${String(stats.abilityStats.orc_scout.timesAvailable).padStart(6)}    (${avgPerGame(stats.abilityStats.orc_scout.timesAvailable)}/game)`)
-  console.log(`    Times Used:                ${String(stats.abilityStats.orc_scout.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.orc_scout.timesUsed)}/game)`)
-  console.log(`    Orcs Deployed to Treasure: ${String(stats.abilityStats.orc_scout.orcsDeployedToTreasure).padStart(6)}    (${avgPerGame(stats.abilityStats.orc_scout.orcsDeployedToTreasure)}/game)`)
+  console.log(
+    `    Times Available:           ${String(stats.abilityStats.orc_scout.timesAvailable).padStart(6)}    (${avgPerGame(stats.abilityStats.orc_scout.timesAvailable)}/game)`
+  )
+  console.log(
+    `    Times Used:                ${String(stats.abilityStats.orc_scout.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.orc_scout.timesUsed)}/game)`
+  )
+  console.log(
+    `    Orcs Deployed to Treasure: ${String(stats.abilityStats.orc_scout.orcsDeployedToTreasure).padStart(6)}    (${avgPerGame(stats.abilityStats.orc_scout.orcsDeployedToTreasure)}/game)`
+  )
 
   // Sting of Lolth
   console.log('\n[STING OF LOLTH]')
   console.log(`  WALLS OF WEB (PASSIVE - +2 Speed to Drow/Spider):`)
-  console.log(`    Times Applied:             ${String(stats.abilityStats.walls_of_web.timesApplied).padStart(6)}    (${avgPerGame(stats.abilityStats.walls_of_web.timesApplied)}/game)`)
-  console.log(`    Extra Tiles Moved:         ${String(stats.abilityStats.walls_of_web.extraTilesMoved).padStart(6)}    (${avgPerGame(stats.abilityStats.walls_of_web.extraTilesMoved)}/game)`)
+  console.log(
+    `    Times Applied:             ${String(stats.abilityStats.walls_of_web.timesApplied).padStart(6)}    (${avgPerGame(stats.abilityStats.walls_of_web.timesApplied)}/game)`
+  )
+  console.log(
+    `    Extra Tiles Moved:         ${String(stats.abilityStats.walls_of_web.extraTilesMoved).padStart(6)}    (${avgPerGame(stats.abilityStats.walls_of_web.extraTilesMoved)}/game)`
+  )
 
   console.log(`  SELLSWORD (ACTIVE - Card or +1 Morale on Treasure):`)
-  console.log(`    Times Triggered:           ${String(stats.abilityStats.sellsword.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.sellsword.timesTriggered)}/game)`)
-  console.log(`    Chose +1 Morale:           ${String(stats.abilityStats.sellsword.choseMorale).padStart(6)}    (${avgPerGame(stats.abilityStats.sellsword.choseMorale)}/game)`)
-  console.log(`    Chose Draw Card:           ${String(stats.abilityStats.sellsword.choseCard).padStart(6)}    (${avgPerGame(stats.abilityStats.sellsword.choseCard)}/game)`)
+  console.log(
+    `    Times Triggered:           ${String(stats.abilityStats.sellsword.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.sellsword.timesTriggered)}/game)`
+  )
+  console.log(
+    `    Chose +1 Morale:           ${String(stats.abilityStats.sellsword.choseMorale).padStart(6)}    (${avgPerGame(stats.abilityStats.sellsword.choseMorale)}/game)`
+  )
+  console.log(
+    `    Chose Draw Card:           ${String(stats.abilityStats.sellsword.choseCard).padStart(6)}    (${avgPerGame(stats.abilityStats.sellsword.choseCard)}/game)`
+  )
 
   // Curse of Undeath
   console.log('\n[CURSE OF UNDEATH]')
   console.log(`  BLOODTHIRSTY (PASSIVE - +1 Leadership on Kill):`)
-  console.log(`    Times Triggered:           ${String(stats.abilityStats.bloodthirsty.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.bloodthirsty.timesTriggered)}/game)`)
-  console.log(`    Leadership Gained:         ${String(stats.abilityStats.bloodthirsty.leadershipGained).padStart(6)}    (${avgPerGame(stats.abilityStats.bloodthirsty.leadershipGained)}/game)`)
+  console.log(
+    `    Times Triggered:           ${String(stats.abilityStats.bloodthirsty.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.bloodthirsty.timesTriggered)}/game)`
+  )
+  console.log(
+    `    Leadership Gained:         ${String(stats.abilityStats.bloodthirsty.leadershipGained).padStart(6)}    (${avgPerGame(stats.abilityStats.bloodthirsty.leadershipGained)}/game)`
+  )
 
   console.log(`  UNSTOPPABLE HORDES (PASSIVE - Undead prevent 20 damage):`)
-  console.log(`    Times Used:                ${String(stats.abilityStats.unstoppable_hordes.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.timesUsed)}/game)`)
-  console.log(`    Creatures Used:            ${String(stats.abilityStats.unstoppable_hordes.creaturesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.creaturesUsed)}/game)`)
-  console.log(`    Morale Lost:               ${String(stats.abilityStats.unstoppable_hordes.moraleLost).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.moraleLost)}/game)`)
-  console.log(`    Damage Prevented:          ${String(stats.abilityStats.unstoppable_hordes.damagePrevented).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.damagePrevented)}/game)`)
-  console.log(`    Adjacent Undead Helped:    ${String(stats.abilityStats.unstoppable_hordes.adjacentUndeadHelped).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.adjacentUndeadHelped)}/game)`)
+  console.log(
+    `    Times Used:                ${String(stats.abilityStats.unstoppable_hordes.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.timesUsed)}/game)`
+  )
+  console.log(
+    `    Creatures Used:            ${String(stats.abilityStats.unstoppable_hordes.creaturesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.creaturesUsed)}/game)`
+  )
+  console.log(
+    `    Morale Lost:               ${String(stats.abilityStats.unstoppable_hordes.moraleLost).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.moraleLost)}/game)`
+  )
+  console.log(
+    `    Damage Prevented:          ${String(stats.abilityStats.unstoppable_hordes.damagePrevented).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.damagePrevented)}/game)`
+  )
+  console.log(
+    `    Adjacent Undead Helped:    ${String(stats.abilityStats.unstoppable_hordes.adjacentUndeadHelped).padStart(6)}    (${avgPerGame(stats.abilityStats.unstoppable_hordes.adjacentUndeadHelped)}/game)`
+  )
 
   // Universal Mechanics
   console.log('\n[UNIVERSAL MECHANICS]')
   console.log(`  COWER (UNIVERSAL - Avoid ALL damage, costs damage/10 morale):`)
-  console.log(`    Times Used:                ${String(stats.abilityStats.cower.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.timesUsed)}/game)`)
-  console.log(`    Morale Lost:               ${String(stats.abilityStats.cower.moraleLost).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.moraleLost)}/game)`)
-  console.log(`    Damage Avoided:            ${String(stats.abilityStats.cower.damageAvoided).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.damageAvoided)}/game)`)
-  console.log(`    BLACK HAND Extra Cost:     ${String(stats.abilityStats.cower.blackHandOfBaneExtra).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.blackHandOfBaneExtra)}/game)`)
+  console.log(
+    `    Times Used:                ${String(stats.abilityStats.cower.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.timesUsed)}/game)`
+  )
+  console.log(
+    `    Morale Lost:               ${String(stats.abilityStats.cower.moraleLost).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.moraleLost)}/game)`
+  )
+  console.log(
+    `    Damage Avoided:            ${String(stats.abilityStats.cower.damageAvoided).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.damageAvoided)}/game)`
+  )
+  console.log(
+    `    BLACK HAND Extra Cost:     ${String(stats.abilityStats.cower.blackHandOfBaneExtra).padStart(6)}    (${avgPerGame(stats.abilityStats.cower.blackHandOfBaneExtra)}/game)`
+  )
 
   console.log(`  IMMEDIATE CARD (UNIVERSAL - Use order cards for defense):`)
-  console.log(`    Times Used:                ${String(stats.abilityStats.immediate_card.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.timesUsed)}/game)`)
-  console.log(`    Damage Prevented:          ${String(stats.abilityStats.immediate_card.damagePrevented).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.damagePrevented)}/game)`)
-  console.log(`    Cards Used:                ${String(stats.abilityStats.immediate_card.cardsUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.cardsUsed)}/game)`)
-  console.log(`    Creatures Tapped:          ${String(stats.abilityStats.immediate_card.creaturesTapped).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.creaturesTapped)}/game)`)
+  console.log(
+    `    Times Used:                ${String(stats.abilityStats.immediate_card.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.timesUsed)}/game)`
+  )
+  console.log(
+    `    Damage Prevented:          ${String(stats.abilityStats.immediate_card.damagePrevented).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.damagePrevented)}/game)`
+  )
+  console.log(
+    `    Cards Used:                ${String(stats.abilityStats.immediate_card.cardsUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.cardsUsed)}/game)`
+  )
+  console.log(
+    `    Creatures Tapped:          ${String(stats.abilityStats.immediate_card.creaturesTapped).padStart(6)}    (${avgPerGame(stats.abilityStats.immediate_card.creaturesTapped)}/game)`
+  )
   // Show most used card names
   const cardNamesUsed = Object.entries(stats.abilityStats.immediate_card.cardNames)
   if (cardNamesUsed.length > 0) {
     console.log(`    Cards by Name:`)
-    cardNamesUsed.sort((a, b) => b[1] - a[1]).slice(0, 5).forEach(([name, count]) => {
-      console.log(`      ${name.padEnd(25)} ${String(count).padStart(4)}x`)
-    })
+    cardNamesUsed
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .forEach(([name, count]) => {
+        console.log(`      ${name.padEnd(25)} ${String(count).padStart(4)}x`)
+      })
   }
 
   // Tyranny of Goblins
   console.log('\n[TYRANNY OF GOBLINS]')
   console.log(`  HORDE (PASSIVE - Deploy creature in Refresh phase):`)
-  console.log(`    Times Used:                ${String(stats.abilityStats.horde.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.horde.timesUsed)}/game)`)
-  console.log(`    Creatures Deployed:        ${String(stats.abilityStats.horde.creaturesDeployed).padStart(6)}    (${avgPerGame(stats.abilityStats.horde.creaturesDeployed)}/game)`)
+  console.log(
+    `    Times Used:                ${String(stats.abilityStats.horde.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.horde.timesUsed)}/game)`
+  )
+  console.log(
+    `    Creatures Deployed:        ${String(stats.abilityStats.horde.creaturesDeployed).padStart(6)}    (${avgPerGame(stats.abilityStats.horde.creaturesDeployed)}/game)`
+  )
 
   console.log(`  BLACK HAND OF BANE (PASSIVE - +1 Enemy Cower Cost):`)
-  console.log(`    Times Triggered:           ${String(stats.abilityStats.black_hand_of_bane.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.black_hand_of_bane.timesTriggered)}/game)`)
-  console.log(`    Extra Morale Drained:      ${String(stats.abilityStats.black_hand_of_bane.extraMoraleDrained).padStart(6)}    (${avgPerGame(stats.abilityStats.black_hand_of_bane.extraMoraleDrained)}/game)`)
+  console.log(
+    `    Times Triggered:           ${String(stats.abilityStats.black_hand_of_bane.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.black_hand_of_bane.timesTriggered)}/game)`
+  )
+  console.log(
+    `    Extra Morale Drained:      ${String(stats.abilityStats.black_hand_of_bane.extraMoraleDrained).padStart(6)}    (${avgPerGame(stats.abilityStats.black_hand_of_bane.extraMoraleDrained)}/game)`
+  )
 
   // Heart of Cormyr
   console.log('\n[HEART OF CORMYR]')
   console.log(`  SCROLLBOOK (ACTIVE - Discard order card to draw one):`)
-  console.log(`    Times Available:           ${String(stats.abilityStats.scrollbook.timesAvailable).padStart(6)}    (${avgPerGame(stats.abilityStats.scrollbook.timesAvailable)}/game)`)
-  console.log(`    Times Used:                ${String(stats.abilityStats.scrollbook.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.scrollbook.timesUsed)}/game)`)
-  console.log(`    Cards Cycled:              ${String(stats.abilityStats.scrollbook.cardsDrawn).padStart(6)}    (${avgPerGame(stats.abilityStats.scrollbook.cardsDrawn)}/game)`)
+  console.log(
+    `    Times Available:           ${String(stats.abilityStats.scrollbook.timesAvailable).padStart(6)}    (${avgPerGame(stats.abilityStats.scrollbook.timesAvailable)}/game)`
+  )
+  console.log(
+    `    Times Used:                ${String(stats.abilityStats.scrollbook.timesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.scrollbook.timesUsed)}/game)`
+  )
+  console.log(
+    `    Cards Cycled:              ${String(stats.abilityStats.scrollbook.cardsDrawn).padStart(6)}    (${avgPerGame(stats.abilityStats.scrollbook.cardsDrawn)}/game)`
+  )
 
   console.log(`  VERSATILE (ACTIVE - Extra 2-tile move for Adventurers):`)
-  console.log(`    Times Triggered:           ${String(stats.abilityStats.versatile.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.timesTriggered)}/game)`)
-  console.log(`    Extra Moves Used:          ${String(stats.abilityStats.versatile.extraMovesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.extraMovesUsed)}/game)`)
-  console.log(`    Extra Moves Declined:      ${String(stats.abilityStats.versatile.extraMoveDeclined).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.extraMoveDeclined)}/game)`)
-  console.log(`    Extra Tiles Moved:         ${String(stats.abilityStats.versatile.totalExtraTilesMoved).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.totalExtraTilesMoved)}/game)`)
+  console.log(
+    `    Times Triggered:           ${String(stats.abilityStats.versatile.timesTriggered).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.timesTriggered)}/game)`
+  )
+  console.log(
+    `    Extra Moves Used:          ${String(stats.abilityStats.versatile.extraMovesUsed).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.extraMovesUsed)}/game)`
+  )
+  console.log(
+    `    Extra Moves Declined:      ${String(stats.abilityStats.versatile.extraMoveDeclined).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.extraMoveDeclined)}/game)`
+  )
+  console.log(
+    `    Extra Tiles Moved:         ${String(stats.abilityStats.versatile.totalExtraTilesMoved).padStart(6)}    (${avgPerGame(stats.abilityStats.versatile.totalExtraTilesMoved)}/game)`
+  )
 
   // ===== Faction Balance =====
   console.log('\n' + subDivider)
@@ -966,7 +1094,7 @@ function printResults() {
       faction,
       games,
       wins: stats.factionWins[faction] || 0,
-      winRate: ((stats.factionWins[faction] || 0) / games * 100).toFixed(1)
+      winRate: (((stats.factionWins[faction] || 0) / games) * 100).toFixed(1),
     }))
     .sort((a, b) => parseFloat(b.winRate) - parseFloat(a.winRate))
 
@@ -982,7 +1110,7 @@ function printResults() {
       commander,
       games,
       wins: stats.commanderWins[commander] || 0,
-      winRate: ((stats.commanderWins[commander] || 0) / games * 100).toFixed(1)
+      winRate: (((stats.commanderWins[commander] || 0) / games) * 100).toFixed(1),
     }))
     .sort((a, b) => parseFloat(b.winRate) - parseFloat(a.winRate))
 
@@ -1039,12 +1167,12 @@ function printResults() {
   if (stats.errors.length === 0 && abilityIssues.length === 0) {
     console.log('ALL TESTS PASSED!')
     console.log(`\n  Commander Abilities (${commanderAbilitySuccesses.length}/10):`)
-    commanderAbilitySuccesses.forEach(success => {
+    commanderAbilitySuccesses.forEach((success) => {
       console.log(`    ${success}`)
     })
     if (universalMechanicSuccesses.length > 0) {
       console.log(`\n  Universal Game Mechanics (${universalMechanicSuccesses.length}/2):`)
-      universalMechanicSuccesses.forEach(success => {
+      universalMechanicSuccesses.forEach((success) => {
         console.log(`    ${success}`)
       })
     }
@@ -1053,18 +1181,18 @@ function printResults() {
     if (stats.errors.length > 0) {
       console.log(`  ${stats.errors.length} game errors`)
     }
-    abilityIssues.forEach(issue => {
+    abilityIssues.forEach((issue) => {
       console.log(`  ${issue}`)
     })
     if (commanderAbilitySuccesses.length > 0) {
       console.log(`\nWorking Commander Abilities (${commanderAbilitySuccesses.length}/10):`)
-      commanderAbilitySuccesses.forEach(success => {
+      commanderAbilitySuccesses.forEach((success) => {
         console.log(`  ${success}`)
       })
     }
     if (universalMechanicSuccesses.length > 0) {
       console.log(`\nWorking Universal Mechanics (${universalMechanicSuccesses.length}/2):`)
-      universalMechanicSuccesses.forEach(success => {
+      universalMechanicSuccesses.forEach((success) => {
         console.log(`  ${success}`)
       })
     }
@@ -1078,7 +1206,9 @@ function printResults() {
 // ============================================================================
 
 console.log('Starting Commander Abilities Test v2.0...')
-console.log(`Configuration: ${CONFIG.NUM_SIMULATIONS} games, max ${CONFIG.MAX_TURNS_PER_GAME} turns each`)
+console.log(
+  `Configuration: ${CONFIG.NUM_SIMULATIONS} games, max ${CONFIG.MAX_TURNS_PER_GAME} turns each`
+)
 console.log('')
 
 // Run simulations

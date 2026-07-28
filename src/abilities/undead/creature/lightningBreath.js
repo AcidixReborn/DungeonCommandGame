@@ -25,7 +25,7 @@ export const LightningBreath = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('LIGHTNING BREATH')
+      (a) => typeof a === 'string' && a.toUpperCase().includes('LIGHTNING BREATH')
     )
   },
 
@@ -100,7 +100,7 @@ export const LightningBreath = {
    */
   getDamage(creatureInstance) {
     return creatureInstance?.creature?.rangedAttack?.damage || 20
-  }
+  },
 }
 
 export default LightningBreath

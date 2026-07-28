@@ -11,12 +11,7 @@ import { Modal, Button, Badge, Card, Row, Col } from 'react-bootstrap'
  * @param {Function} onSkip - Callback when player skips the counter-attack
  * @param {Object} counterAttackData - { damage, validTargets, defenderInstance }
  */
-function CounterAttackTargetModal({
-  show,
-  onSelectTarget,
-  onSkip,
-  counterAttackData
-}) {
+function CounterAttackTargetModal({ show, onSelectTarget, onSkip, counterAttackData }) {
   if (!show || !counterAttackData) return null
 
   const { damage, validTargets, defenderInstance } = counterAttackData
@@ -31,7 +26,9 @@ function CounterAttackTargetModal({
       backdrop="static"
       className="counter-attack-target-modal"
     >
-      <Modal.Header style={{ backgroundColor: '#4a1a1a', color: 'white', borderBottom: '2px solid #8b0000' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#4a1a1a', color: 'white', borderBottom: '2px solid #8b0000' }}
+      >
         <Modal.Title>
           <span style={{ marginRight: '8px' }}>&#9876;</span>
           Counter-Attack Target Selection
@@ -42,7 +39,9 @@ function CounterAttackTargetModal({
         {/* Explanation */}
         <div className="text-center mb-3">
           <strong>{defenderName}</strong> can counter-attack for{' '}
-          <Badge bg="danger" style={{ fontSize: '1rem' }}>{damage} damage</Badge>
+          <Badge bg="danger" style={{ fontSize: '1rem' }}>
+            {damage} damage
+          </Badge>
         </div>
 
         <div className="text-center mb-3" style={{ color: '#aaa', fontSize: '0.9rem' }}>
@@ -62,7 +61,7 @@ function CounterAttackTargetModal({
                     backgroundColor: '#1a1a2e',
                     border: wouldKill ? '2px solid #dc3545' : '2px solid #6c757d',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
                   }}
                   className="h-100 target-card"
                   onClick={() => onSelectTarget(target)}
@@ -87,7 +86,7 @@ function CounterAttackTargetModal({
                           objectFit: 'cover',
                           borderRadius: '4px',
                           marginRight: '12px',
-                          border: '1px solid #444'
+                          border: '1px solid #444',
                         }}
                       />
                     )}
@@ -105,37 +104,46 @@ function CounterAttackTargetModal({
 
                       {/* HP Bar */}
                       <div className="mb-2">
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          fontSize: '0.8rem',
-                          color: '#aaa',
-                          marginBottom: '2px'
-                        }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            fontSize: '0.8rem',
+                            color: '#aaa',
+                            marginBottom: '2px',
+                          }}
+                        >
                           <span>HP</span>
-                          <span>{target.currentHP} / {creature?.hitPoints || '?'}</span>
+                          <span>
+                            {target.currentHP} / {creature?.hitPoints || '?'}
+                          </span>
                         </div>
-                        <div style={{
-                          height: '8px',
-                          backgroundColor: '#333',
-                          borderRadius: '4px',
-                          overflow: 'hidden'
-                        }}>
-                          <div style={{
-                            width: `${(target.currentHP / (creature?.hitPoints || 1)) * 100}%`,
-                            height: '100%',
-                            backgroundColor: target.currentHP < (creature?.hitPoints || 1) * 0.3 ? '#dc3545' : '#28a745',
-                            transition: 'width 0.3s ease'
-                          }} />
+                        <div
+                          style={{
+                            height: '8px',
+                            backgroundColor: '#333',
+                            borderRadius: '4px',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${(target.currentHP / (creature?.hitPoints || 1)) * 100}%`,
+                              height: '100%',
+                              backgroundColor:
+                                target.currentHP < (creature?.hitPoints || 1) * 0.3
+                                  ? '#dc3545'
+                                  : '#28a745',
+                              transition: 'width 0.3s ease',
+                            }}
+                          />
                         </div>
                       </div>
 
                       {/* Damage Preview */}
                       <div style={{ fontSize: '0.85rem' }}>
                         {wouldKill ? (
-                          <Badge bg="danger">
-                            LETHAL ({damage} damage)
-                          </Badge>
+                          <Badge bg="danger">LETHAL ({damage} damage)</Badge>
                         ) : (
                           <span style={{ color: '#ff6b6b' }}>
                             After: {target.currentHP - damage} HP (-{damage})
@@ -151,17 +159,17 @@ function CounterAttackTargetModal({
         </Row>
       </Modal.Body>
 
-      <Modal.Footer style={{ backgroundColor: '#4a1a1a', borderTop: '1px solid #8b0000', justifyContent: 'space-between' }}>
-        <Button
-          variant="secondary"
-          onClick={onSkip}
-          size="lg"
-        >
+      <Modal.Footer
+        style={{
+          backgroundColor: '#4a1a1a',
+          borderTop: '1px solid #8b0000',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Button variant="secondary" onClick={onSkip} size="lg">
           Skip Counter-Attack
         </Button>
-        <div style={{ color: '#aaa', fontSize: '0.8rem' }}>
-          Click a creature card to attack
-        </div>
+        <div style={{ color: '#aaa', fontSize: '0.8rem' }}>Click a creature card to attack</div>
       </Modal.Footer>
     </Modal>
   )

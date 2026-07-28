@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Container, Nav, Navbar, Button, Dropdown, Modal, Badge, ProgressBar } from 'react-bootstrap'
+import {
+  Container,
+  Nav,
+  Navbar,
+  Button,
+  Dropdown,
+  Modal,
+  Badge,
+  ProgressBar,
+} from 'react-bootstrap'
 import GameBoard from './components/GameBoard'
 import DataEntry from './components/DataEntry'
 import GameSimulation from './test/GameSimulation'
@@ -56,7 +65,7 @@ function App() {
                     padding: '4px 10px',
                     opacity: 0.8,
                     backgroundColor: '#6c757d',
-                    borderColor: '#6c757d'
+                    borderColor: '#6c757d',
                   }}
                 >
                   📜 View Full Log ({turnInfo.turnLog.length})
@@ -68,22 +77,13 @@ function App() {
               {/* Left section: Nav links when no game active */}
               {!turnInfo && (
                 <Nav className="me-auto">
-                  <Nav.Link
-                    active={currentView === 'game'}
-                    onClick={() => setCurrentView('game')}
-                  >
+                  <Nav.Link active={currentView === 'game'} onClick={() => setCurrentView('game')}>
                     Game Board
                   </Nav.Link>
-                  <Nav.Link
-                    active={currentView === 'data'}
-                    onClick={() => setCurrentView('data')}
-                  >
+                  <Nav.Link active={currentView === 'data'} onClick={() => setCurrentView('data')}>
                     Data Entry
                   </Nav.Link>
-                  <Nav.Link
-                    active={currentView === 'test'}
-                    onClick={() => setCurrentView('test')}
-                  >
+                  <Nav.Link active={currentView === 'test'} onClick={() => setCurrentView('test')}>
                     Game Test
                   </Nav.Link>
                   <Nav.Link
@@ -115,24 +115,34 @@ function App() {
                         <span style={{ color: 'rgba(255,255,255,.55)' }}>Leadership:</span>
                         <div style={{ width: '70px', position: 'relative' }}>
                           <ProgressBar
-                            now={turnInfo.leadership > 0 ? (turnInfo.leadershipUsage / turnInfo.leadership) * 100 : 0}
-                            variant={(turnInfo.leadershipUsage / turnInfo.leadership) > 0.8 ? 'danger' : 'info'}
+                            now={
+                              turnInfo.leadership > 0
+                                ? (turnInfo.leadershipUsage / turnInfo.leadership) * 100
+                                : 0
+                            }
+                            variant={
+                              turnInfo.leadershipUsage / turnInfo.leadership > 0.8
+                                ? 'danger'
+                                : 'info'
+                            }
                             style={{ height: '18px' }}
                           />
-                          <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            color: '#000',
-                            pointerEvents: 'none'
-                          }}>
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              color: '#000',
+                              pointerEvents: 'none',
+                            }}
+                          >
                             {turnInfo.leadershipUsage}/{turnInfo.leadership}
                           </div>
                         </div>
@@ -143,32 +153,45 @@ function App() {
                         <span style={{ color: 'rgba(255,255,255,.55)' }}>Morale:</span>
                         <div style={{ width: '70px', position: 'relative' }}>
                           <ProgressBar
-                            now={turnInfo.startingMorale > 0 ? (turnInfo.morale / turnInfo.startingMorale) * 100 : 0}
-                            variant={turnInfo.morale / turnInfo.startingMorale > 0.5 ? 'success' :
-                                     turnInfo.morale / turnInfo.startingMorale > 0.25 ? 'warning' : 'danger'}
+                            now={
+                              turnInfo.startingMorale > 0
+                                ? (turnInfo.morale / turnInfo.startingMorale) * 100
+                                : 0
+                            }
+                            variant={
+                              turnInfo.morale / turnInfo.startingMorale > 0.5
+                                ? 'success'
+                                : turnInfo.morale / turnInfo.startingMorale > 0.25
+                                  ? 'warning'
+                                  : 'danger'
+                            }
                             style={{ height: '18px' }}
                           />
-                          <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            color: '#000',
-                            pointerEvents: 'none'
-                          }}>
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              color: '#000',
+                              pointerEvents: 'none',
+                            }}
+                          >
                             {turnInfo.morale}
                           </div>
                         </div>
                       </div>
 
                       {turnInfo.isAIThinking && <Badge bg="warning">AI Thinking...</Badge>}
-                      {turnInfo.isCurrentPlayerAI && !turnInfo.isAIThinking && <Badge bg="secondary">AI</Badge>}
+                      {turnInfo.isCurrentPlayerAI && !turnInfo.isAIThinking && (
+                        <Badge bg="secondary">AI</Badge>
+                      )}
                     </div>
                   </Nav>
 
@@ -201,10 +224,16 @@ function App() {
                               turnInfo.advancePhase()
                             }
                           }}
-                          disabled={turnInfo.isCurrentPlayerAI || turnInfo.isAIThinking || turnInfo.combatPending}
+                          disabled={
+                            turnInfo.isCurrentPlayerAI ||
+                            turnInfo.isAIThinking ||
+                            turnInfo.combatPending
+                          }
                           title={turnInfo.combatPending ? 'Resolve combat first' : ''}
                         >
-                          {turnInfo.combatPending ? '⚔️ Resolve Combat' : `🎮 ${turnInfo.phaseButtonText}`}
+                          {turnInfo.combatPending
+                            ? '⚔️ Resolve Combat'
+                            : `🎮 ${turnInfo.phaseButtonText}`}
                         </Dropdown.Toggle>
                       </Dropdown>
                     )}
@@ -240,10 +269,30 @@ function App() {
                           {isFullscreen ? '🗗 Windowed Mode' : '⛶ Fullscreen Mode'}
                         </Dropdown.Item>
                         <Dropdown.Divider />
-                        <Dropdown.Item active={currentView === 'game'} onClick={() => setCurrentView('game')}>Game Board</Dropdown.Item>
-                        <Dropdown.Item active={currentView === 'data'} onClick={() => setCurrentView('data')}>Data Entry</Dropdown.Item>
-                        <Dropdown.Item active={currentView === 'test'} onClick={() => setCurrentView('test')}>Game Test</Dropdown.Item>
-                        <Dropdown.Item active={currentView === 'abilities'} onClick={() => setCurrentView('abilities')}>Abilities Test</Dropdown.Item>
+                        <Dropdown.Item
+                          active={currentView === 'game'}
+                          onClick={() => setCurrentView('game')}
+                        >
+                          Game Board
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          active={currentView === 'data'}
+                          onClick={() => setCurrentView('data')}
+                        >
+                          Data Entry
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          active={currentView === 'test'}
+                          onClick={() => setCurrentView('test')}
+                        >
+                          Game Test
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          active={currentView === 'abilities'}
+                          onClick={() => setCurrentView('abilities')}
+                        >
+                          Abilities Test
+                        </Dropdown.Item>
                         <Dropdown.Divider />
                         <Dropdown.Item
                           onClick={() => {
@@ -302,7 +351,7 @@ function App() {
               zIndex: 1001,
               display: 'flex',
               justifyContent: 'flex-end',
-              alignItems: 'stretch'
+              alignItems: 'stretch',
             }}
           >
             <div
@@ -313,17 +362,19 @@ function App() {
                 borderLeft: '3px solid #4a90e2',
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden'
+                overflow: 'hidden',
               }}
             >
-              <div style={{
-                padding: '15px',
-                backgroundColor: '#2a2a2a',
-                borderBottom: '2px solid #3a3a3a',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
+              <div
+                style={{
+                  padding: '15px',
+                  backgroundColor: '#2a2a2a',
+                  borderBottom: '2px solid #3a3a3a',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
                 <h5 style={{ margin: 0, color: '#fff' }}>📜 Turn Log</h5>
                 <Button
                   variant="outline-light"
@@ -333,11 +384,13 @@ function App() {
                   ✕
                 </Button>
               </div>
-              <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '10px'
-              }}>
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '10px',
+                }}
+              >
                 {turnInfo.turnLog.length === 0 ? (
                   <p style={{ color: '#888', textAlign: 'center', marginTop: '20px' }}>
                     No events this turn
@@ -353,7 +406,7 @@ function App() {
                         borderRadius: '4px',
                         borderLeft: '3px solid #4a90e2',
                         color: '#fff',
-                        fontSize: '0.85rem'
+                        fontSize: '0.85rem',
                       }}
                     >
                       <span style={{ color: '#888', marginRight: '8px' }}>#{idx + 1}</span>
@@ -373,7 +426,10 @@ function App() {
           centered
           backdrop="static"
         >
-          <Modal.Header closeButton style={{ backgroundColor: '#212529', color: 'white', borderBottom: '1px solid #444' }}>
+          <Modal.Header
+            closeButton
+            style={{ backgroundColor: '#212529', color: 'white', borderBottom: '1px solid #444' }}
+          >
             <Modal.Title>Exit Application?</Modal.Title>
           </Modal.Header>
           <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>

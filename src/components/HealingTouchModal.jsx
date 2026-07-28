@@ -24,7 +24,7 @@ function HealingTouchModal({
   onRemoveCard,
   onCancel,
   healerInstance,
-  targetInstance
+  targetInstance,
 }) {
   if (!show || !healerInstance || !targetInstance) return null
 
@@ -45,7 +45,11 @@ function HealingTouchModal({
   // Get attached cards
   const attachedCards = targetInstance.attachedCards || []
   const hasAttachedCards = attachedCards.length > 0
-  logger.modal('HealingTouchModal', 'target info', { attachedCards: targetInstance.attachedCards, hasAttachedCards, target: target.name })
+  logger.modal('HealingTouchModal', 'target info', {
+    attachedCards: targetInstance.attachedCards,
+    hasAttachedCards,
+    target: target.name,
+  })
 
   return (
     <Modal
@@ -56,7 +60,9 @@ function HealingTouchModal({
       backdrop="static"
       className="healing-touch-modal"
     >
-      <Modal.Header style={{ backgroundColor: '#1a472a', color: 'white', borderBottom: '2px solid #2d5a3d' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#1a472a', color: 'white', borderBottom: '2px solid #2d5a3d' }}
+      >
         <Modal.Title>
           <span style={{ marginRight: '8px' }}>💚</span>
           Healing Touch
@@ -80,22 +86,31 @@ function HealingTouchModal({
                 maxHeight: '180px',
                 borderRadius: '8px',
                 border: '2px solid #2d5a3d',
-                boxShadow: '0 0 15px rgba(45, 90, 61, 0.5)'
+                boxShadow: '0 0 15px rgba(45, 90, 61, 0.5)',
               }}
             />
             <div className="mt-2">
               <strong>{target.name}</strong>
-              <Badge bg="secondary" className="ms-2">Level {target.level}</Badge>
+              <Badge bg="secondary" className="ms-2">
+                Level {target.level}
+              </Badge>
             </div>
           </div>
         )}
 
         {/* HP Status */}
-        <Alert variant="dark" className="mb-3" style={{ backgroundColor: '#1a1a2e', border: '1px solid #2d5a3d' }}>
+        <Alert
+          variant="dark"
+          className="mb-3"
+          style={{ backgroundColor: '#1a1a2e', border: '1px solid #2d5a3d' }}
+        >
           <div className="d-flex justify-content-between align-items-center">
             <div>
               <strong>Current HP:</strong>
-              <span className="ms-2" style={{ color: currentHP < maxHP * 0.5 ? '#ff6b6b' : '#69db7c' }}>
+              <span
+                className="ms-2"
+                style={{ color: currentHP < maxHP * 0.5 ? '#ff6b6b' : '#69db7c' }}
+              >
                 {currentHP} / {maxHP}
               </span>
             </div>
@@ -127,10 +142,17 @@ function HealingTouchModal({
                 <ListGroup.Item
                   key={index}
                   className="d-flex justify-content-between align-items-center"
-                  style={{ backgroundColor: 'transparent', color: 'inherit', border: 'none', padding: '4px 0' }}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: 'inherit',
+                    border: 'none',
+                    padding: '4px 0',
+                  }}
                 >
                   <span>
-                    <Badge bg="secondary" className="me-2">{index + 1}</Badge>
+                    <Badge bg="secondary" className="me-2">
+                      {index + 1}
+                    </Badge>
                     {attachment.card?.name || 'Unknown Card'}
                   </span>
                   <Button
@@ -148,7 +170,11 @@ function HealingTouchModal({
         )}
 
         {/* Action Cost Warning */}
-        <Alert variant="info" className="mb-0" style={{ backgroundColor: '#1a3a4a', border: '1px solid #2d5a7d' }}>
+        <Alert
+          variant="info"
+          className="mb-0"
+          style={{ backgroundColor: '#1a3a4a', border: '1px solid #2d5a7d' }}
+        >
           <div style={{ fontSize: '0.9rem' }}>
             This will consume <strong>{healer.name}'s STANDARD action</strong>.
             {!healerInstance.hasMovedThisTurn && (
@@ -157,18 +183,21 @@ function HealingTouchModal({
           </div>
           {hasUsedAction && (
             <div className="mt-2 text-danger" style={{ fontSize: '0.9rem' }}>
-              <strong>Warning:</strong> {healer.name} has already used its standard action this turn!
+              <strong>Warning:</strong> {healer.name} has already used its standard action this
+              turn!
             </div>
           )}
         </Alert>
       </Modal.Body>
 
-      <Modal.Footer style={{ backgroundColor: '#1a472a', borderTop: '1px solid #2d5a3d', justifyContent: 'space-between' }}>
-        <Button
-          variant="secondary"
-          onClick={onCancel}
-          size="lg"
-        >
+      <Modal.Footer
+        style={{
+          backgroundColor: '#1a472a',
+          borderTop: '1px solid #2d5a3d',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Button variant="secondary" onClick={onCancel} size="lg">
           Cancel
         </Button>
         <Button
@@ -176,7 +205,11 @@ function HealingTouchModal({
           onClick={onHeal}
           size="lg"
           disabled={hasUsedAction}
-          title={hasUsedAction ? 'Creature has already used its action' : `Heal ${actualHealAmount} damage`}
+          title={
+            hasUsedAction
+              ? 'Creature has already used its action'
+              : `Heal ${actualHealAmount} damage`
+          }
         >
           💚 Heal 10 Damage
           {damageTokens > 0 && <span className="ms-2">(+{actualHealAmount})</span>}

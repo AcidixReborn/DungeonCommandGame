@@ -69,7 +69,7 @@ export function findPath(start, goal, getTerrainCost, isPassable, getTile, optio
 
     for (const neighbor of neighbors) {
       // Skip if already evaluated
-      if (closedList.some(n => n.equals(neighbor))) continue
+      if (closedList.some((n) => n.equals(neighbor))) continue
 
       const tile = getTile(neighbor.x, neighbor.y)
       if (!tile) continue
@@ -85,7 +85,7 @@ export function findPath(start, goal, getTerrainCost, isPassable, getTile, optio
       if (tentative_g > maxCost) continue
 
       // Check if neighbor is in open list
-      const existingIndex = openList.findIndex(n => n.equals(neighbor))
+      const existingIndex = openList.findIndex((n) => n.equals(neighbor))
 
       if (existingIndex === -1) {
         // New node - add to open list
@@ -126,17 +126,17 @@ function heuristic(node, goal) {
 function getNeighbors(node, getTile) {
   const neighbors = []
   const directions = [
-    { dx: 0, dy: -1 },   // North
-    { dx: 1, dy: -1 },   // Northeast
-    { dx: 1, dy: 0 },    // East
-    { dx: 1, dy: 1 },    // Southeast
-    { dx: 0, dy: 1 },    // South
-    { dx: -1, dy: 1 },   // Southwest
-    { dx: -1, dy: 0 },   // West
-    { dx: -1, dy: -1 }   // Northwest
+    { dx: 0, dy: -1 }, // North
+    { dx: 1, dy: -1 }, // Northeast
+    { dx: 1, dy: 0 }, // East
+    { dx: 1, dy: 1 }, // Southeast
+    { dx: 0, dy: 1 }, // South
+    { dx: -1, dy: 1 }, // Southwest
+    { dx: -1, dy: 0 }, // West
+    { dx: -1, dy: -1 }, // Northwest
   ]
 
-  directions.forEach(dir => {
+  directions.forEach((dir) => {
     const x = node.x + dir.dx
     const y = node.y + dir.dy
 
@@ -193,7 +193,16 @@ function reconstructPath(goalNode) {
  * @param {Function|null} canStopOn - Optional callback (tile) => boolean for tiles that can be passed but not stopped on (e.g., mountains for flying/burrowing)
  * @returns {Array} - Array of {tile, path, cost} objects
  */
-export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPassable, getTile, flying = false, canPassThrough = null, canStopOn = null) {
+export function getValidMovementTiles(
+  start,
+  maxMovement,
+  getTerrainCost,
+  isPassable,
+  getTile,
+  flying = false,
+  canPassThrough = null,
+  canStopOn = null
+) {
   const validTiles = []
   // Track best cost to reach each tile (allows updating if better path found)
   const bestCost = new Map()
@@ -289,7 +298,7 @@ export function getValidMovementTiles(start, maxMovement, getTerrainCost, isPass
     validTiles.push({
       tile,
       path: bestPath.get(key),
-      cost
+      cost,
     })
   }
 

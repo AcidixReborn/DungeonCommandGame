@@ -69,7 +69,7 @@ export const logger = {
   debug: (...args) => {
     console.log(...args)
     if (window.electronAPI?.writeLog) {
-      const entry = `[${timestamp()}] [DEBUG] ${args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')}`
+      const entry = `[${timestamp()}] [DEBUG] ${args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ')}`
       window.electronAPI.writeLog(entry)
     }
   },
@@ -177,7 +177,7 @@ export const logger = {
    */
   defense: (action, details) => {
     emit('INFO', 'DEFENSE', action, details)
-  }
+  },
 }
 
 export default logger

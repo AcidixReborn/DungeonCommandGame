@@ -17,7 +17,14 @@ import { Modal, Button, Alert } from 'react-bootstrap'
  * @param {string} title - Optional custom title (e.g., "You Drew a Card!")
  * @param {string} reason - Optional reason text explaining why the card was drawn (e.g., "Opponent used Recoil")
  */
-function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [], title = null, reason = null }) {
+function CardsDrawnModal({
+  show,
+  onContinue,
+  cards = [],
+  bonusSources = [],
+  title = null,
+  reason = null,
+}) {
   if (!show) return null
 
   const hasCards = cards && cards.length > 0
@@ -25,14 +32,15 @@ function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [], titl
 
   return (
     <Modal show={show} onHide={onContinue} centered size="md" backdrop="static">
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}
+      >
         <Modal.Title>
           {title
             ? title
             : hasCards
               ? `You Drew ${cards.length} Card${cards.length > 1 ? 's' : ''}!`
-              : 'No Cards to Draw'
-          }
+              : 'No Cards to Draw'}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', textAlign: 'center' }}>
@@ -44,7 +52,7 @@ function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [], titl
                 gridTemplateColumns: cards.length === 1 ? '1fr' : 'repeat(2, 1fr)',
                 gap: '12px',
                 justifyItems: 'center',
-                marginBottom: '15px'
+                marginBottom: '15px',
               }}
             >
               {cards.map((card, index) => (
@@ -57,7 +65,7 @@ function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [], titl
                         maxHeight: cards.length === 1 ? '300px' : '200px',
                         borderRadius: '8px',
                         border: '2px solid #17a2b8',
-                        marginBottom: '8px'
+                        marginBottom: '8px',
                       }}
                     />
                   ) : (
@@ -71,15 +79,13 @@ function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [], titl
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        marginBottom: '8px'
+                        marginBottom: '8px',
                       }}
                     >
                       <span style={{ fontSize: '0.9rem' }}>{card.name}</span>
                     </div>
                   )}
-                  <div style={{ fontSize: '0.85rem', color: '#adb5bd' }}>
-                    {card.name}
-                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#adb5bd' }}>{card.name}</div>
                 </div>
               ))}
             </div>
@@ -91,8 +97,7 @@ function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [], titl
               <div style={{ fontSize: '1rem' }}>
                 {cards.length === 1
                   ? `Added to your hand: ${cards[0].name}`
-                  : `Added ${cards.length} cards to your hand`
-                }
+                  : `Added ${cards.length} cards to your hand`}
               </div>
               {hasBonusSources && (
                 <div style={{ fontSize: '0.85rem', marginTop: '8px', color: '#ffc107' }}>
@@ -119,7 +124,9 @@ function CardsDrawnModal({ show, onContinue, cards = [], bonusSources = [], titl
         )}
       </Modal.Body>
       <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444' }}>
-        <Button variant="info" onClick={onContinue}>Continue</Button>
+        <Button variant="info" onClick={onContinue}>
+          Continue
+        </Button>
       </Modal.Footer>
     </Modal>
   )

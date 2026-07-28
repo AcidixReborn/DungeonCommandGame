@@ -131,7 +131,7 @@
 }
 
 .combat-creature-card {
-  transform: scale(1.0);
+  transform: scale(1);
   transform-origin: center center;
 }
 
@@ -456,7 +456,8 @@
 }
 
 @keyframes combatPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       2px 2px 0px rgba(0, 0, 0, 0.5),
       0 0 10px rgba(220, 53, 69, 0.5);
@@ -481,7 +482,8 @@
 }
 
 @keyframes defensePulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       2px 2px 0px rgba(0, 0, 0, 0.5),
       0 0 10px rgba(77, 208, 225, 0.5);

@@ -18,23 +18,30 @@ function ShiftDecisionModal({ show, cardName, shiftDistance, creatureName, onYes
 
   return (
     <Modal show={show} onHide={onNo} centered size="md" backdrop="static">
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #9b59b6' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #9b59b6' }}
+      >
         <Modal.Title>
           <span style={{ color: '#9b59b6' }}>🦇</span> {cardName}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', textAlign: 'center' }}>
-        <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>
-          All damage was prevented!
-        </p>
+        <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>All damage was prevented!</p>
         <p style={{ fontSize: '1rem', color: '#adb5bd' }}>
-          Do you want <strong>{creatureName}</strong> to shift up to <strong>{shiftDistance}</strong> squares?
+          Do you want <strong>{creatureName}</strong> to shift up to{' '}
+          <strong>{shiftDistance}</strong> squares?
         </p>
         <p style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '1rem' }}>
           (The creature will tap regardless of your choice)
         </p>
       </Modal.Body>
-      <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444', justifyContent: 'center' }}>
+      <Modal.Footer
+        style={{
+          backgroundColor: '#212529',
+          borderTop: '1px solid #444',
+          justifyContent: 'center',
+        }}
+      >
         <Button variant="success" onClick={onYes} style={{ minWidth: '100px' }}>
           Yes, Shift
         </Button>

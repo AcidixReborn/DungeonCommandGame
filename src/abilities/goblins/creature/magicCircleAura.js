@@ -31,7 +31,8 @@ export const MagicCircleAura = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('MAGIC CIRCLE AURA')
+      (ability) =>
+        typeof ability === 'string' && ability.toUpperCase().includes('MAGIC CIRCLE AURA')
     )
   },
 
@@ -77,7 +78,7 @@ export const MagicCircleAura = {
   isGoblinFactionType(creatureInstance) {
     if (!creatureInstance?.creature?.type) return false
     const types = creatureInstance.creature.type
-    return types.some(type => {
+    return types.some((type) => {
       const upperType = type.toUpperCase()
       return upperType === 'GOBLIN' || upperType === 'HOBGOBLIN' || upperType === 'BUGBEAR'
     })
@@ -160,7 +161,7 @@ export const MagicCircleAura = {
     for (const creature of player.creaturesInPlay) {
       creature.magicCircleShieldUsed = false
     }
-  }
+  },
 }
 
 export default MagicCircleAura

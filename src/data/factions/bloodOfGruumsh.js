@@ -65,18 +65,21 @@ export const commanders = [
     startingOrderHandSize: 4,
     startingMorale: 15,
     startingLeadership: 7,
-    specialAbilityDescription: 'GRUUMSH COMMANDS IT: Creatures you control ignore difficult terrain.',
+    specialAbilityDescription:
+      'GRUUMSH COMMANDS IT: Creatures you control ignore difficult terrain.',
     imageUrl: gruumshCmd1,
-    abilities: [{
-      id: 'gruumsh_commands_it',
-      name: 'GRUUMSH COMMANDS IT',
-      type: 'PASSIVE',
-      category: 'TERRAIN',
-      description: 'Creatures you control ignore difficult terrain.',
-      effect: {
-        ignoreDifficultTerrain: true
-      }
-    }]
+    abilities: [
+      {
+        id: 'gruumsh_commands_it',
+        name: 'GRUUMSH COMMANDS IT',
+        type: 'PASSIVE',
+        category: 'TERRAIN',
+        description: 'Creatures you control ignore difficult terrain.',
+        effect: {
+          ignoreDifficultTerrain: true,
+        },
+      },
+    ],
   },
   {
     id: 'bog_cmd_2',
@@ -86,21 +89,25 @@ export const commanders = [
     startingOrderHandSize: 3,
     startingMorale: 11,
     startingLeadership: 9,
-    specialAbilityDescription: 'ORC SCOUT: When you deploy starting Orc creatures, you can deploy 1 of them in any unoccupied Treasure square on the board.',
+    specialAbilityDescription:
+      'ORC SCOUT: When you deploy starting Orc creatures, you can deploy 1 of them in any unoccupied Treasure square on the board.',
     imageUrl: gruumshCmd2,
-    abilities: [{
-      id: 'orc_scout',
-      name: 'ORC SCOUT',
-      type: 'ACTIVE',
-      category: 'DEPLOYMENT',
-      description: 'When you deploy starting Orc creatures, you can deploy 1 of them in any unoccupied Treasure square on the board.',
-      effect: {
-        deployToTreasure: true,
-        creatureTypeRequired: 'Orc',
-        usesRemaining: 1  // Only once during initial deployment
-      }
-    }]
-  }
+    abilities: [
+      {
+        id: 'orc_scout',
+        name: 'ORC SCOUT',
+        type: 'ACTIVE',
+        category: 'DEPLOYMENT',
+        description:
+          'When you deploy starting Orc creatures, you can deploy 1 of them in any unoccupied Treasure square on the board.',
+        effect: {
+          deployToTreasure: true,
+          creatureTypeRequired: 'Orc',
+          usesRemaining: 1, // Only once during initial deployment
+        },
+      },
+    ],
+  },
 ]
 
 export const creatures = [
@@ -115,14 +122,17 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: [{
-      id: 'death_strike',
-      name: 'DEATH STRIKE',
-      type: 'PASSIVE',
-      description: 'When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE.'
-    }],
+    specialAbilities: [
+      {
+        id: 'death_strike',
+        name: 'DEATH STRIKE',
+        type: 'PASSIVE',
+        description:
+          'When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE.',
+      },
+    ],
     faction: FACTION_NAME,
-    imageUrl: boarImg
+    imageUrl: boarImg,
   },
   // Card #2 - Ogre
   {
@@ -135,18 +145,20 @@ export const creatures = [
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 50, range: 1 },
     rangedAttack: null,
-    specialAbilities: [{
-      id: 'ogre_deploy_morale',
-      name: 'DEPLOY: GAIN 1 MORALE',
-      type: 'ON_DEPLOY',
-      description: 'When you deploy this creature, gain 1 MORALE.',
-      effect: {
-        trigger: 'deploy',
-        gainMorale: 1
-      }
-    }],
+    specialAbilities: [
+      {
+        id: 'ogre_deploy_morale',
+        name: 'DEPLOY: GAIN 1 MORALE',
+        type: 'ON_DEPLOY',
+        description: 'When you deploy this creature, gain 1 MORALE.',
+        effect: {
+          trigger: 'deploy',
+          gainMorale: 1,
+        },
+      },
+    ],
     faction: FACTION_NAME,
-    imageUrl: ogreImg
+    imageUrl: ogreImg,
   },
   // Card #3 - Orc Archer
   {
@@ -161,7 +173,7 @@ export const creatures = [
     rangedAttack: { damage: 20, range: 10 },
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: orcArcher3Img
+    imageUrl: orcArcher3Img,
   },
   // Card #4 - Orc Archer
   {
@@ -176,7 +188,7 @@ export const creatures = [
     rangedAttack: { damage: 20, range: 10 },
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: orcArcher4Img
+    imageUrl: orcArcher4Img,
   },
   // Card #5 - Orc Barbarian
   {
@@ -189,14 +201,16 @@ export const creatures = [
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: [{
-      id: 'untap_on_adjacent_kill',
-      name: 'UNTAP ON KILL',
-      type: 'PASSIVE',
-      description: 'Whenever an adjacent enemy creature is destroyed, untap this creature.'
-    }],
+    specialAbilities: [
+      {
+        id: 'untap_on_adjacent_kill',
+        name: 'UNTAP ON KILL',
+        type: 'PASSIVE',
+        description: 'Whenever an adjacent enemy creature is destroyed, untap this creature.',
+      },
+    ],
     faction: FACTION_NAME,
-    imageUrl: orcBarbarianImg
+    imageUrl: orcBarbarianImg,
   },
   // Card #6 - Orc Chieftain
   {
@@ -214,17 +228,18 @@ export const creatures = [
         id: 'chieftain_call',
         name: 'CHIEFTAIN CALL',
         type: 'ON_DEPLOY',
-        description: 'When you deploy this creature, you can reveal an Orc Creature card of Level 3 or lower from your hand. If you do, gain LEADERSHIP equal to the revealed creature\'s Level and immediately deploy that creature.',
+        description:
+          "When you deploy this creature, you can reveal an Orc Creature card of Level 3 or lower from your hand. If you do, gain LEADERSHIP equal to the revealed creature's Level and immediately deploy that creature.",
         effect: {
           trigger: 'deploy',
           creatureTypeRequired: 'Orc',
           maxLevel: 3,
-          gainLeadership: true
-        }
-      }
+          gainLeadership: true,
+        },
+      },
     ],
     faction: FACTION_NAME,
-    imageUrl: orcChieftainImg
+    imageUrl: orcChieftainImg,
   },
   // Card #7 - Orc Cleric of Gruumsh
   {
@@ -237,18 +252,20 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: [{
-      id: 'cleric_deploy_draw_order',
-      name: 'DEPLOY: DRAW 1 ORDER CARD',
-      type: 'ON_DEPLOY',
-      description: 'When you deploy this creature, draw 1 Order card.',
-      effect: {
-        trigger: 'deploy',
-        drawOrderCard: 1
-      }
-    }],
+    specialAbilities: [
+      {
+        id: 'cleric_deploy_draw_order',
+        name: 'DEPLOY: DRAW 1 ORDER CARD',
+        type: 'ON_DEPLOY',
+        description: 'When you deploy this creature, draw 1 Order card.',
+        effect: {
+          trigger: 'deploy',
+          drawOrderCard: 1,
+        },
+      },
+    ],
     faction: FACTION_NAME,
-    imageUrl: orcClericOfGruumshImg
+    imageUrl: orcClericOfGruumshImg,
   },
   // Card #8 - Orc Drudge
   {
@@ -263,7 +280,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: orcDrudge8Img
+    imageUrl: orcDrudge8Img,
   },
   // Card #9 - Orc Drudge
   {
@@ -278,7 +295,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: orcDrudge9Img
+    imageUrl: orcDrudge9Img,
   },
   // Card #10 - Orc Druid
   {
@@ -291,14 +308,17 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: true, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: [{
-      id: 'beast_elemental_deploy',
-      name: 'BEAST/ELEMENTAL DEPLOY',
-      type: 'PASSIVE',
-      description: 'When deploying any Beast or Elemental creature, you can place it in any unoccupied square adjacent to this creature.'
-    }],
+    specialAbilities: [
+      {
+        id: 'beast_elemental_deploy',
+        name: 'BEAST/ELEMENTAL DEPLOY',
+        type: 'PASSIVE',
+        description:
+          'When deploying any Beast or Elemental creature, you can place it in any unoccupied square adjacent to this creature.',
+      },
+    ],
     faction: FACTION_NAME,
-    imageUrl: orcDruidImg
+    imageUrl: orcDruidImg,
   },
   // Card #11 - Owlbear
   {
@@ -313,7 +333,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: owlbearImg
+    imageUrl: owlbearImg,
   },
   // Card #12 - Wereboar
   {
@@ -326,15 +346,18 @@ export const creatures = [
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: [{
-      id: 'death_strike',
-      name: 'DEATH STRIKE',
-      type: 'PASSIVE',
-      description: 'When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE.'
-    }],
+    specialAbilities: [
+      {
+        id: 'death_strike',
+        name: 'DEATH STRIKE',
+        type: 'PASSIVE',
+        description:
+          'When this creature would be destroyed, it can first make a melee attack that deals melee DAMAGE.',
+      },
+    ],
     faction: FACTION_NAME,
-    imageUrl: wereboarImg
-  }
+    imageUrl: wereboarImg,
+  },
 ]
 
 export const orderCards = [
@@ -345,9 +368,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'WIS',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. Beast creatures you control deal +10 damage with melee attacks. PLACEHOLDER',
+    effectDescription:
+      'Attach this card to this creature. Beast creatures you control deal +10 damage with melee attacks. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: beastmasterImg
+    imageUrl: beastmasterImg,
   },
   // Card #2 - Bone-Chilling Rally Cry
   {
@@ -358,7 +382,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Lose 1 Morale. Gain 2 Leadership. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: boneChillingRallyCryImg
+    imageUrl: boneChillingRallyCryImg,
   },
   // Card #3 - Change of Plans
   {
@@ -369,7 +393,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Draw 2 Order cards, then discard 1 Order card. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: changeOfPlansImg
+    imageUrl: changeOfPlansImg,
   },
   // Card #4 - Charge (Phase STD-5: Move + Attack)
   {
@@ -382,7 +406,7 @@ export const orderCards = [
     moveBeforeAttack: 'speed', // Uses creature's full movement speed
     meleeDamageBonus: 10,
     faction: FACTION_NAME,
-    imageUrl: charge4Img
+    imageUrl: charge4Img,
   },
   // Card #5 - Charge (Phase STD-5: Move + Attack)
   {
@@ -395,7 +419,7 @@ export const orderCards = [
     moveBeforeAttack: 'speed', // Uses creature's full movement speed
     meleeDamageBonus: 10,
     faction: FACTION_NAME,
-    imageUrl: charge5Img
+    imageUrl: charge5Img,
   },
   // Card #6 - Cure Serious Wounds
   {
@@ -406,7 +430,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'This creature or 1 adjacent ally heals 40 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: cureSeriousWounds6Img
+    imageUrl: cureSeriousWounds6Img,
   },
   // Card #7 - Cure Serious Wounds
   {
@@ -417,7 +441,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'This creature or 1 adjacent ally heals 40 damage. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: cureSeriousWounds7Img
+    imageUrl: cureSeriousWounds7Img,
   },
   // Card #8 - Defiant Stance (IMPLEMENTED - prevents 20 damage, gains 1 morale)
   {
@@ -430,7 +454,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: defiantStance8Img,
     damagePrevented: 20,
-    moraleGain: 1
+    moraleGain: 1,
   },
   // Card #9 - Defiant Stance (IMPLEMENTED - prevents 20 damage, gains 1 morale)
   {
@@ -443,7 +467,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: defiantStance9Img,
     damagePrevented: 20,
-    moraleGain: 1
+    moraleGain: 1,
   },
   // Card #10 - Deflect (IMPLEMENTED - prevents 30 damage)
   {
@@ -455,7 +479,7 @@ export const orderCards = [
     effectDescription: 'Prevent 30 damage to this creature from 1 source.',
     faction: FACTION_NAME,
     imageUrl: deflect10Img,
-    damagePrevented: 30
+    damagePrevented: 30,
   },
   // Card #11 - Deflect (IMPLEMENTED - prevents 30 damage)
   {
@@ -467,7 +491,7 @@ export const orderCards = [
     effectDescription: 'Prevent 30 damage to this creature from 1 source.',
     faction: FACTION_NAME,
     imageUrl: deflect11Img,
-    damagePrevented: 30
+    damagePrevented: 30,
   },
   // Card #12 - Furious Bellow
   {
@@ -476,9 +500,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CON',
     actionType: 'MINOR',
-    effectDescription: 'Tap each enemy creature adjacent to this creature, and slide each of those creatures 2 squares. PLACEHOLDER',
+    effectDescription:
+      'Tap each enemy creature adjacent to this creature, and slide each of those creatures 2 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: furiousBellow12Img
+    imageUrl: furiousBellow12Img,
   },
   // Card #13 - Furious Bellow
   {
@@ -487,9 +512,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CON',
     actionType: 'MINOR',
-    effectDescription: 'Tap each enemy creature adjacent to this creature, and slide each of those creatures 2 squares. PLACEHOLDER',
+    effectDescription:
+      'Tap each enemy creature adjacent to this creature, and slide each of those creatures 2 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: furiousBellow13Img
+    imageUrl: furiousBellow13Img,
   },
   // Card #14 - Fury of Gruumsh (REQUIRES ORC)
   {
@@ -498,10 +524,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES ORC. Attach this card to this creature. This creature\'s melee attacks deal +20 damage. At the end of its activation, this creature takes 20 damage. PLACEHOLDER',
+    effectDescription:
+      "REQUIRES ORC. Attach this card to this creature. This creature's melee attacks deal +20 damage. At the end of its activation, this creature takes 20 damage. PLACEHOLDER",
     faction: FACTION_NAME,
     imageUrl: furyOfGruumsh14Img,
-    requiresCreatureType: 'Orc'
+    requiresCreatureType: 'Orc',
   },
   // Card #15 - Fury of Gruumsh (REQUIRES ORC)
   {
@@ -510,10 +537,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES ORC. Attach this card to this creature. This creature\'s melee attacks deal +20 damage. At the end of its activation, this creature takes 20 damage. PLACEHOLDER',
+    effectDescription:
+      "REQUIRES ORC. Attach this card to this creature. This creature's melee attacks deal +20 damage. At the end of its activation, this creature takes 20 damage. PLACEHOLDER",
     faction: FACTION_NAME,
     imageUrl: furyOfGruumsh15Img,
-    requiresCreatureType: 'Orc'
+    requiresCreatureType: 'Orc',
   },
   // Card #16 - Hacking Frenzy
   {
@@ -525,7 +553,7 @@ export const orderCards = [
     effectDescription: 'Make a melee attack that deals +40 damage.',
     faction: FACTION_NAME,
     imageUrl: hackingFrenzy16Img,
-    meleeDamageBonus: 40 // Added to base melee damage
+    meleeDamageBonus: 40, // Added to base melee damage
   },
   // Card #17 - Hacking Frenzy
   {
@@ -537,7 +565,7 @@ export const orderCards = [
     effectDescription: 'Make a melee attack that deals +40 damage.',
     faction: FACTION_NAME,
     imageUrl: hackingFrenzy17Img,
-    meleeDamageBonus: 40 // Added to base melee damage
+    meleeDamageBonus: 40, // Added to base melee damage
   },
   // Card #18 - Hurl Rock
   {
@@ -546,9 +574,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Choose 1 creature within 5 squares. Deal this creature\'s base damage to that creature. PLACEHOLDER',
+    effectDescription:
+      "Choose 1 creature within 5 squares. Deal this creature's base damage to that creature. PLACEHOLDER",
     faction: FACTION_NAME,
-    imageUrl: hurlRock18Img
+    imageUrl: hurlRock18Img,
   },
   // Card #19 - Hurl Rock
   {
@@ -557,20 +586,22 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Choose 1 creature within 5 squares. Deal this creature\'s base damage to that creature. PLACEHOLDER',
+    effectDescription:
+      "Choose 1 creature within 5 squares. Deal this creature's base damage to that creature. PLACEHOLDER",
     faction: FACTION_NAME,
-    imageUrl: hurlRock19Img
+    imageUrl: hurlRock19Img,
   },
   // Card #20 - Overseer's Whip
   {
     id: 'bog_ord_20',
-    name: 'Overseer\'s Whip',
+    name: "Overseer's Whip",
     level: 3,
     abilityRequired: 'WIS',
     actionType: 'STANDARD',
-    effectDescription: 'Attach this card to this creature. Add 2 to the Speed of each creature you control. PLACEHOLDER',
+    effectDescription:
+      'Attach this card to this creature. Add 2 to the Speed of each creature you control. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: overseersWhipImg
+    imageUrl: overseersWhipImg,
   },
   // Card #21 - Savage Demise (IMMEDIATE self-sacrifice attack) - ABILITY IMPLEMENTED
   // Defensive card: sacrifice yourself to attack an adjacent tapped enemy
@@ -580,13 +611,14 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Make a melee attack that deals this creature\'s base damage against 1 tapped creature. Destroy this creature.',
+    effectDescription:
+      "Make a melee attack that deals this creature's base damage against 1 tapped creature. Destroy this creature.",
     faction: FACTION_NAME,
     imageUrl: savageDemise21Img,
     damagePrevented: 0, // No damage prevention - accepts death
     destroySelfAfterUse: true, // Creature dies after using this card
     selfSacrificeAttack: true, // Targets adjacent tapped enemy
-    useBaseMeleeDamage: true // Uses creature's base melee damage
+    useBaseMeleeDamage: true, // Uses creature's base melee damage
   },
   // Card #22 - Savage Demise (IMMEDIATE self-sacrifice attack) - ABILITY IMPLEMENTED
   // Defensive card: sacrifice yourself to attack an adjacent tapped enemy
@@ -596,13 +628,14 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Make a melee attack that deals this creature\'s base damage against 1 tapped creature. Destroy this creature.',
+    effectDescription:
+      "Make a melee attack that deals this creature's base damage against 1 tapped creature. Destroy this creature.",
     faction: FACTION_NAME,
     imageUrl: savageDemise22Img,
     damagePrevented: 0, // No damage prevention - accepts death
     destroySelfAfterUse: true, // Creature dies after using this card
     selfSacrificeAttack: true, // Targets adjacent tapped enemy
-    useBaseMeleeDamage: true // Uses creature's base melee damage
+    useBaseMeleeDamage: true, // Uses creature's base melee damage
   },
   // Card #23 - Scent of Blood
   {
@@ -611,9 +644,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'MINOR',
-    effectDescription: 'This creature heals 10 damage for each enemy creature adjacent to it. PLACEHOLDER',
+    effectDescription:
+      'This creature heals 10 damage for each enemy creature adjacent to it. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: scentOfBloodImg
+    imageUrl: scentOfBloodImg,
   },
   // Card #24 - Slice (Phase STD-3: Melee Damage Boost + Card Draw)
   {
@@ -626,7 +660,7 @@ export const orderCards = [
     meleeDamageBonus: 10,
     drawCardsOnAttack: 1,
     faction: FACTION_NAME,
-    imageUrl: slice24Img
+    imageUrl: slice24Img,
   },
   // Card #25 - Slice (Phase STD-3: Melee Damage Boost + Card Draw)
   {
@@ -639,7 +673,7 @@ export const orderCards = [
     meleeDamageBonus: 10,
     drawCardsOnAttack: 1,
     faction: FACTION_NAME,
-    imageUrl: slice25Img
+    imageUrl: slice25Img,
   },
   // Card #26 - Stomp
   {
@@ -648,9 +682,10 @@ export const orderCards = [
     level: 4,
     abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'Shift 3 squares. Deal 30 damage to each enemy creature adjacent to this creature. PLACEHOLDER',
+    effectDescription:
+      'Shift 3 squares. Deal 30 damage to each enemy creature adjacent to this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: stompImg
+    imageUrl: stompImg,
   },
   // Card #27 - Tactical Block (IMPLEMENTED - prevents 30 damage, untaps creature)
   {
@@ -663,7 +698,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: tacticalBlock27Img,
     damagePrevented: 30,
-    untapAfterUse: true
+    untapAfterUse: true,
   },
   // Card #28 - Tactical Block (IMPLEMENTED - prevents 30 damage, untaps creature)
   {
@@ -676,7 +711,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: tacticalBlock28Img,
     damagePrevented: 30,
-    untapAfterUse: true
+    untapAfterUse: true,
   },
   // Card #29 - Tide of Iron
   {
@@ -687,7 +722,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Slide 1 adjacent creature 2 squares. Shift 2 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: tideOfIron29Img
+    imageUrl: tideOfIron29Img,
   },
   // Card #30 - Tide of Iron
   {
@@ -698,7 +733,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Slide 1 adjacent creature 2 squares. Shift 2 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: tideOfIron30Img
+    imageUrl: tideOfIron30Img,
   },
   // Card #31 - Turn Undead
   {
@@ -709,7 +744,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Deal 20 damage to each Undead creature within 5 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: turnUndeadImg
+    imageUrl: turnUndeadImg,
   },
   // Card #32 - Unexpected Resistance (IMMEDIATE - prevent 10 + morale attack) - ABILITY IMPLEMENTED
   {
@@ -718,12 +753,13 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature\'s controller loses 1 Morale.',
+    effectDescription:
+      "Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature's controller loses 1 Morale.",
     faction: FACTION_NAME,
     imageUrl: unexpectedResistance32Img,
     damagePrevented: 10,
     opponentMoraleLoss: 1,
-    moraleLossTargetType: 'adjacent_tapped_enemy'
+    moraleLossTargetType: 'adjacent_tapped_enemy',
   },
   // Card #33 - Unexpected Resistance (IMMEDIATE - prevent 10 + morale attack) - ABILITY IMPLEMENTED
   {
@@ -732,12 +768,13 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature\'s controller loses 1 Morale.',
+    effectDescription:
+      "Prevent 10 damage to this creature from 1 source. Choose 1 adjacent tapped creature. That creature's controller loses 1 Morale.",
     faction: FACTION_NAME,
     imageUrl: unexpectedResistance33Img,
     damagePrevented: 10,
     opponentMoraleLoss: 1,
-    moraleLossTargetType: 'adjacent_tapped_enemy'
+    moraleLossTargetType: 'adjacent_tapped_enemy',
   },
   // Card #34 - Victorious Surge (Phase STD-6: Attack + Heal)
   {
@@ -750,7 +787,7 @@ export const orderCards = [
     meleeDamageBonus: 20,
     healOnAttack: 20,
     faction: FACTION_NAME,
-    imageUrl: victoriousSurge34Img
+    imageUrl: victoriousSurge34Img,
   },
   // Card #35 - Victorious Surge (Phase STD-6: Attack + Heal)
   {
@@ -763,7 +800,7 @@ export const orderCards = [
     meleeDamageBonus: 20,
     healOnAttack: 20,
     faction: FACTION_NAME,
-    imageUrl: victoriousSurge35Img
+    imageUrl: victoriousSurge35Img,
   },
   // Card #36 - Vorpal Sword (REQUIRES HUMANOID)
   {
@@ -772,16 +809,17 @@ export const orderCards = [
     level: 4,
     abilityRequired: 'ANY',
     actionType: 'STANDARD',
-    effectDescription: 'REQUIRES HUMANOID. Attach this card to this creature. If the target of this creature\'s melee attack takes at least 50 damage from that attack, destroy the target. PLACEHOLDER',
+    effectDescription:
+      "REQUIRES HUMANOID. Attach this card to this creature. If the target of this creature's melee attack takes at least 50 damage from that attack, destroy the target. PLACEHOLDER",
     faction: FACTION_NAME,
     imageUrl: vorpalSwordImg,
-    requiresCreatureType: 'Humanoid'
-  }
+    requiresCreatureType: 'Humanoid',
+  },
 ]
 
 export default {
   FACTION_NAME,
   commanders,
   creatures,
-  orderCards
+  orderCards,
 }

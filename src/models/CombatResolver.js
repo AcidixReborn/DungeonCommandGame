@@ -44,7 +44,13 @@ export class CombatResolver {
    * @param {number|null} damageBoostFlat - Flat damage that replaces base (Killing Strike), or null if not used
    * @returns {Object} { valid: boolean, error?: string, damage?: number }
    */
-  validateAttack(attackerInstance, defenderInstance, attackType = 'melee', damageBoostBonus = 0, damageBoostFlat = null) {
+  validateAttack(
+    attackerInstance,
+    defenderInstance,
+    attackType = 'melee',
+    damageBoostBonus = 0,
+    damageBoostFlat = null
+  ) {
     // Safety check: ensure both creatures have valid positions
     if (!attackerInstance?.position || !defenderInstance?.position) {
       return { valid: false, error: 'Cannot attack: invalid creature position' }
@@ -62,7 +68,10 @@ export class CombatResolver {
 
     // Validate melee attack: must be within melee range (including REACH ability)
     if (attackType === 'melee') {
-      const distance = this.gameState.getDistance(attackerInstance.position, defenderInstance.position)
+      const distance = this.gameState.getDistance(
+        attackerInstance.position,
+        defenderInstance.position
+      )
       const baseMeleeRange = attackerInstance.creature.meleeAttack?.range || COMBAT.MELEE_RANGE
       // REACH ability: Creatures with reach property can melee attack at extended range
       // e.g., reach: 2 allows melee attacks at range 1 OR 2
@@ -76,7 +85,10 @@ export class CombatResolver {
 
     // Validate ranged attack: check distance, forest restrictions, and line-of-sight
     if (attackType === 'ranged') {
-      const distance = this.gameState.getDistance(attackerInstance.position, defenderInstance.position)
+      const distance = this.gameState.getDistance(
+        attackerInstance.position,
+        defenderInstance.position
+      )
       const rangedRange = attackerInstance.creature.rangedAttack?.range || 0
 
       // Check distance is within range
@@ -85,13 +97,19 @@ export class CombatResolver {
       }
 
       // Check forest restrictions - cannot shoot FROM forest
-      const attackerTile = this.gameState.getTile(attackerInstance.position.x, attackerInstance.position.y)
+      const attackerTile = this.gameState.getTile(
+        attackerInstance.position.x,
+        attackerInstance.position.y
+      )
       if (attackerTile?.terrain === TerrainTypes.FOREST) {
         return { valid: false, error: 'Cannot make ranged attack from forest' }
       }
 
       // Check forest restrictions - cannot shoot AT target in forest
-      const targetTile = this.gameState.getTile(defenderInstance.position.x, defenderInstance.position.y)
+      const targetTile = this.gameState.getTile(
+        defenderInstance.position.x,
+        defenderInstance.position.y
+      )
       if (targetTile?.terrain === TerrainTypes.FOREST) {
         return { valid: false, error: 'Cannot make ranged attack at target in forest' }
       }
@@ -148,10 +166,18 @@ export class CombatResolver {
       cutterBonus,
       orderCardBonus,
       totalDamage: damage,
-      usedFlatDamage
+      usedFlatDamage,
     })
 
-    return { valid: true, damage, baseDamage, flankingBonus, cutterBonus, orderCardBonus, usedFlatDamage }
+    return {
+      valid: true,
+      damage,
+      baseDamage,
+      flankingBonus,
+      cutterBonus,
+      orderCardBonus,
+      usedFlatDamage,
+    }
   }
 
   /**
@@ -171,7 +197,17 @@ export class CombatResolver {
    * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
    * @returns {Object} Attack result
    */
-  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', aiDifficulty = 'medium', damageReduction = 0, defenseType = null, skipDeathStrike = false, damageBoostBonus = 0, damageBoostFlat = null) {
+  executeAttack(
+    attackerInstance,
+    defenderInstance,
+    attackType = 'melee',
+    aiDifficulty = 'medium',
+    damageReduction = 0,
+    defenseType = null,
+    skipDeathStrike = false,
+    damageBoostBonus = 0,
+    damageBoostFlat = null
+  ) {
     logger.combat('Attack initiated', {
       attacker: attackerInstance.creature.name,
       attackerOwner: attackerInstance.owner,
@@ -181,11 +217,17 @@ export class CombatResolver {
       damageBoostBonus,
       damageBoostFlat,
       defenseType,
-      damageReduction
+      damageReduction,
     })
 
     // Validate the attack (with damage boost parameters)
-    const validation = this.validateAttack(attackerInstance, defenderInstance, attackType, damageBoostBonus, damageBoostFlat)
+    const validation = this.validateAttack(
+      attackerInstance,
+      defenderInstance,
+      attackType,
+      damageBoostBonus,
+      damageBoostFlat
+    )
     if (!validation.valid) {
       logger.combat('Attack validation failed', { error: validation.error })
       return { success: false, message: validation.error }
@@ -203,7 +245,13 @@ export class CombatResolver {
     // skipDeathStrike flag is used when DEATH STRIKE was already processed
     let deathStrikeResult = null
     if (!skipDeathStrike) {
-      deathStrikeResult = this.checkDeathStrike(attackerInstance, defenderInstance, attackType, originalDamage, aiDifficulty)
+      deathStrikeResult = this.checkDeathStrike(
+        attackerInstance,
+        defenderInstance,
+        attackType,
+        originalDamage,
+        aiDifficulty
+      )
 
       // If attacker was killed by DEATH STRIKE, return early - defender survives untouched
       if (deathStrikeResult?.triggered && deathStrikeResult?.attackerWasDestroyed) {
@@ -218,7 +266,7 @@ export class CombatResolver {
           destroyed: false,
           originalDamage,
           damageReduced: damageReduction,
-          defenseUsed: defenseType
+          defenseUsed: defenseType,
         }
       }
     }
@@ -227,32 +275,43 @@ export class CombatResolver {
     attackerInstance.hasAttackedThisTurn = true
 
     // Check if creature has FLASHING BLADES (melee only) - defer tapping until ability resolves
-    const hasFlashingBlades = attackType === 'melee' &&
+    const hasFlashingBlades =
+      attackType === 'melee' &&
       this.gameState.hasFlashingBlades &&
       this.gameState.hasFlashingBlades(attackerInstance)
 
     // Check if creature has HIDDEN BLADE (melee OR ranged) - defer tapping until ability resolves
-    const hasHiddenBlade = this.gameState.hasHiddenBlade &&
-      this.gameState.hasHiddenBlade(attackerInstance)
+    const hasHiddenBlade =
+      this.gameState.hasHiddenBlade && this.gameState.hasHiddenBlade(attackerInstance)
 
     // Check for TOMB GUARDIAN SPLASH (SWIRL) BEFORE resolving damage
     // We need to know if splash is pending to defer tapping
-    const pendingSplashAttacks = this.checkTombGuardianSplash(attackerInstance, attackType, defenderInstance)
+    const pendingSplashAttacks = this.checkTombGuardianSplash(
+      attackerInstance,
+      attackType,
+      defenderInstance
+    )
     const hasPendingSplash = pendingSplashAttacks && pendingSplashAttacks.length > 0
 
     // Check for RANGED SPLASH abilities (ACID BREATH / EXPLOSIVE BOLTS) - defer tapping until ability resolves
-    const hasRangedSplash = attackType === 'ranged' &&
+    const hasRangedSplash =
+      attackType === 'ranged' &&
       this.gameState.hasRangedSplashAbility &&
       this.gameState.hasRangedSplashAbility(attackerInstance)
 
     // Check if creature has SLAM ability (melee only) - defer tapping until ability resolves
-    const hasSlam = attackType === 'melee' &&
-      this.gameState.hasSlam &&
-      this.gameState.hasSlam(attackerInstance)
+    const hasSlam =
+      attackType === 'melee' && this.gameState.hasSlam && this.gameState.hasSlam(attackerInstance)
 
     // Tap the creature if it has both moved AND attacked
     // UNLESS it has FLASHING BLADES, HIDDEN BLADE, PENDING SPLASH, RANGED SPLASH, or SLAM (will be tapped after ability resolves)
-    const shouldTapNow = attackerInstance.hasMovedThisTurn && !hasFlashingBlades && !hasHiddenBlade && !hasPendingSplash && !hasRangedSplash && !hasSlam
+    const shouldTapNow =
+      attackerInstance.hasMovedThisTurn &&
+      !hasFlashingBlades &&
+      !hasHiddenBlade &&
+      !hasPendingSplash &&
+      !hasRangedSplash &&
+      !hasSlam
     if (shouldTapNow) {
       attackerInstance.tap()
     }
@@ -273,14 +332,14 @@ export class CombatResolver {
       defenseUsed: defenseType,
       pendingFlashingBlades: hasFlashingBlades,
       pendingHiddenBlade: hasHiddenBlade,
-      pendingRangedSplash: hasRangedSplash,  // Flag for ACID BREATH / EXPLOSIVE BOLTS
-      pendingSlam: hasSlam,  // Flag for SLAM ability (Earth Guardian)
+      pendingRangedSplash: hasRangedSplash, // Flag for ACID BREATH / EXPLOSIVE BOLTS
+      pendingSlam: hasSlam, // Flag for SLAM ability (Earth Guardian)
       lifeDrain: lifeDrainResult,
       pendingSplashAttacks,
-      pendingSplash: hasPendingSplash,  // Flag to indicate splash needs to be resolved before tapping
+      pendingSplash: hasPendingSplash, // Flag to indicate splash needs to be resolved before tapping
       // DEATH STRIKE info (if triggered but attacker survived)
       deathStrikeTriggered: deathStrikeResult?.triggered || false,
-      deathStrikeResult: deathStrikeResult
+      deathStrikeResult: deathStrikeResult,
     }
   }
 
@@ -299,9 +358,29 @@ export class CombatResolver {
    * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
    * @returns {Object} Attack result
    */
-  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, aiDifficulty = 'medium', skipDeathStrike = false, damageBoostBonus = 0, damageBoostFlat = null) {
+  executeAttackWithDefense(
+    attackerInstance,
+    defenderInstance,
+    attackType = 'melee',
+    damageReduction = 0,
+    defenseType = null,
+    aiDifficulty = 'medium',
+    skipDeathStrike = false,
+    damageBoostBonus = 0,
+    damageBoostFlat = null
+  ) {
     // Delegate to consolidated executeAttack function
-    return this.executeAttack(attackerInstance, defenderInstance, attackType, aiDifficulty, damageReduction, defenseType, skipDeathStrike, damageBoostBonus, damageBoostFlat)
+    return this.executeAttack(
+      attackerInstance,
+      defenderInstance,
+      attackType,
+      aiDifficulty,
+      damageReduction,
+      defenseType,
+      skipDeathStrike,
+      damageBoostBonus,
+      damageBoostFlat
+    )
   }
 
   /**
@@ -323,7 +402,7 @@ export class CombatResolver {
       attacker: attackerInstance.creature.name,
       defender: defenderInstance.creature.name,
       incomingDamage: damageAmount,
-      defenderHP: defenderInstance.currentHP
+      defenderHP: defenderInstance.currentHP,
     })
 
     // ========== MAGIC CIRCLE AURA - First damage prevention step ==========
@@ -331,12 +410,18 @@ export class CombatResolver {
     // to all friendly Goblins, Hobgoblins, and Bugbears (once per turn per creature)
     // This applies BEFORE Insubstantial and Shield Block
     let magicCircleReduction = 0
-    let magicCircleOffered = false  // Track if ability was available (for AbilitiesTest)
-    if (this.gameState.hasMagicCircleProtection && this.gameState.hasMagicCircleProtection(defenderInstance)) {
-      magicCircleOffered = true  // Protection was available
+    let magicCircleOffered = false // Track if ability was available (for AbilitiesTest)
+    if (
+      this.gameState.hasMagicCircleProtection &&
+      this.gameState.hasMagicCircleProtection(defenderInstance)
+    ) {
+      magicCircleOffered = true // Protection was available
       magicCircleReduction = this.gameState.getMagicCircleDamageReduction(defenderInstance)
       if (magicCircleReduction > 0) {
-        this.gameState.useMagicCircleShield(defenderInstance, Math.min(magicCircleReduction, damageAmount))
+        this.gameState.useMagicCircleShield(
+          defenderInstance,
+          Math.min(magicCircleReduction, damageAmount)
+        )
       }
     }
 
@@ -347,7 +432,7 @@ export class CombatResolver {
     if (workingDamage === 0 && magicCircleReduction > 0) {
       logger.ability('MAGIC CIRCLE AURA blocked all damage', {
         defender: defenderInstance.creature.name,
-        damageBlocked: magicCircleReduction
+        damageBlocked: magicCircleReduction,
       })
       return {
         destroyed: false,
@@ -359,18 +444,22 @@ export class CombatResolver {
         shieldBlockReduction: 0,
         attachmentBlockReduction: 0,
         insubstantialUsed: false,
-        moraleChange: null
+        moraleChange: null,
       }
     }
 
     // Check INSUBSTANTIAL before applying remaining damage
     // This ability blocks ALL damage from a single source once per refresh cycle
     if (this.gameState.canUseInsubstantial(defenderInstance)) {
-      const blocked = this.gameState.useInsubstantial(defenderInstance, workingDamage, attackerOwner)
+      const blocked = this.gameState.useInsubstantial(
+        defenderInstance,
+        workingDamage,
+        attackerOwner
+      )
       if (blocked) {
         logger.ability('INSUBSTANTIAL blocked all damage', {
           defender: defenderInstance.creature.name,
-          damageBlocked: workingDamage
+          damageBlocked: workingDamage,
         })
         return {
           destroyed: false,
@@ -383,7 +472,7 @@ export class CombatResolver {
           attachmentBlockReduction: 0,
           damageBlocked: workingDamage,
           insubstantialUsed: true,
-          moraleChange: null
+          moraleChange: null,
         }
       }
     }
@@ -416,7 +505,7 @@ export class CombatResolver {
         magicCircleReduction,
         shieldBlockReduction,
         attachmentBlockReduction,
-        finalDamage
+        finalDamage,
       })
     }
 
@@ -428,13 +517,16 @@ export class CombatResolver {
       finalDamage,
       hpBefore: defenderInstance.currentHP + finalDamage,
       hpAfter: defenderInstance.currentHP,
-      destroyed: wasDestroyed
+      destroyed: wasDestroyed,
     })
 
     if (wasDestroyed) {
       // Clear the tile occupant first
       if (defenderInstance.position) {
-        const tile = this.gameState.getTile(defenderInstance.position.x, defenderInstance.position.y)
+        const tile = this.gameState.getTile(
+          defenderInstance.position.x,
+          defenderInstance.position.y
+        )
         if (tile) {
           tile.occupant = null
         }
@@ -442,7 +534,9 @@ export class CombatResolver {
 
       // Remove from battlefield
       const defenderPlayer = this.gameState.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === defenderInstance.instanceId)
+      const index = defenderPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === defenderInstance.instanceId
+      )
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
@@ -462,7 +556,7 @@ export class CombatResolver {
         owner: defenderOwner,
         level: defenderInstance.creature.level,
         attackerMoraleGained: 1,
-        defenderMoraleLost: defenderInstance.creature.level
+        defenderMoraleLost: defenderInstance.creature.level,
       })
 
       // BLOODTHIRSTY ability: Gain +1 Leadership on kill (Curse of Undeath)
@@ -474,7 +568,7 @@ export class CombatResolver {
           logger.ability('BLOODTHIRSTY triggered', {
             player: attackerOwner,
             leadershipGained: 1,
-            newLeadership: attackerPlayer.leadership
+            newLeadership: attackerPlayer.leadership,
           })
         }
       }
@@ -491,12 +585,12 @@ export class CombatResolver {
           creatureLevel: defenderInstance.creature.level,
           faction: defenderInstance.creature.faction,
           position: defenderInstance.position ? { ...defenderInstance.position } : null,
-          ownerPlayerId: defenderOwner
+          ownerPlayerId: defenderOwner,
         }
         logger.ability('RIDER triggered', {
           dyingCreature: defenderInstance.creature.name,
           position: defenderInstance.position,
-          faction: defenderInstance.creature.faction
+          faction: defenderInstance.creature.faction,
         })
       }
 
@@ -504,8 +598,9 @@ export class CombatResolver {
       // Triggers when adjacent enemy dies during Bugbear's faction's turn
       let untapOnKillData = null
       if (defenderInstance.position && this.gameState.checkUntapOnAdjacentKill) {
-        const wasKilledByBugbear = this.gameState.hasUntapOnAdjacentKill &&
-                                   this.gameState.hasUntapOnAdjacentKill(attackerInstance)
+        const wasKilledByBugbear =
+          this.gameState.hasUntapOnAdjacentKill &&
+          this.gameState.hasUntapOnAdjacentKill(attackerInstance)
         untapOnKillData = this.gameState.checkUntapOnAdjacentKill(
           defenderInstance.position,
           defenderOwner,
@@ -525,19 +620,20 @@ export class CombatResolver {
         attachmentBlockReduction: attachmentBlockReduction,
         moraleChange: {
           attacker: +1,
-          defender: -defenderInstance.creature.level
+          defender: -defenderInstance.creature.level,
         },
         bloodthirsty: leadershipGained > 0 ? { leadershipGained } : null,
         riderTriggered: riderData !== null,
         riderData: riderData,
         untapOnKillTriggered: untapOnKillData?.triggered || false,
-        untapOnKillData: untapOnKillData
+        untapOnKillData: untapOnKillData,
       }
     }
 
     // TAP ON HIT ability: If attacker has tapOnHit and dealt damage, tap the defender
     let tapOnHitData = null
-    const hasTapOnHitAbility = this.gameState.hasTapOnHit && this.gameState.hasTapOnHit(attackerInstance)
+    const hasTapOnHitAbility =
+      this.gameState.hasTapOnHit && this.gameState.hasTapOnHit(attackerInstance)
 
     if (finalDamage > 0 && hasTapOnHitAbility) {
       // Only tap if defender is not already tapped
@@ -547,12 +643,12 @@ export class CombatResolver {
           triggered: true,
           attackerName: attackerInstance.creature.name,
           defenderName: defenderInstance.creature.name,
-          damageDealt: finalDamage
+          damageDealt: finalDamage,
         }
         logger.ability('TAP ON HIT triggered', {
           attacker: attackerInstance.creature.name,
           defender: defenderInstance.creature.name,
-          tapped: true
+          tapped: true,
         })
       } else {
         // Defender was already tapped, ability triggered but had no effect
@@ -561,12 +657,12 @@ export class CombatResolver {
           alreadyTapped: true,
           attackerName: attackerInstance.creature.name,
           defenderName: defenderInstance.creature.name,
-          damageDealt: finalDamage
+          damageDealt: finalDamage,
         }
         logger.ability('TAP ON HIT triggered (already tapped)', {
           attacker: attackerInstance.creature.name,
           defender: defenderInstance.creature.name,
-          alreadyTapped: true
+          alreadyTapped: true,
         })
       }
     }
@@ -582,7 +678,7 @@ export class CombatResolver {
       attachmentBlockReduction: attachmentBlockReduction,
       moraleChange: null,
       tapOnHitTriggered: tapOnHitData?.triggered || false,
-      tapOnHitData: tapOnHitData
+      tapOnHitData: tapOnHitData,
     }
   }
 
@@ -608,7 +704,7 @@ export class CombatResolver {
       creature: attackerInstance.creature.name,
       healAmount,
       currentHP: attackerInstance.currentHP,
-      maxHP: attackerInstance.creature.hitPoints
+      maxHP: attackerInstance.creature.hitPoints,
     })
 
     return {
@@ -616,7 +712,7 @@ export class CombatResolver {
       healAmount,
       creatureName: attackerInstance.creature.name,
       currentHP: attackerInstance.currentHP,
-      maxHP: attackerInstance.creature.hitPoints
+      maxHP: attackerInstance.creature.hitPoints,
     }
   }
 
@@ -637,18 +733,28 @@ export class CombatResolver {
    * @param {string} aiDifficulty - AI difficulty for 0/50/100 rule
    * @returns {Object|null} DEATH STRIKE result or null if not triggered
    */
-  checkDeathStrike(attackerInstance, defenderInstance, attackType, incomingDamage, aiDifficulty = 'medium') {
+  checkDeathStrike(
+    attackerInstance,
+    defenderInstance,
+    attackType,
+    incomingDamage,
+    aiDifficulty = 'medium'
+  ) {
     // DEATH STRIKE only triggers on melee attacks
     if (attackType !== 'melee') return null
 
     // Check if defender has DEATH STRIKE ability
-    if (!this.gameState.hasDeathStrike || !this.gameState.hasDeathStrike(defenderInstance)) return null
+    if (!this.gameState.hasDeathStrike || !this.gameState.hasDeathStrike(defenderInstance))
+      return null
 
     // Check if attack would kill defender
     if (incomingDamage < defenderInstance.currentHP) return null
 
     // Check if attacker is truly adjacent (distance = 1, not Reach 2)
-    const distance = this.gameState.getDistance(attackerInstance.position, defenderInstance.position)
+    const distance = this.gameState.getDistance(
+      attackerInstance.position,
+      defenderInstance.position
+    )
     if (distance !== 1) return null
 
     // DEATH STRIKE conditions met - check AI difficulty
@@ -676,7 +782,7 @@ export class CombatResolver {
         triggered: false,
         declined: true,
         defenderName: defenderInstance.creature.name,
-        difficulty: aiDifficulty
+        difficulty: aiDifficulty,
       }
     }
 
@@ -688,7 +794,7 @@ export class CombatResolver {
     logger.ability('DEATH STRIKE triggered', {
       defender: defenderInstance.creature.name,
       attacker: attackerInstance.creature.name,
-      counterDamage: deathStrikeDamage
+      counterDamage: deathStrikeDamage,
     })
 
     // Apply DEATH STRIKE damage to attacker
@@ -700,7 +806,10 @@ export class CombatResolver {
     if (attackerWasDestroyed) {
       // Clear the tile occupant
       if (attackerInstance.position) {
-        const tile = this.gameState.getTile(attackerInstance.position.x, attackerInstance.position.y)
+        const tile = this.gameState.getTile(
+          attackerInstance.position.x,
+          attackerInstance.position.y
+        )
         if (tile) {
           tile.occupant = null
         }
@@ -708,7 +817,9 @@ export class CombatResolver {
 
       // Remove from battlefield
       const attackerPlayer = this.gameState.players[attackerOwner]
-      const index = attackerPlayer.creaturesInPlay.findIndex(c => c.instanceId === attackerInstance.instanceId)
+      const index = attackerPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === attackerInstance.instanceId
+      )
       if (index !== -1) {
         attackerPlayer.creaturesInPlay.splice(index, 1)
       }
@@ -727,8 +838,8 @@ export class CombatResolver {
         destroyed: true,
         moraleChange: {
           attacker: -attackerInstance.creature.level,
-          defender: +1
-        }
+          defender: +1,
+        },
       }
     }
 
@@ -741,7 +852,7 @@ export class CombatResolver {
       attackerWasDestroyed,
       attackerCurrentHP: attackerInstance.currentHP,
       attackerDeathResult,
-      difficulty: isHuman ? 'human' : aiDifficulty
+      difficulty: isHuman ? 'human' : aiDifficulty,
     }
   }
 
@@ -772,10 +883,15 @@ export class CombatResolver {
     // REACH ability: Creatures with reach property can melee attack at extended range
     // e.g., reach: 2 allows melee attacks at range 1 OR 2
     const creatureReach = creatureInstance.creature.reach || 0
-    const meleeRange = hasMelee ? Math.max(creatureInstance.creature.meleeAttack.range || 1, creatureReach) : 0
+    const meleeRange = hasMelee
+      ? Math.max(creatureInstance.creature.meleeAttack.range || 1, creatureReach)
+      : 0
 
     // Ranged restriction #1: Check if attacker is on forest
-    const attackerTile = this.gameState.getTile(creatureInstance.position.x, creatureInstance.position.y)
+    const attackerTile = this.gameState.getTile(
+      creatureInstance.position.x,
+      creatureInstance.position.y
+    )
     const attackerOnForest = attackerTile?.terrain === TerrainTypes.FOREST
 
     // Find all enemy creatures
@@ -789,11 +905,17 @@ export class CombatResolver {
         // Skip creatures that were deployed this turn (protected from attacks)
         if (enemyCreature.deployedThisTurn) continue
 
-        const distance = this.gameState.getDistance(creatureInstance.position, enemyCreature.position)
+        const distance = this.gameState.getDistance(
+          creatureInstance.position,
+          enemyCreature.position
+        )
         const isAdjacent = distance === 1
 
         // Ranged restriction #2: Check if target is on forest
-        const targetTile = this.gameState.getTile(enemyCreature.position.x, enemyCreature.position.y)
+        const targetTile = this.gameState.getTile(
+          enemyCreature.position.x,
+          enemyCreature.position.y
+        )
         const targetOnForest = targetTile?.terrain === TerrainTypes.FOREST
 
         // Melee attack: check melee range (includes REACH ability if present)
@@ -806,7 +928,7 @@ export class CombatResolver {
             attackType: 'melee',
             distance,
             isReachAttack, // True if attacking at range 2+ using REACH ability
-            reachDistance: isReachAttack ? distance : null
+            reachDistance: isReachAttack ? distance : null,
           })
           // Track reach attacks for stats
           if (isReachAttack && trackStats) {
@@ -844,7 +966,7 @@ export class CombatResolver {
             targets.push({
               creature: enemyCreature,
               attackType: 'ranged',
-              distance
+              distance,
             })
           } else {
             if (trackStats) trackStats.rangedBlockedByLineOfSight++
@@ -921,7 +1043,11 @@ export class CombatResolver {
     if (attackType !== 'melee') return null
 
     // Check if attacker has TOMB GUARDIAN SPLASH ability
-    if (!this.gameState.hasTombGuardianSplash || !this.gameState.hasTombGuardianSplash(attackerInstance)) return null
+    if (
+      !this.gameState.hasTombGuardianSplash ||
+      !this.gameState.hasTombGuardianSplash(attackerInstance)
+    )
+      return null
 
     // AI difficulty check for SWIRL (same pattern as BURROW)
     // Human players ALWAYS have SWIRL enabled
@@ -932,10 +1058,10 @@ export class CombatResolver {
     if (!player?.isHuman) {
       const aiDifficulty = player?.aiDifficulty || 'medium'
       if (aiDifficulty === 'easy') {
-        return null  // Easy AI never uses SWIRL
+        return null // Easy AI never uses SWIRL
       } else if (aiDifficulty === 'medium') {
         if (Math.random() >= 0.5) {
-          return null  // Medium AI uses 50% of the time
+          return null // Medium AI uses 50% of the time
         }
       }
       // Hard AI always uses SWIRL (no early return)
@@ -947,12 +1073,12 @@ export class CombatResolver {
     if (splashTargets.length === 0) return null
 
     // Return pending splash attacks that need defense resolution
-    return splashTargets.map(target => ({
+    return splashTargets.map((target) => ({
       attackerInstance,
       targetInstance: target,
-      damage: 20,  // Splash damage amount
+      damage: 20, // Splash damage amount
       attackType: 'splash',
-      sourceAbility: 'TOMB_GUARDIAN_SPLASH'
+      sourceAbility: 'TOMB_GUARDIAN_SPLASH',
     }))
   }
 
@@ -968,11 +1094,15 @@ export class CombatResolver {
    * @returns {Object} Splash attack result
    */
   executeSplashDamage(attackerInstance, targetInstance, damageAfterDefense) {
-    const result = this.gameState.applyTombGuardianSplash(targetInstance, attackerInstance.owner, damageAfterDefense)
+    const result = this.gameState.applyTombGuardianSplash(
+      targetInstance,
+      attackerInstance.owner,
+      damageAfterDefense
+    )
     return {
       ...result,
       attackerName: attackerInstance.creature.name,
-      sourceAbility: 'TOMB_GUARDIAN_SPLASH'
+      sourceAbility: 'TOMB_GUARDIAN_SPLASH',
     }
   }
 
@@ -1041,7 +1171,10 @@ export class CombatResolver {
           const lineTiles = this.gameState.getLineTiles(pos, { x, y })
           for (const linePos of lineTiles) {
             // Skip start and end positions
-            if ((linePos.x === pos.x && linePos.y === pos.y) || (linePos.x === x && linePos.y === y)) {
+            if (
+              (linePos.x === pos.x && linePos.y === pos.y) ||
+              (linePos.x === x && linePos.y === y)
+            ) {
               continue
             }
 
@@ -1062,7 +1195,11 @@ export class CombatResolver {
             }
 
             // Enemy creature blocks LOS (unless attacker has FLYING - can shoot over enemies)
-            if (!attackerHasFlying && lineTile?.occupant && lineTile.occupant.owner !== attackerOwner) {
+            if (
+              !attackerHasFlying &&
+              lineTile?.occupant &&
+              lineTile.occupant.owner !== attackerOwner
+            ) {
               hasLOS = false
               blockReason = 'enemy_blocking'
               break

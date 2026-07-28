@@ -13,14 +13,7 @@ import { Modal, Button, Alert } from 'react-bootstrap'
  * @param {Function} onConfirm - Callback when player confirms heal
  * @param {Function} onCancel - Callback when player cancels
  */
-function PatchUpHealModal({
-  show,
-  card,
-  creature,
-  healAmount,
-  onConfirm,
-  onCancel
-}) {
+function PatchUpHealModal({ show, card, creature, healAmount, onConfirm, onCancel }) {
   if (!show || !card || !creature) return null
 
   // Calculate actual healing (can't heal more than damage taken)
@@ -32,7 +25,9 @@ function PatchUpHealModal({
 
   return (
     <Modal show={show} onHide={onCancel} centered size="md" backdrop="static">
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #28a745' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #28a745' }}
+      >
         <Modal.Title>Use {card.name}</Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', textAlign: 'center' }}>
@@ -45,7 +40,7 @@ function PatchUpHealModal({
               style={{
                 maxHeight: '200px',
                 borderRadius: '8px',
-                border: '2px solid #28a745'
+                border: '2px solid #28a745',
               }}
             />
           ) : (
@@ -59,7 +54,7 @@ function PatchUpHealModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto'
+                margin: '0 auto',
               }}
             >
               <span style={{ fontSize: '0.9rem' }}>{card.name}</span>
@@ -73,7 +68,7 @@ function PatchUpHealModal({
             fontSize: '0.9rem',
             color: '#adb5bd',
             marginBottom: '15px',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
           }}
         >
           {card.effectDescription}
@@ -104,8 +99,9 @@ function PatchUpHealModal({
           style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)', border: '1px solid #ffc107' }}
         >
           <div style={{ fontSize: '0.85rem' }}>
-            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s action for this turn
-            (like a STANDARD action). The creature can still move afterward if it hasn't already.
+            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s
+            action for this turn (like a STANDARD action). The creature can still move afterward if
+            it hasn't already.
           </div>
         </Alert>
       </Modal.Body>

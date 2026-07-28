@@ -2,19 +2,19 @@
  * Commander Ability Types
  */
 export const AbilityTypes = {
-  PASSIVE: 'PASSIVE',  // Automatically applied in background
-  ACTIVE: 'ACTIVE'     // Requires UI interaction (popup/button)
+  PASSIVE: 'PASSIVE', // Automatically applied in background
+  ACTIVE: 'ACTIVE', // Requires UI interaction (popup/button)
 }
 
 /**
  * Commander Ability Categories
  */
 export const AbilityCategories = {
-  TERRAIN: 'TERRAIN',       // Affects terrain movement costs
-  SPEED: 'SPEED',           // Modifies creature speed
+  TERRAIN: 'TERRAIN', // Affects terrain movement costs
+  SPEED: 'SPEED', // Modifies creature speed
   DEPLOYMENT: 'DEPLOYMENT', // Affects deployment rules
-  COMBAT: 'COMBAT',         // Affects combat outcomes
-  RESOURCE: 'RESOURCE'      // Affects morale, leadership, or cards
+  COMBAT: 'COMBAT', // Affects combat outcomes
+  RESOURCE: 'RESOURCE', // Affects morale, leadership, or cards
 }
 
 /**
@@ -46,7 +46,7 @@ export class Commander {
     specialAbility,
     specialAbilityDescription = '',
     imageUrl = null,
-    abilities = []
+    abilities = [],
   }) {
     this.id = id
     this.name = name
@@ -67,7 +67,7 @@ export class Commander {
    * @returns {boolean} True if commander has this ability
    */
   hasAbility(abilityId) {
-    return this.abilities.some(ability => ability.id === abilityId)
+    return this.abilities.some((ability) => ability.id === abilityId)
   }
 
   /**
@@ -76,7 +76,7 @@ export class Commander {
    * @returns {Object|null} The ability object or null
    */
   getAbility(abilityId) {
-    return this.abilities.find(ability => ability.id === abilityId) || null
+    return this.abilities.find((ability) => ability.id === abilityId) || null
   }
 
   /**
@@ -84,7 +84,7 @@ export class Commander {
    * @returns {Array} Array of passive ability objects
    */
   getPassiveAbilities() {
-    return this.abilities.filter(ability => ability.type === AbilityTypes.PASSIVE)
+    return this.abilities.filter((ability) => ability.type === AbilityTypes.PASSIVE)
   }
 
   /**
@@ -92,7 +92,7 @@ export class Commander {
    * @returns {Array} Array of active ability objects
    */
   getActiveAbilities() {
-    return this.abilities.filter(ability => ability.type === AbilityTypes.ACTIVE)
+    return this.abilities.filter((ability) => ability.type === AbilityTypes.ACTIVE)
   }
 }
 

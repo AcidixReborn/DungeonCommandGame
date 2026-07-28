@@ -15,13 +15,13 @@ import { Treasure, createTokenPool, drawTokens } from './treasure.js'
 
 // Terrain type constants - affects movement and gameplay
 export const TerrainTypes = {
-  NORMAL: 'NORMAL',               // Standard terrain, 1 movement cost
-  FOREST: 'FOREST',               // Difficult terrain, 2 movement cost
-  MOUNTAIN: 'MOUNTAIN',           // Impassable terrain
-  DIFFICULT: 'DIFFICULT',         // Difficult terrain, 2 movement cost
-  WATER: 'WATER',                 // Passable but dangerous, 2 movement cost, 10 damage at end of ACTIVATE phase
-  MAGIC_CIRCLE: 'MAGIC_CIRCLE',   // Special objective tile
-  STARTING_ZONE: 'STARTING_ZONE'  // Player deployment area
+  NORMAL: 'NORMAL', // Standard terrain, 1 movement cost
+  FOREST: 'FOREST', // Difficult terrain, 2 movement cost
+  MOUNTAIN: 'MOUNTAIN', // Impassable terrain
+  DIFFICULT: 'DIFFICULT', // Difficult terrain, 2 movement cost
+  WATER: 'WATER', // Passable but dangerous, 2 movement cost, 10 damage at end of ACTIVATE phase
+  MAGIC_CIRCLE: 'MAGIC_CIRCLE', // Special objective tile
+  STARTING_ZONE: 'STARTING_ZONE', // Player deployment area
 }
 
 /**
@@ -57,7 +57,7 @@ export class Board {
           x,
           y,
           terrain: TerrainTypes.NORMAL,
-          occupant: null
+          occupant: null,
         }
       }
     }
@@ -103,13 +103,13 @@ export class Board {
   getAdjacentTiles(x, y) {
     const adjacent = []
     const directions = [
-      { dx: 0, dy: -1 },  // North
-      { dx: 1, dy: 0 },   // East
-      { dx: 0, dy: 1 },   // South
-      { dx: -1, dy: 0 }   // West
+      { dx: 0, dy: -1 }, // North
+      { dx: 1, dy: 0 }, // East
+      { dx: 0, dy: 1 }, // South
+      { dx: -1, dy: 0 }, // West
     ]
 
-    directions.forEach(dir => {
+    directions.forEach((dir) => {
       const newX = x + dir.dx
       const newY = y + dir.dy
       const tile = this.getTile(newX, newY)
@@ -132,17 +132,17 @@ export class Board {
   getAdjacentTiles8Dir(x, y) {
     const adjacent = []
     const directions = [
-      { dx: 0, dy: -1 },   // North
-      { dx: 1, dy: -1 },   // Northeast
-      { dx: 1, dy: 0 },    // East
-      { dx: 1, dy: 1 },    // Southeast
-      { dx: 0, dy: 1 },    // South
-      { dx: -1, dy: 1 },   // Southwest
-      { dx: -1, dy: 0 },   // West
-      { dx: -1, dy: -1 }   // Northwest
+      { dx: 0, dy: -1 }, // North
+      { dx: 1, dy: -1 }, // Northeast
+      { dx: 1, dy: 0 }, // East
+      { dx: 1, dy: 1 }, // Southeast
+      { dx: 0, dy: 1 }, // South
+      { dx: -1, dy: 1 }, // Southwest
+      { dx: -1, dy: 0 }, // West
+      { dx: -1, dy: -1 }, // Northwest
     ]
 
-    directions.forEach(dir => {
+    directions.forEach((dir) => {
       const newX = x + dir.dx
       const newY = y + dir.dy
       const tile = this.getTile(newX, newY)
@@ -164,7 +164,7 @@ export class Board {
    */
   isAdjacentToMountain(x, y) {
     const adjacentTiles = this.getAdjacentTiles8Dir(x, y)
-    return adjacentTiles.some(tile => tile.terrain === TerrainTypes.MOUNTAIN)
+    return adjacentTiles.some((tile) => tile.terrain === TerrainTypes.MOUNTAIN)
   }
 
   // ============================================================================
@@ -254,7 +254,13 @@ export class Board {
    * @param {boolean} phasing - Whether creature has PHASING ability
    * @returns {number} Movement cost (999 = impassable)
    */
-  getTerrainMovementCost(terrain, flying = false, ignoresDifficult = false, burrowing = false, phasing = false) {
+  getTerrainMovementCost(
+    terrain,
+    flying = false,
+    ignoresDifficult = false,
+    burrowing = false,
+    phasing = false
+  ) {
     // Flying creatures ignore difficult terrain
     // IMPORTANT: Mountains cost 1 to PASS THROUGH, but creatures cannot STOP on them
     // The "cannot stop" logic is handled in pathfinding's final destination filtering (canStopOn callback)
@@ -388,7 +394,7 @@ export class Board {
    */
   addClusteredTerrain(regionTiles, terrainType, count, clusterSize) {
     // Filter out starting zones - only place terrain on NORMAL tiles
-    const availableTiles = regionTiles.filter(t => t && t.terrain === TerrainTypes.NORMAL)
+    const availableTiles = regionTiles.filter((t) => t && t.terrain === TerrainTypes.NORMAL)
     let placed = 0
 
     while (placed < count && availableTiles.length > 0) {
@@ -407,8 +413,9 @@ export class Board {
       const cluster = [seedTile]
       for (let i = 0; i < clusterSize - 1 && placed < count; i++) {
         const baseTile = cluster[Math.floor(Math.random() * cluster.length)]
-        const adjacentTiles = this.getAdjacentTiles(baseTile.x, baseTile.y)
-          .filter(t => regionTiles.includes(t) && t.terrain === TerrainTypes.NORMAL)
+        const adjacentTiles = this.getAdjacentTiles(baseTile.x, baseTile.y).filter(
+          (t) => regionTiles.includes(t) && t.terrain === TerrainTypes.NORMAL
+        )
 
         if (adjacentTiles.length > 0) {
           const adjTile = adjacentTiles[Math.floor(Math.random() * adjacentTiles.length)]
@@ -433,7 +440,7 @@ export class Board {
    * @param {number} count - Number of tiles
    */
   addRandomTerrain(terrainType, count) {
-    const normalTiles = this.getAllTiles().filter(t => t.terrain === TerrainTypes.NORMAL)
+    const normalTiles = this.getAllTiles().filter((t) => t.terrain === TerrainTypes.NORMAL)
     for (let i = 0; i < count && normalTiles.length > 0; i++) {
       const randomIndex = Math.floor(Math.random() * normalTiles.length)
       const tile = normalTiles[randomIndex]
@@ -461,7 +468,12 @@ export class Board {
 
       // Determine zone dimensions based on edge orientation
       let zoneWidth, zoneHeight
-      if (edge.edge === 'top' || edge.edge === 'bottom' || edge.edge.includes('top') || edge.edge.includes('bottom')) {
+      if (
+        edge.edge === 'top' ||
+        edge.edge === 'bottom' ||
+        edge.edge.includes('top') ||
+        edge.edge.includes('bottom')
+      ) {
         zoneWidth = 3
         zoneHeight = 2
       } else {
@@ -540,13 +552,13 @@ export class Board {
         left: pos1.startX,
         right: pos1.startX + dim1.width - 1,
         top: pos1.startY,
-        bottom: pos1.startY + dim1.height - 1
+        bottom: pos1.startY + dim1.height - 1,
       }
       const zone2 = {
         left: pos2.startX,
         right: pos2.startX + dim2.width - 1,
         top: pos2.startY,
-        bottom: pos2.startY + dim2.height - 1
+        bottom: pos2.startY + dim2.height - 1,
       }
 
       let horizGap = 0
@@ -591,18 +603,20 @@ export class Board {
 
     // For subsequent players, maximize distance
     while (positions.length < numPlayers) {
-      const validCandidates = possiblePositions.filter(candidate =>
+      const validCandidates = possiblePositions.filter((candidate) =>
         meetsMinDistance(candidate, positions)
       )
 
       if (validCandidates.length === 0) {
-        console.warn(`Could not find valid position for player ${positions.length + 1} with ${minDistance} tile spacing.`)
+        console.warn(
+          `Could not find valid position for player ${positions.length + 1} with ${minDistance} tile spacing.`
+        )
         break
       }
 
-      const scoredCandidates = validCandidates.map(candidate => ({
+      const scoredCandidates = validCandidates.map((candidate) => ({
         position: candidate,
-        totalDistance: getTotalDistance(candidate, positions)
+        totalDistance: getTotalDistance(candidate, positions),
       }))
 
       scoredCandidates.sort((a, b) => b.totalDistance - a.totalDistance)
@@ -618,7 +632,9 @@ export class Board {
 
     // Fallback to corners
     if (positions.length < numPlayers) {
-      console.warn(`Could not find ${numPlayers} positions with ${minDistance} tile spacing. Using fallback positions.`)
+      console.warn(
+        `Could not find ${numPlayers} positions with ${minDistance} tile spacing. Using fallback positions.`
+      )
       positions.length = 0
 
       const fallbackPositions = [
@@ -626,7 +642,7 @@ export class Board {
         { startX: this.boardWidth - 3, startY: this.boardHeight - 2, edge: 'bottom-right' },
         { startX: this.boardWidth - 3, startY: 0, edge: 'top-right' },
         { startX: 0, startY: this.boardHeight - 2, edge: 'bottom-left' },
-        { startX: Math.floor(this.boardWidth / 2) - 1, startY: 0, edge: 'top-center' }
+        { startX: Math.floor(this.boardWidth / 2) - 1, startY: 0, edge: 'top-center' },
       ]
 
       for (let i = 0; i < numPlayers; i++) {
@@ -648,15 +664,16 @@ export class Board {
    * @param {Object} players - Players object for circle assignment
    */
   addMagicCircles(activePlayers, players) {
-    const availableTiles = this.getAllTiles().filter(t =>
-      t.terrain === TerrainTypes.NORMAL
-    )
+    const availableTiles = this.getAllTiles().filter((t) => t.terrain === TerrainTypes.NORMAL)
 
-    const numCircles = Math.max(MAGIC_CIRCLE.MIN_CIRCLES, Math.round(activePlayers.length * MAGIC_CIRCLE.PLAYER_PERCENTAGE))
+    const numCircles = Math.max(
+      MAGIC_CIRCLE.MIN_CIRCLES,
+      Math.round(activePlayers.length * MAGIC_CIRCLE.PLAYER_PERCENTAGE)
+    )
     const shuffledPlayers = [...activePlayers].sort(() => Math.random() - 0.5)
     const selectedPlayers = shuffledPlayers.slice(0, numCircles)
 
-    selectedPlayers.forEach(playerId => {
+    selectedPlayers.forEach((playerId) => {
       if (availableTiles.length === 0) return
 
       const clusterSize = 3 + Math.floor(Math.random() * 2) // 3 or 4
@@ -676,11 +693,9 @@ export class Board {
       const cluster = [seedTile]
       for (let i = 0; i < clusterSize - 1 && placed < clusterSize; i++) {
         const baseTile = cluster[Math.floor(Math.random() * cluster.length)]
-        const adjacentTiles = this.getAdjacentTiles(baseTile.x, baseTile.y)
-          .filter(t =>
-            availableTiles.includes(t) &&
-            t.terrain === TerrainTypes.NORMAL
-          )
+        const adjacentTiles = this.getAdjacentTiles(baseTile.x, baseTile.y).filter(
+          (t) => availableTiles.includes(t) && t.terrain === TerrainTypes.NORMAL
+        )
 
         if (adjacentTiles.length > 0) {
           const adjTile = adjacentTiles[Math.floor(Math.random() * adjacentTiles.length)]
@@ -722,11 +737,13 @@ export class Board {
       for (let x = 0; x < this.boardWidth; x++) {
         const tile = this.tiles[y][x]
 
-        if (tile.terrain === TerrainTypes.DIFFICULT ||
-            tile.terrain === TerrainTypes.MOUNTAIN ||
-            tile.terrain === TerrainTypes.WATER ||
-            tile.terrain === TerrainTypes.MAGIC_CIRCLE ||
-            tile.terrain === TerrainTypes.STARTING_ZONE) {
+        if (
+          tile.terrain === TerrainTypes.DIFFICULT ||
+          tile.terrain === TerrainTypes.MOUNTAIN ||
+          tile.terrain === TerrainTypes.WATER ||
+          tile.terrain === TerrainTypes.MAGIC_CIRCLE ||
+          tile.terrain === TerrainTypes.STARTING_ZONE
+        ) {
           continue
         }
 
@@ -774,8 +791,9 @@ export class Board {
 
           let tooCloseToOtherTreasure = false
           for (const existingTreasure of this.treasures) {
-            const distance = Math.abs(candidateTile.x - existingTreasure.position.x) +
-                           Math.abs(candidateTile.y - existingTreasure.position.y)
+            const distance =
+              Math.abs(candidateTile.x - existingTreasure.position.x) +
+              Math.abs(candidateTile.y - existingTreasure.position.y)
 
             if (distance < preferredTreasureSpacing) {
               tooCloseToOtherTreasure = true
@@ -788,7 +806,7 @@ export class Board {
               id: `treasure-${treasureIdCounter++}`,
               owner: playerId,
               moraleValue,
-              position: { x: candidateTile.x, y: candidateTile.y }
+              position: { x: candidateTile.x, y: candidateTile.y },
             })
 
             this.treasures.push(treasure)
@@ -799,7 +817,7 @@ export class Board {
               id: `treasure-${treasureIdCounter++}`,
               owner: playerId,
               moraleValue,
-              position: { x: candidateTile.x, y: candidateTile.y }
+              position: { x: candidateTile.x, y: candidateTile.y },
             })
 
             this.treasures.push(treasure)

@@ -19,5 +19,5 @@ export default {
   Rider,
   Flanking,
   FlashingBlades,
-  UntapOnKill
+  UntapOnKill,
 }

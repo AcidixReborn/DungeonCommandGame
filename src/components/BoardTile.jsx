@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { TerrainTypes } from '../models/gameState'
-import { GiSpiderWeb, GiKnightBanner, GiGoblinHead, GiSkullCrossedBones, GiOrcHead } from 'react-icons/gi'
+import {
+  GiSpiderWeb,
+  GiKnightBanner,
+  GiGoblinHead,
+  GiSkullCrossedBones,
+  GiOrcHead,
+} from 'react-icons/gi'
 import './BoardTile.css'
 
 /**
@@ -13,7 +19,7 @@ const factionIcons = {
   'Heart of Cormyr': GiKnightBanner,
   'Tyranny of Goblins': GiGoblinHead,
   'Curse of Undeath': GiSkullCrossedBones,
-  'Blood of Gruumsh': GiOrcHead
+  'Blood of Gruumsh': GiOrcHead,
 }
 
 /**
@@ -61,7 +67,53 @@ const factionIcons = {
  * @param {Array} rangedLOSFactions - Array of player IDs (owners) whose ranged creatures can hit this tile
  * @param {boolean} isSelectedCreatureRangedLOS - Whether tile is in LOS of the currently selected ranged creature (brighter highlight)
  */
-function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementInfo, isAttackTarget, attackType, isLineOfSight, onDrop, onDragOver, isDragTarget, playerFactionColors, playerFactions, currentPlayer, onRightClick, boardWidth = 8, boardHeight = 8, combatHighlight = null, factionHighlight = null, isShadowStalkerHighlight = false, isConfusionGazeSlide = false, isConfusionGazeAttack = false, isSlamTile = false, isSummonSpiderHighlight = false, summonSpiderFactionColor = null, isLichNecromancerHighlight = false, lichNecromancerFactionColor = null, isOrcDruidHighlight = false, orcDruidFactionColor = null, isArcanePortalHighlight = false, arcanePortalFactionColor = null, isLightningBreathValidTarget = false, isLightningBreathSelected = false, lightningBreathTargetIndex = -1, isAllRangedLOS = false, allRangedLOSCount = 0, rangedLOSFactions = [], isSelectedCreatureRangedLOS = false, isOrderCardTarget = false, isWebbed = false, hasDeepWound = false, isHealingTouchTarget = false, isShiftTile = false, isChargeTile = false }) {
+function BoardTile({
+  tile,
+  onClick,
+  isSelected,
+  creature,
+  isValidMove,
+  movementInfo,
+  isAttackTarget,
+  attackType,
+  isLineOfSight,
+  onDrop,
+  onDragOver,
+  isDragTarget,
+  playerFactionColors,
+  playerFactions,
+  currentPlayer,
+  onRightClick,
+  boardWidth = 8,
+  boardHeight = 8,
+  combatHighlight = null,
+  factionHighlight = null,
+  isShadowStalkerHighlight = false,
+  isConfusionGazeSlide = false,
+  isConfusionGazeAttack = false,
+  isSlamTile = false,
+  isSummonSpiderHighlight = false,
+  summonSpiderFactionColor = null,
+  isLichNecromancerHighlight = false,
+  lichNecromancerFactionColor = null,
+  isOrcDruidHighlight = false,
+  orcDruidFactionColor = null,
+  isArcanePortalHighlight = false,
+  arcanePortalFactionColor = null,
+  isLightningBreathValidTarget = false,
+  isLightningBreathSelected = false,
+  lightningBreathTargetIndex = -1,
+  isAllRangedLOS = false,
+  allRangedLOSCount = 0,
+  rangedLOSFactions = [],
+  isSelectedCreatureRangedLOS = false,
+  isOrderCardTarget = false,
+  isWebbed = false,
+  hasDeepWound = false,
+  isHealingTouchTarget = false,
+  isShiftTile = false,
+  isChargeTile = false,
+}) {
   // Hover preview state
   const [showPreview, setShowPreview] = useState(false)
   const hoverTimeoutRef = useRef(null)
@@ -197,11 +249,13 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
    */
   const hexToRgb = (hex) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null
+    return result
+      ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
+      : null
   }
 
   /**
@@ -230,7 +284,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
     const darken = (r, g, b, factor = 0.6) => ({
       r: Math.floor(r * factor),
       g: Math.floor(g * factor),
-      b: Math.floor(b * factor)
+      b: Math.floor(b * factor),
     })
 
     const darkRgb = darken(rgb.r, rgb.g, rgb.b)
@@ -244,7 +298,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         2px 3px 0px rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.5),
         inset 2px 2px 0px rgba(255, 255, 255, 0.3),
         inset -2px -2px 0px rgba(${darkRgb.r}, ${darkRgb.g}, ${darkRgb.b}, 0.3)
-      `
+      `,
     }
   }
 
@@ -275,7 +329,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         const brightenColor = (r, g, b, factor = 1.4) => ({
           r: Math.min(255, Math.floor(r * factor)),
           g: Math.min(255, Math.floor(g * factor)),
-          b: Math.min(255, Math.floor(b * factor))
+          b: Math.min(255, Math.floor(b * factor)),
         })
         const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
 
@@ -287,7 +341,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
             inset 0 0 20px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5),
             inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)
           `,
-          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`
+          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`,
         }
       }
     }
@@ -299,7 +353,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         const brightenColor = (r, g, b, factor = 1.4) => ({
           r: Math.min(255, Math.floor(r * factor)),
           g: Math.min(255, Math.floor(g * factor)),
-          b: Math.min(255, Math.floor(b * factor))
+          b: Math.min(255, Math.floor(b * factor)),
         })
         const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
 
@@ -311,7 +365,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
             inset 0 0 25px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6),
             inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)
           `,
-          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`
+          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`,
         }
       }
     }
@@ -323,7 +377,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         const brightenColor = (r, g, b, factor = 1.4) => ({
           r: Math.min(255, Math.floor(r * factor)),
           g: Math.min(255, Math.floor(g * factor)),
-          b: Math.min(255, Math.floor(b * factor))
+          b: Math.min(255, Math.floor(b * factor)),
         })
         const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
 
@@ -335,7 +389,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
             inset 0 0 25px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6),
             inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)
           `,
-          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`
+          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`,
         }
       }
     }
@@ -347,7 +401,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         const brightenColor = (r, g, b, factor = 1.4) => ({
           r: Math.min(255, Math.floor(r * factor)),
           g: Math.min(255, Math.floor(g * factor)),
-          b: Math.min(255, Math.floor(b * factor))
+          b: Math.min(255, Math.floor(b * factor)),
         })
         const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
 
@@ -359,7 +413,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
             inset 0 0 25px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.65),
             inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.45)
           `,
-          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`
+          borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`,
         }
       }
     }
@@ -367,13 +421,14 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
     // HEALING TOUCH: Apply green/healing highlight to valid targets (self + adjacent allies)
     if (isHealingTouchTarget) {
       return {
-        background: 'linear-gradient(135deg, rgba(40, 167, 69, 0.4) 0%, rgba(32, 201, 151, 0.3) 100%)',
+        background:
+          'linear-gradient(135deg, rgba(40, 167, 69, 0.4) 0%, rgba(32, 201, 151, 0.3) 100%)',
         boxShadow: `
           inset 0 0 0 3px rgba(40, 167, 69, 0.9),
           inset 0 0 25px rgba(32, 201, 151, 0.5),
           0 0 12px rgba(40, 167, 69, 0.4)
         `,
-        borderColor: 'rgba(40, 167, 69, 0.8)'
+        borderColor: 'rgba(40, 167, 69, 0.8)',
       }
     }
 
@@ -382,23 +437,25 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
       // Selected targets get brighter highlight with target number
       if (isLightningBreathSelected) {
         return {
-          background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.5) 0%, rgba(0, 188, 212, 0.4) 100%)',
+          background:
+            'linear-gradient(135deg, rgba(0, 255, 255, 0.5) 0%, rgba(0, 188, 212, 0.4) 100%)',
           boxShadow: `
             inset 0 0 0 3px rgba(0, 255, 255, 0.95),
             inset 0 0 30px rgba(0, 188, 212, 0.7),
             0 0 15px rgba(0, 255, 255, 0.6)
           `,
-          borderColor: 'rgba(0, 255, 255, 0.9)'
+          borderColor: 'rgba(0, 255, 255, 0.9)',
         }
       }
       // Valid but not selected - dimmer electric glow
       return {
-        background: 'linear-gradient(135deg, rgba(0, 188, 212, 0.3) 0%, rgba(0, 150, 180, 0.2) 100%)',
+        background:
+          'linear-gradient(135deg, rgba(0, 188, 212, 0.3) 0%, rgba(0, 150, 180, 0.2) 100%)',
         boxShadow: `
           inset 0 0 0 2px rgba(0, 188, 212, 0.7),
           inset 0 0 20px rgba(0, 188, 212, 0.4)
         `,
-        borderColor: 'rgba(0, 188, 212, 0.6)'
+        borderColor: 'rgba(0, 188, 212, 0.6)',
       }
     }
 
@@ -406,13 +463,14 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
     // This takes priority over the general all-ranged-LOS highlight
     if (isSelectedCreatureRangedLOS) {
       return {
-        background: 'linear-gradient(135deg, rgba(0, 255, 200, 0.35) 0%, rgba(0, 200, 255, 0.30) 100%)',
+        background:
+          'linear-gradient(135deg, rgba(0, 255, 200, 0.35) 0%, rgba(0, 200, 255, 0.30) 100%)',
         boxShadow: `
           inset 0 0 0 3px rgba(0, 255, 200, 0.9),
           inset 0 0 20px rgba(0, 200, 255, 0.5),
           0 0 10px rgba(0, 255, 200, 0.4)
         `,
-        borderColor: 'rgba(0, 255, 200, 0.8)'
+        borderColor: 'rgba(0, 255, 200, 0.8)',
       }
     }
 
@@ -435,7 +493,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
                 inset 0 0 0 2px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${borderOpacity}),
                 inset 0 0 15px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOpacity})
               `,
-              borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${borderOpacity})`
+              borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${borderOpacity})`,
             }
           }
         }
@@ -453,21 +511,23 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
                 inset 0 0 0 2px rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity}),
                 inset 0 0 15px rgba(${rgb2.r}, ${rgb2.g}, ${rgb2.b}, ${baseOpacity * 0.5})
               `,
-              borderColor: `rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity})`
+              borderColor: `rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity})`,
             }
           }
         }
       } else {
         // 3+ factions - conic gradient (pie slices)
-        const gradientStops = rangedLOSFactions.map((owner, i) => {
-          const factionColor = playerFactionColors[owner]
-          if (!factionColor) return null
-          const rgb = hexToRgb(factionColor)
-          if (!rgb) return null
-          const start = (i / factionCount) * 360
-          const end = ((i + 1) / factionCount) * 360
-          return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOpacity}) ${start}deg ${end}deg`
-        }).filter(Boolean)
+        const gradientStops = rangedLOSFactions
+          .map((owner, i) => {
+            const factionColor = playerFactionColors[owner]
+            if (!factionColor) return null
+            const rgb = hexToRgb(factionColor)
+            if (!rgb) return null
+            const start = (i / factionCount) * 360
+            const end = ((i + 1) / factionCount) * 360
+            return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOpacity}) ${start}deg ${end}deg`
+          })
+          .filter(Boolean)
 
         if (gradientStops.length > 0) {
           // Get first faction color for border
@@ -476,11 +536,15 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
 
           return {
             background: `conic-gradient(from 0deg, ${gradientStops.join(', ')})`,
-            boxShadow: rgb1 ? `
+            boxShadow: rgb1
+              ? `
               inset 0 0 0 2px rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity}),
               inset 0 0 15px rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${baseOpacity * 0.5})
-            ` : '',
-            borderColor: rgb1 ? `rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity})` : 'rgba(255, 100, 50, 0.6)'
+            `
+              : '',
+            borderColor: rgb1
+              ? `rgba(${rgb1.r}, ${rgb1.g}, ${rgb1.b}, ${borderOpacity})`
+              : 'rgba(255, 100, 50, 0.6)',
           }
         }
       }
@@ -492,11 +556,15 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
           inset 0 0 0 2px rgba(255, 100, 50, ${borderOpacity}),
           inset 0 0 15px rgba(255, 50, 50, ${baseOpacity})
         `,
-        borderColor: `rgba(255, 100, 50, ${borderOpacity})`
+        borderColor: `rgba(255, 100, 50, ${borderOpacity})`,
       }
     }
 
-    if (tile.terrain !== TerrainTypes.STARTING_ZONE || !tile.startingZoneOwner || !playerFactionColors) {
+    if (
+      tile.terrain !== TerrainTypes.STARTING_ZONE ||
+      !tile.startingZoneOwner ||
+      !playerFactionColors
+    ) {
       return {}
     }
 
@@ -513,7 +581,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
     const brightenColor = (r, g, b, factor = 1.4) => ({
       r: Math.min(255, Math.floor(r * factor)),
       g: Math.min(255, Math.floor(g * factor)),
-      b: Math.min(255, Math.floor(b * factor))
+      b: Math.min(255, Math.floor(b * factor)),
     })
 
     const brightRgb = brightenColor(rgb.r, rgb.g, rgb.b)
@@ -527,7 +595,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
           inset 0 0 20px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5),
           inset 3px 3px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)
         `,
-        borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`
+        borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`,
       }
     }
 
@@ -538,7 +606,7 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
         inset 0 0 10px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2),
         inset 2px 2px 0px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)
       `,
-      borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`
+      borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`,
     }
   }
 
@@ -575,30 +643,30 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
       <div className="terrain-symbol">{getTerrainSymbol()}</div>
 
       {/* Show movement cost on valid tiles */}
-      {isValidMove && movementInfo && (
-        <div className="movement-cost">
-          {movementInfo.cost}
-        </div>
-      )}
+      {isValidMove && movementInfo && <div className="movement-cost">{movementInfo.cost}</div>}
 
       {/* Show line-of-sight indicator (movement mode single creature LOS) */}
       {/* Only show if NOT in ranged LOS modes (those have their own indicators) */}
       {isLineOfSight && !isAllRangedLOS && !isSelectedCreatureRangedLOS && (
-        <div className="line-of-sight-indicator">
-          ➤
-        </div>
+        <div className="line-of-sight-indicator">➤</div>
       )}
 
       {/* Show selected creature's ranged LOS indicator (takes priority in ranged mode) */}
       {isSelectedCreatureRangedLOS && (
-        <div className="selected-creature-ranged-los-indicator" title="Selected creature can hit this tile">
+        <div
+          className="selected-creature-ranged-los-indicator"
+          title="Selected creature can hit this tile"
+        >
           ➤
         </div>
       )}
 
       {/* Show all ranged LOS indicator (only if not showing selected creature's LOS) */}
       {isAllRangedLOS && !isSelectedCreatureRangedLOS && (
-        <div className="all-ranged-los-indicator" title={`${allRangedLOSCount} ranged creature${allRangedLOSCount > 1 ? 's' : ''} from ${rangedLOSFactions.length} faction${rangedLOSFactions.length > 1 ? 's' : ''} can hit this tile`}>
+        <div
+          className="all-ranged-los-indicator"
+          title={`${allRangedLOSCount} ranged creature${allRangedLOSCount > 1 ? 's' : ''} from ${rangedLOSFactions.length} faction${rangedLOSFactions.length > 1 ? 's' : ''} can hit this tile`}
+        >
           🎯
         </div>
       )}
@@ -607,7 +675,9 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
       {tile.treasure && !creature && (
         <div className="treasure-token">
           <div className="treasure-icon">
-            {tile.treasure.isRevealed ? Array(tile.treasure.remainingMorale).fill('💎').join('') : '💎'}
+            {tile.treasure.isRevealed
+              ? Array(tile.treasure.remainingMorale).fill('💎').join('')
+              : '💎'}
           </div>
         </div>
       )}
@@ -634,72 +704,86 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
             })()}
           </div>
           {/* HP display - bottom */}
-          <div className="creature-hp">{creature.currentHP}/{creature.creature.hitPoints}</div>
+          <div className="creature-hp">
+            {creature.currentHP}/{creature.creature.hitPoints}
+          </div>
           {creature.isTapped && <div className="tapped-indicator">⤵️</div>}
           {isAttackTarget && (
-            <div className="attack-indicator">
-              {attackType === 'ranged' ? '🏹' : '⚔️'}
-            </div>
+            <div className="attack-indicator">{attackType === 'ranged' ? '🏹' : '⚔️'}</div>
           )}
           {/* LIGHTNING BREATH target number indicator */}
           {isLightningBreathSelected && lightningBreathTargetIndex >= 0 && (
-            <div className="lightning-breath-target-number" style={{
-              position: 'absolute',
-              top: '-8px',
-              right: '-8px',
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              backgroundColor: '#00bcd4',
-              color: 'white',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '2px solid white',
-              boxShadow: '0 0 8px rgba(0, 188, 212, 0.8)',
-              zIndex: 10
-            }}>
+            <div
+              className="lightning-breath-target-number"
+              style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: '#00bcd4',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid white',
+                boxShadow: '0 0 8px rgba(0, 188, 212, 0.8)',
+                zIndex: 10,
+              }}
+            >
               {lightningBreathTargetIndex + 1}
             </div>
           )}
           {/* LIGHTNING BREATH valid target indicator */}
           {isLightningBreathValidTarget && !isLightningBreathSelected && (
-            <div className="lightning-breath-valid-indicator" style={{
-              position: 'absolute',
-              top: '-6px',
-              right: '-6px',
-              fontSize: '14px',
-              textShadow: '0 0 8px rgba(0, 255, 255, 0.8)',
-              zIndex: 10
-            }}>
+            <div
+              className="lightning-breath-valid-indicator"
+              style={{
+                position: 'absolute',
+                top: '-6px',
+                right: '-6px',
+                fontSize: '14px',
+                textShadow: '0 0 8px rgba(0, 255, 255, 0.8)',
+                zIndex: 10,
+              }}
+            >
               ⚡
             </div>
           )}
           {/* WEB indicator - creature is webbed and cannot move */}
           {isWebbed && (
-            <div className="webbed-indicator" style={{
-              position: 'absolute',
-              top: '-8px',
-              left: '-8px',
-              fontSize: '16px',
-              textShadow: '0 0 6px rgba(255, 255, 255, 0.9), 0 0 10px rgba(128, 128, 128, 0.8)',
-              zIndex: 10
-            }} title="Webbed - Cannot move">
+            <div
+              className="webbed-indicator"
+              style={{
+                position: 'absolute',
+                top: '-8px',
+                left: '-8px',
+                fontSize: '16px',
+                textShadow: '0 0 6px rgba(255, 255, 255, 0.9), 0 0 10px rgba(128, 128, 128, 0.8)',
+                zIndex: 10,
+              }}
+              title="Webbed - Cannot move"
+            >
               🕸️
             </div>
           )}
           {/* DEEP WOUND indicator - creature takes damage at start of activation */}
           {hasDeepWound && (
-            <div className="deep-wound-indicator" style={{
-              position: 'absolute',
-              top: '-8px',
-              left: isWebbed ? '12px' : '-8px',
-              fontSize: '16px',
-              textShadow: '0 0 6px rgba(220, 53, 69, 0.9), 0 0 10px rgba(255, 0, 0, 0.8)',
-              zIndex: 10
-            }} title="Deep Wound - Takes 10 damage at start of activation">
+            <div
+              className="deep-wound-indicator"
+              style={{
+                position: 'absolute',
+                top: '-8px',
+                left: isWebbed ? '12px' : '-8px',
+                fontSize: '16px',
+                textShadow: '0 0 6px rgba(220, 53, 69, 0.9), 0 0 10px rgba(255, 0, 0, 0.8)',
+                zIndex: 10,
+              }}
+              title="Deep Wound - Takes 10 damage at start of activation"
+            >
               🩸
             </div>
           )}
@@ -730,8 +814,12 @@ function BoardTile({ tile, onClick, isSelected, creature, isValidMove, movementI
                 <span>Spd: {creature.creature.speed}</span>
               </div>
               <div className="preview-stats">
-                {creature.creature.meleeAttack && <span>Melee: {creature.creature.meleeAttack.damage}</span>}
-                {creature.creature.rangedAttack && <span>Ranged: {creature.creature.rangedAttack.damage}</span>}
+                {creature.creature.meleeAttack && (
+                  <span>Melee: {creature.creature.meleeAttack.damage}</span>
+                )}
+                {creature.creature.rangedAttack && (
+                  <span>Ranged: {creature.creature.rangedAttack.damage}</span>
+                )}
               </div>
             </div>
           )}

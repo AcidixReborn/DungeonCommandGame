@@ -24,7 +24,7 @@ export const Slam = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('SLAM')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('SLAM')
     )
   },
 
@@ -53,8 +53,14 @@ export const Slam = {
 
       // 8-directional movement (includes diagonals)
       const directions = [
-        { dx: 0, dy: -1 }, { dx: 1, dy: -1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 },
-        { dx: 0, dy: 1 }, { dx: -1, dy: 1 }, { dx: -1, dy: 0 }, { dx: -1, dy: -1 }
+        { dx: 0, dy: -1 },
+        { dx: 1, dy: -1 },
+        { dx: 1, dy: 0 },
+        { dx: 1, dy: 1 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: 1 },
+        { dx: -1, dy: 0 },
+        { dx: -1, dy: -1 },
       ]
 
       for (const dir of directions) {
@@ -111,7 +117,7 @@ export const Slam = {
     targetInstance.position = { x: destination.x, y: destination.y }
 
     return { oldPosition, newPosition: { x: destination.x, y: destination.y } }
-  }
+  },
 }
 
 export default Slam

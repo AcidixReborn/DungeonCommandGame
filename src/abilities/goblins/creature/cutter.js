@@ -25,7 +25,7 @@ export const Cutter = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('CUTTER')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('CUTTER')
     )
   },
 
@@ -47,16 +47,16 @@ export const Cutter = {
       const aiDifficulty = attackerPlayer.aiDifficulty || 'medium'
 
       if (aiDifficulty === 'easy') {
-        return 0  // Easy AI never uses CUTTER bonus
+        return 0 // Easy AI never uses CUTTER bonus
       } else if (aiDifficulty === 'medium') {
         if (Math.random() >= 0.5) {
-          return 0  // Medium AI: 50% chance
+          return 0 // Medium AI: 50% chance
         }
       }
     }
 
     return this.bonusDamage
-  }
+  },
 }
 
 export default Cutter

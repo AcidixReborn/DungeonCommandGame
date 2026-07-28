@@ -18,5 +18,5 @@ export default {
   MagicCircleAura,
   TapOnHit,
   Regenerate,
-  Reach
+  Reach,
 }

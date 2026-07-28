@@ -25,7 +25,7 @@ export const Regenerate = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('REGENERATE')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('REGENERATE')
     )
   },
 
@@ -39,7 +39,7 @@ export const Regenerate = {
 
     // Parse amount from ability text if needed, default to 10
     const ability = creatureInstance.creature.specialAbilities.find(
-      a => typeof a === 'string' && a.toUpperCase().includes('REGENERATE')
+      (a) => typeof a === 'string' && a.toUpperCase().includes('REGENERATE')
     )
     if (ability) {
       const match = ability.match(/REGENERATE\s*(\d+)/i)
@@ -66,7 +66,7 @@ export const Regenerate = {
     }
 
     return actualHeal
-  }
+  },
 }
 
 export default Regenerate

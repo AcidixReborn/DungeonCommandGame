@@ -26,7 +26,7 @@ export const HealingTouch = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('HEALING TOUCH')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('HEALING TOUCH')
     )
   },
 
@@ -47,14 +47,19 @@ export const HealingTouch = {
     validTargets.push(healerInstance)
 
     // Get 8-directional adjacent tiles
-    const adjacentTiles = gameState.getAdjacentTiles8Dir(healerInstance.position.x, healerInstance.position.y)
+    const adjacentTiles = gameState.getAdjacentTiles8Dir(
+      healerInstance.position.x,
+      healerInstance.position.y
+    )
 
     for (const tile of adjacentTiles) {
       const occupant = tile.occupant
-      if (occupant &&
-          occupant.owner === healerOwner &&
-          occupant.currentHP > 0 &&
-          occupant.instanceId !== healerInstance.instanceId) {
+      if (
+        occupant &&
+        occupant.owner === healerOwner &&
+        occupant.currentHP > 0 &&
+        occupant.instanceId !== healerInstance.instanceId
+      ) {
         validTargets.push(occupant)
       }
     }
@@ -117,9 +122,10 @@ export const HealingTouch = {
     return {
       success: true,
       healedAmount: actualHealed,
-      message: actualHealed > 0
-        ? `${targetInstance.creature.name} healed ${actualHealed} damage`
-        : `${targetInstance.creature.name} has no damage to heal`
+      message:
+        actualHealed > 0
+          ? `${targetInstance.creature.name} healed ${actualHealed} damage`
+          : `${targetInstance.creature.name} has no damage to heal`,
     }
   },
 
@@ -171,9 +177,9 @@ export const HealingTouch = {
     return {
       success: true,
       removedCard: removedCard,
-      message: `Removed ${removedCard.name} from ${targetInstance.creature.name}`
+      message: `Removed ${removedCard.name} from ${targetInstance.creature.name}`,
     }
-  }
+  },
 }
 
 export default HealingTouch

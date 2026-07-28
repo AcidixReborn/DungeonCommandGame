@@ -65,19 +65,23 @@ export const commanders = [
     startingOrderHandSize: 6,
     startingMorale: 12,
     startingLeadership: 7,
-    specialAbilityDescription: 'SCROLLBOOK: Once during your turn, you can discard 1 Order card from your hand to draw 1 Order card.',
+    specialAbilityDescription:
+      'SCROLLBOOK: Once during your turn, you can discard 1 Order card from your hand to draw 1 Order card.',
     imageUrl: cormyrCmd1,
-    abilities: [{
-      id: 'scrollbook',
-      name: 'SCROLLBOOK',
-      type: 'ACTIVE',
-      category: 'RESOURCE',
-      description: 'Once during your turn, you can discard 1 Order card from your hand to draw 1 Order card.',
-      effect: {
-        discardToDraw: true,
-        usesPerTurn: 1
-      }
-    }]
+    abilities: [
+      {
+        id: 'scrollbook',
+        name: 'SCROLLBOOK',
+        type: 'ACTIVE',
+        category: 'RESOURCE',
+        description:
+          'Once during your turn, you can discard 1 Order card from your hand to draw 1 Order card.',
+        effect: {
+          discardToDraw: true,
+          usesPerTurn: 1,
+        },
+      },
+    ],
   },
   {
     id: 'hoc_cmd_2',
@@ -87,20 +91,24 @@ export const commanders = [
     startingOrderHandSize: 4,
     startingMorale: 14,
     startingLeadership: 7,
-    specialAbilityDescription: 'VERSATILE: Each Adventurer you control can use a standard action to move up to its Speed.',
+    specialAbilityDescription:
+      'VERSATILE: Each Adventurer you control can use a standard action to move up to its Speed.',
     imageUrl: cormyrCmd2,
-    abilities: [{
-      id: 'versatile',
-      name: 'VERSATILE',
-      type: 'ACTIVE',
-      category: 'COMBAT',
-      description: 'Each Adventurer you control can use a standard action to move up to its Speed.',
-      effect: {
-        moveAsAction: true,
-        creatureTypesAffected: ['Adventurer']
-      }
-    }]
-  }
+    abilities: [
+      {
+        id: 'versatile',
+        name: 'VERSATILE',
+        type: 'ACTIVE',
+        category: 'COMBAT',
+        description:
+          'Each Adventurer you control can use a standard action to move up to its Speed.',
+        effect: {
+          moveAsAction: true,
+          creatureTypesAffected: ['Adventurer'],
+        },
+      },
+    ],
+  },
 ]
 
 export const creatures = [
@@ -117,10 +125,10 @@ export const creatures = [
     rangedAttack: { damage: 20, range: 5 },
     specialAbilities: [
       'FLYING: This creature ignores difficult terrain and can move over mountains (but cannot stop on them).',
-      'ACID BREATH 20: Whenever this creature makes a ranged attack, it deals 20 DAMAGE to each enemy creature adjacent to the target.'
+      'ACID BREATH 20: Whenever this creature makes a ranged attack, it deals 20 DAMAGE to each enemy creature adjacent to the target.',
     ],
     faction: FACTION_NAME,
-    imageUrl: copperDragonImg
+    imageUrl: copperDragonImg,
   },
   // Card #2 - Dragon Knight
   {
@@ -135,7 +143,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: dragonKnightImg
+    imageUrl: dragonKnightImg,
   },
   // Card #3 - Dwarf Cleric
   {
@@ -149,10 +157,10 @@ export const creatures = [
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'HEALING TOUCH: ⚔ This creature or 1 adjacent ally heals 10 DAMAGE or removes 1 attached Order card.'
+      'HEALING TOUCH: ⚔ This creature or 1 adjacent ally heals 10 DAMAGE or removes 1 attached Order card.',
     ],
     faction: FACTION_NAME,
-    imageUrl: dwarfClericImg
+    imageUrl: dwarfClericImg,
   },
   // Card #4 - Dwarven Defender
   {
@@ -166,10 +174,10 @@ export const creatures = [
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature).'
+      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature).',
     ],
     faction: FACTION_NAME,
-    imageUrl: dwarvenDefender4Img
+    imageUrl: dwarvenDefender4Img,
   },
   // Card #5 - Dwarven Defender
   {
@@ -183,10 +191,10 @@ export const creatures = [
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature).'
+      'SHIELD BLOCK: While adjacent to this creature, each allied Adventurer gains Block 10 (Prevent 10 DAMAGE whenever a source deals damage to this creature).',
     ],
     faction: FACTION_NAME,
-    imageUrl: dwarvenDefender5Img
+    imageUrl: dwarvenDefender5Img,
   },
   // Card #6 - Earth Guardian
   {
@@ -201,10 +209,10 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [
       'BURROW: This creature can move through mountains (but cannot stop on them).',
-      'SLAM: Whenever an adjacent creature takes damage from this creature\'s attack, slide the damaged creature up to 3 squares.'
+      "SLAM: Whenever an adjacent creature takes damage from this creature's attack, slide the damaged creature up to 3 squares.",
     ],
     faction: FACTION_NAME,
-    imageUrl: earthGuardianImg
+    imageUrl: earthGuardianImg,
   },
   // Card #7 - Elf Archer
   {
@@ -219,7 +227,7 @@ export const creatures = [
     rangedAttack: { damage: 10, range: 10 },
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: elfArcher7Img
+    imageUrl: elfArcher7Img,
   },
   // Card #8 - Elf Archer
   {
@@ -234,7 +242,7 @@ export const creatures = [
     rangedAttack: { damage: 10, range: 10 },
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: elfArcher8Img
+    imageUrl: elfArcher8Img,
   },
   // Card #9 - Halfling Sneak
   {
@@ -248,10 +256,10 @@ export const creatures = [
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'FLANKING: This creature\'s melee attacks deal +10 DAMAGE while at least 1 ally is adjacent to the target.'
+      "FLANKING: This creature's melee attacks deal +10 DAMAGE while at least 1 ally is adjacent to the target.",
     ],
     faction: FACTION_NAME,
-    imageUrl: halflingSneakImg
+    imageUrl: halflingSneakImg,
   },
   // Card #10 - Half-Orc Thug
   {
@@ -265,10 +273,10 @@ export const creatures = [
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 20, range: 5 },
     specialAbilities: [
-      'EXPLOSIVE BOLTS 10: Whenever this creature makes a ranged attack, it deals 10 DAMAGE to each enemy creature adjacent to the target.'
+      'EXPLOSIVE BOLTS 10: Whenever this creature makes a ranged attack, it deals 10 DAMAGE to each enemy creature adjacent to the target.',
     ],
     faction: FACTION_NAME,
-    imageUrl: halfOrcThugImg
+    imageUrl: halfOrcThugImg,
   },
   // Card #11 - Human Ranger
   {
@@ -282,10 +290,10 @@ export const creatures = [
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
     specialAbilities: [
-      'FLASHING BLADES: Whenever a target takes damage from this creature\'s melee attack, this creature can deal 10 DAMAGE to 1 adjacent creature.'
+      "FLASHING BLADES: Whenever a target takes damage from this creature's melee attack, this creature can deal 10 DAMAGE to 1 adjacent creature.",
     ],
     faction: FACTION_NAME,
-    imageUrl: humanRangerImg
+    imageUrl: humanRangerImg,
   },
   // Card #12 - War Wizard
   {
@@ -299,11 +307,11 @@ export const creatures = [
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: { damage: 30, range: 10 },
     specialAbilities: [
-      'ARCANE PORTAL: When deploying this creature, you can place it in any unoccupied Magic Circle square.'
+      'ARCANE PORTAL: When deploying this creature, you can place it in any unoccupied Magic Circle square.',
     ],
     faction: FACTION_NAME,
-    imageUrl: warWizardImg
-  }
+    imageUrl: warWizardImg,
+  },
 ]
 
 export const orderCards = [
@@ -314,9 +322,10 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. At the end of its activation, if this creature is in a Magic Circle square, draw 1 Order card. PLACEHOLDER',
+    effectDescription:
+      'Attach this card to this creature. At the end of its activation, if this creature is in a Magic Circle square, draw 1 Order card. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: arcaneRitualImg
+    imageUrl: arcaneRitualImg,
   },
   // Card #2 - Battle Ready
   {
@@ -325,9 +334,10 @@ export const orderCards = [
     level: 4,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Attach this card to this creature. Remove this card to prevent 40 DAMAGE to this creature from 1 source. PLACEHOLDER',
+    effectDescription:
+      'Attach this card to this creature. Remove this card to prevent 40 DAMAGE to this creature from 1 source. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: battleReadyImg
+    imageUrl: battleReadyImg,
   },
   // Card #3 - Behind Enemy Lines
   {
@@ -336,9 +346,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'Immediately deploy 1 Adventurer creature in an opponent\'s start zone. Attach this card to that creature. If this creature is in its controller\'s start zone, remove this card to gain 4 MORALE. PLACEHOLDER',
+    effectDescription:
+      "Immediately deploy 1 Adventurer creature in an opponent's start zone. Attach this card to that creature. If this creature is in its controller's start zone, remove this card to gain 4 MORALE. PLACEHOLDER",
     faction: FACTION_NAME,
-    imageUrl: behindEnemyLinesImg
+    imageUrl: behindEnemyLinesImg,
   },
   // Card #4 - Blast of Force
   {
@@ -347,9 +358,10 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'INT',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals 30 DAMAGE. Slide the target 8 squares. PLACEHOLDER',
+    effectDescription:
+      'Make a melee attack that deals 30 DAMAGE. Slide the target 8 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: blastOfForceImg
+    imageUrl: blastOfForceImg,
   },
   // Card #5 - Cleave
   {
@@ -358,9 +370,10 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'STR',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. Whenever this creature destroys an enemy creature with its melee attack, it can deal 20 DAMAGE to 1 adjacent creature. PLACEHOLDER',
+    effectDescription:
+      'Attach this card to this creature. Whenever this creature destroys an enemy creature with its melee attack, it can deal 20 DAMAGE to 1 adjacent creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: cleaveImg
+    imageUrl: cleaveImg,
   },
   // Card #6 - Daring Attack
   {
@@ -369,9 +382,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals 30 DAMAGE. If the target takes damage from this attack, untap this creature. PLACEHOLDER',
+    effectDescription:
+      'Make a melee attack that deals 30 DAMAGE. If the target takes damage from this attack, untap this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: daringAttack6Img
+    imageUrl: daringAttack6Img,
   },
   // Card #7 - Daring Attack
   {
@@ -380,9 +394,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals 30 DAMAGE. If the target takes damage from this attack, untap this creature. PLACEHOLDER',
+    effectDescription:
+      'Make a melee attack that deals 30 DAMAGE. If the target takes damage from this attack, untap this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: daringAttack7Img
+    imageUrl: daringAttack7Img,
   },
   // Card #8 - Defend Ally (IMMEDIATE - protects adjacent ally)
   {
@@ -395,7 +410,7 @@ export const orderCards = [
     damagePrevented: 30,
     protectTargetType: 'adjacent_ally', // Can only protect adjacent allies, not self
     faction: FACTION_NAME,
-    imageUrl: defendAlly8Img
+    imageUrl: defendAlly8Img,
   },
   // Card #9 - Defend Ally (IMMEDIATE - protects adjacent ally)
   {
@@ -408,7 +423,7 @@ export const orderCards = [
     damagePrevented: 30,
     protectTargetType: 'adjacent_ally', // Can only protect adjacent allies, not self
     faction: FACTION_NAME,
-    imageUrl: defendAlly9Img
+    imageUrl: defendAlly9Img,
   },
   // Card #10 - Disrupting Attack
   {
@@ -417,9 +432,10 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 DAMAGE. If the target takes damage from this attack, tap it and the target\'s controller discards 1 Order card. PLACEHOLDER',
+    effectDescription:
+      "Make a melee attack that deals +10 DAMAGE. If the target takes damage from this attack, tap it and the target's controller discards 1 Order card. PLACEHOLDER",
     faction: FACTION_NAME,
-    imageUrl: disruptingAttack10Img
+    imageUrl: disruptingAttack10Img,
   },
   // Card #11 - Disrupting Attack
   {
@@ -428,9 +444,10 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 DAMAGE. If the target takes damage from this attack, tap it and the target\'s controller discards 1 Order card. PLACEHOLDER',
+    effectDescription:
+      "Make a melee attack that deals +10 DAMAGE. If the target takes damage from this attack, tap it and the target's controller discards 1 Order card. PLACEHOLDER",
     faction: FACTION_NAME,
-    imageUrl: disruptingAttack11Img
+    imageUrl: disruptingAttack11Img,
   },
   // Card #12 - Fireball
   {
@@ -439,9 +456,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'INT',
     actionType: 'STANDARD',
-    effectDescription: 'Choose 1 square within 5 squares. Deal 30 DAMAGE to each creature within 2 squares of it. PLACEHOLDER',
+    effectDescription:
+      'Choose 1 square within 5 squares. Deal 30 DAMAGE to each creature within 2 squares of it. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: fireballImg
+    imageUrl: fireballImg,
   },
   // Card #13 - Forceful Strike
   {
@@ -450,9 +468,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +30 DAMAGE. Slide each adjacent enemy creature 2 squares. PLACEHOLDER',
+    effectDescription:
+      'Make a melee attack that deals +30 DAMAGE. Slide each adjacent enemy creature 2 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: forcefulStrikeImg
+    imageUrl: forcefulStrikeImg,
   },
   // Card #14 - Healing Potion (REQUIRES HUMANOID)
   {
@@ -461,10 +480,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES HUMANOID. This creature heals 20 DAMAGE or removes 1 attached Order card. PLACEHOLDER',
+    effectDescription:
+      'REQUIRES HUMANOID. This creature heals 20 DAMAGE or removes 1 attached Order card. PLACEHOLDER',
     faction: FACTION_NAME,
     imageUrl: healingPotionImg,
-    requiresCreatureType: 'Humanoid'
+    requiresCreatureType: 'Humanoid',
   },
   // Card #15 - Heroic Surge (REQUIRES ADVENTURER)
   {
@@ -476,7 +496,7 @@ export const orderCards = [
     effectDescription: 'REQUIRES ADVENTURER. Untap this creature. PLACEHOLDER',
     faction: FACTION_NAME,
     imageUrl: heroicSurge15Img,
-    requiresCreatureType: 'Adventurer'
+    requiresCreatureType: 'Adventurer',
   },
   // Card #16 - Heroic Surge (REQUIRES ADVENTURER)
   {
@@ -488,7 +508,7 @@ export const orderCards = [
     effectDescription: 'REQUIRES ADVENTURER. Untap this creature. PLACEHOLDER',
     faction: FACTION_NAME,
     imageUrl: heroicSurge16Img,
-    requiresCreatureType: 'Adventurer'
+    requiresCreatureType: 'Adventurer',
   },
   // Card #17 - Intercept (IMPLEMENTED - prevents 20 damage)
   {
@@ -500,7 +520,7 @@ export const orderCards = [
     effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source.',
     faction: FACTION_NAME,
     imageUrl: intercept17Img,
-    damagePrevented: 20
+    damagePrevented: 20,
   },
   // Card #18 - Intercept (IMPLEMENTED - prevents 20 damage)
   {
@@ -512,7 +532,7 @@ export const orderCards = [
     effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source.',
     faction: FACTION_NAME,
     imageUrl: intercept18Img,
-    damagePrevented: 20
+    damagePrevented: 20,
   },
   // Card #19 - Into the Fray
   {
@@ -523,7 +543,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'This creature moves its Speed. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: intoTheFray19Img
+    imageUrl: intoTheFray19Img,
   },
   // Card #20 - Into the Fray
   {
@@ -534,7 +554,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'This creature moves its Speed. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: intoTheFray20Img
+    imageUrl: intoTheFray20Img,
   },
   // Card #21 - Invigorating Smash
   {
@@ -543,9 +563,10 @@ export const orderCards = [
     level: 4,
     abilityRequired: 'STR',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals 50 DAMAGE. This creature heals 20 DAMAGE. PLACEHOLDER',
+    effectDescription:
+      'Make a melee attack that deals 50 DAMAGE. This creature heals 20 DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: invigoratingSmashImg
+    imageUrl: invigoratingSmashImg,
   },
   // Card #22 - Killing Strike
   {
@@ -557,7 +578,7 @@ export const orderCards = [
     effectDescription: 'Make a melee attack that deals 100 damage.',
     faction: FACTION_NAME,
     imageUrl: killingStrikeImg,
-    flatMeleeDamage: 100 // Replaces base damage (ignores flanking/cutter)
+    flatMeleeDamage: 100, // Replaces base damage (ignores flanking/cutter)
   },
   // Card #23 - Level Up (REQUIRES HUMANOID)
   {
@@ -566,10 +587,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES HUMANOID. Attach this card to this creature. +20 HP; +1 Level. Gain the Adventurer keyword. PLACEHOLDER',
+    effectDescription:
+      'REQUIRES HUMANOID. Attach this card to this creature. +20 HP; +1 Level. Gain the Adventurer keyword. PLACEHOLDER',
     faction: FACTION_NAME,
     imageUrl: levelUpImg,
-    requiresCreatureType: 'Humanoid'
+    requiresCreatureType: 'Humanoid',
   },
   // Card #24 - Open Portal
   {
@@ -578,9 +600,10 @@ export const orderCards = [
     level: 4,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. When deploying, if this creature is in a Magic Circle square, you can deploy your creatures in unoccupied squares in that Magic Circle. PLACEHOLDER',
+    effectDescription:
+      'Attach this card to this creature. When deploying, if this creature is in a Magic Circle square, you can deploy your creatures in unoccupied squares in that Magic Circle. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: openPortalImg
+    imageUrl: openPortalImg,
   },
   // Card #25 - Power Attack
   {
@@ -592,7 +615,7 @@ export const orderCards = [
     effectDescription: 'Make a melee attack that deals +20 damage.',
     faction: FACTION_NAME,
     imageUrl: powerAttack25Img,
-    meleeDamageBonus: 20 // Added to base melee damage
+    meleeDamageBonus: 20, // Added to base melee damage
   },
   // Card #26 - Power Attack
   {
@@ -604,7 +627,7 @@ export const orderCards = [
     effectDescription: 'Make a melee attack that deals +20 damage.',
     faction: FACTION_NAME,
     imageUrl: powerAttack26Img,
-    meleeDamageBonus: 20 // Added to base melee damage
+    meleeDamageBonus: 20, // Added to base melee damage
   },
   // Card #27 - Quick Shot (REQUIRES RANGED)
   {
@@ -613,9 +636,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES RANGED. Make a ranged attack that deals base ranged DAMAGE. PLACEHOLDER',
+    effectDescription:
+      'REQUIRES RANGED. Make a ranged attack that deals base ranged DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: quickShot27Img
+    imageUrl: quickShot27Img,
   },
   // Card #28 - Quick Shot (REQUIRES RANGED)
   {
@@ -624,9 +648,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES RANGED. Make a ranged attack that deals base ranged DAMAGE. PLACEHOLDER',
+    effectDescription:
+      'REQUIRES RANGED. Make a ranged attack that deals base ranged DAMAGE. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: quickShot28Img
+    imageUrl: quickShot28Img,
   },
   // Card #29 - Recoil (IMMEDIATE - prevents damage but opponent draws a card)
   {
@@ -635,11 +660,12 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 30 damage to this creature from 1 source. The attacking faction draws 1 Order card.',
+    effectDescription:
+      'Prevent 30 damage to this creature from 1 source. The attacking faction draws 1 Order card.',
     faction: FACTION_NAME,
     imageUrl: recoilImg,
     damagePrevented: 30,
-    opponentDrawsCards: 1
+    opponentDrawsCards: 1,
   },
   // Card #30 - Saving Throw
   {
@@ -650,7 +676,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Remove 1 attached card from this creature. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: savingThrowImg
+    imageUrl: savingThrowImg,
   },
   // Card #31 - Seize the Opportunity (IMMEDIATE - counter-attack vs adjacent tapped)
   {
@@ -659,12 +685,13 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE.',
+    effectDescription:
+      'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE.',
     damagePrevented: 10,
     counterAttackDamage: 20,
     counterAttackTarget: 'adjacent_tapped',
     faction: FACTION_NAME,
-    imageUrl: seizeTheOpportunity31Img
+    imageUrl: seizeTheOpportunity31Img,
   },
   // Card #32 - Seize the Opportunity (IMMEDIATE - counter-attack vs adjacent tapped)
   {
@@ -673,12 +700,13 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'STR',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE.',
+    effectDescription:
+      'Prevent 10 DAMAGE to this creature from 1 source. Make a melee attack against 1 tapped creature that deals 20 DAMAGE.',
     damagePrevented: 10,
     counterAttackDamage: 20,
     counterAttackTarget: 'adjacent_tapped',
     faction: FACTION_NAME,
-    imageUrl: seizeTheOpportunity32Img
+    imageUrl: seizeTheOpportunity32Img,
   },
   // Card #33 - Shield (IMMEDIATE - protects self or ally within 5 squares)
   {
@@ -687,12 +715,13 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'INT',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source.',
+    effectDescription:
+      'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source.',
     damagePrevented: 30,
     protectTargetType: 'ally_in_range', // Can protect self or ally within range
     protectTargetRange: 5, // 5 squares
     faction: FACTION_NAME,
-    imageUrl: shield33Img
+    imageUrl: shield33Img,
   },
   // Card #34 - Shield (IMMEDIATE - protects self or ally within 5 squares)
   {
@@ -701,12 +730,13 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'INT',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source.',
+    effectDescription:
+      'Choose this creature or a creature within 5 squares. Prevent 30 DAMAGE to that creature from 1 source.',
     damagePrevented: 30,
     protectTargetType: 'ally_in_range', // Can protect self or ally within range
     protectTargetRange: 5, // 5 squares
     faction: FACTION_NAME,
-    imageUrl: shield34Img
+    imageUrl: shield34Img,
   },
   // Card #35 - Shove Aside
   {
@@ -717,7 +747,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Slide 1 adjacent creature 3 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: shoveAside35Img
+    imageUrl: shoveAside35Img,
   },
   // Card #36 - Shove Aside
   {
@@ -728,13 +758,13 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Slide 1 adjacent creature 3 squares. PLACEHOLDER',
     faction: FACTION_NAME,
-    imageUrl: shoveAside36Img
-  }
+    imageUrl: shoveAside36Img,
+  },
 ]
 
 export default {
   FACTION_NAME,
   commanders,
   creatures,
-  orderCards
+  orderCards,
 }

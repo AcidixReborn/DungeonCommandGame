@@ -18,13 +18,7 @@ import { Modal, Button, Alert } from 'react-bootstrap'
  * @param {Function} onConfirm - Callback when player confirms (enters shift selection)
  * @param {Function} onCancel - Callback when player cancels (returns card to hand)
  */
-function ShiftAttackModal({
-  show,
-  card,
-  creature,
-  onConfirm,
-  onCancel
-}) {
+function ShiftAttackModal({ show, card, creature, onConfirm, onCancel }) {
   if (!show || !card || !creature) return null
 
   // Determine attack capabilities
@@ -44,20 +38,20 @@ function ShiftAttackModal({
     if (isFlat) {
       meleePreview = {
         damage: card.flatMeleeDamage,
-        explanation: `${card.flatMeleeDamage} flat damage (replaces base)`
+        explanation: `${card.flatMeleeDamage} flat damage (replaces base)`,
       }
     } else {
       const total = baseMeleeDamage + (card.meleeDamageBonus || 0)
       meleePreview = {
         damage: total,
-        explanation: `Base ${baseMeleeDamage} + ${card.meleeDamageBonus || 0} bonus = ${total}`
+        explanation: `Base ${baseMeleeDamage} + ${card.meleeDamageBonus || 0} bonus = ${total}`,
       }
     }
   } else {
     // Spring Attack - uses normal melee damage
     meleePreview = {
       damage: baseMeleeDamage,
-      explanation: `Base melee damage: ${baseMeleeDamage}`
+      explanation: `Base melee damage: ${baseMeleeDamage}`,
     }
   }
 
@@ -65,7 +59,7 @@ function ShiftAttackModal({
     const total = baseRangedDamage + card.rangedDamageBonus
     rangedPreview = {
       damage: total,
-      explanation: `Base ${baseRangedDamage} + ${card.rangedDamageBonus} bonus = ${total}`
+      explanation: `Base ${baseRangedDamage} + ${card.rangedDamageBonus} bonus = ${total}`,
     }
   }
 
@@ -82,7 +76,13 @@ function ShiftAttackModal({
 
   return (
     <Modal show={show} onHide={onCancel} centered size="md" backdrop="static">
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: `2px solid ${accentColor}` }}>
+      <Modal.Header
+        style={{
+          backgroundColor: '#212529',
+          color: 'white',
+          borderBottom: `2px solid ${accentColor}`,
+        }}
+      >
         <Modal.Title>Use {card.name}</Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', textAlign: 'center' }}>
@@ -95,7 +95,7 @@ function ShiftAttackModal({
               style={{
                 maxHeight: '200px',
                 borderRadius: '8px',
-                border: `2px solid ${accentColor}`
+                border: `2px solid ${accentColor}`,
               }}
             />
           ) : (
@@ -109,7 +109,7 @@ function ShiftAttackModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto'
+                margin: '0 auto',
               }}
             >
               <span style={{ fontSize: '0.9rem' }}>{card.name}</span>
@@ -123,7 +123,7 @@ function ShiftAttackModal({
             fontSize: '0.9rem',
             color: '#adb5bd',
             marginBottom: '15px',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
           }}
         >
           {card.effectDescription}
@@ -155,9 +155,7 @@ function ShiftAttackModal({
             <div style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '8px' }}>
               ⚔️ Melee Attack Preview
             </div>
-            <div style={{ fontSize: '0.9rem' }}>
-              {meleePreview.explanation}
-            </div>
+            <div style={{ fontSize: '0.9rem' }}>{meleePreview.explanation}</div>
             {isFlat && (
               <div style={{ fontSize: '0.8rem', color: '#ffc107', marginTop: '5px' }}>
                 (Flanking and Cutter bonuses do not apply to flat damage)
@@ -175,9 +173,7 @@ function ShiftAttackModal({
             <div style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '8px' }}>
               🏹 Ranged Attack Preview
             </div>
-            <div style={{ fontSize: '0.9rem' }}>
-              {rangedPreview.explanation}
-            </div>
+            <div style={{ fontSize: '0.9rem' }}>{rangedPreview.explanation}</div>
             <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '5px' }}>
               (Line of sight required)
             </div>
@@ -188,10 +184,15 @@ function ShiftAttackModal({
         {card.drawCardsOnAttack > 0 && (
           <Alert
             variant="success"
-            style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '1px solid #28a745', marginBottom: '10px' }}
+            style={{
+              backgroundColor: 'rgba(40, 167, 69, 0.2)',
+              border: '1px solid #28a745',
+              marginBottom: '10px',
+            }}
           >
             <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
-              📜 Draw {card.drawCardsOnAttack} Order card{card.drawCardsOnAttack > 1 ? 's' : ''} after attack
+              📜 Draw {card.drawCardsOnAttack} Order card{card.drawCardsOnAttack > 1 ? 's' : ''}{' '}
+              after attack
             </div>
           </Alert>
         )}
@@ -203,7 +204,8 @@ function ShiftAttackModal({
           style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)', border: '1px solid #ffc107' }}
         >
           <div style={{ fontSize: '0.85rem', marginBottom: '5px' }}>
-            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s STANDARD action.
+            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s
+            STANDARD action.
           </div>
           <div style={{ fontSize: '0.85rem', color: '#ffc107' }}>
             <strong>⚠️ Once you shift, you must complete the attack.</strong>

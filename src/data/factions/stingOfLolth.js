@@ -65,19 +65,22 @@ export const commanders = [
     startingOrderHandSize: 5,
     startingMorale: 13,
     startingLeadership: 7,
-    specialAbilityDescription: 'WALLS OF WEB: Add 2 to the Speed of each Spider and Drow you control.',
+    specialAbilityDescription:
+      'WALLS OF WEB: Add 2 to the Speed of each Spider and Drow you control.',
     imageUrl: lolthCmd1,
-    abilities: [{
-      id: 'walls_of_web',
-      name: 'WALLS OF WEB',
-      type: 'PASSIVE',
-      category: 'SPEED',
-      description: 'Add 2 to the Speed of each Spider and Drow you control.',
-      effect: {
-        speedBonus: 2,
-        creatureTypesAffected: ['Spider', 'Drow']
-      }
-    }]
+    abilities: [
+      {
+        id: 'walls_of_web',
+        name: 'WALLS OF WEB',
+        type: 'PASSIVE',
+        category: 'SPEED',
+        description: 'Add 2 to the Speed of each Spider and Drow you control.',
+        effect: {
+          speedBonus: 2,
+          creatureTypesAffected: ['Spider', 'Drow'],
+        },
+      },
+    ],
   },
   {
     id: 'sol_cmd_2',
@@ -87,21 +90,25 @@ export const commanders = [
     startingOrderHandSize: 4,
     startingMorale: 12,
     startingLeadership: 9,
-    specialAbilityDescription: 'SELLSWORD: Whenever a Drow you control collects a Treasure token, you can draw 1 Order card instead of gaining 1 Morale.',
+    specialAbilityDescription:
+      'SELLSWORD: Whenever a Drow you control collects a Treasure token, you can draw 1 Order card instead of gaining 1 Morale.',
     imageUrl: lolthCmd2,
-    abilities: [{
-      id: 'sellsword',
-      name: 'SELLSWORD',
-      type: 'ACTIVE',
-      category: 'RESOURCE',
-      description: 'Whenever a Drow you control collects a Treasure token, you can draw 1 Order card instead of gaining 1 Morale.',
-      effect: {
-        triggerOnTreasure: true,
-        creatureTypeRequired: 'Drow',
-        choices: ['morale', 'card']  // Player chooses +1 morale or draw 1 card
-      }
-    }]
-  }
+    abilities: [
+      {
+        id: 'sellsword',
+        name: 'SELLSWORD',
+        type: 'ACTIVE',
+        category: 'RESOURCE',
+        description:
+          'Whenever a Drow you control collects a Treasure token, you can draw 1 Order card instead of gaining 1 Morale.',
+        effect: {
+          triggerOnTreasure: true,
+          creatureTypeRequired: 'Drow',
+          choices: ['morale', 'card'], // Player chooses +1 morale or draw 1 card
+        },
+      },
+    ],
+  },
 ]
 
 // O(n) where n = 12 creatures - Array of creature definitions with accurate physical card stats
@@ -118,7 +125,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['SCUTTLE: This creature shifts when it moves.'],
     faction: FACTION_NAME,
-    imageUrl: demonwebSpider1Img
+    imageUrl: demonwebSpider1Img,
   },
   {
     id: 'sol_cr_2',
@@ -132,7 +139,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['SCUTTLE: This creature shifts when it moves.'],
     faction: FACTION_NAME,
-    imageUrl: demonwebSpider2Img
+    imageUrl: demonwebSpider2Img,
   },
   {
     id: 'sol_cr_3',
@@ -146,7 +153,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['SCUTTLE: This creature shifts when it moves.'],
     faction: FACTION_NAME,
-    imageUrl: driderImg
+    imageUrl: driderImg,
   },
   {
     id: 'sol_cr_4',
@@ -158,9 +165,11 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 20, range: 5 },
-    specialAbilities: ['HIDDEN BLADE: After this creature attacks, it may deal 10 damage to an adjacent tapped enemy creature.'],
+    specialAbilities: [
+      'HIDDEN BLADE: After this creature attacks, it may deal 10 damage to an adjacent tapped enemy creature.',
+    ],
     faction: FACTION_NAME,
-    imageUrl: drowAssassinImg
+    imageUrl: drowAssassinImg,
   },
   {
     id: 'sol_cr_5',
@@ -174,7 +183,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['FLASHING BLADES: (Placeholder - ability effect to be implemented)'],
     faction: FACTION_NAME,
-    imageUrl: drowBlademasterImg
+    imageUrl: drowBlademasterImg,
   },
   {
     id: 'sol_cr_6',
@@ -188,7 +197,7 @@ export const creatures = [
     rangedAttack: { damage: 10, range: 5 },
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: drowHouseGuard6Img
+    imageUrl: drowHouseGuard6Img,
   },
   {
     id: 'sol_cr_7',
@@ -202,7 +211,7 @@ export const creatures = [
     rangedAttack: { damage: 10, range: 5 },
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: drowHouseGuard7Img
+    imageUrl: drowHouseGuard7Img,
   },
   {
     id: 'sol_cr_8',
@@ -214,9 +223,11 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: true, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['SUMMON SPIDER: When deploying any Spider creature, you can place it in any unoccupied square within 5 squares of this creature.'],
+    specialAbilities: [
+      'SUMMON SPIDER: When deploying any Spider creature, you can place it in any unoccupied square within 5 squares of this creature.',
+    ],
     faction: FACTION_NAME,
-    imageUrl: drowPriestessImg
+    imageUrl: drowPriestessImg,
   },
   {
     id: 'sol_cr_9',
@@ -230,7 +241,7 @@ export const creatures = [
     rangedAttack: { damage: 20, range: 10 },
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: drowWizardImg
+    imageUrl: drowWizardImg,
   },
   {
     id: 'sol_cr_10',
@@ -244,7 +255,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: ['SCUTTLE: This creature shifts when it moves.'],
     faction: FACTION_NAME,
-    imageUrl: giantSpiderImg
+    imageUrl: giantSpiderImg,
   },
   {
     id: 'sol_cr_11',
@@ -256,9 +267,11 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['SHADOW STALKER: When deploying this creature, you can place it in any unoccupied square adjacent to a wall.'],
+    specialAbilities: [
+      'SHADOW STALKER: When deploying this creature, you can place it in any unoccupied square adjacent to a wall.',
+    ],
     faction: FACTION_NAME,
-    imageUrl: shadowMastiffImg
+    imageUrl: shadowMastiffImg,
   },
   {
     id: 'sol_cr_12',
@@ -270,10 +283,13 @@ export const creatures = [
     abilities: { STR: true, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['BURROW', 'CONFUSION GAZE: As a standard action, choose 1 enemy creature within 5 squares and slide that creature 3 squares, then make a melee attack that deals melee DAMAGE.'],
+    specialAbilities: [
+      'BURROW',
+      'CONFUSION GAZE: As a standard action, choose 1 enemy creature within 5 squares and slide that creature 3 squares, then make a melee attack that deals melee DAMAGE.',
+    ],
     faction: FACTION_NAME,
-    imageUrl: umberHulkImg
-  }
+    imageUrl: umberHulkImg,
+  },
 ]
 
 export const orderCards = [
@@ -286,7 +302,7 @@ export const orderCards = [
     effectDescription: 'Prevent 40 DAMAGE to this creature from 1 source.',
     damagePrevented: 40,
     faction: FACTION_NAME,
-    imageUrl: closeCall1Img
+    imageUrl: closeCall1Img,
   },
   {
     id: 'sol_ord_2',
@@ -297,7 +313,7 @@ export const orderCards = [
     effectDescription: 'Prevent 40 DAMAGE to this creature from 1 source.',
     damagePrevented: 40,
     faction: FACTION_NAME,
-    imageUrl: closeCall2Img
+    imageUrl: closeCall2Img,
   },
   {
     id: 'sol_ord_3',
@@ -309,11 +325,12 @@ export const orderCards = [
     attachOnUse: {
       preventsMovement: false,
       removableAsStandard: false,
-      damageOnActivation: 10 // 10 damage at start of activation
+      damageOnActivation: 10, // 10 damage at start of activation
     },
-    effectDescription: 'Make a melee attack that deals +10 DAMAGE. Attach this card to the target. At the start of its activation, this creature takes 10 DAMAGE.',
+    effectDescription:
+      'Make a melee attack that deals +10 DAMAGE. Attach this card to the target. At the start of its activation, this creature takes 10 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: deepWound3Img
+    imageUrl: deepWound3Img,
   },
   {
     id: 'sol_ord_4',
@@ -325,11 +342,12 @@ export const orderCards = [
     attachOnUse: {
       preventsMovement: false,
       removableAsStandard: false,
-      damageOnActivation: 10 // 10 damage at start of activation
+      damageOnActivation: 10, // 10 damage at start of activation
     },
-    effectDescription: 'Make a melee attack that deals +10 DAMAGE. Attach this card to the target. At the start of its activation, this creature takes 10 DAMAGE.',
+    effectDescription:
+      'Make a melee attack that deals +10 DAMAGE. Attach this card to the target. At the start of its activation, this creature takes 10 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: deepWound4Img
+    imageUrl: deepWound4Img,
   },
   {
     id: 'sol_ord_5',
@@ -337,9 +355,10 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'DROW AFFINITY. Attach this card to 1 enemy creature within 10 squares. Attacks deal +10 DAMAGE to this creature.',
+    effectDescription:
+      'DROW AFFINITY. Attach this card to 1 enemy creature within 10 squares. Attacks deal +10 DAMAGE to this creature.',
     faction: FACTION_NAME,
-    imageUrl: faerieFire5Img
+    imageUrl: faerieFire5Img,
   },
   {
     id: 'sol_ord_6',
@@ -347,9 +366,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'DROW AFFINITY. Attach this card to 1 enemy creature within 10 squares. Attacks deal +10 DAMAGE to this creature.',
+    effectDescription:
+      'DROW AFFINITY. Attach this card to 1 enemy creature within 10 squares. Attacks deal +10 DAMAGE to this creature.',
     faction: FACTION_NAME,
-    imageUrl: faerieFire6Img
+    imageUrl: faerieFire6Img,
   },
   {
     id: 'sol_ord_7',
@@ -359,7 +379,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Tap 1 adjacent creature.',
     faction: FACTION_NAME,
-    imageUrl: feint7Img
+    imageUrl: feint7Img,
   },
   {
     id: 'sol_ord_8',
@@ -367,10 +387,11 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'DEX',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES HUMANOID. Deal 20 DAMAGE to each creature within 2 squares of hazardous terrain.',
+    effectDescription:
+      'REQUIRES HUMANOID. Deal 20 DAMAGE to each creature within 2 squares of hazardous terrain.',
     requiresCreatureType: 'Humanoid',
     faction: FACTION_NAME,
-    imageUrl: fireTrap8Img
+    imageUrl: fireTrap8Img,
   },
   {
     id: 'sol_ord_9',
@@ -378,10 +399,11 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'WIS',
     actionType: 'STANDARD',
-    effectDescription: 'REQUIRES EVIL. Attach this card to this creature. During Refresh, this creature\'s controller draws 1 extra Order card.',
+    effectDescription:
+      "REQUIRES EVIL. Attach this card to this creature. During Refresh, this creature's controller draws 1 extra Order card.",
     requiresCreatureType: 'Evil',
     faction: FACTION_NAME,
-    imageUrl: lolthsBlessing9Img
+    imageUrl: lolthsBlessing9Img,
   },
   {
     id: 'sol_ord_10',
@@ -393,7 +415,7 @@ export const orderCards = [
     damagePrevented: 20,
     untapAfterUse: true,
     faction: FACTION_NAME,
-    imageUrl: nearMiss10Img
+    imageUrl: nearMiss10Img,
   },
   {
     id: 'sol_ord_11',
@@ -405,7 +427,7 @@ export const orderCards = [
     damagePrevented: 20,
     untapAfterUse: true,
     faction: FACTION_NAME,
-    imageUrl: nearMiss11Img
+    imageUrl: nearMiss11Img,
   },
   {
     id: 'sol_ord_12',
@@ -417,7 +439,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: parry12Img,
     damagePrevented: 10,
-    drawCards: 1
+    drawCards: 1,
   },
   {
     id: 'sol_ord_13',
@@ -429,7 +451,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: parry13Img,
     damagePrevented: 10,
-    drawCards: 1
+    drawCards: 1,
   },
   {
     id: 'sol_ord_14',
@@ -437,9 +459,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 DAMAGE. This damage cannot be prevented.',
+    effectDescription:
+      'Make a melee attack that deals +10 DAMAGE. This damage cannot be prevented.',
     faction: FACTION_NAME,
-    imageUrl: piercingStrike14Img
+    imageUrl: piercingStrike14Img,
   },
   {
     id: 'sol_ord_15',
@@ -447,9 +470,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 DAMAGE. This damage cannot be prevented.',
+    effectDescription:
+      'Make a melee attack that deals +10 DAMAGE. This damage cannot be prevented.',
     faction: FACTION_NAME,
-    imageUrl: piercingStrike15Img
+    imageUrl: piercingStrike15Img,
   },
   {
     id: 'sol_ord_16',
@@ -459,7 +483,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Make a melee attack that deals base melee DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: quickJab16Img
+    imageUrl: quickJab16Img,
   },
   {
     id: 'sol_ord_17',
@@ -469,7 +493,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Make a melee attack that deals base melee DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: quickJab17Img
+    imageUrl: quickJab17Img,
   },
   {
     id: 'sol_ord_18',
@@ -477,13 +501,14 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Make a melee attack that deals 10 DAMAGE.',
+    effectDescription:
+      'Prevent 20 DAMAGE to this creature from 1 source. Make a melee attack that deals 10 DAMAGE.',
     damagePrevented: 20,
     counterAttackDamage: 10,
     counterAttackTarget: 'attacker',
     counterAttackRequiresAdjacent: true,
     faction: FACTION_NAME,
-    imageUrl: riposte18Img
+    imageUrl: riposte18Img,
   },
   {
     id: 'sol_ord_19',
@@ -491,13 +516,14 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 20 DAMAGE to this creature from 1 source. Make a melee attack that deals 10 DAMAGE.',
+    effectDescription:
+      'Prevent 20 DAMAGE to this creature from 1 source. Make a melee attack that deals 10 DAMAGE.',
     damagePrevented: 20,
     counterAttackDamage: 10,
     counterAttackTarget: 'attacker',
     counterAttackRequiresAdjacent: true,
     faction: FACTION_NAME,
-    imageUrl: riposte19Img
+    imageUrl: riposte19Img,
   },
   {
     id: 'sol_ord_20',
@@ -505,9 +531,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'STANDARD',
-    effectDescription: 'Discard 1 Order card to have this creature make a melee attack that deals +30 DAMAGE.',
+    effectDescription:
+      'Discard 1 Order card to have this creature make a melee attack that deals +30 DAMAGE.',
     faction: FACTION_NAME,
-    imageUrl: sacrifice20Img
+    imageUrl: sacrifice20Img,
   },
   {
     id: 'sol_ord_21',
@@ -517,7 +544,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Draw 2 Order cards.',
     faction: FACTION_NAME,
-    imageUrl: scheme21Img
+    imageUrl: scheme21Img,
   },
   {
     id: 'sol_ord_22',
@@ -527,7 +554,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Draw 2 Order cards.',
     faction: FACTION_NAME,
-    imageUrl: scheme22Img
+    imageUrl: scheme22Img,
   },
   {
     id: 'sol_ord_23',
@@ -535,9 +562,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'This creature shifts and ignores walls while moving during this turn. It cannot end its movement in a wall square.',
+    effectDescription:
+      'This creature shifts and ignores walls while moving during this turn. It cannot end its movement in a wall square.',
     faction: FACTION_NAME,
-    imageUrl: secretPassage23Img
+    imageUrl: secretPassage23Img,
   },
   // Card 24: Shadowy Ambush - Level 3, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
@@ -550,7 +578,7 @@ export const orderCards = [
     shiftBeforeAttack: 2,
     flatMeleeDamage: 50,
     faction: FACTION_NAME,
-    imageUrl: shadowyAmbush24Img
+    imageUrl: shadowyAmbush24Img,
   },
   // Card 25: Shadowy Ambush - Level 3, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
@@ -563,7 +591,7 @@ export const orderCards = [
     shiftBeforeAttack: 2,
     flatMeleeDamage: 50,
     faction: FACTION_NAME,
-    imageUrl: shadowyAmbush25Img
+    imageUrl: shadowyAmbush25Img,
   },
   {
     id: 'sol_ord_26',
@@ -571,9 +599,10 @@ export const orderCards = [
     level: 6,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals 100 DAMAGE. Creatures you control that are adjacent to the target can assist with this action.',
+    effectDescription:
+      'Make a melee attack that deals 100 DAMAGE. Creatures you control that are adjacent to the target can assist with this action.',
     faction: FACTION_NAME,
-    imageUrl: sneakAttack26Img
+    imageUrl: sneakAttack26Img,
   },
   // Card 27: Spring Attack - Level 2, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
@@ -586,7 +615,7 @@ export const orderCards = [
     shiftBeforeAttack: 6,
     shiftAfterAttack: 6,
     faction: FACTION_NAME,
-    imageUrl: springAttack27Img
+    imageUrl: springAttack27Img,
   },
   // Card 28: Spring Attack - Level 2, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
@@ -599,7 +628,7 @@ export const orderCards = [
     shiftBeforeAttack: 6,
     shiftAfterAttack: 6,
     faction: FACTION_NAME,
-    imageUrl: springAttack28Img
+    imageUrl: springAttack28Img,
   },
   {
     id: 'sol_ord_29',
@@ -609,7 +638,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Shift 6 squares.',
     faction: FACTION_NAME,
-    imageUrl: stalk29Img
+    imageUrl: stalk29Img,
   },
   {
     id: 'sol_ord_30',
@@ -619,7 +648,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Shift 6 squares.',
     faction: FACTION_NAME,
-    imageUrl: stalk30Img
+    imageUrl: stalk30Img,
   },
   {
     id: 'sol_ord_31',
@@ -627,9 +656,10 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: "If no enemy creatures have line of sight to this creature, remove it from the battlefield and place it on its Creature card. (It is still considered deployed.) At the start of its controller's next turn, place the creature in any unoccupied square on the battlefield.",
+    effectDescription:
+      "If no enemy creatures have line of sight to this creature, remove it from the battlefield and place it on its Creature card. (It is still considered deployed.) At the start of its controller's next turn, place the creature in any unoccupied square on the battlefield.",
     faction: FACTION_NAME,
-    imageUrl: stealth31Img
+    imageUrl: stealth31Img,
   },
   {
     id: 'sol_ord_32',
@@ -641,7 +671,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: uncannyDodge32Img,
     preventsAllDamage: true, // Prevents ALL damage from attack
-    discardCost: 1 // Must discard 1 card from hand to use
+    discardCost: 1, // Must discard 1 card from hand to use
   },
   {
     id: 'sol_ord_33',
@@ -653,7 +683,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: uncannyDodge33Img,
     preventsAllDamage: true, // Prevents ALL damage from attack
-    discardCost: 1 // Must discard 1 card from hand to use
+    discardCost: 1, // Must discard 1 card from hand to use
   },
   {
     id: 'sol_ord_34',
@@ -661,10 +691,11 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: "REQUIRES HUMANOID. Attach this card to this creature. Remove this card to deal +30 DAMAGE with this creature's next melee attack.",
+    effectDescription:
+      "REQUIRES HUMANOID. Attach this card to this creature. Remove this card to deal +30 DAMAGE with this creature's next melee attack.",
     requiresCreatureType: 'Humanoid',
     faction: FACTION_NAME,
-    imageUrl: vialOfPoison34Img
+    imageUrl: vialOfPoison34Img,
   },
   {
     id: 'sol_ord_35',
@@ -672,12 +703,13 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'SPIDER AFFINITY. Attach this card to 1 creature within 10 squares. This creature cannot move or shift. Remove this card as a standard action.',
+    effectDescription:
+      'SPIDER AFFINITY. Attach this card to 1 creature within 10 squares. This creature cannot move or shift. Remove this card as a standard action.',
     attachOnUse: {
-      preventsMovement: true
+      preventsMovement: true,
     },
     faction: FACTION_NAME,
-    imageUrl: web35Img
+    imageUrl: web35Img,
   },
   {
     id: 'sol_ord_36',
@@ -685,18 +717,19 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'SPIDER AFFINITY. Attach this card to 1 creature within 10 squares. This creature cannot move or shift. Remove this card as a standard action.',
+    effectDescription:
+      'SPIDER AFFINITY. Attach this card to 1 creature within 10 squares. This creature cannot move or shift. Remove this card as a standard action.',
     attachOnUse: {
-      preventsMovement: true
+      preventsMovement: true,
     },
     faction: FACTION_NAME,
-    imageUrl: web36Img
-  }
+    imageUrl: web36Img,
+  },
 ]
 
 export default {
   FACTION_NAME,
   commanders,
   creatures,
-  orderCards
+  orderCards,
 }

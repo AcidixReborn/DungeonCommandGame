@@ -83,88 +83,91 @@ function BoardGridView({
             const creature = getTileCreature(x, y)
 
             // Check if this tile is a valid move (handle new pathfinding format)
-            const validMove = validMoveTiles.find(vm => vm.tile.x === x && vm.tile.y === y)
+            const validMove = validMoveTiles.find((vm) => vm.tile.x === x && vm.tile.y === y)
             // Only show movement overlay when in movement mode
             const isValidMove = creatureViewMode === 'movement' && validMove !== undefined
 
             // Check if this creature is a valid attack target and get attack type
             const attackTargetInfo = validAttackTargets.find(
-              t => t.creature.position?.x === x && t.creature.position?.y === y
+              (t) => t.creature.position?.x === x && t.creature.position?.y === y
             )
             const isAttackTarget = attackTargetInfo !== undefined
             const attackType = attackTargetInfo?.attackType
 
             // Check if this creature is a FLASHING BLADES target
-            const isFlashingBladesTarget = flashingBladesTargetMode &&
+            const isFlashingBladesTarget =
+              flashingBladesTargetMode &&
               flashingBladesPending?.validTargets.some(
-                t => t.position?.x === x && t.position?.y === y
+                (t) => t.position?.x === x && t.position?.y === y
               )
 
             // Check if this creature is a HIDDEN BLADE target
-            const isHiddenBladeTarget = hiddenBladeTargetMode &&
+            const isHiddenBladeTarget =
+              hiddenBladeTargetMode &&
               hiddenBladePending?.validTargets.some(
-                t => t.position?.x === x && t.position?.y === y
+                (t) => t.position?.x === x && t.position?.y === y
               )
 
             // ============================================
             // CONFUSION GAZE HIGHLIGHTS: Show valid slide destinations or attack targets
             // ============================================
-            const isConfusionGazeSlide = confusionGazeMode === 'slide' &&
-              confusionGazePending?.validSlideTiles?.some(
-                t => t.x === x && t.y === y
-              )
+            const isConfusionGazeSlide =
+              confusionGazeMode === 'slide' &&
+              confusionGazePending?.validSlideTiles?.some((t) => t.x === x && t.y === y)
 
-            const isConfusionGazeAttack = confusionGazeMode === 'attack' &&
+            const isConfusionGazeAttack =
+              confusionGazeMode === 'attack' &&
               confusionGazePending?.attackTargets?.some(
-                t => t.target.position?.x === x && t.target.position?.y === y
+                (t) => t.target.position?.x === x && t.target.position?.y === y
               )
 
             // ============================================
             // SLAM HIGHLIGHTS: Show valid slam destinations (uses movement color)
             // ============================================
-            const isSlamTile = slamMode &&
-              slamValidTiles.some(t => t.x === x && t.y === y)
+            const isSlamTile = slamMode && slamValidTiles.some((t) => t.x === x && t.y === y)
 
             // ============================================
             // CLOUD OF BATS SHIFT HIGHLIGHTS: Show valid shift destinations
             // ============================================
-            const isShiftTile = shiftSelectionMode &&
-              shiftValidTiles.some(t => t.x === x && t.y === y)
+            const isShiftTile =
+              shiftSelectionMode && shiftValidTiles.some((t) => t.x === x && t.y === y)
 
             // ============================================
             // SHIFT+ATTACK HIGHLIGHTS: Show valid shift destinations (pre-shift or post-shift phase)
             // ============================================
-            const isShiftAttackTile = shiftAttackMode &&
-              (pendingShiftAttack?.phase === 'pre-shift' || pendingShiftAttack?.phase === 'post-shift') &&
-              shiftAttackValidTiles.some(t => t.x === x && t.y === y)
+            const isShiftAttackTile =
+              shiftAttackMode &&
+              (pendingShiftAttack?.phase === 'pre-shift' ||
+                pendingShiftAttack?.phase === 'post-shift') &&
+              shiftAttackValidTiles.some((t) => t.x === x && t.y === y)
 
             // ============================================
             // CHARGE HIGHLIGHTS: Show valid movement destinations (green)
             // ============================================
-            const isChargeTile = chargeMode &&
+            const isChargeTile =
+              chargeMode &&
               pendingChargeAttack?.phase === 'moving' &&
-              chargeValidTiles.some(t => t.x === x && t.y === y)
+              chargeValidTiles.some((t) => t.x === x && t.y === y)
 
             // ============================================
             // LIGHTNING BREATH HIGHLIGHTS: Show valid targets and selected targets
             // ============================================
-            const isLightningBreathValidTarget = lightningBreathMode &&
-              lightningBreathValidTargets.some(
-                t => t.position?.x === x && t.position?.y === y
-              )
-            const isLightningBreathSelected = lightningBreathMode &&
-              lightningBreathTargets.some(
-                t => t.position?.x === x && t.position?.y === y
-              )
+            const isLightningBreathValidTarget =
+              lightningBreathMode &&
+              lightningBreathValidTargets.some((t) => t.position?.x === x && t.position?.y === y)
+            const isLightningBreathSelected =
+              lightningBreathMode &&
+              lightningBreathTargets.some((t) => t.position?.x === x && t.position?.y === y)
             const lightningBreathTargetIndex = lightningBreathMode
-              ? lightningBreathTargets.findIndex(t => t.position?.x === x && t.position?.y === y)
+              ? lightningBreathTargets.findIndex((t) => t.position?.x === x && t.position?.y === y)
               : -1
 
             // ============================================
             // HEALING TOUCH HIGHLIGHTS: Show valid targets (self + adjacent allies)
             // when Dwarf Cleric is selected and hasn't used action
             // ============================================
-            const isHealingTouchTarget = selectedBoardCreature &&
+            const isHealingTouchTarget =
+              selectedBoardCreature &&
               gameState.hasHealingTouch(selectedBoardCreature) &&
               !selectedBoardCreature.hasAttackedThisTurn &&
               creature &&
@@ -172,15 +175,16 @@ function BoardGridView({
               gameState.isValidHealingTouchTarget(selectedBoardCreature, creature)
 
             // Check if this is the selected creature
-            const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
-                                        selectedBoardCreature?.position?.y === y
+            const isSelectedCreature =
+              selectedBoardCreature?.position?.x === x && selectedBoardCreature?.position?.y === y
 
             // Check if this tile is in the line-of-sight path (original behavior)
             // OR if we're in ranged view mode, show ranged range tiles with LOS
-            const rangedRangeInfo = rangedRangeTiles.find(r => r.x === x && r.y === y)
-            const isLineOfSight = creatureViewMode === 'movement'
-              ? lineOfSightPath.some(pos => pos.x === x && pos.y === y)
-              : (rangedRangeInfo?.hasLOS === true)
+            const rangedRangeInfo = rangedRangeTiles.find((r) => r.x === x && r.y === y)
+            const isLineOfSight =
+              creatureViewMode === 'movement'
+                ? lineOfSightPath.some((pos) => pos.x === x && pos.y === y)
+                : rangedRangeInfo?.hasLOS === true
 
             // ============================================
             // COMBAT HIGHLIGHT: Determine if creature should be highlighted
@@ -198,10 +202,12 @@ function BoardGridView({
             // when creature with SHADOW STALKER is selected from hand
             // ============================================
             const currentPlayerState = gameState.getCurrentPlayerState()
-            const selectedCreatureCard = selectedCreatureIndex !== null
-              ? currentPlayerState?.creatureHand?.[selectedCreatureIndex]
-              : null
-            const isShadowStalkerHighlight = canDeployInCurrentPhase() &&
+            const selectedCreatureCard =
+              selectedCreatureIndex !== null
+                ? currentPlayerState?.creatureHand?.[selectedCreatureIndex]
+                : null
+            const isShadowStalkerHighlight =
+              canDeployInCurrentPhase() &&
               selectedCreatureCard &&
               gameState.hasShadowStalker(selectedCreatureCard) &&
               !tile.occupant &&
@@ -217,9 +223,7 @@ function BoardGridView({
             let isSummonSpiderHighlight = false
             let summonSpiderFactionColor = null
 
-            if (canDeployInCurrentPhase() &&
-                !tile.occupant &&
-                tile.terrain !== 'MOUNTAIN') {
+            if (canDeployInCurrentPhase() && !tile.occupant && tile.terrain !== 'MOUNTAIN') {
               const priestess = gameState.hasSummonSpider(gameState.currentPlayer)
               if (priestess?.position) {
                 // Check if tile is within 5 squares of Priestess (Chebyshev distance)
@@ -227,8 +231,9 @@ function BoardGridView({
                 const dy = Math.abs(y - priestess.position.y)
                 if (Math.max(dx, dy) <= 5) {
                   // Don't highlight if already in starting zone (it already has the highlight)
-                  const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                                           tile.startingZoneOwner === gameState.currentPlayer
+                  const isInStartingZone =
+                    tile.terrain === 'STARTING_ZONE' &&
+                    tile.startingZoneOwner === gameState.currentPlayer
                   if (!isInStartingZone) {
                     isSummonSpiderHighlight = true
                     summonSpiderFactionColor = playerFactionColors?.[gameState.currentPlayer]
@@ -246,18 +251,19 @@ function BoardGridView({
             let isLichNecromancerHighlight = false
             let lichNecromancerFactionColor = null
 
-            if (canDeployInCurrentPhase() &&
-                !tile.occupant &&
-                tile.terrain !== 'MOUNTAIN') {
-              const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+            if (canDeployInCurrentPhase() && !tile.occupant && tile.terrain !== 'MOUNTAIN') {
+              const lich =
+                gameState.hasLichNecromancerDeploy &&
+                gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
               if (lich?.position) {
                 // Check if tile is adjacent to Lich (range 1, 8-directional)
                 const dx = Math.abs(x - lich.position.x)
                 const dy = Math.abs(y - lich.position.y)
                 if (Math.max(dx, dy) === 1) {
                   // Don't highlight if already in starting zone (it already has the highlight)
-                  const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                                           tile.startingZoneOwner === gameState.currentPlayer
+                  const isInStartingZone =
+                    tile.terrain === 'STARTING_ZONE' &&
+                    tile.startingZoneOwner === gameState.currentPlayer
                   if (!isInStartingZone) {
                     isLichNecromancerHighlight = true
                     lichNecromancerFactionColor = playerFactionColors?.[gameState.currentPlayer]
@@ -275,18 +281,18 @@ function BoardGridView({
             let isOrcDruidHighlight = false
             let orcDruidFactionColor = null
 
-            if (canDeployInCurrentPhase() &&
-                !tile.occupant &&
-                tile.terrain !== 'MOUNTAIN') {
-              const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+            if (canDeployInCurrentPhase() && !tile.occupant && tile.terrain !== 'MOUNTAIN') {
+              const druid =
+                gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
               if (druid?.position) {
                 // Check if tile is adjacent to Orc Druid (range 1, 8-directional)
                 const dx = Math.abs(x - druid.position.x)
                 const dy = Math.abs(y - druid.position.y)
                 if (Math.max(dx, dy) === 1) {
                   // Don't highlight if already in starting zone (it already has the highlight)
-                  const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                                           tile.startingZoneOwner === gameState.currentPlayer
+                  const isInStartingZone =
+                    tile.terrain === 'STARTING_ZONE' &&
+                    tile.startingZoneOwner === gameState.currentPlayer
                   if (!isInStartingZone) {
                     isOrcDruidHighlight = true
                     orcDruidFactionColor = playerFactionColors?.[gameState.currentPlayer]
@@ -303,15 +309,18 @@ function BoardGridView({
             let isArcanePortalHighlight = false
             let arcanePortalFactionColor = null
 
-            if (canDeployInCurrentPhase() &&
-                selectedCreatureCard &&
-                gameState.hasArcanePortal &&
-                gameState.hasArcanePortal(selectedCreatureCard) &&
-                !tile.occupant &&
-                tile.terrain === 'MAGIC_CIRCLE') {
+            if (
+              canDeployInCurrentPhase() &&
+              selectedCreatureCard &&
+              gameState.hasArcanePortal &&
+              gameState.hasArcanePortal(selectedCreatureCard) &&
+              !tile.occupant &&
+              tile.terrain === 'MAGIC_CIRCLE'
+            ) {
               // Don't highlight if already in starting zone (it already has the highlight)
-              const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                                       tile.startingZoneOwner === gameState.currentPlayer
+              const isInStartingZone =
+                tile.terrain === 'STARTING_ZONE' &&
+                tile.startingZoneOwner === gameState.currentPlayer
               if (!isInStartingZone) {
                 isArcanePortalHighlight = true
                 arcanePortalFactionColor = playerFactionColors?.[gameState.currentPlayer]
@@ -336,7 +345,7 @@ function BoardGridView({
                 isSelectedCreatureRangedLOS = rangedRangeInfo?.hasLOS === true
               } else {
                 // NO CREATURE SELECTED: Show ALL ranged LOS with faction colors
-                const allRangedLOSInfo = allRangedLOSTiles.find(t => t.x === x && t.y === y)
+                const allRangedLOSInfo = allRangedLOSTiles.find((t) => t.x === x && t.y === y)
                 if (allRangedLOSInfo?.hasLOS) {
                   isAllRangedLOS = true
                   allRangedLOSCount = allRangedLOSInfo.creatureCount || 0
@@ -348,9 +357,10 @@ function BoardGridView({
             // ============================================
             // ORDER CARD TARGET HIGHLIGHT: Show valid targets for order card targeting mode
             // ============================================
-            const isOrderCardTarget = orderCardTargetingMode &&
+            const isOrderCardTarget =
+              orderCardTargetingMode &&
               creature &&
-              orderCardValidTargets.some(t => t.instanceId === creature.instanceId)
+              orderCardValidTargets.some((t) => t.instanceId === creature.instanceId)
 
             return (
               <BoardTile

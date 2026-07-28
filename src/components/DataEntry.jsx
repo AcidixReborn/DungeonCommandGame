@@ -15,7 +15,10 @@ function DataEntry() {
                 </Tab>
                 <Tab eventKey="orders" title="Order Cards">
                   <p>Order card entry form will go here.</p>
-                  <p>You'll be able to input order card effects, abilities required, and action types.</p>
+                  <p>
+                    You'll be able to input order card effects, abilities required, and action
+                    types.
+                  </p>
                 </Tab>
                 <Tab eventKey="commanders" title="Commanders">
                   <p>Commander card entry form will go here.</p>

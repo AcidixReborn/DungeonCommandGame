@@ -49,7 +49,7 @@ function DefenseOptionsPanel({
   damageBoostBonus = 0,
   damageBoostFlat = null,
   onDefenseSelected,
-  onSkip
+  onSkip,
 }) {
   const [selectedDefense, setSelectedDefense] = useState(null)
   const [selectedUndeadCreatures, setSelectedUndeadCreatures] = useState([])
@@ -83,14 +83,14 @@ function DefenseOptionsPanel({
   // For normal attacks, calculate from creature stats
   let baseDamage
   // Track if this is an ability attack with pre-calculated damage (bonus already included)
-  const isAbilityAttackWithPreCalcDamage = attackInfo?.damage !== undefined && (
-    attackType === 'splash' ||
-    attackType === 'ranged_splash' ||
-    attackType === 'flashing_blades' ||
-    attackType === 'hidden_blade' ||
-    attackType === 'confusion_gaze' ||
-    attackType === 'lightning_breath'
-  )
+  const isAbilityAttackWithPreCalcDamage =
+    attackInfo?.damage !== undefined &&
+    (attackType === 'splash' ||
+      attackType === 'ranged_splash' ||
+      attackType === 'flashing_blades' ||
+      attackType === 'hidden_blade' ||
+      attackType === 'confusion_gaze' ||
+      attackType === 'lightning_breath')
   if (isAbilityAttackWithPreCalcDamage) {
     // Special ability attacks have fixed damage in attackInfo (bonus already included for lightning_breath)
     baseDamage = attackInfo.damage
@@ -101,24 +101,34 @@ function DefenseOptionsPanel({
   }
 
   // Check for FLANKING bonus (only on melee primary attacks)
-  const flankingBonus = attackType === 'melee' && gameState?.getFlankingBonus
-    ? gameState.getFlankingBonus(attackerInstance, defenderInstance)
-    : 0
+  const flankingBonus =
+    attackType === 'melee' && gameState?.getFlankingBonus
+      ? gameState.getFlankingBonus(attackerInstance, defenderInstance)
+      : 0
 
   // Check for CUTTER bonus (+10 vs tapped creatures)
-  const cutterBonus = attackType === 'melee' && gameState?.getCutterBonus
-    ? gameState.getCutterBonus(attackerInstance, defenderInstance)
-    : 0
+  const cutterBonus =
+    attackType === 'melee' && gameState?.getCutterBonus
+      ? gameState.getCutterBonus(attackerInstance, defenderInstance)
+      : 0
 
   // Check for ORDER CARD damage boost
   const usedFlatDamage = damageBoostFlat !== null
   // For ability attacks with pre-calculated damage (like Lightning Breath), bonus is already in baseDamage
   // Only add orderCardBonus for normal melee/ranged attacks
-  const orderCardBonus = (!usedFlatDamage && damageBoostBonus > 0 && !isAbilityAttackWithPreCalcDamage) ? damageBoostBonus : 0
+  const orderCardBonus =
+    !usedFlatDamage && damageBoostBonus > 0 && !isAbilityAttackWithPreCalcDamage
+      ? damageBoostBonus
+      : 0
   // For display purposes - track if ability attack has a bonus included
   const abilityIncludesBonus = isAbilityAttackWithPreCalcDamage && damageBoostBonus > 0
 
-  logger.combat('DefenseOptionsPanel damage calculated', { isAbilityAttackWithPreCalcDamage, baseDamage, orderCardBonus, abilityIncludesBonus })
+  logger.combat('DefenseOptionsPanel damage calculated', {
+    isAbilityAttackWithPreCalcDamage,
+    baseDamage,
+    orderCardBonus,
+    abilityIncludesBonus,
+  })
 
   // Total damage calculation
   // Flat damage (Killing Strike) replaces base damage and ignores flanking/cutter
@@ -131,10 +141,14 @@ function DefenseOptionsPanel({
 
   // Check for MAGIC CIRCLE AURA passive (Hobgoblin Sorcerer on Magic Circle)
   // This is the FIRST damage reduction - prevents 10 damage for Goblin/Hobgoblin/Bugbear
-  const magicCircleReduction = gameState?.hasMagicCircleProtection && gameState.hasMagicCircleProtection(defenderInstance)
-    ? 10 // Preview shows 10 if protected (actual check happens in CombatResolver)
-    : 0
-  const damageAfterMagicCircle = Math.max(0, originalDamage - accumulatedDamageReduction - magicCircleReduction)
+  const magicCircleReduction =
+    gameState?.hasMagicCircleProtection && gameState.hasMagicCircleProtection(defenderInstance)
+      ? 10 // Preview shows 10 if protected (actual check happens in CombatResolver)
+      : 0
+  const damageAfterMagicCircle = Math.max(
+    0,
+    originalDamage - accumulatedDamageReduction - magicCircleReduction
+  )
 
   // Check for SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
   const shieldBlockReduction = gameState?.getShieldBlockReduction
@@ -154,12 +168,17 @@ function DefenseOptionsPanel({
     ? gameState.getDefenseOptions(defenderInstance, incomingDamage, attackerInstance.owner)
     : { cower: null, unstoppableHordes: null, adjacentUndead: [], immediateCards: [] }
 
-  const { cower: cowerInfo, unstoppableHordes: unstoppableInfo, adjacentUndead, immediateCards: rawImmediateCards } = defenseOptions
+  const {
+    cower: cowerInfo,
+    unstoppableHordes: unstoppableInfo,
+    adjacentUndead,
+    immediateCards: rawImmediateCards,
+  } = defenseOptions
   const defenderCanUseUnstoppable = unstoppableInfo?.canUse
 
   // Filter out Savage Demise cards if no valid targets exist
   // For selfSacrificeAttack cards, we need at least one adjacent tapped enemy
-  const immediateCards = rawImmediateCards.filter(cardInfo => {
+  const immediateCards = rawImmediateCards.filter((cardInfo) => {
     // If not a self-sacrifice attack card, keep it
     if (!cardInfo.card.selfSacrificeAttack) return true
 
@@ -176,7 +195,7 @@ function DefenseOptionsPanel({
         for (const enemy of player.creaturesInPlay) {
           if (enemy.isTapped) {
             const isAdjacent = adjacentTiles.some(
-              tile => tile.x === enemy.position.x && tile.y === enemy.position.y
+              (tile) => tile.x === enemy.position.x && tile.y === enemy.position.y
             )
             if (isAdjacent) return true // Found valid target, include card
           }
@@ -197,10 +216,10 @@ function DefenseOptionsPanel({
 
   // O(n) - Toggle Undead creature selection
   const toggleUndeadCreature = (creature) => {
-    setSelectedUndeadCreatures(prev => {
-      const isSelected = prev.some(c => c.instanceId === creature.instanceId)
+    setSelectedUndeadCreatures((prev) => {
+      const isSelected = prev.some((c) => c.instanceId === creature.instanceId)
       if (isSelected) {
-        return prev.filter(c => c.instanceId !== creature.instanceId)
+        return prev.filter((c) => c.instanceId !== creature.instanceId)
       } else {
         return [...prev, creature]
       }
@@ -245,12 +264,12 @@ function DefenseOptionsPanel({
         // Check if creature is tapped AND adjacent to card user
         if (creature.isTapped) {
           const isAdjacent = adjacentTiles.some(
-            tile => tile.x === creature.position.x && tile.y === creature.position.y
+            (tile) => tile.x === creature.position.x && tile.y === creature.position.y
           )
           if (isAdjacent) {
             adjacentTappedEnemies.push({
               creature,
-              owner: playerId
+              owner: playerId,
             })
           }
         }
@@ -349,7 +368,7 @@ function DefenseOptionsPanel({
         damageReduction: incomingDamage,
         moraleCost: cowerInfo.moraleCost,
         extraCost: cowerInfo.extraCost,
-        creatures: [defenderInstance]
+        creatures: [defenderInstance],
       })
     } else if (selectedDefense === 'unstoppable_hordes') {
       const creatures = [...selectedUndeadCreatures]
@@ -360,7 +379,7 @@ function DefenseOptionsPanel({
         type: 'unstoppable_hordes',
         damageReduction: calculateUnstoppableDamageReduction(),
         moraleCost: calculateUnstoppableMoraleCost(),
-        creatures: creatures
+        creatures: creatures,
       })
     } else if (selectedDefense === 'immediate_card') {
       if (selectedImmediateCard && selectedCardCreature) {
@@ -372,7 +391,7 @@ function DefenseOptionsPanel({
           moraleCost: selectedImmediateCard.moraleCost,
           discardCard: selectedDiscardCard, // Card player chose to discard (for Uncanny Dodge etc.)
           moraleTarget: selectedMoraleTarget, // Enemy creature for morale loss (Unexpected Resistance)
-          sacrificeTarget: selectedSacrificeTarget // Enemy creature for Savage Demise attack
+          sacrificeTarget: selectedSacrificeTarget, // Enemy creature for Savage Demise attack
         }
         onDefenseSelected(defensePayload)
       }
@@ -402,17 +421,24 @@ function DefenseOptionsPanel({
     setSelectedSacrificeTarget(null)
   }
 
-  const hasAnyDefense = cowerInfo?.canCower || unstoppableInfo?.canUse || adjacentUndead.length > 0 || immediateCards.length > 0
+  const hasAnyDefense =
+    cowerInfo?.canCower ||
+    unstoppableInfo?.canUse ||
+    adjacentUndead.length > 0 ||
+    immediateCards.length > 0
 
   // O(1) - Calculate final damage for display
   // Handle 'ALL' for cards that prevent all damage (Uncanny Dodge, Cloud of Bats)
-  const finalDamage = selectedDefense === 'cower'
-    ? 0
-    : selectedDefense === 'unstoppable_hordes'
-      ? Math.max(0, incomingDamage - calculateUnstoppableDamageReduction())
-      : selectedDefense === 'immediate_card' && selectedImmediateCard
-        ? (selectedImmediateCard.damagePrevented === 'ALL' ? 0 : Math.max(0, incomingDamage - selectedImmediateCard.damagePrevented))
-        : incomingDamage
+  const finalDamage =
+    selectedDefense === 'cower'
+      ? 0
+      : selectedDefense === 'unstoppable_hordes'
+        ? Math.max(0, incomingDamage - calculateUnstoppableDamageReduction())
+        : selectedDefense === 'immediate_card' && selectedImmediateCard
+          ? selectedImmediateCard.damagePrevented === 'ALL'
+            ? 0
+            : Math.max(0, incomingDamage - selectedImmediateCard.damagePrevented)
+          : incomingDamage
 
   return (
     <div className="combat-panel defense-options-panel">
@@ -429,7 +455,7 @@ function DefenseOptionsPanel({
             maxWidth: '280px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             borderRadius: '8px',
-            overflow: 'hidden'
+            overflow: 'hidden',
           }}
         >
           {hoverPreview.type === 'order' ? (
@@ -449,9 +475,20 @@ function DefenseOptionsPanel({
       )}
 
       {/* Header */}
-      <div className="combat-panel-header defense-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '6px', marginBottom: '2px' }}>
+      <div
+        className="combat-panel-header defense-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingBottom: '6px',
+          marginBottom: '2px',
+        }}
+      >
         <h5 style={{ margin: 0 }}>🛡️ Defend Against Attack</h5>
-        <Badge bg="info" style={{ padding: '2px 6px' }}>Morale: {defenderPlayerState.morale}</Badge>
+        <Badge bg="info" style={{ padding: '2px 6px' }}>
+          Morale: {defenderPlayerState.morale}
+        </Badge>
       </div>
 
       {/* Combat Creatures Display - O(1) render */}
@@ -460,7 +497,11 @@ function DefenseOptionsPanel({
         <div className="combat-creature-section attacker-section">
           <span className="combat-creature-label">Attacker</span>
           <div className="combat-creature-card">
-            <CreatureCard creature={attackerInstance.creature} creatureInstance={attackerInstance} compact={true} />
+            <CreatureCard
+              creature={attackerInstance.creature}
+              creatureInstance={attackerInstance}
+              compact={true}
+            />
           </div>
           <span className="combat-creature-name">{attackerInstance.creature.name}</span>
         </div>
@@ -474,7 +515,11 @@ function DefenseOptionsPanel({
         <div className="combat-creature-section defender-section">
           <span className="combat-creature-label">Your Creature</span>
           <div className="combat-creature-card">
-            <CreatureCard creature={defenderInstance.creature} creatureInstance={defenderInstance} compact={true} />
+            <CreatureCard
+              creature={defenderInstance.creature}
+              creatureInstance={defenderInstance}
+              compact={true}
+            />
           </div>
           <span className="combat-creature-name">{defenderInstance.creature.name}</span>
         </div>
@@ -483,27 +528,52 @@ function DefenseOptionsPanel({
       {/* Attack Info */}
       <div className="combat-info">
         {/* Row 1: Attack Type + Damage */}
-        <div className="combat-info-row" style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.85rem' }}>
+        <div
+          className="combat-info-row"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '8px',
+            fontSize: '0.85rem',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span>Attack Type:</span>
-            <Badge bg={
-              attackType === 'ranged' ? 'info'
-              : attackType === 'splash' ? 'warning'
-              : attackType === 'ranged_splash' ? 'success'
-              : attackType === 'flashing_blades' ? 'warning'
-              : attackType === 'hidden_blade' ? 'secondary'
-              : attackType === 'confusion_gaze' ? 'warning'
-              : attackType === 'lightning_breath' ? 'info'
-              : 'danger'
-            } style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
-              {attackType === 'ranged' ? '🏹 Ranged'
-               : attackType === 'splash' ? '💀 SWIRL (Splash)'
-               : attackType === 'ranged_splash' ? `🔥 ${attackInfo?.abilityName || 'Ranged Splash'}`
-               : attackType === 'flashing_blades' ? '⚔️ FLASHING BLADES'
-               : attackType === 'hidden_blade' ? '🗡️ HIDDEN BLADE'
-               : attackType === 'confusion_gaze' ? '😵 CONFUSION GAZE'
-               : attackType === 'lightning_breath' ? '⚡ LIGHTNING BREATH'
-               : '⚔️ Melee'}
+            <Badge
+              bg={
+                attackType === 'ranged'
+                  ? 'info'
+                  : attackType === 'splash'
+                    ? 'warning'
+                    : attackType === 'ranged_splash'
+                      ? 'success'
+                      : attackType === 'flashing_blades'
+                        ? 'warning'
+                        : attackType === 'hidden_blade'
+                          ? 'secondary'
+                          : attackType === 'confusion_gaze'
+                            ? 'warning'
+                            : attackType === 'lightning_breath'
+                              ? 'info'
+                              : 'danger'
+              }
+              style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+            >
+              {attackType === 'ranged'
+                ? '🏹 Ranged'
+                : attackType === 'splash'
+                  ? '💀 SWIRL (Splash)'
+                  : attackType === 'ranged_splash'
+                    ? `🔥 ${attackInfo?.abilityName || 'Ranged Splash'}`
+                    : attackType === 'flashing_blades'
+                      ? '⚔️ FLASHING BLADES'
+                      : attackType === 'hidden_blade'
+                        ? '🗡️ HIDDEN BLADE'
+                        : attackType === 'confusion_gaze'
+                          ? '😵 CONFUSION GAZE'
+                          : attackType === 'lightning_breath'
+                            ? '⚡ LIGHTNING BREATH'
+                            : '⚔️ Melee'}
             </Badge>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -511,23 +581,43 @@ function DefenseOptionsPanel({
             {usedFlatDamage ? (
               // Flat damage from order card (Killing Strike) - replaces base damage entirely
               <span>
-                <Badge bg="danger" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{originalDamage}</Badge>
-                <span style={{ color: '#888', marginLeft: '4px', fontStyle: 'italic', fontSize: '0.7rem' }}>
+                <Badge bg="danger" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                  {originalDamage}
+                </Badge>
+                <span
+                  style={{
+                    color: '#888',
+                    marginLeft: '4px',
+                    fontStyle: 'italic',
+                    fontSize: '0.7rem',
+                  }}
+                >
                   (flat from {damageBoostCard?.name || 'Order Card'})
                 </span>
               </span>
             ) : abilityIncludesBonus ? (
               // Ability attack (like Lightning Breath) with damage boost already included
               <span>
-                <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{baseDamage - damageBoostBonus}</Badge>
+                <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                  {baseDamage - damageBoostBonus}
+                </Badge>
                 <span style={{ color: '#ff9800', marginLeft: '4px' }}>+{damageBoostBonus}</span>
-                <span style={{ color: '#888', marginLeft: '4px' }}>({damageBoostCard?.name || 'Order Card'})</span>
+                <span style={{ color: '#888', marginLeft: '4px' }}>
+                  ({damageBoostCard?.name || 'Order Card'})
+                </span>
                 <span style={{ marginLeft: '4px' }}>=</span>
-                <Badge bg="success" style={{ marginLeft: '4px', fontSize: '0.7rem', padding: '2px 6px' }}>{originalDamage}</Badge>
+                <Badge
+                  bg="success"
+                  style={{ marginLeft: '4px', fontSize: '0.7rem', padding: '2px 6px' }}
+                >
+                  {originalDamage}
+                </Badge>
               </span>
-            ) : (cutterBonus > 0 || flankingBonus > 0 || orderCardBonus > 0) ? (
+            ) : cutterBonus > 0 || flankingBonus > 0 || orderCardBonus > 0 ? (
               <span>
-                <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{baseDamage}</Badge>
+                <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                  {baseDamage}
+                </Badge>
                 {flankingBonus > 0 && (
                   <>
                     <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
@@ -543,21 +633,32 @@ function DefenseOptionsPanel({
                 {orderCardBonus > 0 && (
                   <>
                     <span style={{ color: '#ff9800', marginLeft: '4px' }}>+{orderCardBonus}</span>
-                    <span style={{ color: '#888', marginLeft: '4px' }}>({damageBoostCard?.name || 'Order Card'})</span>
+                    <span style={{ color: '#888', marginLeft: '4px' }}>
+                      ({damageBoostCard?.name || 'Order Card'})
+                    </span>
                   </>
                 )}
                 <span style={{ marginLeft: '4px' }}>=</span>
-                <Badge bg="success" style={{ marginLeft: '4px', fontSize: '0.7rem', padding: '2px 6px' }}>{originalDamage}</Badge>
+                <Badge
+                  bg="success"
+                  style={{ marginLeft: '4px', fontSize: '0.7rem', padding: '2px 6px' }}
+                >
+                  {originalDamage}
+                </Badge>
               </span>
             ) : (
-              <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{originalDamage}</Badge>
+              <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                {originalDamage}
+              </Badge>
             )}
           </div>
         </div>
         {accumulatedDamageReduction > 0 && (
           <div className="combat-info-row" style={{ fontSize: '0.85rem' }}>
             <span>Already Prevented:</span>
-            <Badge bg="success" style={{ fontSize: '0.75rem' }}>{accumulatedDamageReduction}</Badge>
+            <Badge bg="success" style={{ fontSize: '0.75rem' }}>
+              {accumulatedDamageReduction}
+            </Badge>
           </div>
         )}
         {/* MAGIC CIRCLE AURA - shows damage prevention from Hobgoblin Sorcerer on Magic Circle */}
@@ -565,7 +666,8 @@ function DefenseOptionsPanel({
           <div className="combat-info-row" style={{ fontSize: '0.85rem' }}>
             <span style={{ color: '#9932cc' }}>🔮 MAGIC CIRCLE AURA:</span>
             <span style={{ color: '#9932cc' }}>
-              Block {magicCircleReduction} ({originalDamage - accumulatedDamageReduction} → {damageAfterMagicCircle})
+              Block {magicCircleReduction} ({originalDamage - accumulatedDamageReduction} →{' '}
+              {damageAfterMagicCircle})
             </span>
           </div>
         )}
@@ -587,39 +689,64 @@ function DefenseOptionsPanel({
           </div>
         )}
         {/* Row 2: Remaining Damage + Target HP */}
-        <div className="combat-info-row" style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.85rem' }}>
+        <div
+          className="combat-info-row"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '8px',
+            fontSize: '0.85rem',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span>Remaining Damage:</span>
-            <Badge bg="danger" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{incomingDamage}</Badge>
+            <Badge bg="danger" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+              {incomingDamage}
+            </Badge>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span>Target HP:</span>
-            <Badge bg="info" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{defenderInstance.currentHP}/{defenderInstance.creature.hitPoints}</Badge>
+            <Badge bg="info" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+              {defenderInstance.currentHP}/{defenderInstance.creature.hitPoints}
+            </Badge>
           </div>
         </div>
         {/* REACH 2 indicator - shows when being attacked from extended range */}
         {isReachAttack && (
-          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+          <div
+            className="combat-info-row"
+            style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}
+          >
             <span style={{ color: '#ff9800' }}>🗡️ REACH 2:</span>
-            <span style={{ color: '#ff9800' }}>
-              Being attacked from range {reachDistance}
-            </span>
+            <span style={{ color: '#ff9800' }}>Being attacked from range {reachDistance}</span>
           </div>
         )}
         {/* TAP ON HIT warning - shows that your creature will be tapped if damage is taken */}
         {tapOnHitApplies && (
-          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+          <div
+            className="combat-info-row"
+            style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}
+          >
             <span style={{ color: '#e91e63' }}>⚠️ TAP ON HIT:</span>
             <span style={{ color: '#e91e63' }}>
               {defenderAlreadyTapped
                 ? 'Your creature is already tapped'
-                : 'Your creature will be TAPPED if it takes damage!'
-              }
+                : 'Your creature will be TAPPED if it takes damage!'}
             </span>
           </div>
         )}
         {tapOnHitApplies && !defenderAlreadyTapped && (
-          <div style={{ fontSize: '0.75rem', color: '#e91e63', fontStyle: 'italic', marginTop: '4px', backgroundColor: 'rgba(233,30,99,0.1)', padding: '4px', borderRadius: '4px' }}>
+          <div
+            style={{
+              fontSize: '0.75rem',
+              color: '#e91e63',
+              fontStyle: 'italic',
+              marginTop: '4px',
+              backgroundColor: 'rgba(233,30,99,0.1)',
+              padding: '4px',
+              borderRadius: '4px',
+            }}
+          >
             💡 Tip: Block ALL damage (Cower/Immediate) to prevent being tapped!
           </div>
         )}
@@ -627,16 +754,18 @@ function DefenseOptionsPanel({
 
       {/* Attacker's Order Card Display - shows which card is boosting this attack */}
       {damageBoostCard && (
-        <div style={{
-          backgroundColor: 'rgba(255, 152, 0, 0.15)',
-          border: '1px solid #ff9800',
-          borderRadius: '8px',
-          padding: '8px',
-          marginBottom: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
+        <div
+          style={{
+            backgroundColor: 'rgba(255, 152, 0, 0.15)',
+            border: '1px solid #ff9800',
+            borderRadius: '8px',
+            padding: '8px',
+            marginBottom: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
           {/* Card Image */}
           <div
             style={{ cursor: 'pointer' }}
@@ -650,31 +779,35 @@ function DefenseOptionsPanel({
                 height: '80px',
                 borderRadius: '4px',
                 border: '2px solid #ff9800',
-                boxShadow: '0 2px 8px rgba(255, 152, 0, 0.3)'
+                boxShadow: '0 2px 8px rgba(255, 152, 0, 0.3)',
               }}
             />
           </div>
           {/* Card Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontWeight: 'bold',
-              color: '#ff9800',
-              fontSize: '0.9rem',
-              marginBottom: '4px'
-            }}>
+            <div
+              style={{
+                fontWeight: 'bold',
+                color: '#ff9800',
+                fontSize: '0.9rem',
+                marginBottom: '4px',
+              }}
+            >
               Attack Boosted By: {damageBoostCard.name}
             </div>
-            <div style={{
-              fontSize: '0.75rem',
-              color: '#adb5bd',
-              fontStyle: 'italic',
-              lineHeight: 1.3,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical'
-            }}>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                color: '#adb5bd',
+                fontStyle: 'italic',
+                lineHeight: 1.3,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+              }}
+            >
               {damageBoostCard.effectDescription}
             </div>
           </div>
@@ -703,7 +836,7 @@ function DefenseOptionsPanel({
             className="defense-option-card mb-2"
             style={{
               cursor: 'pointer',
-              border: selectedDefense === 'cower' ? '2px solid #28a745' : '2px solid #ffc107'
+              border: selectedDefense === 'cower' ? '2px solid #28a745' : '2px solid #ffc107',
             }}
             onClick={() => handleSelectDefense('cower')}
           >
@@ -711,7 +844,14 @@ function DefenseOptionsPanel({
               <div className="d-flex justify-content-between align-items-start">
                 <div style={{ flex: 1 }}>
                   {/* Row 1: COWER | Cost | Morale change */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '4px',
+                    }}
+                  >
                     <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>🛡️ COWER</span>
                     {cowerInfo.extraCost > 0 && (
                       <Badge bg="danger" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
@@ -721,17 +861,29 @@ function DefenseOptionsPanel({
                     <Badge bg="danger" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
                       Cost: {cowerInfo.moraleCost} Morale
                     </Badge>
-                    <span style={{ fontSize: '0.75rem', color: selectedDefense === 'cower' ? '#fff' : '#adb5bd' }}>
-                      Morale: {defenderPlayerState.morale} → {defenderPlayerState.morale - cowerInfo.moraleCost}
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        color: selectedDefense === 'cower' ? '#fff' : '#adb5bd',
+                      }}
+                    >
+                      Morale: {defenderPlayerState.morale} →{' '}
+                      {defenderPlayerState.morale - cowerInfo.moraleCost}
                     </span>
                   </div>
                   {/* Row 2: Description */}
                   <p className="mb-0" style={{ fontSize: '0.8rem' }}>
-                    Avoid <strong style={{ color: selectedDefense === 'cower' ? '#fff' : '#28a745' }}>ALL {incomingDamage} damage</strong>. Creature becomes tapped.
+                    Avoid{' '}
+                    <strong style={{ color: selectedDefense === 'cower' ? '#fff' : '#28a745' }}>
+                      ALL {incomingDamage} damage
+                    </strong>
+                    . Creature becomes tapped.
                   </p>
                 </div>
                 {selectedDefense === 'cower' && (
-                  <Badge bg="light" text="dark" style={{ fontSize: '1rem' }}>✓</Badge>
+                  <Badge bg="light" text="dark" style={{ fontSize: '1rem' }}>
+                    ✓
+                  </Badge>
                 )}
               </div>
             </Card.Body>
@@ -746,7 +898,10 @@ function DefenseOptionsPanel({
             className="defense-option-card mb-2"
             style={{
               cursor: 'pointer',
-              border: selectedDefense === 'unstoppable_hordes' ? '2px solid #17a2b8' : '2px solid #17a2b8'
+              border:
+                selectedDefense === 'unstoppable_hordes'
+                  ? '2px solid #17a2b8'
+                  : '2px solid #17a2b8',
             }}
             onClick={() => handleSelectDefense('unstoppable_hordes')}
           >
@@ -755,20 +910,33 @@ function DefenseOptionsPanel({
                 <div style={{ flex: 1 }}>
                   <h6 className="mb-1">
                     💀 UNSTOPPABLE HORDES
-                    <Badge bg="info" className="ms-2" style={{ fontSize: '0.7rem' }}>Commander</Badge>
+                    <Badge bg="info" className="ms-2" style={{ fontSize: '0.7rem' }}>
+                      Commander
+                    </Badge>
                   </h6>
                   <p className="mb-1" style={{ fontSize: '0.8rem' }}>
                     Tap Undead to prevent <strong>20 damage each</strong>. Can stack!
                   </p>
 
                   {selectedDefense === 'unstoppable_hordes' && (
-                    <div className="mt-2 p-2" style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '6px', fontSize: '0.8rem' }}>
+                    <div
+                      className="mt-2 p-2"
+                      style={{
+                        backgroundColor: 'rgba(0,0,0,0.3)',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                      }}
+                    >
                       <strong className="d-block mb-1">Select Undead:</strong>
                       {defenderCanUseUnstoppable && (
                         <Form.Check
                           type="checkbox"
                           id="defender-unstoppable"
-                          label={<span><strong>{defenderInstance.creature.name}</strong> (Defender)</span>}
+                          label={
+                            <span>
+                              <strong>{defenderInstance.creature.name}</strong> (Defender)
+                            </span>
+                          }
                           checked={true}
                           disabled={true}
                           className="mb-1"
@@ -780,19 +948,29 @@ function DefenseOptionsPanel({
                           key={creature.instanceId}
                           type="checkbox"
                           id={`undead-${creature.instanceId}`}
-                          label={<span><strong>{creature.creature.name}</strong> (Adjacent)</span>}
-                          checked={selectedUndeadCreatures.some(c => c.instanceId === creature.instanceId)}
+                          label={
+                            <span>
+                              <strong>{creature.creature.name}</strong> (Adjacent)
+                            </span>
+                          }
+                          checked={selectedUndeadCreatures.some(
+                            (c) => c.instanceId === creature.instanceId
+                          )}
                           onChange={() => toggleUndeadCreature(creature)}
                           className="mb-1"
                           style={{ color: '#fff', fontSize: '0.8rem' }}
                         />
                       ))}
                       {(selectedUndeadCreatures.length > 0 || defenderCanUseUnstoppable) && (
-                        <div className="mt-2 p-1" style={{ backgroundColor: 'rgba(23,162,184,0.3)', borderRadius: '4px' }}>
+                        <div
+                          className="mt-2 p-1"
+                          style={{ backgroundColor: 'rgba(23,162,184,0.3)', borderRadius: '4px' }}
+                        >
                           <small>
-                            Prevention: {calculateUnstoppableDamageReduction()} |
-                            Cost: {calculateUnstoppableMoraleCost()} morale |
-                            After: {Math.max(0, incomingDamage - calculateUnstoppableDamageReduction())} damage
+                            Prevention: {calculateUnstoppableDamageReduction()} | Cost:{' '}
+                            {calculateUnstoppableMoraleCost()} morale | After:{' '}
+                            {Math.max(0, incomingDamage - calculateUnstoppableDamageReduction())}{' '}
+                            damage
                           </small>
                         </div>
                       )}
@@ -800,7 +978,9 @@ function DefenseOptionsPanel({
                   )}
                 </div>
                 {selectedDefense === 'unstoppable_hordes' && (
-                  <Badge bg="light" text="dark" style={{ fontSize: '1rem' }}>✓</Badge>
+                  <Badge bg="light" text="dark" style={{ fontSize: '1rem' }}>
+                    ✓
+                  </Badge>
                 )}
               </div>
             </Card.Body>
@@ -814,13 +994,12 @@ function DefenseOptionsPanel({
             text="white"
             className="defense-option-card mb-2"
             style={{
-              border: selectedDefense === 'immediate_card' ? '2px solid #ffc107' : '2px solid #6f42c1'
+              border:
+                selectedDefense === 'immediate_card' ? '2px solid #ffc107' : '2px solid #6f42c1',
             }}
           >
             <Card.Body className="py-2 px-2">
-              <h6 className="mb-2">
-                ⚡ IMMEDIATE Cards
-              </h6>
+              <h6 className="mb-2">⚡ IMMEDIATE Cards</h6>
 
               {/* Card images grid - 3 columns */}
               <div
@@ -830,7 +1009,7 @@ function DefenseOptionsPanel({
                   gridTemplateColumns: 'repeat(3, 1fr)',
                   gap: '4px',
                   maxHeight: '200px',
-                  overflowY: 'auto'
+                  overflowY: 'auto',
                 }}
               >
                 {immediateCards.map((cardInfo, index) => (
@@ -840,11 +1019,12 @@ function DefenseOptionsPanel({
                       position: 'relative',
                       cursor: 'pointer',
                       borderRadius: '6px',
-                      border: selectedImmediateCard?.card.id === cardInfo.card.id
-                        ? '3px solid #28a745'
-                        : '2px solid transparent',
+                      border:
+                        selectedImmediateCard?.card.id === cardInfo.card.id
+                          ? '3px solid #28a745'
+                          : '2px solid transparent',
                       overflow: 'hidden',
-                      transition: 'border-color 0.2s'
+                      transition: 'border-color 0.2s',
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
@@ -860,7 +1040,7 @@ function DefenseOptionsPanel({
                       style={{
                         width: '100%',
                         height: 'auto',
-                        display: 'block'
+                        display: 'block',
                       }}
                     />
                     {/* Damage Prevention Overlay / Sacrifice Attack indicator */}
@@ -874,15 +1054,14 @@ function DefenseOptionsPanel({
                         padding: '2px 6px',
                         borderRadius: '4px',
                         fontSize: '0.7rem',
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
                       }}
                     >
                       {cardInfo.card.selfSacrificeAttack
                         ? '⚔️ SACRIFICE'
                         : cardInfo.moraleCost > 0
                           ? `-${cardInfo.moraleCost}M / -${cardInfo.damagePrevented}dmg`
-                          : `-${cardInfo.damagePrevented}dmg`
-                      }
+                          : `-${cardInfo.damagePrevented}dmg`}
                     </div>
                     {/* Selected checkmark */}
                     {selectedImmediateCard?.card.id === cardInfo.card.id && (
@@ -900,7 +1079,7 @@ function DefenseOptionsPanel({
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: '0.75rem',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
                         }}
                       >
                         ✓
@@ -917,12 +1096,14 @@ function DefenseOptionsPanel({
                   style={{ backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '6px' }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <strong className="d-block mb-2" style={{ fontSize: '0.85rem' }}>Select creature to use card:</strong>
+                  <strong className="d-block mb-2" style={{ fontSize: '0.85rem' }}>
+                    Select creature to use card:
+                  </strong>
                   <div
                     style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: '4px'
+                      gap: '4px',
                     }}
                   >
                     {selectedImmediateCard.eligibleCreatures.map((creature) => (
@@ -931,11 +1112,12 @@ function DefenseOptionsPanel({
                         style={{
                           cursor: 'pointer',
                           borderRadius: '6px',
-                          border: selectedCardCreature?.instanceId === creature.instanceId
-                            ? '3px solid #007bff'
-                            : '2px solid #444',
+                          border:
+                            selectedCardCreature?.instanceId === creature.instanceId
+                              ? '3px solid #007bff'
+                              : '2px solid #444',
                           overflow: 'hidden',
-                          position: 'relative'
+                          position: 'relative',
                         }}
                         onClick={() => handleSelectCardCreature(creature)}
                         onMouseEnter={() => setHoverPreview({ type: 'creature', data: creature })}
@@ -948,7 +1130,7 @@ function DefenseOptionsPanel({
                           style={{
                             width: '100%',
                             height: 'auto',
-                            display: 'block'
+                            display: 'block',
                           }}
                         />
                         {/* Badge showing creature's role */}
@@ -957,19 +1139,26 @@ function DefenseOptionsPanel({
                             position: 'absolute',
                             bottom: '2px',
                             left: '2px',
-                            backgroundColor: selectedImmediateCard.protectTargetType && selectedImmediateCard.protectTargetType !== 'self'
-                              ? '#17a2b8' // Teal for ally-protecting cards
-                              : creature.instanceId === defenderInstance.instanceId ? '#007bff' : '#6c757d',
+                            backgroundColor:
+                              selectedImmediateCard.protectTargetType &&
+                              selectedImmediateCard.protectTargetType !== 'self'
+                                ? '#17a2b8' // Teal for ally-protecting cards
+                                : creature.instanceId === defenderInstance.instanceId
+                                  ? '#007bff'
+                                  : '#6c757d',
                             color: 'white',
                             padding: '1px 4px',
                             borderRadius: '3px',
                             fontSize: '0.5rem',
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
                           }}
                         >
-                          {selectedImmediateCard.protectTargetType && selectedImmediateCard.protectTargetType !== 'self'
+                          {selectedImmediateCard.protectTargetType &&
+                          selectedImmediateCard.protectTargetType !== 'self'
                             ? 'PROTECTOR' // This creature will protect the defender
-                            : creature.instanceId === defenderInstance.instanceId ? 'DEFENDER' : 'ADJACENT'}
+                            : creature.instanceId === defenderInstance.instanceId
+                              ? 'DEFENDER'
+                              : 'ADJACENT'}
                         </div>
                         {/* Selected checkmark */}
                         {selectedCardCreature?.instanceId === creature.instanceId && (
@@ -987,7 +1176,7 @@ function DefenseOptionsPanel({
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontSize: '0.6rem',
-                              fontWeight: 'bold'
+                              fontWeight: 'bold',
                             }}
                           >
                             ✓
@@ -1000,100 +1189,114 @@ function DefenseOptionsPanel({
               )}
 
               {/* Discard card selection - for cards like Uncanny Dodge that require discarding */}
-              {selectedDefense === 'immediate_card' && selectedImmediateCard && selectedCardCreature && selectedImmediateCard.discardCost > 0 && (
-                <div
-                  className="mt-2 p-2"
-                  style={{ backgroundColor: 'rgba(255,193,7,0.2)', borderRadius: '6px', border: '1px solid #ffc107' }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <strong className="d-block mb-2" style={{ fontSize: '0.85rem', color: '#ffc107' }}>
-                    ⚠️ Select {selectedImmediateCard.discardCost} card to discard:
-                  </strong>
+              {selectedDefense === 'immediate_card' &&
+                selectedImmediateCard &&
+                selectedCardCreature &&
+                selectedImmediateCard.discardCost > 0 && (
                   <div
+                    className="mt-2 p-2"
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: '4px',
-                      maxHeight: '150px',
-                      overflowY: 'auto'
+                      backgroundColor: 'rgba(255,193,7,0.2)',
+                      borderRadius: '6px',
+                      border: '1px solid #ffc107',
                     }}
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {/* Show all other cards in hand (excluding the selected immediate card) */}
-                    {defenderPlayerState.orderHand
-                      .filter(card => card.id !== selectedImmediateCard.card.id)
-                      .map((card, index) => (
-                        <div
-                          key={`discard-${card.id}-${index}`}
-                          style={{
-                            cursor: 'pointer',
-                            borderRadius: '6px',
-                            border: selectedDiscardCard?.id === card.id
-                              ? '3px solid #dc3545'
-                              : '2px solid #444',
-                            overflow: 'hidden',
-                            position: 'relative',
-                            opacity: selectedDiscardCard?.id === card.id ? 1 : 0.8
-                          }}
-                          onClick={() => setSelectedDiscardCard(card)}
-                          onMouseEnter={() => setHoverPreview({ type: 'order', data: { card } })}
-                          onMouseLeave={() => setHoverPreview(null)}
-                        >
-                          <img
-                            src={card.imageUrl}
-                            alt={card.name}
-                            style={{
-                              width: '100%',
-                              height: 'auto',
-                              display: 'block'
-                            }}
-                          />
-                          {/* Discard indicator */}
+                    <strong
+                      className="d-block mb-2"
+                      style={{ fontSize: '0.85rem', color: '#ffc107' }}
+                    >
+                      ⚠️ Select {selectedImmediateCard.discardCost} card to discard:
+                    </strong>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '4px',
+                        maxHeight: '150px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {/* Show all other cards in hand (excluding the selected immediate card) */}
+                      {defenderPlayerState.orderHand
+                        .filter((card) => card.id !== selectedImmediateCard.card.id)
+                        .map((card, index) => (
                           <div
+                            key={`discard-${card.id}-${index}`}
                             style={{
-                              position: 'absolute',
-                              bottom: '2px',
-                              left: '2px',
-                              backgroundColor: '#dc3545',
-                              color: 'white',
-                              padding: '1px 4px',
-                              borderRadius: '3px',
-                              fontSize: '0.5rem',
-                              fontWeight: 'bold'
+                              cursor: 'pointer',
+                              borderRadius: '6px',
+                              border:
+                                selectedDiscardCard?.id === card.id
+                                  ? '3px solid #dc3545'
+                                  : '2px solid #444',
+                              overflow: 'hidden',
+                              position: 'relative',
+                              opacity: selectedDiscardCard?.id === card.id ? 1 : 0.8,
                             }}
+                            onClick={() => setSelectedDiscardCard(card)}
+                            onMouseEnter={() => setHoverPreview({ type: 'order', data: { card } })}
+                            onMouseLeave={() => setHoverPreview(null)}
                           >
-                            DISCARD
-                          </div>
-                          {/* Selected checkmark */}
-                          {selectedDiscardCard?.id === card.id && (
+                            <img
+                              src={card.imageUrl}
+                              alt={card.name}
+                              style={{
+                                width: '100%',
+                                height: 'auto',
+                                display: 'block',
+                              }}
+                            />
+                            {/* Discard indicator */}
                             <div
                               style={{
                                 position: 'absolute',
-                                top: '2px',
-                                right: '2px',
+                                bottom: '2px',
+                                left: '2px',
                                 backgroundColor: '#dc3545',
                                 color: 'white',
-                                borderRadius: '50%',
-                                width: '14px',
-                                height: '14px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.6rem',
-                                fontWeight: 'bold'
+                                padding: '1px 4px',
+                                borderRadius: '3px',
+                                fontSize: '0.5rem',
+                                fontWeight: 'bold',
                               }}
                             >
-                              ✓
+                              DISCARD
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            {/* Selected checkmark */}
+                            {selectedDiscardCard?.id === card.id && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '2px',
+                                  right: '2px',
+                                  backgroundColor: '#dc3545',
+                                  color: 'white',
+                                  borderRadius: '50%',
+                                  width: '14px',
+                                  height: '14px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.6rem',
+                                  fontWeight: 'bold',
+                                }}
+                              >
+                                ✓
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Morale target selection - for cards like Unexpected Resistance */}
-              {selectedDefense === 'immediate_card' && selectedImmediateCard && selectedCardCreature &&
-                selectedImmediateCard.card.moraleLossTargetType === 'adjacent_tapped_enemy' && (() => {
+              {selectedDefense === 'immediate_card' &&
+                selectedImmediateCard &&
+                selectedCardCreature &&
+                selectedImmediateCard.card.moraleLossTargetType === 'adjacent_tapped_enemy' &&
+                (() => {
                   const adjacentEnemies = getAdjacentTappedEnemies(selectedCardCreature.position)
                   // Only show selection if there are multiple targets
                   if (adjacentEnemies.length <= 1) return null
@@ -1101,10 +1304,17 @@ function DefenseOptionsPanel({
                   return (
                     <div
                       className="mt-2 p-2"
-                      style={{ backgroundColor: 'rgba(220,53,69,0.2)', borderRadius: '6px', border: '1px solid #dc3545' }}
+                      style={{
+                        backgroundColor: 'rgba(220,53,69,0.2)',
+                        borderRadius: '6px',
+                        border: '1px solid #dc3545',
+                      }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <strong className="d-block mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}>
+                      <strong
+                        className="d-block mb-2"
+                        style={{ fontSize: '0.85rem', color: '#dc3545' }}
+                      >
                         Select enemy creature for morale loss:
                       </strong>
                       <div
@@ -1113,7 +1323,7 @@ function DefenseOptionsPanel({
                           gridTemplateColumns: 'repeat(3, 1fr)',
                           gap: '4px',
                           maxHeight: '150px',
-                          overflowY: 'auto'
+                          overflowY: 'auto',
                         }}
                       >
                         {adjacentEnemies.map((enemyInfo, index) => {
@@ -1125,16 +1335,22 @@ function DefenseOptionsPanel({
                               style={{
                                 cursor: 'pointer',
                                 borderRadius: '6px',
-                                border: selectedMoraleTarget?.creature?.instanceId === enemy.instanceId
-                                  ? '3px solid #dc3545'
-                                  : '2px solid #444',
+                                border:
+                                  selectedMoraleTarget?.creature?.instanceId === enemy.instanceId
+                                    ? '3px solid #dc3545'
+                                    : '2px solid #444',
                                 overflow: 'hidden',
                                 position: 'relative',
-                                opacity: selectedMoraleTarget?.creature?.instanceId === enemy.instanceId ? 1 : 0.8,
-                                backgroundColor: '#2c2f33'
+                                opacity:
+                                  selectedMoraleTarget?.creature?.instanceId === enemy.instanceId
+                                    ? 1
+                                    : 0.8,
+                                backgroundColor: '#2c2f33',
                               }}
                               onClick={() => setSelectedMoraleTarget(enemyInfo)}
-                              onMouseEnter={() => setHoverPreview({ type: 'creature', data: enemy })}
+                              onMouseEnter={() =>
+                                setHoverPreview({ type: 'creature', data: enemy })
+                              }
                               onMouseLeave={() => setHoverPreview(null)}
                             >
                               <img
@@ -1143,7 +1359,7 @@ function DefenseOptionsPanel({
                                 style={{
                                   width: '100%',
                                   height: 'auto',
-                                  display: 'block'
+                                  display: 'block',
                                 }}
                               />
                               {/* Owner badge */}
@@ -1157,7 +1373,7 @@ function DefenseOptionsPanel({
                                   padding: '1px 4px',
                                   borderRadius: '3px',
                                   fontSize: '0.5rem',
-                                  fontWeight: 'bold'
+                                  fontWeight: 'bold',
                                 }}
                               >
                                 {owner?.commander?.name?.split(' ')[0] || 'Enemy'}
@@ -1178,7 +1394,7 @@ function DefenseOptionsPanel({
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     fontSize: '0.6rem',
-                                    fontWeight: 'bold'
+                                    fontWeight: 'bold',
                                   }}
                                 >
                                   ✓
@@ -1193,8 +1409,11 @@ function DefenseOptionsPanel({
                 })()}
 
               {/* Sacrifice target selection - for cards like Savage Demise */}
-              {selectedDefense === 'immediate_card' && selectedImmediateCard && selectedCardCreature &&
-                selectedImmediateCard.card.selfSacrificeAttack && (() => {
+              {selectedDefense === 'immediate_card' &&
+                selectedImmediateCard &&
+                selectedCardCreature &&
+                selectedImmediateCard.card.selfSacrificeAttack &&
+                (() => {
                   const adjacentEnemies = getAdjacentTappedEnemies(selectedCardCreature.position)
                   // If no targets, card shouldn't be selectable (filtered earlier)
                   if (adjacentEnemies.length === 0) return null
@@ -1205,7 +1424,11 @@ function DefenseOptionsPanel({
                   return (
                     <div
                       className="mt-2 p-2"
-                      style={{ backgroundColor: 'rgba(220,53,69,0.3)', borderRadius: '6px', border: '2px solid #dc3545' }}
+                      style={{
+                        backgroundColor: 'rgba(220,53,69,0.3)',
+                        borderRadius: '6px',
+                        border: '2px solid #dc3545',
+                      }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* Warning about self-destruction */}
@@ -1217,7 +1440,10 @@ function DefenseOptionsPanel({
                         <strong>⚠️ WARNING:</strong> Your creature will DIE after this attack!
                       </Alert>
 
-                      <strong className="d-block mb-2" style={{ fontSize: '0.85rem', color: '#dc3545' }}>
+                      <strong
+                        className="d-block mb-2"
+                        style={{ fontSize: '0.85rem', color: '#dc3545' }}
+                      >
                         Select enemy to attack ({attackDamage} damage):
                       </strong>
                       <div
@@ -1226,7 +1452,7 @@ function DefenseOptionsPanel({
                           gridTemplateColumns: 'repeat(3, 1fr)',
                           gap: '4px',
                           maxHeight: '150px',
-                          overflowY: 'auto'
+                          overflowY: 'auto',
                         }}
                       >
                         {adjacentEnemies.map((enemyInfo, index) => {
@@ -1238,16 +1464,22 @@ function DefenseOptionsPanel({
                               style={{
                                 cursor: 'pointer',
                                 borderRadius: '6px',
-                                border: selectedSacrificeTarget?.creature?.instanceId === enemy.instanceId
-                                  ? '3px solid #dc3545'
-                                  : '2px solid #444',
+                                border:
+                                  selectedSacrificeTarget?.creature?.instanceId === enemy.instanceId
+                                    ? '3px solid #dc3545'
+                                    : '2px solid #444',
                                 overflow: 'hidden',
                                 position: 'relative',
-                                opacity: selectedSacrificeTarget?.creature?.instanceId === enemy.instanceId ? 1 : 0.8,
-                                backgroundColor: '#2c2f33'
+                                opacity:
+                                  selectedSacrificeTarget?.creature?.instanceId === enemy.instanceId
+                                    ? 1
+                                    : 0.8,
+                                backgroundColor: '#2c2f33',
                               }}
                               onClick={() => setSelectedSacrificeTarget(enemyInfo)}
-                              onMouseEnter={() => setHoverPreview({ type: 'creature', data: enemy })}
+                              onMouseEnter={() =>
+                                setHoverPreview({ type: 'creature', data: enemy })
+                              }
                               onMouseLeave={() => setHoverPreview(null)}
                             >
                               <img
@@ -1256,7 +1488,7 @@ function DefenseOptionsPanel({
                                 style={{
                                   width: '100%',
                                   height: 'auto',
-                                  display: 'block'
+                                  display: 'block',
                                 }}
                               />
                               {/* Owner badge */}
@@ -1270,7 +1502,7 @@ function DefenseOptionsPanel({
                                   padding: '1px 4px',
                                   borderRadius: '3px',
                                   fontSize: '0.5rem',
-                                  fontWeight: 'bold'
+                                  fontWeight: 'bold',
                                 }}
                               >
                                 {owner?.commander?.name?.split(' ')[0] || 'Enemy'}
@@ -1286,13 +1518,14 @@ function DefenseOptionsPanel({
                                   padding: '1px 4px',
                                   borderRadius: '3px',
                                   fontSize: '0.5rem',
-                                  fontWeight: 'bold'
+                                  fontWeight: 'bold',
                                 }}
                               >
                                 {enemy.currentHP} HP
                               </div>
                               {/* Selected checkmark */}
-                              {selectedSacrificeTarget?.creature?.instanceId === enemy.instanceId && (
+                              {selectedSacrificeTarget?.creature?.instanceId ===
+                                enemy.instanceId && (
                                 <div
                                   style={{
                                     position: 'absolute',
@@ -1307,7 +1540,7 @@ function DefenseOptionsPanel({
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     fontSize: '0.6rem',
-                                    fontWeight: 'bold'
+                                    fontWeight: 'bold',
                                   }}
                                 >
                                   ✓
@@ -1328,10 +1561,13 @@ function DefenseOptionsPanel({
         {selectedDefense && (
           <Alert
             variant={
-              selectedImmediateCard?.card?.selfSacrificeAttack ? 'danger'
-              : finalDamage === 0 ? 'success'
-              : finalDamage < incomingDamage ? 'info'
-              : 'warning'
+              selectedImmediateCard?.card?.selfSacrificeAttack
+                ? 'danger'
+                : finalDamage === 0
+                  ? 'success'
+                  : finalDamage < incomingDamage
+                    ? 'info'
+                    : 'warning'
             }
             className="py-2 mt-2"
             style={{ fontSize: '0.8rem' }}
@@ -1340,19 +1576,28 @@ function DefenseOptionsPanel({
             <br />
             {selectedImmediateCard?.card?.selfSacrificeAttack ? (
               <>
-                Your creature will attack for {selectedCardCreature?.creature?.meleeAttack?.damage || 0} damage, then <strong style={{ color: '#dc3545' }}>DIE</strong>.
+                Your creature will attack for{' '}
+                {selectedCardCreature?.creature?.meleeAttack?.damage || 0} damage, then{' '}
+                <strong style={{ color: '#dc3545' }}>DIE</strong>.
                 <br />
-                <span style={{ fontSize: '0.75rem', color: '#adb5bd' }}>Original attack will be negated.</span>
+                <span style={{ fontSize: '0.75rem', color: '#adb5bd' }}>
+                  Original attack will be negated.
+                </span>
               </>
             ) : (
-              <>Incoming: {incomingDamage} | Reduced: {incomingDamage - finalDamage} | Final: <strong>{finalDamage}</strong></>
+              <>
+                Incoming: {incomingDamage} | Reduced: {incomingDamage - finalDamage} | Final:{' '}
+                <strong>{finalDamage}</strong>
+              </>
             )}
             {/* Attachment warnings for cards like Leap Away, Mortal Wound */}
             {selectedImmediateCard?.card?.attachOnUse && (
               <div style={{ color: '#ffc107', fontSize: '0.75rem', marginTop: '4px' }}>
                 ⚠️ This card will attach to your creature
                 {selectedImmediateCard.card.attachOnUse.preventsMovement && ' (cannot move/shift)'}
-                {selectedImmediateCard.card.attachOnUse.destroyAtDeploy && <span style={{ color: '#dc3545' }}> (dies at Deploy phase!)</span>}
+                {selectedImmediateCard.card.attachOnUse.destroyAtDeploy && (
+                  <span style={{ color: '#dc3545' }}> (dies at Deploy phase!)</span>
+                )}
                 {selectedImmediateCard.card.attachOnUse.blockAmount > 0 &&
                   ` (gains Block ${selectedImmediateCard.card.attachOnUse.blockAmount})`}
               </div>
@@ -1368,20 +1613,32 @@ function DefenseOptionsPanel({
         </Button>
         <Button
           variant={
-            selectedDefense === 'cower' ? 'success'
-            : selectedDefense === 'unstoppable_hordes' ? 'info'
-            : selectedDefense === 'immediate_card' ? 'warning'
-            : 'primary'
+            selectedDefense === 'cower'
+              ? 'success'
+              : selectedDefense === 'unstoppable_hordes'
+                ? 'info'
+                : selectedDefense === 'immediate_card'
+                  ? 'warning'
+                  : 'primary'
           }
           size="sm"
           onClick={handleConfirm}
           disabled={
-            !selectedDefense
-            || (selectedDefense === 'unstoppable_hordes' && calculateUnstoppableMoraleCost() === 0)
-            || (selectedDefense === 'immediate_card' && (!selectedImmediateCard || !selectedCardCreature))
-            || (selectedDefense === 'immediate_card' && selectedImmediateCard?.discardCost > 0 && !selectedDiscardCard)
-            || (selectedDefense === 'immediate_card' && selectedImmediateCard?.card?.moraleLossTargetType === 'adjacent_tapped_enemy' && selectedCardCreature && getAdjacentTappedEnemies(selectedCardCreature.position).length > 1 && !selectedMoraleTarget)
-            || (selectedDefense === 'immediate_card' && selectedImmediateCard?.card?.selfSacrificeAttack && !selectedSacrificeTarget)
+            !selectedDefense ||
+            (selectedDefense === 'unstoppable_hordes' && calculateUnstoppableMoraleCost() === 0) ||
+            (selectedDefense === 'immediate_card' &&
+              (!selectedImmediateCard || !selectedCardCreature)) ||
+            (selectedDefense === 'immediate_card' &&
+              selectedImmediateCard?.discardCost > 0 &&
+              !selectedDiscardCard) ||
+            (selectedDefense === 'immediate_card' &&
+              selectedImmediateCard?.card?.moraleLossTargetType === 'adjacent_tapped_enemy' &&
+              selectedCardCreature &&
+              getAdjacentTappedEnemies(selectedCardCreature.position).length > 1 &&
+              !selectedMoraleTarget) ||
+            (selectedDefense === 'immediate_card' &&
+              selectedImmediateCard?.card?.selfSacrificeAttack &&
+              !selectedSacrificeTarget)
           }
         >
           {selectedDefense === 'cower'

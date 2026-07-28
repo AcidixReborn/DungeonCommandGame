@@ -2,20 +2,20 @@ export default {
   packagerConfig: {
     name: 'Dungeon Command',
     executableName: 'dungeon-command',
-    icon: './assets/icon'
+    icon: './assets/icon',
   },
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
       config: {
         name: 'dungeon_command',
-        setupIcon: './assets/icon.ico'
-      }
+        setupIcon: './assets/icon.ico',
+      },
     },
     {
       name: '@electron-forge/maker-zip',
-      platforms: ['darwin', 'linux']
-    }
+      platforms: ['darwin', 'linux'],
+    },
   ],
   plugins: [
     {
@@ -24,20 +24,20 @@ export default {
         build: [
           {
             entry: 'electron/main.mjs',
-            config: 'vite.main.config.mjs'
+            config: 'vite.main.config.mjs',
           },
           {
             entry: 'electron/preload.cjs',
-            config: 'vite.preload.config.mjs'
-          }
+            config: 'vite.preload.config.mjs',
+          },
         ],
         renderer: [
           {
             name: 'main_window',
-            config: 'vite.renderer.config.mjs'
-          }
-        ]
-      }
-    }
-  ]
+            config: 'vite.renderer.config.mjs',
+          },
+        ],
+      },
+    },
+  ],
 }

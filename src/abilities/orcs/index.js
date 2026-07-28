@@ -10,5 +10,5 @@ export { DeathStrike }
 
 // Default export
 export default {
-  DeathStrike
+  DeathStrike,
 }

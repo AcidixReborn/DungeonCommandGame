@@ -21,7 +21,9 @@ function OgreDeployMoraleModal({ show, onDismiss, result }) {
 
   return (
     <Modal show={show} onHide={onDismiss} centered size="sm" backdrop="static">
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #8B4513' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #8B4513' }}
+      >
         <Modal.Title>+1 MORALE!</Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', textAlign: 'center' }}>
@@ -33,21 +35,27 @@ function OgreDeployMoraleModal({ show, onDismiss, result }) {
               maxHeight: '120px',
               borderRadius: '8px',
               border: '2px solid #8B4513',
-              marginBottom: '15px'
+              marginBottom: '15px',
             }}
           />
         )}
         <div style={{ fontSize: '1.2rem', marginBottom: '15px' }}>
           <strong>{creatureInstance?.creature?.name}</strong> deployed!
         </div>
-        <Alert variant="success" className="mb-0" style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '1px solid #28a745' }}>
+        <Alert
+          variant="success"
+          className="mb-0"
+          style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '1px solid #28a745' }}
+        >
           <div style={{ fontSize: '1.1rem' }}>
             Morale: <strong>{oldMorale}</strong> → <strong>{newMorale}</strong>
           </div>
         </Alert>
       </Modal.Body>
       <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444' }}>
-        <Button variant="success" onClick={onDismiss}>Continue</Button>
+        <Button variant="success" onClick={onDismiss}>
+          Continue
+        </Button>
       </Modal.Footer>
     </Modal>
   )

@@ -178,7 +178,7 @@ export function useAbilityModals() {
     description: '',
     eligibleFactions: [],
     onSelect: null,
-    pendingDrawInfo: null // { cardCount, sourceName, defenderPlayerId }
+    pendingDrawInfo: null, // { cardCount, sourceName, defenderPlayerId }
   })
 
   // ============================================
@@ -207,7 +207,7 @@ export function useAbilityModals() {
   const [patchUpHealConfig, setPatchUpHealConfig] = useState({
     card: null,
     creature: null,
-    healAmount: 0
+    healAmount: 0,
   })
 
   // ============================================
@@ -221,7 +221,7 @@ export function useAbilityModals() {
     targetCreatureName: null,
     moraleLost: 0,
     currentMorale: 0,
-    wasDefeated: false
+    wasDefeated: false,
   })
 
   // ============================================
@@ -244,7 +244,7 @@ export function useAbilityModals() {
   const [toughAsNailsConfig, setToughAsNailsConfig] = useState({
     card: null,
     cardIndex: null,
-    creature: null
+    creature: null,
   })
 
   // ============================================
@@ -255,7 +255,7 @@ export function useAbilityModals() {
   const [damageBoostConfig, setDamageBoostConfig] = useState({
     card: null,
     cardIndex: null,
-    creature: null
+    creature: null,
   })
   const [pendingDamageBoostAttack, setPendingDamageBoostAttack] = useState(null)
   // { card, cardIndex, creature, damageBonus, flatDamage }
@@ -268,7 +268,7 @@ export function useAbilityModals() {
   const [shiftAttackConfig, setShiftAttackConfig] = useState({
     card: null,
     cardIndex: null,
-    creature: null
+    creature: null,
   })
   const [pendingShiftAttack, setPendingShiftAttack] = useState(null)
   // { card, cardIndex, creature, phase: 'pre-shift'|'attacking'|'post-shift', originalPosition }
@@ -283,7 +283,7 @@ export function useAbilityModals() {
   const [chargeConfig, setChargeConfig] = useState({
     card: null,
     cardIndex: null,
-    creature: null
+    creature: null,
   })
   const [pendingChargeAttack, setPendingChargeAttack] = useState(null)
   // { card, cardIndex, creature, phase: 'moving'|'attacking', originalPosition }
@@ -468,7 +468,7 @@ export function useAbilityModals() {
     clearSavageDemiseState,
     clearDamageBoostState,
     clearShiftAttackState,
-    clearChargeState
+    clearChargeState,
   ])
 
   return {
@@ -719,7 +719,7 @@ export function useAbilityModals() {
     clearChargeState,
 
     // Clear all
-    clearAllAbilityModalState
+    clearAllAbilityModalState,
   }
 }
 

@@ -42,14 +42,14 @@ export const Reach = {
    */
   isInRange(attacker, attackerPos, targetPos) {
     let reach = this.getDistance(attacker)
-    if (reach === 0) reach = 1  // Default melee range
+    if (reach === 0) reach = 1 // Default melee range
 
     const dx = Math.abs(attackerPos.x - targetPos.x)
     const dy = Math.abs(attackerPos.y - targetPos.y)
 
     // Chebyshev distance for grid-based movement
     return Math.max(dx, dy) <= reach
-  }
+  },
 }
 
 export default Reach

@@ -21,7 +21,7 @@ function FactionSelectModal({
   description = '',
   eligibleFactions = [],
   onSelect,
-  onCancel = null
+  onCancel = null,
 }) {
   const [selectedFaction, setSelectedFaction] = useState(null)
   const [hoveredFaction, setHoveredFaction] = useState(null)
@@ -44,7 +44,9 @@ function FactionSelectModal({
 
   return (
     <Modal show={show} onHide={onCancel || (() => {})} centered size="md" backdrop="static">
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #ffc107' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #ffc107' }}
+      >
         <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', textAlign: 'center' }}>
@@ -65,10 +67,13 @@ function FactionSelectModal({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: eligibleFactions.length <= 2 ? `repeat(${eligibleFactions.length}, 1fr)` : 'repeat(3, 1fr)',
+            gridTemplateColumns:
+              eligibleFactions.length <= 2
+                ? `repeat(${eligibleFactions.length}, 1fr)`
+                : 'repeat(3, 1fr)',
             gap: '16px',
             justifyItems: 'center',
-            padding: '8px'
+            padding: '8px',
           }}
         >
           {eligibleFactions.map((faction) => {
@@ -96,7 +101,7 @@ function FactionSelectModal({
                     : isHovered
                       ? 'rgba(108, 117, 125, 0.15)'
                       : 'transparent',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {/* Commander Image as Faction Emblem */}
@@ -111,7 +116,7 @@ function FactionSelectModal({
                       objectPosition: 'top',
                       borderRadius: '8px',
                       border: isSelected ? '2px solid #ffc107' : '2px solid #444',
-                      marginBottom: '8px'
+                      marginBottom: '8px',
                     }}
                   />
                 ) : (
@@ -125,7 +130,7 @@ function FactionSelectModal({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      marginBottom: '8px'
+                      marginBottom: '8px',
                     }}
                   >
                     <span style={{ fontSize: '0.8rem', color: '#adb5bd' }}>
@@ -135,7 +140,13 @@ function FactionSelectModal({
                 )}
 
                 {/* Commander Name */}
-                <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isSelected ? '#ffc107' : 'white' }}>
+                <div
+                  style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    color: isSelected ? '#ffc107' : 'white',
+                  }}
+                >
                   {faction.commanderName || 'Unknown Commander'}
                 </div>
 
@@ -151,7 +162,7 @@ function FactionSelectModal({
                       marginTop: '6px',
                       fontSize: '0.75rem',
                       color: '#ffc107',
-                      fontWeight: 'bold'
+                      fontWeight: 'bold',
                     }}
                   >
                     SELECTED
@@ -168,9 +179,7 @@ function FactionSelectModal({
             className="mt-3 mb-0"
             style={{ backgroundColor: 'rgba(108, 117, 125, 0.2)', border: '1px solid #6c757d' }}
           >
-            <div style={{ fontSize: '0.9rem' }}>
-              No eligible opponents available.
-            </div>
+            <div style={{ fontSize: '0.9rem' }}>No eligible opponents available.</div>
           </Alert>
         )}
       </Modal.Body>
@@ -180,11 +189,7 @@ function FactionSelectModal({
             Cancel
           </Button>
         )}
-        <Button
-          variant="warning"
-          onClick={handleConfirm}
-          disabled={!selectedFaction}
-        >
+        <Button variant="warning" onClick={handleConfirm} disabled={!selectedFaction}>
           Confirm Selection
         </Button>
       </Modal.Footer>

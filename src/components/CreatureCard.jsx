@@ -7,11 +7,11 @@ import './CreatureCard.css'
  * Used for attached card glow effects
  */
 const FACTION_COLORS = {
-  'Sting of Lolth': '#8b008b',      // Purple
-  'Heart of Cormyr': '#0066cc',     // Blue
-  'Tyranny of Goblins': '#cc0000',  // Red
-  'Curse of Undeath': '#4a0080',    // Dark Purple
-  'Blood of Gruumsh': '#8b4513'     // Brown/Orange
+  'Sting of Lolth': '#8b008b', // Purple
+  'Heart of Cormyr': '#0066cc', // Blue
+  'Tyranny of Goblins': '#cc0000', // Red
+  'Curse of Undeath': '#4a0080', // Dark Purple
+  'Blood of Gruumsh': '#8b4513', // Brown/Orange
 }
 
 /**
@@ -29,7 +29,18 @@ const FACTION_COLORS = {
  * @param {Function} onDragEnd - Drag end handler
  * @param {number} cardIndex - Card index in hand
  */
-function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact = false, draggable = false, onDragStart, onDragEnd, cardIndex, handSize }) {
+function CreatureCard({
+  creature,
+  creatureInstance,
+  onClick,
+  isSelected,
+  compact = false,
+  draggable = false,
+  onDragStart,
+  onDragEnd,
+  cardIndex,
+  handSize,
+}) {
   // Carousel state: 0 = creature card, 1+ = attached cards
   const [carouselIndex, setCarouselIndex] = useState(0)
 
@@ -61,8 +72,8 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
   const renderAbilities = () => {
     const abilityKeys = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
     return abilityKeys
-      .filter(key => creature.abilities[key])
-      .map(key => (
+      .filter((key) => creature.abilities[key])
+      .map((key) => (
         <Badge key={key} bg="secondary" className="me-1">
           {key}
         </Badge>
@@ -95,18 +106,20 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
     // Convert hex to RGB for rgba() use
     const hexToRgb = (hex) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : { r: 139, g: 0, b: 139 } // Default purple
+      return result
+        ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16),
+          }
+        : { r: 139, g: 0, b: 139 } // Default purple
     }
 
     const rgb = hexToRgb(factionColor)
 
     return {
       boxShadow: `0 0 8px 2px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7), inset 0 0 2px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`,
-      border: `3px solid ${factionColor}`
+      border: `3px solid ${factionColor}`,
     }
   }
 
@@ -134,17 +147,20 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
               style={{ opacity: 0.9 }}
             />
           ) : (
-            <div className="attached-card-fallback" style={{
-              width: '100%',
-              height: '100%',
-              backgroundColor: '#4a4a6a',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.7rem',
-              padding: '4px'
-            }}>
+            <div
+              className="attached-card-fallback"
+              style={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: '#4a4a6a',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.7rem',
+                padding: '4px',
+              }}
+            >
               <span style={{ fontSize: '1.2rem' }}>🕸️</span>
               <span>{orderCard?.name || 'Attached'}</span>
             </div>
@@ -169,21 +185,20 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
           {/* Card indicator dots - positioned in the border area */}
           <div className="carousel-indicators" style={{ bottom: '-12px' }}>
             {Array.from({ length: totalCards }).map((_, idx) => (
-              <span
-                key={idx}
-                className={`carousel-dot ${idx === carouselIndex ? 'active' : ''}`}
-              />
+              <span key={idx} className={`carousel-dot ${idx === carouselIndex ? 'active' : ''}`} />
             ))}
           </div>
 
           {/* Web icon overlay */}
-          <div style={{
-            position: 'absolute',
-            top: '2px',
-            right: '2px',
-            fontSize: '12px',
-            textShadow: '0 0 3px black'
-          }}>
+          <div
+            style={{
+              position: 'absolute',
+              top: '2px',
+              right: '2px',
+              fontSize: '12px',
+              textShadow: '0 0 3px black',
+            }}
+          >
             🕸️
           </div>
         </div>
@@ -205,13 +220,13 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
           draggable={draggable}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          style={{ position: 'relative', overflow: hasCarousel ? 'visible' : 'hidden', ...attachedCardGlowStyle }}
+          style={{
+            position: 'relative',
+            overflow: hasCarousel ? 'visible' : 'hidden',
+            ...attachedCardGlowStyle,
+          }}
         >
-          <img
-            src={creature.imageUrl}
-            alt={creature.name}
-            className="creature-card-img"
-          />
+          <img src={creature.imageUrl} alt={creature.name} className="creature-card-img" />
 
           {/* Carousel arrows (only if has attached cards) */}
           {hasCarousel && (
@@ -257,7 +272,9 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
       >
         <div className="creature-card-header">
           <span className="creature-level">Lv{creature.level}</span>
-          <span className="creature-name">{creature.name?.replace(/ #\d+$/, '') || creature.name}</span>
+          <span className="creature-name">
+            {creature.name?.replace(/ #\d+$/, '') || creature.name}
+          </span>
         </div>
         <div className="creature-stats-compact">
           <span>HP: {creature.hitPoints}</span>
@@ -267,9 +284,7 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
           {creature.meleeAttack && <span>Melee: {creature.meleeAttack.damage}</span>}
           {creature.rangedAttack && <span>Ranged: {creature.rangedAttack.damage}</span>}
         </div>
-        <div className="creature-abilities-compact">
-          {renderAbilities()}
-        </div>
+        <div className="creature-abilities-compact">{renderAbilities()}</div>
       </div>
     )
   }
@@ -289,14 +304,10 @@ function CreatureCard({ creature, creatureInstance, onClick, isSelected, compact
           </Badge>
         </div>
       </Card.Header>
-      {creature.imageUrl && (
-        <Card.Img variant="top" src={creature.imageUrl} alt={creature.name} />
-      )}
+      {creature.imageUrl && <Card.Img variant="top" src={creature.imageUrl} alt={creature.name} />}
       <Card.Body>
         <div className="mb-2">
-          <small className="text-muted">
-            {creature.type.join(', ')}
-          </small>
+          <small className="text-muted">{creature.type.join(', ')}</small>
         </div>
 
         <div className="creature-stats mb-2">

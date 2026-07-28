@@ -25,7 +25,7 @@ function ChieftainCallModal({
   onDecline,
   chieftainInstance,
   eligibleOrcs = [],
-  gameState
+  gameState,
 }) {
   const [selectedCreature, setSelectedCreature] = useState(null)
   const [hoveredCreature, setHoveredCreature] = useState(null)
@@ -70,161 +70,190 @@ function ChieftainCallModal({
 
   return (
     <>
-    <Modal
-      show={show}
-      onHide={handleDecline}
-      centered
-      size="lg"
-      backdrop="static"
-      className="chieftain-call-modal"
-    >
-      <Modal.Header style={{ backgroundColor: '#4a2c2c', color: 'white', borderBottom: '2px solid #6b3a3a' }}>
-        <Modal.Title>
-          <span style={{ marginRight: '8px' }}>&#9876;</span>
-          CHIEFTAIN CALL
-        </Modal.Title>
-      </Modal.Header>
+      <Modal
+        show={show}
+        onHide={handleDecline}
+        centered
+        size="lg"
+        backdrop="static"
+        className="chieftain-call-modal"
+      >
+        <Modal.Header
+          style={{ backgroundColor: '#4a2c2c', color: 'white', borderBottom: '2px solid #6b3a3a' }}
+        >
+          <Modal.Title>
+            <span style={{ marginRight: '8px' }}>&#9876;</span>
+            CHIEFTAIN CALL
+          </Modal.Title>
+        </Modal.Header>
 
-      <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
-        {/* Chieftain info */}
-        <div className="text-center mb-3">
-          {chieftain?.imageUrl && (
-            <img
-              src={chieftain.imageUrl}
-              alt={chieftain.name}
-              style={{
-                maxHeight: '150px',
-                borderRadius: '8px',
-                border: '2px solid #6b3a3a',
-                boxShadow: '0 0 15px rgba(107, 58, 58, 0.5)'
-              }}
-            />
-          )}
-          <div className="mt-2">
-            <strong>{chieftain.name}</strong>
-            <Badge bg="danger" className="ms-2">Level {chieftain.level}</Badge>
+        <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
+          {/* Chieftain info */}
+          <div className="text-center mb-3">
+            {chieftain?.imageUrl && (
+              <img
+                src={chieftain.imageUrl}
+                alt={chieftain.name}
+                style={{
+                  maxHeight: '150px',
+                  borderRadius: '8px',
+                  border: '2px solid #6b3a3a',
+                  boxShadow: '0 0 15px rgba(107, 58, 58, 0.5)',
+                }}
+              />
+            )}
+            <div className="mt-2">
+              <strong>{chieftain.name}</strong>
+              <Badge bg="danger" className="ms-2">
+                Level {chieftain.level}
+              </Badge>
+            </div>
           </div>
-        </div>
 
-        {/* Ability Description */}
-        <Alert variant="dark" className="mb-3" style={{ backgroundColor: '#1a1a2e', border: '1px solid #6b3a3a' }}>
-          <div style={{ fontSize: '0.9rem' }}>
-            <strong>CHIEFTAIN CALL:</strong> You may reveal an Orc Creature card of Level 3 or lower from your hand.
-            If you do, gain LEADERSHIP equal to the revealed creature's Level and immediately deploy that creature.
-          </div>
-        </Alert>
+          {/* Ability Description */}
+          <Alert
+            variant="dark"
+            className="mb-3"
+            style={{ backgroundColor: '#1a1a2e', border: '1px solid #6b3a3a' }}
+          >
+            <div style={{ fontSize: '0.9rem' }}>
+              <strong>CHIEFTAIN CALL:</strong> You may reveal an Orc Creature card of Level 3 or
+              lower from your hand. If you do, gain LEADERSHIP equal to the revealed creature's
+              Level and immediately deploy that creature.
+            </div>
+          </Alert>
 
-        {hasEligibleOrcs ? (
-          <>
-            {/* Eligible Orcs List */}
-            <div className="mb-3">
-              <h6 style={{ color: '#ccc' }}>Select an Orc to Deploy:</h6>
-              <ListGroup>
-                {eligibleOrcs.map((creature, index) => (
-                  <ListGroup.Item
-                    key={creature.id || index}
-                    action
-                    active={selectedCreature?.id === creature.id}
-                    onClick={() => handleSelect(creature)}
-                    onMouseEnter={() => handleMouseEnter(creature)}
-                    onMouseLeave={handleMouseLeave}
-                    style={{
-                      backgroundColor: selectedCreature?.id === creature.id ? '#4a2c2c' : '#3a3d41',
-                      color: 'white',
-                      border: selectedCreature?.id === creature.id ? '2px solid #8b4a4a' : '1px solid #555',
-                      cursor: 'pointer',
-                      marginBottom: '4px',
-                      position: 'relative'
-                    }}
-                  >
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div className="d-flex align-items-center">
-                        {creature.imageUrl && (
-                          <img
-                            src={creature.imageUrl}
-                            alt={creature.name}
-                            style={{
-                              height: '60px',
-                              marginRight: '12px',
-                              borderRadius: '4px',
-                              border: '1px solid #666'
-                            }}
-                          />
-                        )}
-                        <div>
-                          <strong>{creature.name}</strong>
-                          <div style={{ fontSize: '0.85rem', color: '#aaa' }}>
-                            HP: {creature.hitPoints} | Speed: {creature.speed} | Damage: {creature.meleeAttack?.damage || 0}
+          {hasEligibleOrcs ? (
+            <>
+              {/* Eligible Orcs List */}
+              <div className="mb-3">
+                <h6 style={{ color: '#ccc' }}>Select an Orc to Deploy:</h6>
+                <ListGroup>
+                  {eligibleOrcs.map((creature, index) => (
+                    <ListGroup.Item
+                      key={creature.id || index}
+                      action
+                      active={selectedCreature?.id === creature.id}
+                      onClick={() => handleSelect(creature)}
+                      onMouseEnter={() => handleMouseEnter(creature)}
+                      onMouseLeave={handleMouseLeave}
+                      style={{
+                        backgroundColor:
+                          selectedCreature?.id === creature.id ? '#4a2c2c' : '#3a3d41',
+                        color: 'white',
+                        border:
+                          selectedCreature?.id === creature.id
+                            ? '2px solid #8b4a4a'
+                            : '1px solid #555',
+                        cursor: 'pointer',
+                        marginBottom: '4px',
+                        position: 'relative',
+                      }}
+                    >
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex align-items-center">
+                          {creature.imageUrl && (
+                            <img
+                              src={creature.imageUrl}
+                              alt={creature.name}
+                              style={{
+                                height: '60px',
+                                marginRight: '12px',
+                                borderRadius: '4px',
+                                border: '1px solid #666',
+                              }}
+                            />
+                          )}
+                          <div>
+                            <strong>{creature.name}</strong>
+                            <div style={{ fontSize: '0.85rem', color: '#aaa' }}>
+                              HP: {creature.hitPoints} | Speed: {creature.speed} | Damage:{' '}
+                              {creature.meleeAttack?.damage || 0}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-end">
+                          <Badge bg="danger" style={{ fontSize: '1rem' }}>
+                            Level {creature.level}
+                          </Badge>
+                          <div style={{ fontSize: '0.85rem', color: '#69db7c', marginTop: '4px' }}>
+                            +{creature.level} Leadership
                           </div>
                         </div>
                       </div>
-                      <div className="text-end">
-                        <Badge bg="danger" style={{ fontSize: '1rem' }}>Level {creature.level}</Badge>
-                        <div style={{ fontSize: '0.85rem', color: '#69db7c', marginTop: '4px' }}>
-                          +{creature.level} Leadership
-                        </div>
-                      </div>
-                    </div>
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              </div>
 
-                  </ListGroup.Item>
-                ))}
-              </ListGroup>
-            </div>
-
-            {/* Selection Preview */}
-            {selectedCreature && (
-              <Alert variant="success" className="mb-0" style={{ backgroundColor: '#1a3a2a', border: '1px solid #2d6a4d' }}>
-                <div style={{ fontSize: '0.9rem' }}>
-                  <strong>Selected:</strong> {selectedCreature.name}
-                  <br />
-                  <strong>Leadership Gain:</strong> +{selectedCreature.level}
-                  <br />
-                  <span style={{ color: '#aaa' }}>
-                    The selected Orc will be deployed to your starting zone.
-                  </span>
+              {/* Selection Preview */}
+              {selectedCreature && (
+                <Alert
+                  variant="success"
+                  className="mb-0"
+                  style={{ backgroundColor: '#1a3a2a', border: '1px solid #2d6a4d' }}
+                >
+                  <div style={{ fontSize: '0.9rem' }}>
+                    <strong>Selected:</strong> {selectedCreature.name}
+                    <br />
+                    <strong>Leadership Gain:</strong> +{selectedCreature.level}
+                    <br />
+                    <span style={{ color: '#aaa' }}>
+                      The selected Orc will be deployed to your starting zone.
+                    </span>
+                  </div>
+                </Alert>
+              )}
+            </>
+          ) : (
+            /* No Eligible Orcs Message */
+            <Alert
+              variant="warning"
+              className="mb-0"
+              style={{ backgroundColor: '#3a3a1a', border: '1px solid #6a6a2d' }}
+            >
+              <div className="text-center">
+                <div style={{ fontSize: '1.1rem', marginBottom: '8px' }}>
+                  <strong>No Eligible Orcs Available</strong>
                 </div>
-              </Alert>
-            )}
-          </>
-        ) : (
-          /* No Eligible Orcs Message */
-          <Alert variant="warning" className="mb-0" style={{ backgroundColor: '#3a3a1a', border: '1px solid #6a6a2d' }}>
-            <div className="text-center">
-              <div style={{ fontSize: '1.1rem', marginBottom: '8px' }}>
-                <strong>No Eligible Orcs Available</strong>
+                <div style={{ fontSize: '0.9rem', color: '#ccc' }}>
+                  You have no Orc creatures of Level 3 or lower in your hand.
+                  <br />
+                  The CHIEFTAIN CALL ability cannot be used.
+                </div>
               </div>
-              <div style={{ fontSize: '0.9rem', color: '#ccc' }}>
-                You have no Orc creatures of Level 3 or lower in your hand.
-                <br />
-                The CHIEFTAIN CALL ability cannot be used.
-              </div>
-            </div>
-          </Alert>
-        )}
-      </Modal.Body>
+            </Alert>
+          )}
+        </Modal.Body>
 
-      <Modal.Footer style={{ backgroundColor: '#4a2c2c', borderTop: '1px solid #6b3a3a', justifyContent: 'space-between' }}>
-        <Button
-          variant="secondary"
-          onClick={handleDecline}
-          size="lg"
+        <Modal.Footer
+          style={{
+            backgroundColor: '#4a2c2c',
+            borderTop: '1px solid #6b3a3a',
+            justifyContent: 'space-between',
+          }}
         >
-          {hasEligibleOrcs ? 'Decline' : 'OK'}
-        </Button>
-        {hasEligibleOrcs && (
-          <Button
-            variant="danger"
-            onClick={handleDeploy}
-            size="lg"
-            disabled={!selectedCreature}
-            title={!selectedCreature ? 'Select an Orc to deploy' : `Deploy ${selectedCreature.name}`}
-          >
-            Deploy Orc
-            {selectedCreature && <span className="ms-2">(+{selectedCreature.level} Leadership)</span>}
+          <Button variant="secondary" onClick={handleDecline} size="lg">
+            {hasEligibleOrcs ? 'Decline' : 'OK'}
           </Button>
-        )}
-      </Modal.Footer>
-    </Modal>
+          {hasEligibleOrcs && (
+            <Button
+              variant="danger"
+              onClick={handleDeploy}
+              size="lg"
+              disabled={!selectedCreature}
+              title={
+                !selectedCreature ? 'Select an Orc to deploy' : `Deploy ${selectedCreature.name}`
+              }
+            >
+              Deploy Orc
+              {selectedCreature && (
+                <span className="ms-2">(+{selectedCreature.level} Leadership)</span>
+              )}
+            </Button>
+          )}
+        </Modal.Footer>
+      </Modal>
 
       {/* Hover preview - rendered outside modal as fixed position element */}
       {hoveredCreature?.imageUrl && (
@@ -240,7 +269,7 @@ function ChieftainCallModal({
             border: '3px solid #6b3a3a',
             borderRadius: '8px',
             padding: '4px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(107, 58, 58, 0.3)'
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(107, 58, 58, 0.3)',
           }}
         >
           <img
@@ -250,7 +279,7 @@ function ChieftainCallModal({
               height: '364px',
               width: 'auto',
               display: 'block',
-              borderRadius: '4px'
+              borderRadius: '4px',
             }}
           />
         </div>

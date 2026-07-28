@@ -27,7 +27,7 @@ export const HiddenBlade = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('HIDDEN BLADE')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('HIDDEN BLADE')
     )
   },
 
@@ -44,20 +44,25 @@ export const HiddenBlade = {
     if (!attackerInstance.position) return []
 
     const targets = []
-    const adjacent = gameState.getAdjacentTiles8Dir(attackerInstance.position.x, attackerInstance.position.y)
+    const adjacent = gameState.getAdjacentTiles8Dir(
+      attackerInstance.position.x,
+      attackerInstance.position.y
+    )
 
     for (const tile of adjacent) {
       const occupant = tile.occupant
-      if (occupant &&
-          occupant.owner !== attackerInstance.owner &&
-          occupant.isTapped &&  // KEY: Must be tapped
-          occupant.currentHP > 0) {
+      if (
+        occupant &&
+        occupant.owner !== attackerInstance.owner &&
+        occupant.isTapped && // KEY: Must be tapped
+        occupant.currentHP > 0
+      ) {
         targets.push(occupant)
       }
     }
 
     return targets
-  }
+  },
 }
 
 export default HiddenBlade

@@ -19,16 +19,17 @@ const getLogPath = () => {
 let mainWindow
 
 function createWindow() {
-  const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY = process.env.MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY || path.join(__dirname, 'preload.cjs')
+  const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY =
+    process.env.MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY || path.join(__dirname, 'preload.cjs')
 
   mainWindow = new BrowserWindow({
     fullscreen: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
+      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
-    title: 'Dungeon Command - Digital Edition'
+    title: 'Dungeon Command - Digital Edition',
   })
 
   // In development, load from Vite dev server

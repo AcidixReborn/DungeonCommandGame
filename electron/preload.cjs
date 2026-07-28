@@ -11,5 +11,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Debug logging - write to file for persistent debugging
   writeLog: (entry) => ipcRenderer.invoke('write-log', entry),
   clearLog: () => ipcRenderer.invoke('clear-log'),
-  getLogPath: () => ipcRenderer.invoke('get-log-path')
+  getLogPath: () => ipcRenderer.invoke('get-log-path'),
 })

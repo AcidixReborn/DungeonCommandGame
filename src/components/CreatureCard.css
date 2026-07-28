@@ -257,7 +257,7 @@
 .creature-card-compact-image {
   padding: 0;
   overflow: hidden;
-  display: inline-block;  /* Shrink-wrap to image size */
+  display: inline-block; /* Shrink-wrap to image size */
 }
 
 /* Base image styling - preserve aspect ratio */
@@ -269,7 +269,7 @@
 
 /* Fixed size for creature card images - scrolling handles overflow */
 .creature-card-compact-image .creature-card-img {
-  height: 264px;  /* Fixed height - scrolling handles any number of cards */
+  height: 264px; /* Fixed height - scrolling handles any number of cards */
   width: auto;
 }
 

@@ -22,7 +22,7 @@ export const Burrow = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('BURROW')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('BURROW')
     )
   },
 
@@ -32,7 +32,7 @@ export const Burrow = {
    * @returns {boolean} True if creature can pass through
    */
   canPassThrough(terrainType) {
-    return true  // Can pass through mountains
+    return true // Can pass through mountains
   },
 
   /**
@@ -41,7 +41,7 @@ export const Burrow = {
    * @returns {boolean} True if creature can end movement there
    */
   canEndMovementOn(terrainType) {
-    return terrainType !== 'mountain'  // Cannot stop on mountains
+    return terrainType !== 'mountain' // Cannot stop on mountains
   },
 
   /**
@@ -51,7 +51,7 @@ export const Burrow = {
    */
   getMovementCost(terrainType) {
     if (terrainType === 'mountain') return 1
-    return null  // Use normal terrain cost
+    return null // Use normal terrain cost
   },
 
   /**
@@ -60,7 +60,7 @@ export const Burrow = {
    */
   takesWaterDamage() {
     return true
-  }
+  },
 }
 
 export default Burrow

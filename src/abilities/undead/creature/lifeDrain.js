@@ -25,7 +25,7 @@ export const LifeDrain = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('LIFE DRAIN')
+      (a) => typeof a === 'string' && a.toUpperCase().includes('LIFE DRAIN')
     )
   },
 
@@ -46,7 +46,7 @@ export const LifeDrain = {
     }
 
     return healAmount
-  }
+  },
 }
 
 export default LifeDrain

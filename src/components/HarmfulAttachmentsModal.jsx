@@ -17,14 +17,15 @@ import { Modal, Button, Badge, Alert } from 'react-bootstrap'
  *   - pendingDeath: Array of { creature, creatureName, source }
  *   - damagePenalty: Array of { creature, creatureName, source, penalty }
  */
-function HarmfulAttachmentsModal({
-  show,
-  onContinue,
-  attachmentEffects
-}) {
+function HarmfulAttachmentsModal({ show, onContinue, attachmentEffects }) {
   if (!show || !attachmentEffects) return null
 
-  const { damageEffects = [], movementBlocked = [], pendingDeath = [], damagePenalty = [] } = attachmentEffects
+  const {
+    damageEffects = [],
+    movementBlocked = [],
+    pendingDeath = [],
+    damagePenalty = [],
+  } = attachmentEffects
 
   const hasAnyEffects =
     damageEffects.length > 0 ||
@@ -36,10 +37,10 @@ function HarmfulAttachmentsModal({
 
   // Count total affected creatures (unique)
   const allCreatureNames = new Set([
-    ...damageEffects.map(e => e.creatureName),
-    ...movementBlocked.map(e => e.creatureName),
-    ...pendingDeath.map(e => e.creatureName),
-    ...damagePenalty.map(e => e.creatureName)
+    ...damageEffects.map((e) => e.creatureName),
+    ...movementBlocked.map((e) => e.creatureName),
+    ...pendingDeath.map((e) => e.creatureName),
+    ...damagePenalty.map((e) => e.creatureName),
   ])
   const totalAffectedCreatures = allCreatureNames.size
 
@@ -52,11 +53,15 @@ function HarmfulAttachmentsModal({
       backdrop="static"
       className="harmful-attachments-modal"
     >
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #dc3545' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #dc3545' }}
+      >
         <Modal.Title>
           <span style={{ marginRight: '8px' }}>⚠️</span>
           Harmful Effects Active!
-          <Badge bg="danger" className="ms-2">{totalAffectedCreatures} creature{totalAffectedCreatures > 1 ? 's' : ''}</Badge>
+          <Badge bg="danger" className="ms-2">
+            {totalAffectedCreatures} creature{totalAffectedCreatures > 1 ? 's' : ''}
+          </Badge>
         </Modal.Title>
       </Modal.Header>
 
@@ -79,8 +84,10 @@ function HarmfulAttachmentsModal({
                 style={{
                   padding: '8px',
                   marginBottom: index < damageEffects.length - 1 ? '6px' : 0,
-                  backgroundColor: effect.destroyed ? 'rgba(220, 53, 69, 0.3)' : 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: '4px'
+                  backgroundColor: effect.destroyed
+                    ? 'rgba(220, 53, 69, 0.3)'
+                    : 'rgba(0, 0, 0, 0.2)',
+                  borderRadius: '4px',
                 }}
               >
                 <div className="d-flex align-items-center">
@@ -88,12 +95,20 @@ function HarmfulAttachmentsModal({
                     <img
                       src={effect.creature.creature.imageUrl}
                       alt={effect.creatureName}
-                      style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px', marginRight: '10px' }}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        marginRight: '10px',
+                      }}
                     />
                   )}
                   <div>
                     <strong>{effect.creatureName}</strong>
-                    <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>({effect.source})</span>
+                    <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
+                      ({effect.source})
+                    </span>
                   </div>
                 </div>
                 <div className="text-end">
@@ -133,7 +148,7 @@ function HarmfulAttachmentsModal({
                   padding: '8px',
                   marginBottom: index < movementBlocked.length - 1 ? '6px' : 0,
                   backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: '4px'
+                  borderRadius: '4px',
                 }}
               >
                 <div className="d-flex align-items-center">
@@ -141,17 +156,23 @@ function HarmfulAttachmentsModal({
                     <img
                       src={effect.creature.creature.imageUrl}
                       alt={effect.creatureName}
-                      style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px', marginRight: '10px' }}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        marginRight: '10px',
+                      }}
                     />
                   )}
                   <div>
                     <strong>{effect.creatureName}</strong>
-                    <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>({effect.source})</span>
+                    <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
+                      ({effect.source})
+                    </span>
                   </div>
                 </div>
-                <div className="text-secondary">
-                  Cannot move this turn
-                </div>
+                <div className="text-secondary">Cannot move this turn</div>
               </div>
             ))}
           </Alert>
@@ -176,7 +197,7 @@ function HarmfulAttachmentsModal({
                   padding: '8px',
                   marginBottom: index < pendingDeath.length - 1 ? '6px' : 0,
                   backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: '4px'
+                  borderRadius: '4px',
                 }}
               >
                 <div className="d-flex align-items-center">
@@ -184,12 +205,20 @@ function HarmfulAttachmentsModal({
                     <img
                       src={effect.creature.creature.imageUrl}
                       alt={effect.creatureName}
-                      style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px', marginRight: '10px' }}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        marginRight: '10px',
+                      }}
                     />
                   )}
                   <div>
                     <strong>{effect.creatureName}</strong>
-                    <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>({effect.source})</span>
+                    <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
+                      ({effect.source})
+                    </span>
                   </div>
                 </div>
                 <div style={{ color: '#9c6ade' }}>
@@ -219,7 +248,7 @@ function HarmfulAttachmentsModal({
                   padding: '8px',
                   marginBottom: index < damagePenalty.length - 1 ? '6px' : 0,
                   backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: '4px'
+                  borderRadius: '4px',
                 }}
               >
                 <div className="d-flex align-items-center">
@@ -227,26 +256,37 @@ function HarmfulAttachmentsModal({
                     <img
                       src={effect.creature.creature.imageUrl}
                       alt={effect.creatureName}
-                      style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px', marginRight: '10px' }}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        marginRight: '10px',
+                      }}
                     />
                   )}
                   <div>
                     <strong>{effect.creatureName}</strong>
-                    <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>({effect.source})</span>
+                    <span className="text-muted ms-2" style={{ fontSize: '0.85rem' }}>
+                      ({effect.source})
+                    </span>
                   </div>
                 </div>
-                <div className="text-warning">
-                  -{effect.penalty} melee damage
-                </div>
+                <div className="text-warning">-{effect.penalty} melee damage</div>
               </div>
             ))}
           </Alert>
         )}
 
         {/* Help text */}
-        <Alert variant="info" className="mb-0" style={{ backgroundColor: 'rgba(23, 162, 184, 0.2)', border: '1px solid #17a2b8' }}>
+        <Alert
+          variant="info"
+          className="mb-0"
+          style={{ backgroundColor: 'rgba(23, 162, 184, 0.2)', border: '1px solid #17a2b8' }}
+        >
           <div style={{ fontSize: '0.9rem' }}>
-            <strong>Tip:</strong> Use <span style={{ color: '#28a745' }}>Healing Touch</span> or order cards that remove attachments to cure these effects!
+            <strong>Tip:</strong> Use <span style={{ color: '#28a745' }}>Healing Touch</span> or
+            order cards that remove attachments to cure these effects!
           </div>
         </Alert>
       </Modal.Body>

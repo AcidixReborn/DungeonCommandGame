@@ -13,26 +13,22 @@ import { Modal, Button, Alert } from 'react-bootstrap'
  * @param {Function} onConfirm - Callback when player confirms use
  * @param {Function} onCancel - Callback when player cancels
  */
-function ToughAsNailsModal({
-  show,
-  card,
-  creature,
-  onConfirm,
-  onCancel
-}) {
+function ToughAsNailsModal({ show, card, creature, onConfirm, onCancel }) {
   if (!show || !card || !creature) return null
 
   // Get current attachments that will be removed
   const currentAttachments = creature.attachedCards || []
-  const hasMortalWound = currentAttachments.some(att => att.card?.attachOnUse?.destroyAtDeploy)
-  const hasMovementBlock = currentAttachments.some(att =>
-    att.card?.name === 'Web' || att.card?.attachOnUse?.preventsMovement
+  const hasMortalWound = currentAttachments.some((att) => att.card?.attachOnUse?.destroyAtDeploy)
+  const hasMovementBlock = currentAttachments.some(
+    (att) => att.card?.name === 'Web' || att.card?.attachOnUse?.preventsMovement
   )
   const blockAmount = card.attachOnUse?.blockAmount || 10
 
   return (
     <Modal show={show} onHide={onCancel} centered size="md" backdrop="static">
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}
+      >
         <Modal.Title>Use {card.name}</Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', textAlign: 'center' }}>
@@ -45,7 +41,7 @@ function ToughAsNailsModal({
               style={{
                 maxHeight: '200px',
                 borderRadius: '8px',
-                border: '2px solid #17a2b8'
+                border: '2px solid #17a2b8',
               }}
             />
           ) : (
@@ -59,7 +55,7 @@ function ToughAsNailsModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto'
+                margin: '0 auto',
               }}
             >
               <span style={{ fontSize: '0.9rem' }}>{card.name}</span>
@@ -73,7 +69,7 @@ function ToughAsNailsModal({
             fontSize: '0.9rem',
             color: '#adb5bd',
             marginBottom: '15px',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
           }}
         >
           {card.effectDescription}
@@ -84,8 +80,10 @@ function ToughAsNailsModal({
           <Alert
             variant={hasMortalWound ? 'success' : 'info'}
             style={{
-              backgroundColor: hasMortalWound ? 'rgba(40, 167, 69, 0.2)' : 'rgba(23, 162, 184, 0.2)',
-              border: hasMortalWound ? '1px solid #28a745' : '1px solid #17a2b8'
+              backgroundColor: hasMortalWound
+                ? 'rgba(40, 167, 69, 0.2)'
+                : 'rgba(23, 162, 184, 0.2)',
+              border: hasMortalWound ? '1px solid #28a745' : '1px solid #17a2b8',
             }}
           >
             <div style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '8px' }}>
@@ -96,7 +94,10 @@ function ToughAsNailsModal({
                 <div key={idx} style={{ marginBottom: '4px' }}>
                   • {att.card?.name || 'Unknown Card'}
                   {att.card?.attachOnUse?.destroyAtDeploy && (
-                    <span style={{ color: '#28a745', fontWeight: 'bold' }}> (saves from death!)</span>
+                    <span style={{ color: '#28a745', fontWeight: 'bold' }}>
+                      {' '}
+                      (saves from death!)
+                    </span>
                   )}
                   {(att.card?.name === 'Web' || att.card?.attachOnUse?.preventsMovement) && (
                     <span style={{ color: '#17a2b8' }}> (restores movement)</span>
@@ -139,8 +140,8 @@ function ToughAsNailsModal({
           style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)', border: '1px solid #ffc107' }}
         >
           <div style={{ fontSize: '0.85rem' }}>
-            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s action for this turn.
-            The creature can still move afterward if it hasn't already.
+            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s
+            action for this turn. The creature can still move afterward if it hasn't already.
           </div>
         </Alert>
       </Modal.Body>

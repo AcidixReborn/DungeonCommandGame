@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { Card, Badge, ProgressBar, Row, Col } from 'react-bootstrap'
-import { GiDragonHead, GiCardPlay, GiCrossedSwords, GiSpiderWeb, GiKnightBanner, GiGoblinHead, GiSkullCrossedBones, GiOrcHead, GiTombstone } from 'react-icons/gi'
+import {
+  GiDragonHead,
+  GiCardPlay,
+  GiCrossedSwords,
+  GiSpiderWeb,
+  GiKnightBanner,
+  GiGoblinHead,
+  GiSkullCrossedBones,
+  GiOrcHead,
+  GiTombstone,
+} from 'react-icons/gi'
 import CreatureCard from './CreatureCard'
 import OrderCard from './OrderCard'
 import AttackConfirmPanel from './AttackConfirmPanel'
@@ -20,7 +30,7 @@ const factionIcons = {
   'Heart of Cormyr': GiKnightBanner,
   'Tyranny of Goblins': GiGoblinHead,
   'Curse of Undeath': GiSkullCrossedBones,
-  'Blood of Gruumsh': GiOrcHead
+  'Blood of Gruumsh': GiOrcHead,
 }
 
 /**
@@ -112,7 +122,7 @@ function PlayerPanel({
   orderCardFilterCreature = null,
   selectedOrderCard = null,
   onOrderCardRightClick = null,
-  onClearOrderCardFilter = null
+  onClearOrderCardFilter = null,
 }) {
   // ============================================
   // STATE: Active view for vertical nav bar - O(1) state access
@@ -253,14 +263,14 @@ function PlayerPanel({
     const playerIds = Object.keys(allPlayers)
     if (currentPlayerId && playerIds.includes(currentPlayerId)) {
       // Current player first, then others
-      const others = playerIds.filter(id => id !== currentPlayerId)
+      const others = playerIds.filter((id) => id !== currentPlayerId)
       return [currentPlayerId, ...others]
     }
     return playerIds
   }
 
   // Guard against NaN/undefined morale values for display
-  const safeMorale = (typeof player.morale === 'number' && !isNaN(player.morale)) ? player.morale : 0
+  const safeMorale = typeof player.morale === 'number' && !isNaN(player.morale) ? player.morale : 0
   const safeStartingMorale = player.commander?.startingMorale || 1 // Prevent division by 0
   const moralePercentage = (safeMorale / safeStartingMorale) * 100
   const leadershipUsage = player.getCurrentLeadershipUsage()
@@ -276,53 +286,82 @@ function PlayerPanel({
         border={isCurrentPlayer ? 'success' : 'secondary'}
         style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
       >
-        <Card.Body style={{ padding: '3px 5px 5px 5px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Card.Body
+          style={{
+            padding: '3px 5px 5px 5px',
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
           {/* ============================================
               NEW LAYOUT: Single Card Display + Vertical Nav Bar
               O(1) view switching via activeView state
               ============================================ */}
           <div style={{ display: 'flex', gap: '5px', flex: 1, minHeight: 0 }}>
             {/* Main Card Display Area - Shows Creatures, Orders, Combat, or Faction */}
-            <div className="card-display-area" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+            <div
+              className="card-display-area"
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: 0,
+                minHeight: 0,
+              }}
+            >
               {/* ============================================
                   FACTION CREATURES VIEW - Shown for both human and AI turns
                   Shows selected faction's deployed creatures on board
                   Big O Complexity: O(m) where m = creatures in selected faction
                   Real-time updates when creatures are killed (allPlayers prop updates)
                   ============================================ */}
-              {activeView === 'faction' && selectedFactionView && allPlayers && allPlayers[selectedFactionView] && (
-                <div className="faction-creatures-view">
-                  {/* Header with faction name and creature count */}
-                  <div className="faction-view-header">
-                    <span>{allPlayers[selectedFactionView].faction}</span>
-                    <span className="creature-count">
-                      ({allPlayers[selectedFactionView].creaturesInPlay.length})
-                    </span>
+              {activeView === 'faction' &&
+                selectedFactionView &&
+                allPlayers &&
+                allPlayers[selectedFactionView] && (
+                  <div className="faction-creatures-view">
+                    {/* Header with faction name and creature count */}
+                    <div className="faction-view-header">
+                      <span>{allPlayers[selectedFactionView].faction}</span>
+                      <span className="creature-count">
+                        ({allPlayers[selectedFactionView].creaturesInPlay.length})
+                      </span>
+                    </div>
+                    {/* Scrollable creature list - O(m) render */}
+                    <div className="faction-creatures-scroll">
+                      {allPlayers[selectedFactionView].creaturesInPlay.length === 0 ? (
+                        <small className="text-muted">No creatures on board</small>
+                      ) : (
+                        allPlayers[selectedFactionView].creaturesInPlay.map((creatureInstance) => (
+                          <CreatureCard
+                            key={creatureInstance.instanceId}
+                            creature={creatureInstance.creature}
+                            compact={true}
+                            creatureInstance={creatureInstance}
+                          />
+                        ))
+                      )}
+                    </div>
                   </div>
-                  {/* Scrollable creature list - O(m) render */}
-                  <div className="faction-creatures-scroll">
-                    {allPlayers[selectedFactionView].creaturesInPlay.length === 0 ? (
-                      <small className="text-muted">No creatures on board</small>
-                    ) : (
-                      allPlayers[selectedFactionView].creaturesInPlay.map((creatureInstance) => (
-                        <CreatureCard
-                          key={creatureInstance.instanceId}
-                          creature={creatureInstance.creature}
-                          compact={true}
-                          creatureInstance={creatureInstance}
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
+                )}
 
               {/* ============================================
                   COMBAT VIEW - Renders during combat regardless of whose turn
                   Must be outside isHuman check so human can defend during AI turn
                   ============================================ */}
               {activeView === 'combat' && combatMode && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    overflow: 'auto',
+                  }}
+                >
                   {/* Attack Confirmation Panel - O(1) render */}
                   {combatMode === 'attack' && (
                     <AttackConfirmPanel
@@ -363,11 +402,23 @@ function PlayerPanel({
                   Zombies can be resurrected from here during DEPLOY phase
                   ============================================ */}
               {activeView === 'graveyard' && gameState && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    overflow: 'auto',
+                  }}
+                >
                   <GraveyardPanel
                     gameState={gameState}
                     playerOrder={getGraveyardPlayerOrder()}
-                    selectedFactionId={selectedGraveyardFaction || currentPlayerId || Object.keys(allPlayers || {})[0]}
+                    selectedFactionId={
+                      selectedGraveyardFaction ||
+                      currentPlayerId ||
+                      Object.keys(allPlayers || {})[0]
+                    }
                     onFactionChange={setSelectedGraveyardFaction}
                     onCreatureSelect={onGraveyardCreatureSelect}
                     selectedGraveyardCreature={selectedGraveyardCreature}
@@ -381,12 +432,15 @@ function PlayerPanel({
               )}
 
               {/* Human-only views: Creatures hand, Orders hand */}
-              {isHuman && activeView !== 'faction' && activeView !== 'combat' && activeView !== 'graveyard' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
+              {isHuman &&
+                activeView !== 'faction' &&
+                activeView !== 'combat' &&
+                activeView !== 'graveyard' && (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    <div className="card-hand-vertical" style={{ flex: 1, maxHeight: 'none' }}>
                       {/* Creature Cards View - O(n) render where n = creatures in hand */}
-                      {activeView === 'creatures' && (
-                        player.creatureHand.length === 0 ? (
+                      {activeView === 'creatures' &&
+                        (player.creatureHand.length === 0 ? (
                           <small className="text-muted">No creatures in hand</small>
                         ) : (
                           player.creatureHand.map((creature, idx) => (
@@ -403,49 +457,63 @@ function PlayerPanel({
                               handSize={player.creatureHand.length}
                             />
                           ))
-                        )
-                      )}
+                        ))}
                       {/* Order Cards View - O(n) render where n = orders in hand */}
                       {/* When orderCardFilterCreature is set, only show cards usable by that creature */}
-                      {activeView === 'orders' && (
-                        player.orderHand.length === 0 ? (
+                      {activeView === 'orders' &&
+                        (player.orderHand.length === 0 ? (
                           <small className="text-muted">No order cards in hand</small>
                         ) : (
                           (() => {
                             // Filter cards based on selected creature's level and abilities
                             const filteredCards = orderCardFilterCreature
-                              ? player.orderHand.map((order, idx) => ({ order, idx })).filter(({ order }) => {
-                                  // AFFINITY OVERRIDE CHECK: If card has affinityRequired + affinityOverridesRequirements
-                                  // Creature MUST have matching type - if so, bypass ALL other requirements
-                                  // If creature doesn't have matching type, card is NOT usable at all
-                                  if (order.affinityRequired && order.affinityOverridesRequirements) {
-                                    const creatureTypes = orderCardFilterCreature.creature.type || []
-                                    const hasAffinity = creatureTypes.some(t =>
-                                      t.toUpperCase() === order.affinityRequired.toUpperCase()
-                                    )
-                                    // With affinityOverridesRequirements, affinity is the ONLY requirement
-                                    return hasAffinity
-                                  }
+                              ? player.orderHand
+                                  .map((order, idx) => ({ order, idx }))
+                                  .filter(({ order }) => {
+                                    // AFFINITY OVERRIDE CHECK: If card has affinityRequired + affinityOverridesRequirements
+                                    // Creature MUST have matching type - if so, bypass ALL other requirements
+                                    // If creature doesn't have matching type, card is NOT usable at all
+                                    if (
+                                      order.affinityRequired &&
+                                      order.affinityOverridesRequirements
+                                    ) {
+                                      const creatureTypes =
+                                        orderCardFilterCreature.creature.type || []
+                                      const hasAffinity = creatureTypes.some(
+                                        (t) =>
+                                          t.toUpperCase() === order.affinityRequired.toUpperCase()
+                                      )
+                                      // With affinityOverridesRequirements, affinity is the ONLY requirement
+                                      return hasAffinity
+                                    }
 
-                                  // Level check: card level <= creature level
-                                  if (order.level > orderCardFilterCreature.creature.level) return false
-                                  // Ability check (ANY always passes)
-                                  if (order.abilityRequired && order.abilityRequired !== 'ANY') {
-                                    const abilities = Array.isArray(order.abilityRequired)
-                                      ? order.abilityRequired
-                                      : [order.abilityRequired]
-                                    const hasAbility = abilities.some(ability =>
-                                      orderCardFilterCreature.creature.abilities?.[ability] === true
-                                    )
+                                    // Level check: card level <= creature level
+                                    if (order.level > orderCardFilterCreature.creature.level)
+                                      return false
+                                    // Ability check (ANY always passes)
+                                    if (order.abilityRequired && order.abilityRequired !== 'ANY') {
+                                      const abilities = Array.isArray(order.abilityRequired)
+                                        ? order.abilityRequired
+                                        : [order.abilityRequired]
+                                      const hasAbility = abilities.some(
+                                        (ability) =>
+                                          orderCardFilterCreature.creature.abilities?.[ability] ===
+                                          true
+                                      )
 
-                                    // SPIDER AFFINITY: Spider creatures can use cards with SPIDER AFFINITY in effect description
-                                    const hasSpiderAffinity = order.effectDescription?.toUpperCase().includes('SPIDER AFFINITY')
-                                    const isSpider = (orderCardFilterCreature.creature.type || []).some(t => t.toLowerCase() === 'spider')
+                                      // SPIDER AFFINITY: Spider creatures can use cards with SPIDER AFFINITY in effect description
+                                      const hasSpiderAffinity = order.effectDescription
+                                        ?.toUpperCase()
+                                        .includes('SPIDER AFFINITY')
+                                      const isSpider = (
+                                        orderCardFilterCreature.creature.type || []
+                                      ).some((t) => t.toLowerCase() === 'spider')
 
-                                    if (!hasAbility && !(hasSpiderAffinity && isSpider)) return false
-                                  }
-                                  return true
-                                })
+                                      if (!hasAbility && !(hasSpiderAffinity && isSpider))
+                                        return false
+                                    }
+                                    return true
+                                  })
                               : player.orderHand.map((order, idx) => ({ order, idx }))
 
                             return filteredCards.length === 0 ? (
@@ -472,11 +540,10 @@ function PlayerPanel({
                               ))
                             )
                           })()
-                        )
-                      )}
+                        ))}
                     </div>
-                </div>
-              )}
+                  </div>
+                )}
             </div>
 
             {/* Vertical Nav Bar - O(1) click handlers
@@ -494,16 +561,22 @@ function PlayerPanel({
                 className={`player-panel-nav-btn ${activeView === 'orders' ? 'active' : ''} ${orderCardFilterCreature ? 'filtered' : ''}`}
                 onClick={() => {
                   // If already on orders view and filter is set, toggle to show all cards
-                  if (activeView === 'orders' && orderCardFilterCreature && onClearOrderCardFilter) {
+                  if (
+                    activeView === 'orders' &&
+                    orderCardFilterCreature &&
+                    onClearOrderCardFilter
+                  ) {
                     onClearOrderCardFilter()
                   } else {
                     setActiveView('orders')
                   }
                 }}
                 disabled={!isHuman}
-                title={orderCardFilterCreature
-                  ? `Filtered for ${orderCardFilterCreature.creature.name} - Click to show all`
-                  : 'Order Cards'}
+                title={
+                  orderCardFilterCreature
+                    ? `Filtered for ${orderCardFilterCreature.creature.name} - Click to show all`
+                    : 'Order Cards'
+                }
               >
                 <GiCardPlay size={20} />
                 {orderCardFilterCreature && <span className="filter-indicator">●</span>}
@@ -514,7 +587,11 @@ function PlayerPanel({
                   className={`player-panel-nav-btn view-mode-toggle ${creatureViewMode === 'ranged' ? 'active' : ''}`}
                   onClick={onCreatureViewModeToggle}
                   disabled={!isHuman}
-                  title={creatureViewMode === 'movement' ? 'Show All Ranged Attack Coverage' : 'Show Movement Range'}
+                  title={
+                    creatureViewMode === 'movement'
+                      ? 'Show All Ranged Attack Coverage'
+                      : 'Show Movement Range'
+                  }
                 >
                   {creatureViewMode === 'movement' ? '🏹' : '👟'}
                 </button>
@@ -573,8 +650,7 @@ function PlayerPanel({
                           <FactionIcon size={20} />
                         </button>
                       )
-                    })
-                  }
+                    })}
                 </>
               )}
             </div>
@@ -599,8 +675,16 @@ function PlayerPanel({
             <Col md={2} className="text-center border-end border-secondary">
               <h5 className="mb-2">
                 {playerId} - {player.faction}
-                {isCurrentPlayer && <Badge bg="success" className="ms-2 d-block mt-2">ACTIVE</Badge>}
-                {!isHuman && <Badge bg="warning" text="dark" className="ms-2 d-block mt-2">AI</Badge>}
+                {isCurrentPlayer && (
+                  <Badge bg="success" className="ms-2 d-block mt-2">
+                    ACTIVE
+                  </Badge>
+                )}
+                {!isHuman && (
+                  <Badge bg="warning" text="dark" className="ms-2 d-block mt-2">
+                    AI
+                  </Badge>
+                )}
               </h5>
               <small className="text-muted d-block mb-3">Commander: {player.commander.name}</small>
 
@@ -609,7 +693,9 @@ function PlayerPanel({
                 <strong className="d-block mb-1">Morale</strong>
                 <ProgressBar
                   now={moralePercentage}
-                  variant={moralePercentage > 50 ? 'success' : moralePercentage > 25 ? 'warning' : 'danger'}
+                  variant={
+                    moralePercentage > 50 ? 'success' : moralePercentage > 25 ? 'warning' : 'danger'
+                  }
                   style={{ height: '25px' }}
                   label={`${safeMorale}`}
                 />
@@ -624,20 +710,22 @@ function PlayerPanel({
                     variant={leadershipPercentage > 80 ? 'danger' : 'info'}
                     style={{ height: '25px' }}
                   />
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.875rem',
-                    fontWeight: 'bold',
-                    color: '#000',
-                    pointerEvents: 'none'
-                  }}>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.875rem',
+                      fontWeight: 'bold',
+                      color: '#000',
+                      pointerEvents: 'none',
+                    }}
+                  >
                     {leadershipUsage}/{player.leadership}
                   </div>
                 </div>
@@ -645,7 +733,9 @@ function PlayerPanel({
 
               {/* Card Counts */}
               <div className="card-counts">
-                <Badge bg="secondary" className="d-block mb-1">In Play: {player.creaturesInPlay.length}</Badge>
+                <Badge bg="secondary" className="d-block mb-1">
+                  In Play: {player.creaturesInPlay.length}
+                </Badge>
               </div>
             </Col>
 

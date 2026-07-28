@@ -117,8 +117,8 @@ export class SimpleAI {
       // Creature MUST have matching type, level/ability requirements are bypassed
       if (card.affinityRequired && card.affinityOverridesRequirements) {
         const creatureTypes = creature.creature.type || []
-        const hasAffinity = creatureTypes.some(t =>
-          t.toUpperCase() === card.affinityRequired.toUpperCase()
+        const hasAffinity = creatureTypes.some(
+          (t) => t.toUpperCase() === card.affinityRequired.toUpperCase()
         )
         if (!hasAffinity) continue // Creature doesn't have required affinity
         // Has affinity - skip level/ability checks below, proceed to other validations
@@ -149,7 +149,7 @@ export class SimpleAI {
           cardIndex: i,
           damageBonus: card.meleeDamageBonus || 0,
           flatDamage: card.flatMeleeDamage !== undefined ? card.flatMeleeDamage : null,
-          isRanged: false
+          isRanged: false,
         })
       } else if (isRangedBoost) {
         // Ranged boost cards require ranged attack
@@ -162,7 +162,7 @@ export class SimpleAI {
           cardIndex: i,
           damageBonus: card.rangedDamageBonus || 0,
           flatDamage: null, // Ranged boost doesn't have flat damage
-          isRanged: true
+          isRanged: true,
         })
       }
     }
@@ -193,17 +193,17 @@ export class SimpleAI {
 
     // Filter cards based on attack type if specified
     const filteredCards = attackType
-      ? availableCards.filter(c => (attackType === 'ranged') === c.isRanged)
+      ? availableCards.filter((c) => (attackType === 'ranged') === c.isRanged)
       : availableCards
 
     if (filteredCards.length === 0) return null
 
     // Calculate base damage based on attack type
     // If attackType not specified, check if cards are ranged or melee
-    const isRangedAttack = attackType === 'ranged' || (filteredCards[0]?.isRanged === true)
+    const isRangedAttack = attackType === 'ranged' || filteredCards[0]?.isRanged === true
     const baseDamage = isRangedAttack
-      ? (attacker.creature.rangedAttack?.damage || 0)
-      : (attacker.creature.meleeAttack?.damage || 0)
+      ? attacker.creature.rangedAttack?.damage || 0
+      : attacker.creature.meleeAttack?.damage || 0
 
     // Don't use a card if target would die from base damage anyway
     if (baseDamage >= defender.currentHP) return null
@@ -233,7 +233,7 @@ export class SimpleAI {
       // Healing is valuable - helps keep creatures alive
       const attackerDamageTaken = attacker.damageTokens || 0
       if (attackerDamageTaken > 0) {
-        const cardsWithHeal = filteredCards.filter(c => c.card?.healOnAttack > 0)
+        const cardsWithHeal = filteredCards.filter((c) => c.card?.healOnAttack > 0)
         if (cardsWithHeal.length > 0) {
           // Sort by heal amount - prefer cards that heal what we need
           cardsWithHeal.sort((a, b) => {
@@ -247,7 +247,7 @@ export class SimpleAI {
 
       // Prefer cards with card draw (Phase STD-3: Slice)
       // Card advantage is valuable, so prioritize cards that draw
-      const cardsWithDraw = filteredCards.filter(c => c.card?.drawCardsOnAttack > 0)
+      const cardsWithDraw = filteredCards.filter((c) => c.card?.drawCardsOnAttack > 0)
       if (cardsWithDraw.length > 0) {
         return cardsWithDraw[0] // Use card with draw effect
       }
@@ -256,7 +256,7 @@ export class SimpleAI {
 
     // Even if target HP is low, still consider using a card with draw effect
     // Card advantage is worth the card spend
-    const cardsWithDraw = filteredCards.filter(c => c.card?.drawCardsOnAttack > 0)
+    const cardsWithDraw = filteredCards.filter((c) => c.card?.drawCardsOnAttack > 0)
     if (cardsWithDraw.length > 0) {
       return cardsWithDraw[0]
     }
@@ -264,8 +264,9 @@ export class SimpleAI {
     // Phase STD-6: Also consider healing cards even on low HP targets
     // If attacker is significantly damaged, healing is valuable
     const attackerDamageTaken = attacker.damageTokens || 0
-    if (attackerDamageTaken >= 20) { // Only if at least 20 damage taken
-      const cardsWithHeal = filteredCards.filter(c => c.card?.healOnAttack > 0)
+    if (attackerDamageTaken >= 20) {
+      // Only if at least 20 damage taken
+      const cardsWithHeal = filteredCards.filter((c) => c.card?.healOnAttack > 0)
       if (cardsWithHeal.length > 0) {
         return cardsWithHeal[0]
       }
@@ -332,16 +333,20 @@ export class SimpleAI {
         meleeDamageBonus: card.meleeDamageBonus || 0,
         rangedDamageBonus: card.rangedDamageBonus || 0,
         flatMeleeDamage: card.flatMeleeDamage !== null ? card.flatMeleeDamage : null,
-        shiftAfterAttack: card.shiftAfterAttack || 0
+        shiftAfterAttack: card.shiftAfterAttack || 0,
       })
     }
 
     // Sort by total damage potential (highest first)
     validCards.sort((a, b) => {
-      const aDamage = a.flatMeleeDamage !== null ? a.flatMeleeDamage :
-        Math.max(a.meleeDamageBonus, a.rangedDamageBonus)
-      const bDamage = b.flatMeleeDamage !== null ? b.flatMeleeDamage :
-        Math.max(b.meleeDamageBonus, b.rangedDamageBonus)
+      const aDamage =
+        a.flatMeleeDamage !== null
+          ? a.flatMeleeDamage
+          : Math.max(a.meleeDamageBonus, a.rangedDamageBonus)
+      const bDamage =
+        b.flatMeleeDamage !== null
+          ? b.flatMeleeDamage
+          : Math.max(b.meleeDamageBonus, b.rangedDamageBonus)
       return bDamage - aDamage
     })
 
@@ -418,9 +423,10 @@ export class SimpleAI {
         }
 
         // Slight preference for targets that would survive normal attack but die to this
-        const normalDamage = attackType === 'melee'
-          ? (creature.creature.meleeAttack?.damage || 0)
-          : (creature.creature.rangedAttack?.damage || 0)
+        const normalDamage =
+          attackType === 'melee'
+            ? creature.creature.meleeAttack?.damage || 0
+            : creature.creature.rangedAttack?.damage || 0
         if (normalDamage < target.currentHP && damage >= target.currentHP) {
           score += 50 // Card made the difference
         }
@@ -435,7 +441,7 @@ export class SimpleAI {
             damage: damage,
             card: card,
             cardIndex: cardInfo.cardIndex,
-            shiftAfterAttack: cardInfo.shiftAfterAttack
+            shiftAfterAttack: cardInfo.shiftAfterAttack,
           }
         }
       }
@@ -491,7 +497,7 @@ export class SimpleAI {
       validCards.push({
         card,
         cardIndex: i,
-        meleeDamageBonus: card.meleeDamageBonus || 0
+        meleeDamageBonus: card.meleeDamageBonus || 0,
       })
     }
 
@@ -530,7 +536,7 @@ export class SimpleAI {
 
       // Check if there's at least one adjacent enemy at this destination
       const adjacentCreatures = this.gameState.getAdjacentCreatures(moveTile.x, moveTile.y)
-      const adjacentEnemies = adjacentCreatures.filter(c => c.owner !== creature.owner)
+      const adjacentEnemies = adjacentCreatures.filter((c) => c.owner !== creature.owner)
 
       if (adjacentEnemies.length === 0) continue
 
@@ -540,7 +546,7 @@ export class SimpleAI {
 
       // Get melee attack targets from new position
       const attackTargets = this.gameState.getValidAttackTargets(creature, null)
-      const meleeTargets = attackTargets.filter(t => t.attackType === 'melee')
+      const meleeTargets = attackTargets.filter((t) => t.attackType === 'melee')
 
       for (const targetInfo of meleeTargets) {
         const target = targetInfo.creature
@@ -568,7 +574,7 @@ export class SimpleAI {
             targetInfo: targetInfo,
             damage: damage,
             card: card,
-            cardIndex: cardInfo.cardIndex
+            cardIndex: cardInfo.cardIndex,
           }
         }
       }
@@ -596,7 +602,10 @@ export class SimpleAI {
     const cardUserOwner = this.playerId
 
     // Get all adjacent tiles (8-directional)
-    const adjacentTiles = this.gameState.getAdjacentTiles8Dir(cardUser.position.x, cardUser.position.y)
+    const adjacentTiles = this.gameState.getAdjacentTiles8Dir(
+      cardUser.position.x,
+      cardUser.position.y
+    )
 
     // Check each player's creatures
     for (const [playerId, player] of Object.entries(this.gameState.players)) {
@@ -607,12 +616,12 @@ export class SimpleAI {
         // Check if creature is tapped AND adjacent to card user
         if (creature.isTapped) {
           const isAdjacent = adjacentTiles.some(
-            tile => tile.x === creature.position.x && tile.y === creature.position.y
+            (tile) => tile.x === creature.position.x && tile.y === creature.position.y
           )
           if (isAdjacent) {
             adjacentTappedEnemies.push({
               creature,
-              owner: playerId
+              owner: playerId,
             })
           }
         }
@@ -634,7 +643,10 @@ export class SimpleAI {
     const ownerPlayerId = creature.owner || this.playerId
 
     // Get all adjacent tiles (8-directional)
-    const adjacentTiles = this.gameState.getAdjacentTiles8Dir(creature.position.x, creature.position.y)
+    const adjacentTiles = this.gameState.getAdjacentTiles8Dir(
+      creature.position.x,
+      creature.position.y
+    )
 
     // Check each player's creatures
     for (const [playerId, player] of Object.entries(this.gameState.players)) {
@@ -643,12 +655,12 @@ export class SimpleAI {
 
       for (const enemyCreature of player.creaturesInPlay) {
         const isAdjacent = adjacentTiles.some(
-          tile => tile.x === enemyCreature.position.x && tile.y === enemyCreature.position.y
+          (tile) => tile.x === enemyCreature.position.x && tile.y === enemyCreature.position.y
         )
         if (isAdjacent) {
           adjacentEnemies.push({
             creature: enemyCreature,
-            owner: playerId
+            owner: playerId,
           })
         }
       }
@@ -810,47 +822,56 @@ export class SimpleAI {
     const phase = this.gameState.currentPhase
 
     switch (phase) {
-      case GamePhases.REFRESH:
-        {
-          const actions = []
+      case GamePhases.REFRESH: {
+        const actions = []
 
-          // Track REGENERATE 10 for creatures with the ability
-          // This happens during REFRESH phase before advancing
-          const player = this.gameState.players[this.playerId]
-          if (player && player.creaturesInPlay) {
-            player.creaturesInPlay.forEach(creature => {
-              if (this.gameState.hasRegenerate && this.gameState.hasRegenerate(creature) && creature.damageTokens > 0) {
-                // AI difficulty check (0/50/100 pattern)
-                const shouldRegenerate = this.shouldUseRegenerate()
+        // Track REGENERATE 10 for creatures with the ability
+        // This happens during REFRESH phase before advancing
+        const player = this.gameState.players[this.playerId]
+        if (player && player.creaturesInPlay) {
+          player.creaturesInPlay.forEach((creature) => {
+            if (
+              this.gameState.hasRegenerate &&
+              this.gameState.hasRegenerate(creature) &&
+              creature.damageTokens > 0
+            ) {
+              // AI difficulty check (0/50/100 pattern)
+              const shouldRegenerate = this.shouldUseRegenerate()
 
-                if (shouldRegenerate) {
-                  const healAmount = Math.min(this.gameState.getRegenerateAmount(creature), creature.damageTokens)
-                  actions.push({
-                    type: 'regenerate_10',
-                    creatureInstance: creature,
-                    result: { healedAmount: healAmount }
-                  })
-                } else {
-                  actions.push({
-                    type: 'regenerate_10_declined',
-                    creatureInstance: creature
-                  })
-                }
+              if (shouldRegenerate) {
+                const healAmount = Math.min(
+                  this.gameState.getRegenerateAmount(creature),
+                  creature.damageTokens
+                )
+                actions.push({
+                  type: 'regenerate_10',
+                  creatureInstance: creature,
+                  result: { healedAmount: healAmount },
+                })
+              } else {
+                actions.push({
+                  type: 'regenerate_10_declined',
+                  creatureInstance: creature,
+                })
               }
-            })
-          }
-
-          // Check for HORDE ability - allows deployment during REFRESH phase
-          if (this.gameState.canDeployDuringRefresh && this.gameState.canDeployDuringRefresh(this.playerId)) {
-            const hordeResult = this.executeDeployPhase(true) // Pass true to indicate HORDE deployment
-            if (hordeResult.actions) {
-              actions.push(...hordeResult.actions)
             }
-            return { action: 'advance', message: 'AI refreshed with HORDE deployment', actions }
-          }
-
-          return { action: 'advance', message: 'AI refreshed', actions }
+          })
         }
+
+        // Check for HORDE ability - allows deployment during REFRESH phase
+        if (
+          this.gameState.canDeployDuringRefresh &&
+          this.gameState.canDeployDuringRefresh(this.playerId)
+        ) {
+          const hordeResult = this.executeDeployPhase(true) // Pass true to indicate HORDE deployment
+          if (hordeResult.actions) {
+            actions.push(...hordeResult.actions)
+          }
+          return { action: 'advance', message: 'AI refreshed with HORDE deployment', actions }
+        }
+
+        return { action: 'advance', message: 'AI refreshed', actions }
+      }
 
       case GamePhases.ACTIVATE:
         return this.executeActivatePhase()
@@ -888,18 +909,18 @@ export class SimpleAI {
     // STRATEGIC: Sort creatures so TAP ON HIT creatures attack FIRST
     // This allows them to disable high-threat enemies before other creatures attack
     const availableCreatures = player.creaturesInPlay
-      .filter(c => !c.isTapped)
+      .filter((c) => !c.isTapped)
       .sort((a, b) => {
         // TAP ON HIT creatures should act first (higher priority)
         const aHasTapOnHit = this.gameState.hasTapOnHit && this.gameState.hasTapOnHit(a)
         const bHasTapOnHit = this.gameState.hasTapOnHit && this.gameState.hasTapOnHit(b)
-        if (aHasTapOnHit && !bHasTapOnHit) return -1  // a goes first
-        if (!aHasTapOnHit && bHasTapOnHit) return 1   // b goes first
-        return 0  // maintain original order for ties
+        if (aHasTapOnHit && !bHasTapOnHit) return -1 // a goes first
+        if (!aHasTapOnHit && bHasTapOnHit) return 1 // b goes first
+        return 0 // maintain original order for ties
       })
 
     // O(T) - Check if there are any treasures with morale remaining on the board
-    const hasTreasuresAvailable = this.gameState.treasures?.some(t => !t.isDepleted()) || false
+    const hasTreasuresAvailable = this.gameState.treasures?.some((t) => !t.isDepleted()) || false
 
     // ============================================================================
     // ORDER CARDS: Check for Web cards to use (0/0/100 pattern - Hard only)
@@ -922,7 +943,7 @@ export class SimpleAI {
             casterInstance: opportunity.caster,
             targetInstance: opportunity.target,
             webCard: opportunity.webCard,
-            reason: `${this.difficulty} AI does not use order cards`
+            reason: `${this.difficulty} AI does not use order cards`,
           })
         }
       }
@@ -974,7 +995,7 @@ export class SimpleAI {
             actions.push({
               type: 'web_removal',
               creatureInstance: creature,
-              reason: shouldRemove.reason
+              reason: shouldRemove.reason,
             })
             logger.ai(`Removed Web from ${creature.creature.name}: ${shouldRemove.reason}`)
             // Creature can still move after removing web!
@@ -1007,7 +1028,7 @@ export class SimpleAI {
             creature: creature.creature.name,
             position: { x: creature.position.x, y: creature.position.y },
             moraleCollected: result.moraleCollected,
-            treasureDepleted: result.treasureDepleted
+            treasureDepleted: result.treasureDepleted,
           })
           didAction = true
           // DON'T continue - creature can still move after collecting morale!
@@ -1019,22 +1040,26 @@ export class SimpleAI {
       // Easy: Never use (0%), Medium: 50% chance, Hard: Always use (100%)
       // Strategy: Heal if target <50% HP, else remove attached cards if any
       // ============================================
-      if (!creature.hasAttackedThisTurn && this.canUseCreatureAbilities() && this.gameState.hasHealingTouch(creature)) {
+      if (
+        !creature.hasAttackedThisTurn &&
+        this.canUseCreatureAbilities() &&
+        this.gameState.hasHealingTouch(creature)
+      ) {
         const useChance = this.difficulty === 'hard' ? 1.0 : 0.5
         if (Math.random() < useChance) {
           const healingResult = this.tryHealingTouch(creature)
           if (healingResult) {
             actions.push(healingResult)
             didAction = true
-            hasAttackIntention = true  // Used standard action - can't attack now
-            continue  // Move to next creature
+            hasAttackIntention = true // Used standard action - can't attack now
+            continue // Move to next creature
           }
         } else {
           // Track declined opportunity
           actions.push({
             type: 'healing_touch_declined',
             creatureInstance: creature,
-            reason: `${this.difficulty} AI skipped (50% roll failed)`
+            reason: `${this.difficulty} AI skipped (50% roll failed)`,
           })
         }
       }
@@ -1052,9 +1077,10 @@ export class SimpleAI {
             const gazeTargets = this.gameState.getConfusionGazeTargets(creature)
             if (gazeTargets.length > 0) {
               // Select weakest target for CONFUSION GAZE
-              const target = gazeTargets.reduce((weakest, current) =>
-                current.currentHP < weakest.currentHP ? current : weakest
-              , gazeTargets[0])
+              const target = gazeTargets.reduce(
+                (weakest, current) => (current.currentHP < weakest.currentHP ? current : weakest),
+                gazeTargets[0]
+              )
 
               // Get valid slide destinations
               const slideTiles = this.gameState.getValidSlideTiles(target, 3)
@@ -1066,11 +1092,11 @@ export class SimpleAI {
                   type: 'confusion_gaze',
                   attackerInstance: creature,
                   target: target,
-                  slideDestination: slideDestination
+                  slideDestination: slideDestination,
                 })
                 didAction = true
-                hasAttackIntention = true  // Counts as attack action
-                continue  // Don't fall through to normal attack
+                hasAttackIntention = true // Counts as attack action
+                continue // Don't fall through to normal attack
               }
             }
           }
@@ -1094,23 +1120,25 @@ export class SimpleAI {
               const sortedTargets = [...lightningTargets].sort((a, b) => a.currentHP - b.currentHP)
               const selectedTargets = sortedTargets.slice(0, 3)
 
-              logger.ai(`LIGHTNING BREATH: ${creature.creature.name} targeting ${selectedTargets.map(t => t.creature.name).join(', ')}`)
+              logger.ai(
+                `LIGHTNING BREATH: ${creature.creature.name} targeting ${selectedTargets.map((t) => t.creature.name).join(', ')}`
+              )
 
               actions.push({
                 type: 'lightning_breath',
                 attackerInstance: creature,
                 targets: selectedTargets,
-                damage: this.gameState.getLightningBreathDamage(creature)
+                damage: this.gameState.getLightningBreathDamage(creature),
               })
               didAction = true
-              hasAttackIntention = true  // Counts as attack action
-              continue  // Don't fall through to normal attack
+              hasAttackIntention = true // Counts as attack action
+              continue // Don't fall through to normal attack
             } else {
               // Track declined opportunity for stats
               actions.push({
                 type: 'lightning_breath_declined',
                 attackerInstance: creature,
-                validTargetCount: lightningTargets.length
+                validTargetCount: lightningTargets.length,
               })
             }
           }
@@ -1126,10 +1154,22 @@ export class SimpleAI {
           let damageBoostBonus = 0
           let damageBoostFlat = null
 
-          if (this.canUseDamageBoostCards() && (target.attackType === 'melee' || target.attackType === 'ranged')) {
+          if (
+            this.canUseDamageBoostCards() &&
+            (target.attackType === 'melee' || target.attackType === 'ranged')
+          ) {
             const player = this.gameState.players[this.playerId]
-            const availableCards = this.getDamageBoostCards(creature, player.orderHand, target.attackType)
-            const selectedCard = this.selectBestDamageBoostCard(creature, target.creature, availableCards, target.attackType)
+            const availableCards = this.getDamageBoostCards(
+              creature,
+              player.orderHand,
+              target.attackType
+            )
+            const selectedCard = this.selectBestDamageBoostCard(
+              creature,
+              target.creature,
+              availableCards,
+              target.attackType
+            )
 
             if (selectedCard) {
               damageBoostCard = selectedCard.card
@@ -1145,10 +1185,10 @@ export class SimpleAI {
             targetInfo: target,
             damageBoostCard,
             damageBoostBonus,
-            damageBoostFlat
+            damageBoostFlat,
           })
           didAction = true
-          hasAttackIntention = true  // FIX: Mark that we created an attack intention
+          hasAttackIntention = true // FIX: Mark that we created an attack intention
           // DON'T continue - creature can still move after attacking!
         } else if (this.canUseDamageBoostCards()) {
           // No attack targets from current position - check if SHIFT+ATTACK cards can reach targets
@@ -1167,7 +1207,9 @@ export class SimpleAI {
             }
 
             if (bestShiftAttack) {
-              logger.ai(`SHIFT+ATTACK: ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`)
+              logger.ai(
+                `SHIFT+ATTACK: ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`
+              )
 
               actions.push({
                 type: 'shift_attack',
@@ -1178,11 +1220,11 @@ export class SimpleAI {
                 card: bestShiftAttack.card,
                 cardIndex: bestShiftAttack.cardIndex,
                 damage: bestShiftAttack.damage,
-                shiftAfterAttack: bestShiftAttack.shiftAfterAttack
+                shiftAfterAttack: bestShiftAttack.shiftAfterAttack,
               })
               didAction = true
               hasAttackIntention = true
-              continue  // Don't fall through - shift+attack consumes action
+              continue // Don't fall through - shift+attack consumes action
             }
           }
 
@@ -1202,7 +1244,9 @@ export class SimpleAI {
               }
 
               if (bestCharge) {
-                logger.ai(`CHARGE: ${creature.creature.name} using ${bestCharge.card.name} - move to (${bestCharge.moveTo.x},${bestCharge.moveTo.y}) then melee attack ${bestCharge.target.creature.name}`)
+                logger.ai(
+                  `CHARGE: ${creature.creature.name} using ${bestCharge.card.name} - move to (${bestCharge.moveTo.x},${bestCharge.moveTo.y}) then melee attack ${bestCharge.target.creature.name}`
+                )
 
                 actions.push({
                   type: 'charge_attack',
@@ -1211,11 +1255,11 @@ export class SimpleAI {
                   moveTo: bestCharge.moveTo,
                   card: bestCharge.card,
                   cardIndex: bestCharge.cardIndex,
-                  damage: bestCharge.damage
+                  damage: bestCharge.damage,
                 })
                 didAction = true
                 hasAttackIntention = true
-                continue  // Don't fall through - charge consumes movement + action
+                continue // Don't fall through - charge consumes movement + action
               }
             }
           }
@@ -1247,7 +1291,7 @@ export class SimpleAI {
             to: moveResult.to,
             isFlying: moveResult.isFlying,
             terrainTypes: moveResult.terrainTypes,
-            cost: moveResult.cost
+            cost: moveResult.cost,
           })
           didMove = true
         }
@@ -1269,10 +1313,22 @@ export class SimpleAI {
           let damageBoostBonus = 0
           let damageBoostFlat = null
 
-          if (this.canUseDamageBoostCards() && (target.attackType === 'melee' || target.attackType === 'ranged')) {
+          if (
+            this.canUseDamageBoostCards() &&
+            (target.attackType === 'melee' || target.attackType === 'ranged')
+          ) {
             const player = this.gameState.players[this.playerId]
-            const availableCards = this.getDamageBoostCards(creature, player.orderHand, target.attackType)
-            const selectedCard = this.selectBestDamageBoostCard(creature, target.creature, availableCards, target.attackType)
+            const availableCards = this.getDamageBoostCards(
+              creature,
+              player.orderHand,
+              target.attackType
+            )
+            const selectedCard = this.selectBestDamageBoostCard(
+              creature,
+              target.creature,
+              availableCards,
+              target.attackType
+            )
 
             if (selectedCard) {
               damageBoostCard = selectedCard.card
@@ -1288,10 +1344,10 @@ export class SimpleAI {
             targetInfo: target,
             damageBoostCard,
             damageBoostBonus,
-            damageBoostFlat
+            damageBoostFlat,
           })
           didAction = true
-          hasAttackIntention = true  // FIX: Mark that we created an attack intention
+          hasAttackIntention = true // FIX: Mark that we created an attack intention
         } else if (this.canUseDamageBoostCards()) {
           // No attack targets after moving - check if SHIFT+ATTACK cards can reach targets
           // Phase STD-4: Nimble Strike, Spring Attack, Shadowy Ambush
@@ -1309,7 +1365,9 @@ export class SimpleAI {
             }
 
             if (bestShiftAttack) {
-              logger.ai(`SHIFT+ATTACK (post-move): ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`)
+              logger.ai(
+                `SHIFT+ATTACK (post-move): ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`
+              )
 
               actions.push({
                 type: 'shift_attack',
@@ -1320,7 +1378,7 @@ export class SimpleAI {
                 card: bestShiftAttack.card,
                 cardIndex: bestShiftAttack.cardIndex,
                 damage: bestShiftAttack.damage,
-                shiftAfterAttack: bestShiftAttack.shiftAfterAttack
+                shiftAfterAttack: bestShiftAttack.shiftAfterAttack,
               })
               didAction = true
               hasAttackIntention = true
@@ -1337,7 +1395,7 @@ export class SimpleAI {
     return {
       action: 'advance',
       message: `AI performed ${actions.length} action(s)`,
-      actions
+      actions,
     }
   }
 
@@ -1359,15 +1417,19 @@ export class SimpleAI {
     // to check occupancy. startingZoneTiles contains {x, y} objects, not tile refs.
     // Filter to only unoccupied tiles by checking the actual board tile
     const startingZoneTiles = player.startingZoneTiles
-      .map(coord => this.gameState.getTile(coord.x, coord.y))
-      .filter(tile => tile && !tile.occupant)
+      .map((coord) => this.gameState.getTile(coord.x, coord.y))
+      .filter((tile) => tile && !tile.occupant)
 
     // Check for ORC SCOUT ability - can deploy one Orc to treasure tile on turn 1
-    if (this.gameState.turnNumber === 1 &&
-        this.gameState.canUseOrcScout &&
-        this.gameState.canUseOrcScout(this.playerId)) {
-      const treasureTiles = this.gameState.getOrcScoutValidTiles ? this.gameState.getOrcScoutValidTiles() : []
-      const orcsInHand = player.creatureHand.filter(c => c.type && c.type.includes('Orc'))
+    if (
+      this.gameState.turnNumber === 1 &&
+      this.gameState.canUseOrcScout &&
+      this.gameState.canUseOrcScout(this.playerId)
+    ) {
+      const treasureTiles = this.gameState.getOrcScoutValidTiles
+        ? this.gameState.getOrcScoutValidTiles()
+        : []
+      const orcsInHand = player.creatureHand.filter((c) => c.type && c.type.includes('Orc'))
 
       if (treasureTiles.length > 0 && orcsInHand.length > 0 && Math.random() < 0.7) {
         // 70% chance to use ORC SCOUT
@@ -1394,7 +1456,7 @@ export class SimpleAI {
             creature: orcCard.name,
             creatureTypes: orcCard.type || [],
             position: { x: treasureTile.x, y: treasureTile.y },
-            isOrcScout: true
+            isOrcScout: true,
           })
         }
       }
@@ -1411,22 +1473,22 @@ export class SimpleAI {
 
         // Need a tile to deploy to - use starting zone
         const availableStartingZoneTiles = player.startingZoneTiles
-          .map(coord => this.gameState.getTile(coord.x, coord.y))
-          .filter(tile => tile && !tile.occupant)
+          .map((coord) => this.gameState.getTile(coord.x, coord.y))
+          .filter((tile) => tile && !tile.occupant)
 
-        if (availableStartingZoneTiles.length === 0) break  // No tiles available
+        if (availableStartingZoneTiles.length === 0) break // No tiles available
 
         // Difficulty-based decision to use GRAVEYARD DEPLOY
         let shouldResurrect = false
         switch (this.difficulty) {
           case 'easy':
-            shouldResurrect = false  // Easy AI never uses GRAVEYARD DEPLOY
+            shouldResurrect = false // Easy AI never uses GRAVEYARD DEPLOY
             break
           case 'medium':
-            shouldResurrect = Math.random() < 0.5  // Medium AI uses 50% of the time
+            shouldResurrect = Math.random() < 0.5 // Medium AI uses 50% of the time
             break
           case 'hard':
-            shouldResurrect = true  // Hard AI always resurrects if possible
+            shouldResurrect = true // Hard AI always resurrects if possible
             break
         }
 
@@ -1435,13 +1497,14 @@ export class SimpleAI {
           actions.push({
             type: 'graveyardDeclined',
             creature: creature.name,
-            creatureTypes: creature.type || []
+            creatureTypes: creature.type || [],
           })
           continue
         }
 
         // Pick a random starting zone tile
-        const deployTile = availableStartingZoneTiles[Math.floor(Math.random() * availableStartingZoneTiles.length)]
+        const deployTile =
+          availableStartingZoneTiles[Math.floor(Math.random() * availableStartingZoneTiles.length)]
 
         // Deploy the creature from graveyard
         const creatureInstance = new CreatureInstance(creature, this.playerId)
@@ -1459,7 +1522,7 @@ export class SimpleAI {
           creature: creature.name,
           creatureTypes: creature.type || [],
           position: { x: deployTile.x, y: deployTile.y },
-          isGraveyardDeploy: true
+          isGraveyardDeploy: true,
         })
       }
     }
@@ -1481,13 +1544,13 @@ export class SimpleAI {
         let useShadowStalker = false
         switch (this.difficulty) {
           case 'easy':
-            useShadowStalker = false  // Easy AI never uses SHADOW STALKER
+            useShadowStalker = false // Easy AI never uses SHADOW STALKER
             break
           case 'medium':
-            useShadowStalker = Math.random() < 0.5  // Medium AI uses 50% of the time
+            useShadowStalker = Math.random() < 0.5 // Medium AI uses 50% of the time
             break
           case 'hard':
-            useShadowStalker = true  // Hard AI always uses SHADOW STALKER
+            useShadowStalker = true // Hard AI always uses SHADOW STALKER
             break
         }
 
@@ -1503,20 +1566,25 @@ export class SimpleAI {
 
       // SUMMON SPIDER: Check if Spider creature can deploy near Drow Priestess
       let isSummonSpiderDeploy = false
-      if (!deployTile && this.gameState.isSpiderCreature && this.gameState.isSpiderCreature(creatureCard)) {
-        const priestess = this.gameState.hasSummonSpider && this.gameState.hasSummonSpider(this.playerId)
+      if (
+        !deployTile &&
+        this.gameState.isSpiderCreature &&
+        this.gameState.isSpiderCreature(creatureCard)
+      ) {
+        const priestess =
+          this.gameState.hasSummonSpider && this.gameState.hasSummonSpider(this.playerId)
         if (priestess) {
           // Difficulty-based decision to use SUMMON SPIDER
           let useSummonSpider = false
           switch (this.difficulty) {
             case 'easy':
-              useSummonSpider = false  // Easy AI never uses SUMMON SPIDER
+              useSummonSpider = false // Easy AI never uses SUMMON SPIDER
               break
             case 'medium':
-              useSummonSpider = Math.random() < 0.5  // Medium AI uses 50% of the time
+              useSummonSpider = Math.random() < 0.5 // Medium AI uses 50% of the time
               break
             case 'hard':
-              useSummonSpider = true  // Hard AI always uses SUMMON SPIDER
+              useSummonSpider = true // Hard AI always uses SUMMON SPIDER
               break
           }
 
@@ -1525,8 +1593,8 @@ export class SimpleAI {
 
             // Hard AI: Avoid water and difficult terrain
             if (this.difficulty === 'hard' && summonSpiderTiles.length > 0) {
-              const safeTiles = summonSpiderTiles.filter(t =>
-                t.tile.terrain !== 'WATER' && t.tile.terrain !== 'DIFFICULT'
+              const safeTiles = summonSpiderTiles.filter(
+                (t) => t.tile.terrain !== 'WATER' && t.tile.terrain !== 'DIFFICULT'
               )
               if (safeTiles.length > 0) {
                 summonSpiderTiles = safeTiles
@@ -1536,7 +1604,8 @@ export class SimpleAI {
 
             if (summonSpiderTiles.length > 0) {
               // Pick a random tile near Priestess
-              const randomTile = summonSpiderTiles[Math.floor(Math.random() * summonSpiderTiles.length)]
+              const randomTile =
+                summonSpiderTiles[Math.floor(Math.random() * summonSpiderTiles.length)]
               deployTile = randomTile.tile
               isSummonSpiderDeploy = true
             }
@@ -1546,20 +1615,26 @@ export class SimpleAI {
 
       // LICH NECROMANCER: Check if Undead creature can deploy adjacent to Lich
       let isLichNecromancerDeploy = false
-      if (!deployTile && this.gameState.isUndeadCreature && this.gameState.isUndeadCreature(creatureCard)) {
-        const lich = this.gameState.hasLichNecromancerDeploy && this.gameState.hasLichNecromancerDeploy(this.playerId)
+      if (
+        !deployTile &&
+        this.gameState.isUndeadCreature &&
+        this.gameState.isUndeadCreature(creatureCard)
+      ) {
+        const lich =
+          this.gameState.hasLichNecromancerDeploy &&
+          this.gameState.hasLichNecromancerDeploy(this.playerId)
         if (lich) {
           // Difficulty-based decision to use LICH NECROMANCER deploy
           let useLichDeploy = false
           switch (this.difficulty) {
             case 'easy':
-              useLichDeploy = false  // Easy AI never uses LICH NECROMANCER deploy
+              useLichDeploy = false // Easy AI never uses LICH NECROMANCER deploy
               break
             case 'medium':
-              useLichDeploy = Math.random() < 0.5  // Medium AI uses 50% of the time
+              useLichDeploy = Math.random() < 0.5 // Medium AI uses 50% of the time
               break
             case 'hard':
-              useLichDeploy = true  // Hard AI always uses LICH NECROMANCER deploy
+              useLichDeploy = true // Hard AI always uses LICH NECROMANCER deploy
               break
           }
 
@@ -1568,8 +1643,8 @@ export class SimpleAI {
 
             // Hard AI: Avoid water and difficult terrain
             if (this.difficulty === 'hard' && lichTiles.length > 0) {
-              const safeTiles = lichTiles.filter(t =>
-                t.tile.terrain !== 'WATER' && t.tile.terrain !== 'DIFFICULT'
+              const safeTiles = lichTiles.filter(
+                (t) => t.tile.terrain !== 'WATER' && t.tile.terrain !== 'DIFFICULT'
               )
               if (safeTiles.length > 0) {
                 lichTiles = safeTiles
@@ -1589,13 +1664,18 @@ export class SimpleAI {
 
       // ORC DRUID: Check if Beast/Elemental creature can deploy adjacent to Orc Druid
       let isOrcDruidDeploy = false
-      if (!deployTile && this.gameState.isBeastOrElementalCreature && this.gameState.isBeastOrElementalCreature(creatureCard)) {
-        const druid = this.gameState.hasOrcDruidDeploy && this.gameState.hasOrcDruidDeploy(this.playerId)
+      if (
+        !deployTile &&
+        this.gameState.isBeastOrElementalCreature &&
+        this.gameState.isBeastOrElementalCreature(creatureCard)
+      ) {
+        const druid =
+          this.gameState.hasOrcDruidDeploy && this.gameState.hasOrcDruidDeploy(this.playerId)
         if (druid) {
           // Track ability offer for statistics
           // Note: CLI test uses gruumsh.orc_druid_deploy, UI test uses orc_druid_deploy directly
-          const druidStats = this.trackStats?.gruumsh?.orc_druid_deploy
-            || this.trackStats?.orc_druid_deploy
+          const druidStats =
+            this.trackStats?.gruumsh?.orc_druid_deploy || this.trackStats?.orc_druid_deploy
           if (druidStats) {
             druidStats.timesOffered++
             const diffKey = this.difficulty
@@ -1608,13 +1688,13 @@ export class SimpleAI {
           let useDruidDeploy = false
           switch (this.difficulty) {
             case 'easy':
-              useDruidDeploy = false  // Easy AI never uses ORC DRUID deploy (0%)
+              useDruidDeploy = false // Easy AI never uses ORC DRUID deploy (0%)
               break
             case 'medium':
-              useDruidDeploy = Math.random() < 0.5  // Medium AI uses 50% of the time
+              useDruidDeploy = Math.random() < 0.5 // Medium AI uses 50% of the time
               break
             case 'hard':
-              useDruidDeploy = true  // Hard AI always uses ORC DRUID deploy (100%)
+              useDruidDeploy = true // Hard AI always uses ORC DRUID deploy (100%)
               break
           }
 
@@ -1623,8 +1703,8 @@ export class SimpleAI {
 
             // Hard AI: Avoid water and difficult terrain
             if (this.difficulty === 'hard' && druidTiles.length > 0) {
-              const safeTiles = druidTiles.filter(t =>
-                t.tile.terrain !== 'WATER' && t.tile.terrain !== 'DIFFICULT'
+              const safeTiles = druidTiles.filter(
+                (t) => t.tile.terrain !== 'WATER' && t.tile.terrain !== 'DIFFICULT'
               )
               if (safeTiles.length > 0) {
                 druidTiles = safeTiles
@@ -1660,18 +1740,22 @@ export class SimpleAI {
 
       // ARCANE PORTAL: Check if War Wizard can deploy to any Magic Circle tile
       let isArcanePortalDeploy = false
-      if (!deployTile && this.gameState.hasArcanePortal && this.gameState.hasArcanePortal(creatureCard)) {
+      if (
+        !deployTile &&
+        this.gameState.hasArcanePortal &&
+        this.gameState.hasArcanePortal(creatureCard)
+      ) {
         // Difficulty-based decision to use ARCANE PORTAL (0/50/100 pattern)
         let useArcanePortal = false
         switch (this.difficulty) {
           case 'easy':
-            useArcanePortal = false  // Easy AI never uses ARCANE PORTAL (0%)
+            useArcanePortal = false // Easy AI never uses ARCANE PORTAL (0%)
             break
           case 'medium':
-            useArcanePortal = Math.random() < 0.5  // Medium AI uses 50% of the time
+            useArcanePortal = Math.random() < 0.5 // Medium AI uses 50% of the time
             break
           case 'hard':
-            useArcanePortal = true  // Hard AI always uses ARCANE PORTAL (100%)
+            useArcanePortal = true // Hard AI always uses ARCANE PORTAL (100%)
             break
         }
 
@@ -1720,20 +1804,23 @@ export class SimpleAI {
         isSummonSpider: isSummonSpiderDeploy,
         isLichNecromancer: isLichNecromancerDeploy,
         isOrcDruid: isOrcDruidDeploy,
-        isArcanePortalDeploy: isArcanePortalDeploy
+        isArcanePortalDeploy: isArcanePortalDeploy,
       })
 
       // ============================================
       // CHIEFTAIN CALL - Orc Chieftain's on-deploy ability
       // Deploys an additional Orc (Level 3 or lower) for free
       // ============================================
-      if (this.gameState.shouldTriggerChieftainCall && this.gameState.shouldTriggerChieftainCall(creatureInstance)) {
+      if (
+        this.gameState.shouldTriggerChieftainCall &&
+        this.gameState.shouldTriggerChieftainCall(creatureInstance)
+      ) {
         const eligibleOrcs = this.gameState.getEligibleOrcsForChieftainCall(this.playerId)
 
         // Track ability offer for statistics ONLY when there are eligible Orcs
         // Note: CLI test uses gruumsh.chieftain_call, UI test uses chieftain_call directly
-        const chieftainStats = this.trackStats?.gruumsh?.chieftain_call
-          || this.trackStats?.chieftain_call
+        const chieftainStats =
+          this.trackStats?.gruumsh?.chieftain_call || this.trackStats?.chieftain_call
         if (chieftainStats && eligibleOrcs.length > 0) {
           chieftainStats.timesOffered++
           const diffKey = this.difficulty
@@ -1746,20 +1833,25 @@ export class SimpleAI {
 
         if (selectedOrc) {
           // Find a valid deployment tile for the bonus creature
-          const bonusDeployTile = startingZoneTiles.length > 0
-            ? startingZoneTiles.splice(Math.floor(Math.random() * startingZoneTiles.length), 1)[0]
-            : null
+          const bonusDeployTile =
+            startingZoneTiles.length > 0
+              ? startingZoneTiles.splice(Math.floor(Math.random() * startingZoneTiles.length), 1)[0]
+              : null
 
           if (bonusDeployTile) {
             const deployPosition = { x: bonusDeployTile.x, y: bonusDeployTile.y }
-            const result = this.gameState.executeChieftainCall(this.playerId, selectedOrc, deployPosition)
+            const result = this.gameState.executeChieftainCall(
+              this.playerId,
+              selectedOrc,
+              deployPosition
+            )
 
             if (result.success) {
               actions.push({
                 type: 'chieftain_call',
                 creature: selectedOrc.name,
                 leadershipGained: result.leadershipGained,
-                position: deployPosition
+                position: deployPosition,
               })
 
               // Track ability usage for statistics
@@ -1808,9 +1900,12 @@ export class SimpleAI {
       // OGRE DEPLOY MORALE - Ogre's on-deploy ability
       // Gains 1 MORALE when deployed (uses 0/50/100 rule)
       // ============================================
-      if (this.gameState.shouldTriggerOgreDeployMorale && this.gameState.shouldTriggerOgreDeployMorale(creatureInstance)) {
-        const ogreStats = this.trackStats?.gruumsh?.ogre_deploy_morale
-          || this.trackStats?.ogre_deploy_morale
+      if (
+        this.gameState.shouldTriggerOgreDeployMorale &&
+        this.gameState.shouldTriggerOgreDeployMorale(creatureInstance)
+      ) {
+        const ogreStats =
+          this.trackStats?.gruumsh?.ogre_deploy_morale || this.trackStats?.ogre_deploy_morale
 
         // Track ability offer for statistics
         if (ogreStats) {
@@ -1829,7 +1924,7 @@ export class SimpleAI {
           actions.push({
             type: 'ogre_deploy_morale',
             creature: creatureCard.name,
-            moraleGained: 1
+            moraleGained: 1,
           })
 
           // Track ability usage for statistics
@@ -1857,9 +1952,13 @@ export class SimpleAI {
       // ORC CLERIC DEPLOY DRAW ORDER - Orc Cleric of Gruumsh's on-deploy ability
       // Draws 1 Order card when deployed (uses 0/50/100 rule)
       // ============================================
-      if (this.gameState.shouldTriggerClericDeployDrawOrder && this.gameState.shouldTriggerClericDeployDrawOrder(creatureInstance)) {
-        const clericStats = this.trackStats?.gruumsh?.cleric_deploy_draw_order
-          || this.trackStats?.cleric_deploy_draw_order
+      if (
+        this.gameState.shouldTriggerClericDeployDrawOrder &&
+        this.gameState.shouldTriggerClericDeployDrawOrder(creatureInstance)
+      ) {
+        const clericStats =
+          this.trackStats?.gruumsh?.cleric_deploy_draw_order ||
+          this.trackStats?.cleric_deploy_draw_order
 
         // Track ability offer for statistics
         if (clericStats) {
@@ -1879,7 +1978,7 @@ export class SimpleAI {
           actions.push({
             type: 'cleric_deploy_draw_order',
             creature: creatureCard.name,
-            cardDrawn: drawnCard.name
+            cardDrawn: drawnCard.name,
           })
 
           // Track ability usage for statistics
@@ -1909,7 +2008,7 @@ export class SimpleAI {
     return {
       action: 'advance',
       message: `AI deployed ${actions.length} creature(s)${isHordeDeploy ? ' (HORDE)' : ''}`,
-      actions
+      actions,
     }
   }
 
@@ -1926,13 +2025,13 @@ export class SimpleAI {
     if (this.difficulty === 'hard' && this.gameState.hasUntapOnAdjacentKill) {
       // Find any tapped Bugbear Berserkers we control
       const player = this.gameState.players[this.playerId]
-      const tappedBugbears = player.creaturesInPlay.filter(c =>
-        c.isTapped && this.gameState.hasUntapOnAdjacentKill(c)
+      const tappedBugbears = player.creaturesInPlay.filter(
+        (c) => c.isTapped && this.gameState.hasUntapOnAdjacentKill(c)
       )
 
       if (tappedBugbears.length > 0) {
         // Score each target based on potential untap benefit
-        const scoredTargets = targets.map(target => {
+        const scoredTargets = targets.map((target) => {
           let score = 0
           const targetPos = target.creature.position
 
@@ -1951,7 +2050,7 @@ export class SimpleAI {
 
           // Factor in HP - lower HP = higher kill chance = higher score
           // Invert HP so lower HP gives higher score
-          score += (200 - target.creature.currentHP)
+          score += 200 - target.creature.currentHP
 
           return { target, score }
         })
@@ -1962,7 +2061,9 @@ export class SimpleAI {
         if (scoredTargets.length > 0 && scoredTargets[0].score > 0) {
           const bestTarget = scoredTargets[0]
           if (bestTarget.score >= 50) {
-            logger.ai(`HARD: UNTAP ON KILL: Prioritizing target ${bestTarget.target.creature.creature.name} adjacent to tapped Bugbear (score: ${bestTarget.score})`)
+            logger.ai(
+              `HARD: UNTAP ON KILL: Prioritizing target ${bestTarget.target.creature.creature.name} adjacent to tapped Bugbear (score: ${bestTarget.score})`
+            )
           }
           return bestTarget.target
         }
@@ -1973,9 +2074,8 @@ export class SimpleAI {
     // STRATEGIC PRIORITY: Attack the STRONGEST untapped target that will SURVIVE the attack!
     // Reason: TAP ON HIT is automatic - tapping a high-HP threat neutralizes them.
     // Killing a low-HP target wastes the tap effect since dead creatures can't be tapped.
-    const attackerHasTapOnHit = attackerInstance &&
-      this.gameState.hasTapOnHit &&
-      this.gameState.hasTapOnHit(attackerInstance)
+    const attackerHasTapOnHit =
+      attackerInstance && this.gameState.hasTapOnHit && this.gameState.hasTapOnHit(attackerInstance)
 
     // TAP ON HIT targeting is ALWAYS enabled for creatures with the ability
     // Unlike other abilities, this is automatic and the strategic value is inherent
@@ -1987,11 +2087,11 @@ export class SimpleAI {
       const attackerDamage = attackerInstance.creature.meleeAttack?.damage || 0
 
       // Filter to untapped targets - tapping already-tapped targets has no value
-      const untappedTargets = targets.filter(t => !t.creature.isTapped)
+      const untappedTargets = targets.filter((t) => !t.creature.isTapped)
 
       // Further filter to targets that will SURVIVE the attack (HP > damage)
       // This ensures TAP ON HIT actually triggers (taps the target)
-      const survivingTargets = untappedTargets.filter(t => t.creature.currentHP > attackerDamage)
+      const survivingTargets = untappedTargets.filter((t) => t.creature.currentHP > attackerDamage)
 
       if (shouldUseTapOnHitAbility && survivingTargets.length > 0) {
         // Hard/Medium AI: Pick the STRONGEST surviving target to maximize tap value
@@ -2016,13 +2116,17 @@ export class SimpleAI {
     // REACH consideration: When attacking with reach, apply 0/50/100 AI difficulty pattern
     // Easy AI (0%) = always prefers adjacent, Medium AI (50%) = random, Hard AI (100%) = prefers reach for safety
     const shouldUseReachAbility = this.shouldUseReach()
-    const reachTargets = targets.filter(t => t.isReachAttack)
-    const adjacentTargets = targets.filter(t => !t.isReachAttack)
+    const reachTargets = targets.filter((t) => t.isReachAttack)
+    const adjacentTargets = targets.filter((t) => !t.isReachAttack)
 
     // Only apply REACH preference logic if we have BOTH reach and adjacent options
     if (reachTargets.length > 0 && adjacentTargets.length > 0) {
-      const weakestReach = reachTargets.reduce((w, c) => c.creature.currentHP < w.creature.currentHP ? c : w)
-      const weakestAdjacent = adjacentTargets.reduce((w, c) => c.creature.currentHP < w.creature.currentHP ? c : w)
+      const weakestReach = reachTargets.reduce((w, c) =>
+        c.creature.currentHP < w.creature.currentHP ? c : w
+      )
+      const weakestAdjacent = adjacentTargets.reduce((w, c) =>
+        c.creature.currentHP < w.creature.currentHP ? c : w
+      )
 
       if (shouldUseReachAbility) {
         // Hard/Medium AI: Prefer reach for safety (if targets have similar HP)
@@ -2032,7 +2136,7 @@ export class SimpleAI {
             offered: true,
             triggered: true,
             declined: false,
-            difficulty: this.difficulty
+            difficulty: this.difficulty,
           }
           return weakestReach
         } else {
@@ -2042,7 +2146,7 @@ export class SimpleAI {
             triggered: false,
             declined: true,
             difficulty: this.difficulty,
-            reason: 'hp_difference'
+            reason: 'hp_difference',
           }
           return weakestAdjacent
         }
@@ -2054,7 +2158,7 @@ export class SimpleAI {
           triggered: false,
           declined: true,
           difficulty: this.difficulty,
-          reason: 'easy_ai_0_percent'
+          reason: 'easy_ai_0_percent',
         }
         return weakestAdjacent
       }
@@ -2091,7 +2195,8 @@ export class SimpleAI {
       for (const creature of friendlyCreatures) {
         if (creature.position) {
           // Manhattan distance
-          totalDist += Math.abs(tile.x - creature.position.x) + Math.abs(tile.y - creature.position.y)
+          totalDist +=
+            Math.abs(tile.x - creature.position.x) + Math.abs(tile.y - creature.position.y)
         }
       }
       if (totalDist < bestDistance) {
@@ -2116,7 +2221,7 @@ export class SimpleAI {
     if (targets.length === 0) return null
 
     // Priority 1: Find targets that need healing (<50% HP)
-    const needsHealing = targets.filter(t => {
+    const needsHealing = targets.filter((t) => {
       const hpPercent = t.currentHP / t.creature.hitPoints
       return hpPercent < 0.5 && t.damageTokens > 0
     })
@@ -2131,35 +2236,37 @@ export class SimpleAI {
 
       const result = this.gameState.executeHealingTouch(healerInstance, mostDamaged, 'heal')
       if (result.success) {
-        logger.ai(`HEALING TOUCH: ${healerInstance.creature.name} healed ${mostDamaged.creature.name} - ${result.message}`)
+        logger.ai(
+          `HEALING TOUCH: ${healerInstance.creature.name} healed ${mostDamaged.creature.name} - ${result.message}`
+        )
         return {
           type: 'healing_touch',
           healerInstance,
           targetInstance: mostDamaged,
           action: 'heal',
-          result
+          result,
         }
       }
     }
 
     // Priority 2: Find targets with attached cards to remove
-    const hasAttachedCards = targets.filter(t =>
-      t.attachedCards && t.attachedCards.length > 0
-    )
+    const hasAttachedCards = targets.filter((t) => t.attachedCards && t.attachedCards.length > 0)
 
     if (hasAttachedCards.length > 0) {
       // Remove card from first target with attached cards
       const target = hasAttachedCards[0]
       const result = this.gameState.executeHealingTouch(healerInstance, target, 'removeCard', 0)
       if (result.success) {
-        logger.ai(`HEALING TOUCH: ${healerInstance.creature.name} removed ${result.removedCard?.name} from ${target.creature.name}`)
+        logger.ai(
+          `HEALING TOUCH: ${healerInstance.creature.name} removed ${result.removedCard?.name} from ${target.creature.name}`
+        )
         return {
           type: 'healing_touch',
           healerInstance,
           targetInstance: target,
           action: 'removeCard',
           removedCard: result.removedCard,
-          result
+          result,
         }
       }
     }
@@ -2191,7 +2298,7 @@ export class SimpleAI {
     const waterChance = 0.04 + Math.random() * 0.02 // 4-6% chance (5% ± 1%)
     const allowWaterThisTurn = Math.random() < waterChance
 
-    const safeMoves = validMoves.filter(moveInfo => {
+    const safeMoves = validMoves.filter((moveInfo) => {
       // Flying creatures can land on water without taking damage
       if (isFlying) return true
       // Ground creatures: ~5% chance to allow water, ~95% avoid it
@@ -2252,14 +2359,19 @@ export class SimpleAI {
       }
 
       // Try to get actual movement cost (default to 1 if not available)
-      const moveCost = this.gameState.getTerrainMovementCost(bestMove.terrain, isFlying, creature, isBurrowing)
+      const moveCost = this.gameState.getTerrainMovementCost(
+        bestMove.terrain,
+        isFlying,
+        creature,
+        isBurrowing
+      )
 
       return {
         from,
         to: { x: bestMove.x, y: bestMove.y },
         isFlying,
         terrainTypes,
-        cost: moveCost
+        cost: moveCost,
       }
     }
 
@@ -2293,7 +2405,7 @@ export class SimpleAI {
     const waterChance = 0.04 + Math.random() * 0.02 // 4-6% chance (5% ± 1%)
     const allowWaterThisTurn = Math.random() < waterChance
 
-    const safeMoves = validMoves.filter(moveInfo => {
+    const safeMoves = validMoves.filter((moveInfo) => {
       // Flying creatures can land on water without taking damage
       if (isFlying) return true
       // Ground creatures: ~5% chance to allow water, ~95% avoid it
@@ -2346,14 +2458,19 @@ export class SimpleAI {
       }
 
       // Get actual movement cost
-      const moveCost = this.gameState.getTerrainMovementCost(bestMove.terrain, isFlying, creature, isBurrowing)
+      const moveCost = this.gameState.getTerrainMovementCost(
+        bestMove.terrain,
+        isFlying,
+        creature,
+        isBurrowing
+      )
 
       return {
         from,
         to: { x: bestMove.x, y: bestMove.y },
         isFlying,
         terrainTypes,
-        cost: moveCost
+        cost: moveCost,
       }
     }
 
@@ -2394,7 +2511,9 @@ export class SimpleAI {
     }
 
     // Get all Immediate cards in hand (with null check)
-    const immediateCards = player.orderHand.filter(card => card && card.isImmediate && card.isImmediate())
+    const immediateCards = player.orderHand.filter(
+      (card) => card && card.isImmediate && card.isImmediate()
+    )
 
     // Safety check: ensure creaturesInPlay exists
     if (!player.creaturesInPlay || !Array.isArray(player.creaturesInPlay)) {
@@ -2408,7 +2527,8 @@ export class SimpleAI {
         if (
           !creature.isTapped && // Creature must not be tapped
           card.canBeUsedBy(creature.creature) && // Creature meets card requirements
-          defenderInstance.position && creature.position // Both have positions
+          defenderInstance.position &&
+          creature.position // Both have positions
         ) {
           const distance = getManhattanDistance(creature.position, defenderInstance.position)
           const range = card.range || 1
@@ -2418,7 +2538,7 @@ export class SimpleAI {
               creature,
               card,
               cardIndex,
-              distance
+              distance,
             })
           }
         }
@@ -2504,11 +2624,16 @@ export class SimpleAI {
       return { type: 'none', creatures: [], hadOpportunity: false }
     }
 
-    const defenseOptions = this.gameState.getDefenseOptions(defenderInstance, incomingDamage, attackerOwner)
+    const defenseOptions = this.gameState.getDefenseOptions(
+      defenderInstance,
+      incomingDamage,
+      attackerOwner
+    )
     const player = this.gameState.players[this.playerId]
 
     const hasCowerOption = defenseOptions.cower?.canCower
-    const hasUnstoppableOption = defenseOptions.unstoppableHordes?.canUse || defenseOptions.adjacentUndead?.length > 0
+    const hasUnstoppableOption =
+      defenseOptions.unstoppableHordes?.canUse || defenseOptions.adjacentUndead?.length > 0
     const hasImmediateOption = defenseOptions.immediateCards?.length > 0
 
     if (!hasCowerOption && !hasUnstoppableOption && !hasImmediateOption) {
@@ -2594,7 +2719,11 @@ export class SimpleAI {
     // DIFFICULTY GATE: Only Hard difficulty uses IMMEDIATE cards
     // ========================================
     if (hasImmediateOption && this.canUseImmediateCards()) {
-      const immediateDecision = this.selectImmediateCardForDefense(defenseOptions, defenderInstance, incomingDamage)
+      const immediateDecision = this.selectImmediateCardForDefense(
+        defenseOptions,
+        defenderInstance,
+        incomingDamage
+      )
       if (immediateDecision) {
         return immediateDecision
       }
@@ -2698,7 +2827,7 @@ export class SimpleAI {
       creatures,
       defenderCanUse: defenseOptions.unstoppableHordes?.canUse || false,
       totalDamageReduction: totalPrevention,
-      hadOpportunity: true
+      hadOpportunity: true,
     }
   }
 
@@ -2780,7 +2909,13 @@ export class SimpleAI {
     for (const cardInfo of immediateCards) {
       // Handle SAVAGE DEMISE (self-sacrifice attack) separately
       if (cardInfo.card?.selfSacrificeAttack) {
-        const sacrificeResult = this.evaluateSavageDemise(cardInfo, defenderInstance, incomingDamage, wouldDie, creaturesInPlay)
+        const sacrificeResult = this.evaluateSavageDemise(
+          cardInfo,
+          defenderInstance,
+          incomingDamage,
+          wouldDie,
+          creaturesInPlay
+        )
         if (sacrificeResult && sacrificeResult.score > bestScore) {
           bestScore = sacrificeResult.score
           bestCard = cardInfo
@@ -2851,11 +2986,15 @@ export class SimpleAI {
 
       // Bonus for cards with morale loss effect (Unexpected Resistance)
       // This is secondary to damage prevention - the morale loss is a bonus
-      if (cardInfo.card?.moraleLossTargetType === 'adjacent_tapped_enemy' && cardInfo.card?.opponentMoraleLoss > 0) {
+      if (
+        cardInfo.card?.moraleLossTargetType === 'adjacent_tapped_enemy' &&
+        cardInfo.card?.opponentMoraleLoss > 0
+      ) {
         // Check if there would be valid morale targets
         // We'll check against the best eligible creature (prefer defender)
-        const potentialCardUser = cardInfo.eligibleCreatures.find(c => c.instanceId === defenderInstance.instanceId)
-          || cardInfo.eligibleCreatures[0]
+        const potentialCardUser =
+          cardInfo.eligibleCreatures.find((c) => c.instanceId === defenderInstance.instanceId) ||
+          cardInfo.eligibleCreatures[0]
         if (potentialCardUser) {
           const adjacentTappedEnemies = this.getAdjacentTappedEnemies(potentialCardUser)
           if (adjacentTappedEnemies.length > 0) {
@@ -2868,8 +3007,9 @@ export class SimpleAI {
         bestScore = score
         bestCard = cardInfo
         // Prefer defender to use the card if possible (keeps adjacent creatures untapped)
-        bestCreature = cardInfo.eligibleCreatures.find(c => c.instanceId === defenderInstance.instanceId)
-          || cardInfo.eligibleCreatures[0]
+        bestCreature =
+          cardInfo.eligibleCreatures.find((c) => c.instanceId === defenderInstance.instanceId) ||
+          cardInfo.eligibleCreatures[0]
         bestSacrificeTarget = null // Not a sacrifice card
       }
     }
@@ -2882,7 +3022,7 @@ export class SimpleAI {
     let discardCard = null
     if (bestCard.discardCost > 0) {
       // Find the lowest value card in hand (excluding the card being used)
-      const cardsToConsider = player.orderHand.filter(c => c.id !== bestCard.card.id)
+      const cardsToConsider = player.orderHand.filter((c) => c.id !== bestCard.card.id)
       if (cardsToConsider.length > 0) {
         // Simple heuristic: prefer lower level cards for discard
         discardCard = cardsToConsider.reduce((lowest, card) => {
@@ -2895,7 +3035,10 @@ export class SimpleAI {
 
     // Handle morale target selection (Unexpected Resistance) - select highest level enemy
     let moraleTarget = null
-    if (bestCard.card?.moraleLossTargetType === 'adjacent_tapped_enemy' && bestCard.card?.opponentMoraleLoss > 0) {
+    if (
+      bestCard.card?.moraleLossTargetType === 'adjacent_tapped_enemy' &&
+      bestCard.card?.opponentMoraleLoss > 0
+    ) {
       const adjacentTappedEnemies = this.getAdjacentTappedEnemies(bestCreature)
       if (adjacentTappedEnemies.length > 0) {
         // Select highest level creature as morale target (more impactful psychologically)
@@ -2916,7 +3059,7 @@ export class SimpleAI {
       hadOpportunity: true,
       discardCard: discardCard, // Card to discard as cost (for Uncanny Dodge)
       moraleTarget: moraleTarget, // Enemy creature for morale loss (for Unexpected Resistance)
-      sacrificeTarget: bestSacrificeTarget // Enemy creature to attack (for Savage Demise)
+      sacrificeTarget: bestSacrificeTarget, // Enemy creature to attack (for Savage Demise)
     }
   }
 
@@ -2951,7 +3094,8 @@ export class SimpleAI {
       const sacrificerValue = sacrificerLevel * 10 // Morale cost = level
 
       // Check for DEATH STRIKE (Boar/Wereboar) - doubles the damage value
-      const hasDeathStrike = this.gameState?.hasDeathStrike && this.gameState.hasDeathStrike(creature)
+      const hasDeathStrike =
+        this.gameState?.hasDeathStrike && this.gameState.hasDeathStrike(creature)
       const totalDamage = hasDeathStrike ? sacrificerDamage * 2 : sacrificerDamage
 
       // Find the best target among adjacent tapped enemies
@@ -3006,7 +3150,7 @@ export class SimpleAI {
           bestResult = {
             score,
             creature,
-            sacrificeTarget: enemyInfo
+            sacrificeTarget: enemyInfo,
           }
         }
       }
@@ -3036,20 +3180,20 @@ export class SimpleAI {
       return {
         useCower: true,
         cowerInfo: { canCower: true, damageReduction: incomingDamage },
-        hadOpportunity: decision.hadOpportunity
+        hadOpportunity: decision.hadOpportunity,
       }
     } else if (decision.type === 'unstoppable_hordes') {
       return {
         useCower: true,
         cowerInfo: { canCower: true, damageReduction: decision.totalDamageReduction || 20 },
-        hadOpportunity: decision.hadOpportunity
+        hadOpportunity: decision.hadOpportunity,
       }
     }
 
     return {
       useCower: false,
       cowerInfo: null,
-      hadOpportunity: decision.hadOpportunity
+      hadOpportunity: decision.hadOpportunity,
     }
   }
 
@@ -3071,9 +3215,8 @@ export class SimpleAI {
     const actions = []
 
     // Get Web cards from hand
-    const webCards = player.orderHand?.filter(card =>
-      card && card.name?.toLowerCase() === 'web'
-    ) || []
+    const webCards =
+      player.orderHand?.filter((card) => card && card.name?.toLowerCase() === 'web') || []
 
     if (webCards.length === 0) return actions
 
@@ -3082,8 +3225,8 @@ export class SimpleAI {
     // For each Web card, find best caster and target
     for (const webCard of webCards) {
       // Find creatures that can cast this Web card
-      const validCasters = availableCreatures.filter(creature =>
-        creature.position && this.gameState.canUseWebCard(creature, webCard)
+      const validCasters = availableCreatures.filter(
+        (creature) => creature.position && this.gameState.canUseWebCard(creature, webCard)
       )
 
       if (validCasters.length === 0) continue
@@ -3105,7 +3248,7 @@ export class SimpleAI {
               type: 'web',
               casterInstance: caster,
               targetInstance: target,
-              webCard: webCard
+              webCard: webCard,
             }
           }
         }
@@ -3113,7 +3256,9 @@ export class SimpleAI {
 
       // If we found a good target, add the action
       if (bestAction && bestScore > 0) {
-        logger.ai(`Web: ${bestAction.casterInstance.creature.name} targeting ${bestAction.targetInstance.creature.name} (score: ${bestScore})`)
+        logger.ai(
+          `Web: ${bestAction.casterInstance.creature.name} targeting ${bestAction.targetInstance.creature.name} (score: ${bestScore})`
+        )
 
         // Apply the Web immediately
         const result = this.gameState.applyWeb(
@@ -3146,21 +3291,25 @@ export class SimpleAI {
     const opportunities = []
 
     // Get Web cards from hand
-    const webCards = player.orderHand?.filter(card =>
-      card && card.name?.toLowerCase() === 'web'
-    ) || []
+    const webCards =
+      player.orderHand?.filter((card) => card && card.name?.toLowerCase() === 'web') || []
 
     if (webCards.length === 0) return opportunities
 
     // For each Web card, check if there's at least one valid caster-target pair
     for (const webCard of webCards) {
       // Find creatures that can cast this Web card
-      const validCasters = availableCreatures.filter(creature =>
-        creature.position && this.gameState.canUseWebCard && this.gameState.canUseWebCard(creature, webCard)
+      const validCasters = availableCreatures.filter(
+        (creature) =>
+          creature.position &&
+          this.gameState.canUseWebCard &&
+          this.gameState.canUseWebCard(creature, webCard)
       )
 
       for (const caster of validCasters) {
-        const targets = this.gameState.getWebValidTargets ? this.gameState.getWebValidTargets(caster, webCard) : []
+        const targets = this.gameState.getWebValidTargets
+          ? this.gameState.getWebValidTargets(caster, webCard)
+          : []
 
         if (targets.length > 0) {
           // Found at least one opportunity - record the best target
@@ -3179,7 +3328,7 @@ export class SimpleAI {
             opportunities.push({
               caster: caster,
               target: bestTarget,
-              webCard: webCard
+              webCard: webCard,
             })
             break // One opportunity per Web card is enough for tracking
           }
@@ -3213,9 +3362,9 @@ export class SimpleAI {
     }
 
     // Get Patch Up cards from hand (canHealProactively = true)
-    const patchUpCards = player.orderHand?.filter(card =>
-      card && card.canHealProactively && card.healAmount > 0
-    ) || []
+    const patchUpCards =
+      player.orderHand?.filter((card) => card && card.canHealProactively && card.healAmount > 0) ||
+      []
 
     if (patchUpCards.length === 0) return actions
 
@@ -3239,9 +3388,11 @@ export class SimpleAI {
 
         // Check ability requirement (Patch Up requires CON)
         if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-          const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-          const hasRequiredAbility = abilities.some(ability =>
-            creature.creature.abilities?.[ability] === true
+          const abilities = Array.isArray(card.abilityRequired)
+            ? card.abilityRequired
+            : [card.abilityRequired]
+          const hasRequiredAbility = abilities.some(
+            (ability) => creature.creature.abilities?.[ability] === true
           )
           if (!hasRequiredAbility) continue
         }
@@ -3255,7 +3406,7 @@ export class SimpleAI {
         // - Current HP percentage (lower = more critical to heal)
         const levelBonus = creature.creature.level * 15
         const hpPercent = creature.currentHP / creature.creature.hitPoints
-        const criticalBonus = hpPercent < 0.3 ? 30 : (hpPercent < 0.5 ? 15 : 0)
+        const criticalBonus = hpPercent < 0.3 ? 30 : hpPercent < 0.5 ? 15 : 0
 
         // Check if this creature can make a kill (if so, lower priority for healing)
         let canMakeKill = false
@@ -3276,7 +3427,7 @@ export class SimpleAI {
           creature,
           card,
           healValue,
-          score
+          score,
         })
       }
     }
@@ -3297,19 +3448,21 @@ export class SimpleAI {
       best.creature.hasAttackedThisTurn = true
 
       // Remove card from hand
-      const cardIndex = player.orderHand.findIndex(c => c.id === best.card.id)
+      const cardIndex = player.orderHand.findIndex((c) => c.id === best.card.id)
       if (cardIndex !== -1) {
         player.orderHand.splice(cardIndex, 1)
       }
 
-      logger.ai(`Patch Up: ${best.creature.creature.name} healed ${best.healValue} damage (score: ${best.score})`)
+      logger.ai(
+        `Patch Up: ${best.creature.creature.name} healed ${best.healValue} damage (score: ${best.score})`
+      )
 
       actions.push({
         type: 'patch_up_heal',
         creatureInstance: best.creature,
         card: best.card,
         healAmount: best.healValue,
-        score: best.score
+        score: best.score,
       })
     }
 
@@ -3338,9 +3491,14 @@ export class SimpleAI {
     }
 
     // Get Tough as Nails cards from hand (canUseProactively = true with attachOnUse)
-    const toughAsNailsCards = player.orderHand?.filter(card =>
-      card && card.canUseProactively && card.removesAllAttachments && card.attachOnUse?.blockAmount > 0
-    ) || []
+    const toughAsNailsCards =
+      player.orderHand?.filter(
+        (card) =>
+          card &&
+          card.canUseProactively &&
+          card.removesAllAttachments &&
+          card.attachOnUse?.blockAmount > 0
+      ) || []
 
     if (toughAsNailsCards.length === 0) return actions
 
@@ -3361,9 +3519,11 @@ export class SimpleAI {
 
         // Check ability requirement (Tough as Nails requires CON)
         if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-          const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-          const hasRequiredAbility = abilities.some(ability =>
-            creature.creature.abilities?.[ability] === true
+          const abilities = Array.isArray(card.abilityRequired)
+            ? card.abilityRequired
+            : [card.abilityRequired]
+          const hasRequiredAbility = abilities.some(
+            (ability) => creature.creature.abilities?.[ability] === true
           )
           if (!hasRequiredAbility) continue
         }
@@ -3373,14 +3533,16 @@ export class SimpleAI {
         let reason = ''
 
         // HIGH PRIORITY: Creature has Mortal Wound - save it from Deploy phase death!
-        const hasMortalWound = this.gameState.hasMortalWound && this.gameState.hasMortalWound(creature)
+        const hasMortalWound =
+          this.gameState.hasMortalWound && this.gameState.hasMortalWound(creature)
         if (hasMortalWound) {
-          score += 100 + (creature.creature.level * 20) // Very high priority for higher level creatures
+          score += 100 + creature.creature.level * 20 // Very high priority for higher level creatures
           reason = 'remove Mortal Wound (save from Deploy death)'
         }
 
         // MEDIUM PRIORITY: Creature has movement-blocking attachment (Leap Away, Web)
-        const hasMovementBlock = this.gameState.hasMovementBlockingAttachment &&
+        const hasMovementBlock =
+          this.gameState.hasMovementBlockingAttachment &&
           this.gameState.hasMovementBlockingAttachment(creature)
         if (hasMovementBlock && !hasMortalWound) {
           // Only worth removing if creature needs to move
@@ -3399,7 +3561,7 @@ export class SimpleAI {
           const nearbyEnemies = this.getAdjacentEnemies(creature)
           if (nearbyEnemies.length > 0) {
             // Block 10 is useful if creature is in combat
-            score += 10 + (creature.creature.level * 5)
+            score += 10 + creature.creature.level * 5
             reason = 'gain Block 10 protection'
           }
         }
@@ -3412,7 +3574,7 @@ export class SimpleAI {
           card,
           score,
           reason,
-          hasMortalWound
+          hasMortalWound,
         })
       }
     }
@@ -3432,19 +3594,21 @@ export class SimpleAI {
       best.creature.hasAttackedThisTurn = true
 
       // Remove card from hand
-      const cardIndex = player.orderHand.findIndex(c => c.id === best.card.id)
+      const cardIndex = player.orderHand.findIndex((c) => c.id === best.card.id)
       if (cardIndex !== -1) {
         player.orderHand.splice(cardIndex, 1)
       }
 
-      logger.ai(`Tough as Nails: ${best.creature.creature.name} - ${best.reason} (score: ${best.score})`)
+      logger.ai(
+        `Tough as Nails: ${best.creature.creature.name} - ${best.reason} (score: ${best.score})`
+      )
 
       actions.push({
         type: 'tough_as_nails',
         creatureInstance: best.creature,
         card: best.card,
         reason: best.reason,
-        score: best.score
+        score: best.score,
       })
     }
 

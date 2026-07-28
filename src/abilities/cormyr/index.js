@@ -18,5 +18,5 @@ export default {
   HealingTouch,
   Slam,
   AcidBreath,
-  ExplosiveBolts
+  ExplosiveBolts,
 }

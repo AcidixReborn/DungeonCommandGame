@@ -14,11 +14,11 @@
 .commander-card:hover {
   transform: scale(1.05);
   box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
-  border-color: #FFD700 !important;
+  border-color: #ffd700 !important;
 }
 
 .commander-card.selected {
-  border-color: #00FF00 !important;
+  border-color: #00ff00 !important;
   border-width: 4px;
   box-shadow: 0 0 30px rgba(0, 255, 0, 0.6);
   transform: scale(1.05);

@@ -25,7 +25,7 @@ function DeployConfirmPanel({
   isFromGraveyard = false,
   currentMorale = 0,
   onConfirm,
-  onCancel
+  onCancel,
 }) {
   if (!creature) return null
 
@@ -67,7 +67,9 @@ function DeployConfirmPanel({
         </div>
         <div className="combat-info-row">
           <span>Current Usage:</span>
-          <span>{currentLeadershipUsage} / {maxLeadership}</span>
+          <span>
+            {currentLeadershipUsage} / {maxLeadership}
+          </span>
         </div>
         <div className="combat-info-row">
           <span>After Deploy:</span>
@@ -80,13 +82,13 @@ function DeployConfirmPanel({
             <hr style={{ margin: '8px 0', borderColor: '#555' }} />
             <div className="combat-info-row">
               <span>Morale Cost:</span>
-              <Badge bg="warning" text="dark">{moraleCost}</Badge>
+              <Badge bg="warning" text="dark">
+                {moraleCost}
+              </Badge>
             </div>
             <div className="combat-info-row">
               <span>Current Morale:</span>
-              <Badge bg={canAffordMorale ? 'info' : 'danger'}>
-                {currentMorale}
-              </Badge>
+              <Badge bg={canAffordMorale ? 'info' : 'danger'}>{currentMorale}</Badge>
             </div>
           </>
         )}
@@ -97,12 +99,7 @@ function DeployConfirmPanel({
         <Button variant="secondary" size="sm" onClick={onCancel}>
           Cancel
         </Button>
-        <Button
-          variant="success"
-          size="sm"
-          onClick={onConfirm}
-          disabled={!canDeploy}
-        >
+        <Button variant="success" size="sm" onClick={onConfirm} disabled={!canDeploy}>
           {isFromGraveyard ? '💀 Resurrect!' : '📦 Deploy!'}
         </Button>
       </div>

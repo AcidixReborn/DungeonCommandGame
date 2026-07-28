@@ -20,5 +20,5 @@ export default {
   LightningBreath,
   DiscipleOfKyuss,
   Insubstantial,
-  Phasing
+  Phasing,
 }

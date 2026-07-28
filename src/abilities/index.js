@@ -66,7 +66,7 @@ export const AbilityManager = {
       ...Object.values(CormyrAbilities),
       ...Object.values(GoblinAbilities),
       ...Object.values(UndeadAbilities),
-      ...Object.values(OrcAbilities)
+      ...Object.values(OrcAbilities),
     ]
 
     for (const ability of allAbilities) {
@@ -90,10 +90,10 @@ export const AbilityManager = {
       ...Object.values(CormyrAbilities),
       ...Object.values(GoblinAbilities),
       ...Object.values(UndeadAbilities),
-      ...Object.values(OrcAbilities)
+      ...Object.values(OrcAbilities),
     ]
 
-    return allAbilities.find(a => a.id === abilityId) || null
+    return allAbilities.find((a) => a.id === abilityId) || null
   },
 
   /**
@@ -106,7 +106,7 @@ export const AbilityManager = {
     const ability = this.getById(abilityId)
     if (!ability || !ability.has) return false
     return ability.has(creatureInstance)
-  }
+  },
 }
 
 export default AbilityManager

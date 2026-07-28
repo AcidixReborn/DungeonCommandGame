@@ -21,8 +21,8 @@ export const WebCard = {
    */
   isWebbed(creatureInstance) {
     if (!creatureInstance?.attachedCards) return false
-    return creatureInstance.attachedCards.some(
-      attached => attached.card?.name?.toUpperCase().includes('WEB')
+    return creatureInstance.attachedCards.some((attached) =>
+      attached.card?.name?.toUpperCase().includes('WEB')
     )
   },
 
@@ -33,9 +33,11 @@ export const WebCard = {
    */
   getAttachedWeb(creatureInstance) {
     if (!creatureInstance?.attachedCards) return null
-    return creatureInstance.attachedCards.find(
-      attached => attached.card?.name?.toUpperCase().includes('WEB')
-    ) || null
+    return (
+      creatureInstance.attachedCards.find((attached) =>
+        attached.card?.name?.toUpperCase().includes('WEB')
+      ) || null
+    )
   },
 
   /**
@@ -56,7 +58,7 @@ export const WebCard = {
 
     // SPIDER AFFINITY: Spider-type creatures can use Web without INT
     const creatureTypes = casterInstance.creature.type || []
-    return creatureTypes.some(t => t.toLowerCase() === 'spider')
+    return creatureTypes.some((t) => t.toLowerCase() === 'spider')
   },
 
   /**
@@ -120,7 +122,7 @@ export const WebCard = {
       return { success: false, reason: 'Caster player not found' }
     }
 
-    const cardIndex = casterPlayer.orderHand.findIndex(c => c.id === webCard.id)
+    const cardIndex = casterPlayer.orderHand.findIndex((c) => c.id === webCard.id)
     if (cardIndex === -1) {
       return { success: false, reason: 'Web card not in hand' }
     }
@@ -132,14 +134,14 @@ export const WebCard = {
     targetInstance.attachedCards.push({
       card: removedCard,
       casterOwner: casterInstance.owner,
-      attachedTurn: gameState.turnNumber
+      attachedTurn: gameState.turnNumber,
     })
 
     return {
       success: true,
       card: removedCard,
       caster: casterInstance,
-      target: targetInstance
+      target: targetInstance,
     }
   },
 
@@ -154,8 +156,8 @@ export const WebCard = {
       return { success: false, reason: 'Invalid creature' }
     }
 
-    const webIndex = creatureInstance.attachedCards.findIndex(
-      attached => attached.card?.name?.toUpperCase().includes('WEB')
+    const webIndex = creatureInstance.attachedCards.findIndex((attached) =>
+      attached.card?.name?.toUpperCase().includes('WEB')
     )
 
     if (webIndex === -1) {
@@ -174,9 +176,9 @@ export const WebCard = {
     return {
       success: true,
       card: card,
-      casterOwner: casterOwner
+      casterOwner: casterOwner,
     }
-  }
+  },
 }
 
 export default WebCard

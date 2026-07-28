@@ -19,13 +19,7 @@ import { logger } from '../utils/logger'
  * @param {Function} onConfirm - Callback when player confirms (enters attack target selection)
  * @param {Function} onCancel - Callback when player cancels (returns card to hand)
  */
-function DamageBoostModal({
-  show,
-  card,
-  creature,
-  onConfirm,
-  onCancel
-}) {
+function DamageBoostModal({ show, card, creature, onConfirm, onCancel }) {
   // Track if modal just opened to prevent instant confirmation
   const [canConfirm, setCanConfirm] = useState(false)
 
@@ -61,7 +55,7 @@ function DamageBoostModal({
     : creature.creature?.meleeAttack?.damage || 0
 
   // Get bonus damage
-  const bonusDamage = isRangedBoost ? card.rangedDamageBonus : (card.meleeDamageBonus || 0)
+  const bonusDamage = isRangedBoost ? card.rangedDamageBonus : card.meleeDamageBonus || 0
   const flatDamage = card.flatMeleeDamage || 0
 
   // Calculate preview damage
@@ -81,7 +75,13 @@ function DamageBoostModal({
 
   return (
     <Modal show={show} onHide={onCancel} centered size="md" backdrop="static" keyboard={false}>
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: `2px solid ${accentColor}` }}>
+      <Modal.Header
+        style={{
+          backgroundColor: '#212529',
+          color: 'white',
+          borderBottom: `2px solid ${accentColor}`,
+        }}
+      >
         <Modal.Title>Use {card.name}</Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', textAlign: 'center' }}>
@@ -94,7 +94,7 @@ function DamageBoostModal({
               style={{
                 maxHeight: '200px',
                 borderRadius: '8px',
-                border: `2px solid ${accentColor}`
+                border: `2px solid ${accentColor}`,
               }}
             />
           ) : (
@@ -108,7 +108,7 @@ function DamageBoostModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto'
+                margin: '0 auto',
               }}
             >
               <span style={{ fontSize: '0.9rem' }}>{card.name}</span>
@@ -122,7 +122,7 @@ function DamageBoostModal({
             fontSize: '0.9rem',
             color: '#adb5bd',
             marginBottom: '15px',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
           }}
         >
           {card.effectDescription}
@@ -131,14 +131,16 @@ function DamageBoostModal({
         {/* Damage Preview */}
         <Alert
           variant={isRangedBoost ? 'primary' : 'danger'}
-          style={{ backgroundColor: isRangedBoost ? 'rgba(13, 110, 253, 0.2)' : 'rgba(220, 53, 69, 0.2)', border: `1px solid ${accentColor}` }}
+          style={{
+            backgroundColor: isRangedBoost ? 'rgba(13, 110, 253, 0.2)' : 'rgba(220, 53, 69, 0.2)',
+            border: `1px solid ${accentColor}`,
+          }}
         >
           <div style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '8px' }}>
-            {creature.creature?.name || creature.name} {attackTypeText.charAt(0).toUpperCase() + attackTypeText.slice(1)} Attack Preview
+            {creature.creature?.name || creature.name}{' '}
+            {attackTypeText.charAt(0).toUpperCase() + attackTypeText.slice(1)} Attack Preview
           </div>
-          <div style={{ fontSize: '0.9rem' }}>
-            {damageExplanation}
-          </div>
+          <div style={{ fontSize: '0.9rem' }}>{damageExplanation}</div>
           {isFlat && (
             <div style={{ fontSize: '0.8rem', color: '#ffc107', marginTop: '5px' }}>
               (Flanking and Cutter bonuses do not apply to flat damage)
@@ -160,10 +162,15 @@ function DamageBoostModal({
         {card.drawCardsOnAttack > 0 && (
           <Alert
             variant="success"
-            style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '1px solid #28a745', marginBottom: '10px' }}
+            style={{
+              backgroundColor: 'rgba(40, 167, 69, 0.2)',
+              border: '1px solid #28a745',
+              marginBottom: '10px',
+            }}
           >
             <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
-              📜 Draw {card.drawCardsOnAttack} Order card{card.drawCardsOnAttack > 1 ? 's' : ''} after attack
+              📜 Draw {card.drawCardsOnAttack} Order card{card.drawCardsOnAttack > 1 ? 's' : ''}{' '}
+              after attack
             </div>
           </Alert>
         )}
@@ -172,7 +179,11 @@ function DamageBoostModal({
         {card.healOnAttack > 0 && (
           <Alert
             variant="success"
-            style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '1px solid #28a745', marginBottom: '10px' }}
+            style={{
+              backgroundColor: 'rgba(40, 167, 69, 0.2)',
+              border: '1px solid #28a745',
+              marginBottom: '10px',
+            }}
           >
             <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
               💚 Heal {card.healOnAttack} damage after attack
@@ -192,13 +203,19 @@ function DamageBoostModal({
           style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)', border: '1px solid #ffc107' }}
         >
           <div style={{ fontSize: '0.85rem' }}>
-            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s STANDARD action.
-            Select a {attackTypeText} target after confirming.
+            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s
+            STANDARD action. Select a {attackTypeText} target after confirming.
           </div>
         </Alert>
       </Modal.Body>
       <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444' }}>
-        <Button variant="secondary" onClick={(e) => { e.stopPropagation(); onCancel(); }}>
+        <Button
+          variant="secondary"
+          onClick={(e) => {
+            e.stopPropagation()
+            onCancel()
+          }}
+        >
           Cancel
         </Button>
         <Button

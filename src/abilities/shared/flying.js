@@ -24,7 +24,7 @@ export const Flying = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toLowerCase().includes('flying')
+      (ability) => typeof ability === 'string' && ability.toLowerCase().includes('flying')
     )
   },
 
@@ -51,7 +51,7 @@ export const Flying = {
    */
   takesWaterDamage() {
     return false
-  }
+  },
 }
 
 export default Flying

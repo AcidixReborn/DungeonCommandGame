@@ -26,7 +26,7 @@ export const ShieldBlock = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('SHIELD BLOCK')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('SHIELD BLOCK')
     )
   },
 
@@ -37,9 +37,7 @@ export const ShieldBlock = {
    */
   isAdventurerType(creatureInstance) {
     if (!creatureInstance?.creature?.type) return false
-    return creatureInstance.creature.type.some(
-      type => type.toUpperCase() === 'ADVENTURER'
-    )
+    return creatureInstance.creature.type.some((type) => type.toUpperCase() === 'ADVENTURER')
   },
 
   /**
@@ -66,16 +64,21 @@ export const ShieldBlock = {
     if (!defenderInstance.position) return 0
 
     // Get all tiles adjacent to the defender (8-directional)
-    const adjacentTiles = gameState.getAdjacentTiles8Dir(defenderInstance.position.x, defenderInstance.position.y)
+    const adjacentTiles = gameState.getAdjacentTiles8Dir(
+      defenderInstance.position.x,
+      defenderInstance.position.y
+    )
 
     // Count adjacent creatures with SHIELD BLOCK (same owner)
     let shieldBlockCount = 0
     for (const tile of adjacentTiles) {
       const occupant = tile.occupant
-      if (occupant &&
-          occupant.owner === defenderInstance.owner &&
-          occupant.currentHP > 0 &&
-          this.has(occupant)) {
+      if (
+        occupant &&
+        occupant.owner === defenderInstance.owner &&
+        occupant.currentHP > 0 &&
+        this.has(occupant)
+      ) {
         shieldBlockCount++
       }
     }
@@ -88,16 +91,16 @@ export const ShieldBlock = {
       const aiDifficulty = defenderPlayer.aiDifficulty || 'medium'
 
       if (aiDifficulty === 'easy') {
-        return 0  // Easy AI never benefits from SHIELD BLOCK
+        return 0 // Easy AI never benefits from SHIELD BLOCK
       } else if (aiDifficulty === 'medium') {
         if (Math.random() >= 0.5) {
-          return 0  // Medium AI: 50% chance
+          return 0 // Medium AI: 50% chance
         }
       }
     }
 
     return shieldBlockCount * this.damageReduction
-  }
+  },
 }
 
 export default ShieldBlock

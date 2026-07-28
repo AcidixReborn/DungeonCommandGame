@@ -143,7 +143,7 @@ export function useDeployment() {
     clearHordeState,
 
     // Clear all
-    clearAllDeploymentState
+    clearAllDeploymentState,
   }
 }
 

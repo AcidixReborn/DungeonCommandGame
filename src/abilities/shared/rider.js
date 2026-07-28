@@ -22,7 +22,7 @@ export const Rider = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('RIDER')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('RIDER')
     )
   },
 
@@ -36,13 +36,13 @@ export const Rider = {
 
     // Parse level from ability text if present (e.g., "RIDER: Level 3 or less")
     const ability = creatureInstance.creature.specialAbilities.find(
-      a => typeof a === 'string' && a.toUpperCase().includes('RIDER')
+      (a) => typeof a === 'string' && a.toUpperCase().includes('RIDER')
     )
     if (ability) {
       const match = ability.match(/LEVEL\s*(\d+)/i)
       if (match) return parseInt(match[1], 10)
     }
-    return 3  // Default max level
+    return 3 // Default max level
   },
 
   /**
@@ -53,7 +53,7 @@ export const Rider = {
    */
   getValidDeployments(creatureHand, maxLevel) {
     if (!creatureHand?.length) return []
-    return creatureHand.filter(card => card.level <= maxLevel)
+    return creatureHand.filter((card) => card.level <= maxLevel)
   },
 
   /**
@@ -64,7 +64,7 @@ export const Rider = {
    */
   calculateMoraleLoss(destroyedCreatureLevel, deployedCreatureLevel) {
     return Math.max(0, destroyedCreatureLevel - deployedCreatureLevel)
-  }
+  },
 }
 
 export default Rider

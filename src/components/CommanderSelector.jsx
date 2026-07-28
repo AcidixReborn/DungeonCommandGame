@@ -42,7 +42,7 @@ function CommanderSelector({ factionConfig, onCommandersSelected }) {
     // Update selected commanders
     const newSelected = {
       ...selectedCommanders,
-      [currentPlayerSelecting]: commanderIndex
+      [currentPlayerSelecting]: commanderIndex,
     }
     setSelectedCommanders(newSelected)
 
@@ -63,7 +63,7 @@ function CommanderSelector({ factionConfig, onCommandersSelected }) {
 
         finalConfig[playerKey] = {
           ...factionConfig[playerKey],
-          commander: commanders[faction][commanderIndex]
+          commander: commanders[faction][commanderIndex],
         }
       }
 
@@ -76,34 +76,76 @@ function CommanderSelector({ factionConfig, onCommandersSelected }) {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#1a1a2e' }}>
-      <Container fluid className="commander-selector" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px', overflow: 'hidden' }}>
+    <div
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        backgroundColor: '#1a1a2e',
+      }}
+    >
+      <Container
+        fluid
+        className="commander-selector"
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '20px',
+          overflow: 'hidden',
+        }}
+      >
         <Row className="justify-content-center" style={{ flex: 1, minHeight: 0 }}>
           <Col md={12} lg={10} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <Card bg="dark" text="white" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <Card
+              bg="dark"
+              text="white"
+              style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+            >
               <Card.Header style={{ flexShrink: 0, padding: '15px', textAlign: 'center' }}>
-                <h3 className="mb-2">
-                  Player {getPlayerNumber()} - Choose Your Commander
-                </h3>
+                <h3 className="mb-2">Player {getPlayerNumber()} - Choose Your Commander</h3>
                 <h5 className="mb-0">
                   <Badge bg="info">{currentPlayerConfig.faction}</Badge>
-                  {!currentPlayerConfig.isHuman && <Badge bg="warning" text="dark" className="ms-2">AI Selecting...</Badge>}
+                  {!currentPlayerConfig.isHuman && (
+                    <Badge bg="warning" text="dark" className="ms-2">
+                      AI Selecting...
+                    </Badge>
+                  )}
                 </h5>
                 <p className="mt-2 mb-0 text-muted">
                   {getPlayerNumber()} of {numPlayers} players
                 </p>
               </Card.Header>
-              <Card.Body style={{ flex: 1, overflow: 'auto', padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <Row className="justify-content-center align-items-center" style={{ width: '100%', maxWidth: '1200px' }}>
+              <Card.Body
+                style={{
+                  flex: 1,
+                  overflow: 'auto',
+                  padding: '20px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Row
+                  className="justify-content-center align-items-center"
+                  style={{ width: '100%', maxWidth: '1200px' }}
+                >
                   {currentPlayerCommanders.map((commander, idx) => (
-                    <Col key={commander.id} xs={12} md={6} className="mb-4" style={{ display: 'flex', justifyContent: 'center' }}>
+                    <Col
+                      key={commander.id}
+                      xs={12}
+                      md={6}
+                      className="mb-4"
+                      style={{ display: 'flex', justifyContent: 'center' }}
+                    >
                       <Card
                         className={`commander-card ${selectedCommanders[currentPlayerSelecting] === idx ? 'selected' : ''}`}
                         onClick={() => currentPlayerConfig.isHuman && handleCommanderSelect(idx)}
                         style={{
                           cursor: currentPlayerConfig.isHuman ? 'pointer' : 'default',
                           maxWidth: '500px',
-                          width: '100%'
+                          width: '100%',
                         }}
                       >
                         <Card.Img
@@ -114,7 +156,7 @@ function CommanderSelector({ factionConfig, onCommandersSelected }) {
                             width: '100%',
                             height: 'auto',
                             objectFit: 'contain',
-                            backgroundColor: '#000'
+                            backgroundColor: '#000',
                           }}
                         />
                       </Card>

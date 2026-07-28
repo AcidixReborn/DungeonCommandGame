@@ -70,16 +70,18 @@ export const commanders = [
     startingLeadership: 7,
     specialAbilityDescription: 'HORDE: You can deploy creatures during your Refresh Phase.',
     imageUrl: goblinsCmd1,
-    abilities: [{
-      id: 'horde',
-      name: 'HORDE',
-      type: 'PASSIVE',
-      category: 'DEPLOYMENT',
-      description: 'You can deploy creatures during your Refresh Phase.',
-      effect: {
-        deployInRefreshPhase: true
-      }
-    }]
+    abilities: [
+      {
+        id: 'horde',
+        name: 'HORDE',
+        type: 'PASSIVE',
+        category: 'DEPLOYMENT',
+        description: 'You can deploy creatures during your Refresh Phase.',
+        effect: {
+          deployInRefreshPhase: true,
+        },
+      },
+    ],
   },
   {
     id: 'tog_cmd_2',
@@ -89,19 +91,22 @@ export const commanders = [
     startingOrderHandSize: 5,
     startingMorale: 12,
     startingLeadership: 9,
-    specialAbilityDescription: 'BLACK HAND OF BANE: Whenever an enemy creature cowers, its controller loses 1 extra Morale.',
+    specialAbilityDescription:
+      'BLACK HAND OF BANE: Whenever an enemy creature cowers, its controller loses 1 extra Morale.',
     imageUrl: goblinsCmd2,
-    abilities: [{
-      id: 'black_hand_of_bane',
-      name: 'BLACK HAND OF BANE',
-      type: 'PASSIVE',
-      category: 'COMBAT',
-      description: 'Whenever an enemy creature cowers, its controller loses 1 extra Morale.',
-      effect: {
-        extraCowerMoraleLoss: 1
-      }
-    }]
-  }
+    abilities: [
+      {
+        id: 'black_hand_of_bane',
+        name: 'BLACK HAND OF BANE',
+        type: 'PASSIVE',
+        category: 'COMBAT',
+        description: 'Whenever an enemy creature cowers, its controller loses 1 extra Morale.',
+        effect: {
+          extraCowerMoraleLoss: 1,
+        },
+      },
+    ],
+  },
 ]
 
 // ============================================================================
@@ -120,14 +125,16 @@ export const creatures = [
     abilities: { STR: true, DEX: true, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: [{
-      id: 'untap_on_adjacent_kill',
-      name: 'UNTAP ON KILL',
-      type: 'PASSIVE',
-      description: 'Whenever an adjacent enemy creature is destroyed, untap this creature.'
-    }],
+    specialAbilities: [
+      {
+        id: 'untap_on_adjacent_kill',
+        name: 'UNTAP ON KILL',
+        type: 'PASSIVE',
+        description: 'Whenever an adjacent enemy creature is destroyed, untap this creature.',
+      },
+    ],
     faction: FACTION_NAME,
-    imageUrl: bugbearBerserkerImg
+    imageUrl: bugbearBerserkerImg,
   },
   // Card 2: Feral Troll - Level 5, HP 120, Speed 6, Melee 30
   {
@@ -140,9 +147,11 @@ export const creatures = [
     abilities: { STR: true, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['REGENERATE 10: At the start of its controller\'s turn, this creature heals 10 damage.'],
+    specialAbilities: [
+      "REGENERATE 10: At the start of its controller's turn, this creature heals 10 damage.",
+    ],
     faction: FACTION_NAME,
-    imageUrl: feralTrollImg
+    imageUrl: feralTrollImg,
   },
   // Card 3: Goblin Archer - Level 1, HP 10, Speed 6, Melee 0, Ranged 20 (range 5)
   {
@@ -157,7 +166,7 @@ export const creatures = [
     rangedAttack: { damage: 20, range: 5 },
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: goblinArcherImg
+    imageUrl: goblinArcherImg,
   },
   // Card 4: Goblin Champion - Level 3, HP 50, Speed 6, Melee 20
   {
@@ -170,9 +179,11 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['FLANKING: This creature\'s melee attacks deal +10 DAMAGE while at least 1 ally is adjacent to the target.'],
+    specialAbilities: [
+      "FLANKING: This creature's melee attacks deal +10 DAMAGE while at least 1 ally is adjacent to the target.",
+    ],
     faction: FACTION_NAME,
-    imageUrl: goblinChampionImg
+    imageUrl: goblinChampionImg,
   },
   // Card 5: Goblin Cutter (1 of 2) - Level 1, HP 10, Speed 6, Melee 10
   {
@@ -185,9 +196,11 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['CUTTER: This creature\'s melee attacks deal +10 damage against tapped creatures.'],
+    specialAbilities: [
+      "CUTTER: This creature's melee attacks deal +10 damage against tapped creatures.",
+    ],
     faction: FACTION_NAME,
-    imageUrl: goblinCutter1Img
+    imageUrl: goblinCutter1Img,
   },
   // Card 6: Goblin Cutter (2 of 2) - Level 1, HP 10, Speed 6, Melee 10
   {
@@ -200,9 +213,11 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['CUTTER: This creature\'s melee attacks deal +10 damage against tapped creatures.'],
+    specialAbilities: [
+      "CUTTER: This creature's melee attacks deal +10 damage against tapped creatures.",
+    ],
     faction: FACTION_NAME,
-    imageUrl: goblinCutter2Img
+    imageUrl: goblinCutter2Img,
   },
   // Card 7: Goblin Wolf Rider - Level 4, HP 80, Speed 8, Melee 20
   {
@@ -215,9 +230,11 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: false, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['RIDER: When this creature is destroyed, you may deploy 1 Goblin or Wolf creature (Level 3 or lower) from your hand to this tile. Morale loss = (destroyed creature level - deployed creature level).'],
+    specialAbilities: [
+      'RIDER: When this creature is destroyed, you may deploy 1 Goblin or Wolf creature (Level 3 or lower) from your hand to this tile. Morale loss = (destroyed creature level - deployed creature level).',
+    ],
     faction: FACTION_NAME,
-    imageUrl: goblinWolfRiderImg
+    imageUrl: goblinWolfRiderImg,
   },
   // Card 8: Hobgoblin Soldier (1 of 2) - Level 3, HP 70, Speed 6, Melee 20
   {
@@ -232,7 +249,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: hobgoblinSoldier1Img
+    imageUrl: hobgoblinSoldier1Img,
   },
   // Card 9: Hobgoblin Soldier (2 of 2) - Level 3, HP 70, Speed 6, Melee 20
   {
@@ -247,7 +264,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: hobgoblinSoldier2Img
+    imageUrl: hobgoblinSoldier2Img,
   },
   // Card 10: Hobgoblin Sorcerer - Level 3, HP 40, Speed 6, Melee 10, Ranged 20 (range 10)
   {
@@ -260,9 +277,11 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: { damage: 20, range: 10 },
-    specialAbilities: ['MAGIC CIRCLE AURA: While this creature is in a Magic Circle, all Goblins, Hobgoblins, and Bugbears you control gain "Prevent 10 damage from 1 source" once per turn.'],
+    specialAbilities: [
+      'MAGIC CIRCLE AURA: While this creature is in a Magic Circle, all Goblins, Hobgoblins, and Bugbears you control gain "Prevent 10 damage from 1 source" once per turn.',
+    ],
     faction: FACTION_NAME,
-    imageUrl: hobgoblinSorcererImg
+    imageUrl: hobgoblinSorcererImg,
   },
   // Card 11: Horned Devil - Level 6, HP 140, Speed 6, Melee 40
   {
@@ -283,17 +302,17 @@ export const creatures = [
         id: 'reach_2',
         name: 'REACH 2',
         type: 'PASSIVE',
-        description: 'This creature can make melee attacks against creatures up to 2 spaces away.'
+        description: 'This creature can make melee attacks against creatures up to 2 spaces away.',
       },
       {
         id: 'tap_on_hit',
         name: 'TAP ON HIT',
         type: 'PASSIVE',
-        description: 'Whenever this creature deals melee damage, tap the target.'
-      }
+        description: 'Whenever this creature deals melee damage, tap the target.',
+      },
     ],
     faction: FACTION_NAME,
-    imageUrl: hornedDevilImg
+    imageUrl: hornedDevilImg,
   },
   // Card 12: Wolf - Level 2, HP 40, Speed 8, Melee 10
   {
@@ -307,15 +326,17 @@ export const creatures = [
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
     tapOnHit: true, // TAP ON HIT: Target is tapped if it takes any damage from melee attack
-    specialAbilities: [{
-      id: 'tap_on_hit',
-      name: 'TAP ON HIT',
-      type: 'PASSIVE',
-      description: 'Whenever this creature deals melee damage, tap the target.'
-    }],
+    specialAbilities: [
+      {
+        id: 'tap_on_hit',
+        name: 'TAP ON HIT',
+        type: 'PASSIVE',
+        description: 'Whenever this creature deals melee damage, tap the target.',
+      },
+    ],
     faction: FACTION_NAME,
-    imageUrl: wolfImg
-  }
+    imageUrl: wolfImg,
+  },
 ]
 
 // ============================================================================
@@ -331,9 +352,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. This creature gains Scuttle (This creature shifts when it moves) and ignores difficult terrain.',
+    effectDescription:
+      'Attach this card to this creature. This creature gains Scuttle (This creature shifts when it moves) and ignores difficult terrain.',
     faction: FACTION_NAME,
-    imageUrl: acrobaticsOrder1Img
+    imageUrl: acrobaticsOrder1Img,
   },
   // Card 2: Acrobatics - Level 1, DEX, MINOR
   {
@@ -342,9 +364,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. This creature gains Scuttle (This creature shifts when it moves) and ignores difficult terrain.',
+    effectDescription:
+      'Attach this card to this creature. This creature gains Scuttle (This creature shifts when it moves) and ignores difficult terrain.',
     faction: FACTION_NAME,
-    imageUrl: acrobaticsOrder2Img
+    imageUrl: acrobaticsOrder2Img,
   },
   // Card 3: Arcane Scroll - Level 1, ANY, MINOR
   {
@@ -353,10 +376,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES HUMANOID. Attach this card to this creature. Discard this card to give this creature the INT ability for the rest of the turn.',
+    effectDescription:
+      'REQUIRES HUMANOID. Attach this card to this creature. Discard this card to give this creature the INT ability for the rest of the turn.',
     requiresCreatureType: 'Humanoid',
     faction: FACTION_NAME,
-    imageUrl: arcaneScrollOrder3Img
+    imageUrl: arcaneScrollOrder3Img,
   },
   // Card 4: Death Sentence - Level 3, CHA, MINOR
   {
@@ -367,7 +391,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: '1 creature you control within 5 squares makes a melee attack.',
     faction: FACTION_NAME,
-    imageUrl: deathSentenceOrder4Img
+    imageUrl: deathSentenceOrder4Img,
   },
   // Card 5: Death Sentence - Level 3, CHA, MINOR
   {
@@ -378,7 +402,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: '1 creature you control within 5 squares makes a melee attack.',
     faction: FACTION_NAME,
-    imageUrl: deathSentenceOrder5Img
+    imageUrl: deathSentenceOrder5Img,
   },
   // Card 6: Feral Vitality - Level 2, CON, STANDARD (Phase STD-6: Attack + Heal)
   {
@@ -391,7 +415,7 @@ export const orderCards = [
     meleeDamageBonus: 20,
     healOnAttack: 10,
     faction: FACTION_NAME,
-    imageUrl: feralVitalityOrder6Img
+    imageUrl: feralVitalityOrder6Img,
   },
   // Card 7: Forward the Horde - Level 1, CHA, MINOR
   {
@@ -402,7 +426,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Shift 3 squares. One allied creature shifts 3 squares.',
     faction: FACTION_NAME,
-    imageUrl: forwardTheHordeOrder7Img
+    imageUrl: forwardTheHordeOrder7Img,
   },
   // Card 8: Forward the Horde - Level 1, CHA, MINOR
   {
@@ -413,7 +437,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Shift 3 squares. One allied creature shifts 3 squares.',
     faction: FACTION_NAME,
-    imageUrl: forwardTheHordeOrder8Img
+    imageUrl: forwardTheHordeOrder8Img,
   },
   // Card 9: Goblin War Cry - Level 3, CHA, MINOR
   {
@@ -422,9 +446,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'Goblin, Hobgoblin, and Bugbear creatures you control deal +10 damage with melee and ranged attacks until the end of this turn.',
+    effectDescription:
+      'Goblin, Hobgoblin, and Bugbear creatures you control deal +10 damage with melee and ranged attacks until the end of this turn.',
     faction: FACTION_NAME,
-    imageUrl: goblinWarCryOrder9Img
+    imageUrl: goblinWarCryOrder9Img,
   },
   // Card 10: Goblin War Cry - Level 3, CHA, MINOR
   {
@@ -433,9 +458,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'Goblin, Hobgoblin, and Bugbear creatures you control deal +10 damage with melee and ranged attacks until the end of this turn.',
+    effectDescription:
+      'Goblin, Hobgoblin, and Bugbear creatures you control deal +10 damage with melee and ranged attacks until the end of this turn.',
     faction: FACTION_NAME,
-    imageUrl: goblinWarCryOrder10Img
+    imageUrl: goblinWarCryOrder10Img,
   },
   // Card 11: Grovel - Level 1, ANY, IMMEDIATE - ABILITY IMPLEMENTED
   {
@@ -448,7 +474,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: grovelOrder11Img,
     damagePrevented: 30,
-    moraleCost: 1
+    moraleCost: 1,
   },
   // Card 12: Grovel - Level 1, ANY, IMMEDIATE - ABILITY IMPLEMENTED
   {
@@ -461,7 +487,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: grovelOrder12Img,
     damagePrevented: 30,
-    moraleCost: 1
+    moraleCost: 1,
   },
   // Card 13: Leap Away - Level 1, DEX, IMMEDIATE - ABILITY IMPLEMENTED
   // Prevents 40 damage, attaches (blocks movement), removable as STANDARD action
@@ -471,7 +497,8 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent 40 damage to this creature from 1 source. Attach this card to this creature. This creature cannot move or shift. (S): Remove this card.',
+    effectDescription:
+      'Prevent 40 damage to this creature from 1 source. Attach this card to this creature. This creature cannot move or shift. (S): Remove this card.',
     faction: FACTION_NAME,
     imageUrl: leapAwayOrder13Img,
     damagePrevented: 40,
@@ -479,8 +506,8 @@ export const orderCards = [
       preventsMovement: true,
       removableAsStandard: true,
       destroyAtDeploy: false,
-      blockAmount: 0
-    }
+      blockAmount: 0,
+    },
   },
   // Card 14: Loping Stride - Level 1, DEX, MINOR
   {
@@ -489,9 +516,9 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. Add 2 to this creature\'s base Speed.',
+    effectDescription: "Attach this card to this creature. Add 2 to this creature's base Speed.",
     faction: FACTION_NAME,
-    imageUrl: lopingStrideOrder14Img
+    imageUrl: lopingStrideOrder14Img,
   },
   // Card 15: Loping Stride - Level 1, DEX, MINOR
   {
@@ -500,9 +527,9 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. Add 2 to this creature\'s base Speed.',
+    effectDescription: "Attach this card to this creature. Add 2 to this creature's base Speed.",
     faction: FACTION_NAME,
-    imageUrl: lopingStrideOrder15Img
+    imageUrl: lopingStrideOrder15Img,
   },
   // Card 16: Mage Hand - Level 1, INT, MINOR
   {
@@ -511,9 +538,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'Choose a Treasure square within 5 squares. Reveal any Treasure Chest marker on that square, then take 1 Treasure token from that square. OR Tap 1 creature within 5 squares.',
+    effectDescription:
+      'Choose a Treasure square within 5 squares. Reveal any Treasure Chest marker on that square, then take 1 Treasure token from that square. OR Tap 1 creature within 5 squares.',
     faction: FACTION_NAME,
-    imageUrl: mageHandOrder16Img
+    imageUrl: mageHandOrder16Img,
   },
   // Card 17: Mirror Image - Level 1, INT, STANDARD
   {
@@ -522,9 +550,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'INT',
     actionType: 'STANDARD',
-    effectDescription: 'Attach this card to this creature. Remove this card to prevent all damage to this creature from 1 source.',
+    effectDescription:
+      'Attach this card to this creature. Remove this card to prevent all damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: mirrorImageOrder17Img
+    imageUrl: mirrorImageOrder17Img,
   },
   // Card 18: Mortal Wound - Level 4, CON, IMMEDIATE - ABILITY IMPLEMENTED
   // Prevents ALL damage, attaches, creature destroyed at start of owner's Deploy phase
@@ -534,7 +563,8 @@ export const orderCards = [
     level: 4,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Prevent all damage to this creature from 1 source. Attach this card to this creature. Destroy this creature at the start of your Deploy phase.',
+    effectDescription:
+      'Prevent all damage to this creature from 1 source. Attach this card to this creature. Destroy this creature at the start of your Deploy phase.',
     faction: FACTION_NAME,
     imageUrl: mortalWoundOrder18Img,
     preventsAllDamage: true,
@@ -542,8 +572,8 @@ export const orderCards = [
       preventsMovement: false,
       removableAsStandard: false,
       destroyAtDeploy: true,
-      blockAmount: 0
-    }
+      blockAmount: 0,
+    },
   },
   // Card 19: Narrow Escape - Level 1, DEX, IMMEDIATE - ABILITY IMPLEMENTED
   {
@@ -556,7 +586,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: narrowEscapeOrder19Img,
     damagePrevented: 20,
-    moraleCost: 0
+    moraleCost: 0,
   },
   // Card 20: Narrow Escape - Level 1, DEX, IMMEDIATE - ABILITY IMPLEMENTED
   {
@@ -569,7 +599,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: narrowEscapeOrder20Img,
     damagePrevented: 20,
-    moraleCost: 0
+    moraleCost: 0,
   },
   // Card 21: Nimble Strike - Level 1, DEX, STANDARD (Phase STD-4: Shift + Attack)
   {
@@ -578,12 +608,13 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'DEX',
     actionType: 'STANDARD',
-    effectDescription: 'Shift up to 3 squares. Make a melee or ranged attack that deals +10 damage.',
+    effectDescription:
+      'Shift up to 3 squares. Make a melee or ranged attack that deals +10 damage.',
     shiftBeforeAttack: 3,
     meleeDamageBonus: 10,
     rangedDamageBonus: 10,
     faction: FACTION_NAME,
-    imageUrl: nimbleStrikeOrder21Img
+    imageUrl: nimbleStrikeOrder21Img,
   },
   // Card 22: Patch Up - Level 1, CON, IMMEDIATE - ABILITY IMPLEMENTED
   // Dual-mode card: Can heal 20 proactively (ACTIVATE phase) OR prevent 20 defensively
@@ -593,12 +624,13 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'This creature heals 20 damage. OR Prevent 20 damage to this creature from 1 source.',
+    effectDescription:
+      'This creature heals 20 damage. OR Prevent 20 damage to this creature from 1 source.',
     faction: FACTION_NAME,
     imageUrl: patchUpOrder22Img,
     damagePrevented: 20, // For prevent mode (defensive)
     healAmount: 20, // For heal mode (proactive)
-    canHealProactively: true // Enable proactive heal mode during ACTIVATE phase
+    canHealProactively: true, // Enable proactive heal mode during ACTIVATE phase
   },
   // Card 23: Patch Up - Level 1, CON, IMMEDIATE - ABILITY IMPLEMENTED
   // Dual-mode card: Can heal 20 proactively (ACTIVATE phase) OR prevent 20 defensively
@@ -608,12 +640,13 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'This creature heals 20 damage. OR Prevent 20 damage to this creature from 1 source.',
+    effectDescription:
+      'This creature heals 20 damage. OR Prevent 20 damage to this creature from 1 source.',
     faction: FACTION_NAME,
     imageUrl: patchUpOrder23Img,
     damagePrevented: 20, // For prevent mode (defensive)
     healAmount: 20, // For heal mode (proactive)
-    canHealProactively: true // Enable proactive heal mode during ACTIVATE phase
+    canHealProactively: true, // Enable proactive heal mode during ACTIVATE phase
   },
   // Card 24: Portal Stone - Level 1, ANY, MINOR
   {
@@ -622,9 +655,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'Take 1 Treasure token from the square this creature is in to place this creature in any Magic Circle square.',
+    effectDescription:
+      'Take 1 Treasure token from the square this creature is in to place this creature in any Magic Circle square.',
     faction: FACTION_NAME,
-    imageUrl: portalStoneOrder24Img
+    imageUrl: portalStoneOrder24Img,
   },
   // Card 25: Rally - Level 1, CHA, MINOR
   {
@@ -633,9 +667,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'Choose 1 allied creature within 5 squares. Remove all attached Order cards from that creature.',
+    effectDescription:
+      'Choose 1 allied creature within 5 squares. Remove all attached Order cards from that creature.',
     faction: FACTION_NAME,
-    imageUrl: rallyOrder25Img
+    imageUrl: rallyOrder25Img,
   },
   // Card 26: Ray of Frost - Level 2, INT, STANDARD
   // NOTE: This is a spell that deals flat 30 damage, not creature's ranged attack + bonus
@@ -647,12 +682,13 @@ export const orderCards = [
     abilityRequired: 'INT',
     actionType: 'STANDARD',
     rangedDamageBonus: 30, // Triggers DamageBoostModal - shows as spell damage
-    tapTargetOnHit: true,  // Taps target if damage dealt
-    targetRange: 5,        // 5 squares range
-    isSpellDamage: true,   // Flag: this is spell damage, not creature's ranged attack
-    effectDescription: 'Deal 30 damage to 1 creature within 5 squares. If the target takes damage from this attack, tap it.',
+    tapTargetOnHit: true, // Taps target if damage dealt
+    targetRange: 5, // 5 squares range
+    isSpellDamage: true, // Flag: this is spell damage, not creature's ranged attack
+    effectDescription:
+      'Deal 30 damage to 1 creature within 5 squares. If the target takes damage from this attack, tap it.',
     faction: FACTION_NAME,
-    imageUrl: rayOfFrostOrder26Img
+    imageUrl: rayOfFrostOrder26Img,
   },
   // Card 27: Reckless Attack - Level 1, CON, STANDARD
   {
@@ -661,9 +697,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'This creature takes 10 damage to make a melee attack that deals +30 damage.',
+    effectDescription:
+      'This creature takes 10 damage to make a melee attack that deals +30 damage.',
     faction: FACTION_NAME,
-    imageUrl: recklessAttackOrder27Img
+    imageUrl: recklessAttackOrder27Img,
   },
   // Card 28: Reckless Attack - Level 1, CON, STANDARD
   {
@@ -672,9 +709,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'This creature takes 10 damage to make a melee attack that deals +30 damage.',
+    effectDescription:
+      'This creature takes 10 damage to make a melee attack that deals +30 damage.',
     faction: FACTION_NAME,
-    imageUrl: recklessAttackOrder28Img
+    imageUrl: recklessAttackOrder28Img,
   },
   // Card 29: Reinforcements - Level 3, ANY, MINOR
   {
@@ -683,9 +721,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'Discard any number of Creature cards from your hand, then reshuffle all Creature cards from your graveyard into your Creature deck and draw Creature cards up to your Creature hand size.',
+    effectDescription:
+      'Discard any number of Creature cards from your hand, then reshuffle all Creature cards from your graveyard into your Creature deck and draw Creature cards up to your Creature hand size.',
     faction: FACTION_NAME,
-    imageUrl: reinforcementsOrder29Img
+    imageUrl: reinforcementsOrder29Img,
   },
   // Card 30: Shattered Weapon - Level 1, ANY, STANDARD
   {
@@ -694,10 +733,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'STANDARD',
-    effectDescription: 'REQUIRES HUMANOID. Make a melee attack that deals +30 damage. Attach this card to this creature. This creature\'s melee attacks deal -10 damage.',
+    effectDescription:
+      "REQUIRES HUMANOID. Make a melee attack that deals +30 damage. Attach this card to this creature. This creature's melee attacks deal -10 damage.",
     requiresCreatureType: 'Humanoid',
     faction: FACTION_NAME,
-    imageUrl: shatteredWeaponOrder30Img
+    imageUrl: shatteredWeaponOrder30Img,
   },
   // Card 31: Shattered Weapon - Level 1, ANY, STANDARD
   {
@@ -706,10 +746,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'STANDARD',
-    effectDescription: 'REQUIRES HUMANOID. Make a melee attack that deals +30 damage. Attach this card to this creature. This creature\'s melee attacks deal -10 damage.',
+    effectDescription:
+      "REQUIRES HUMANOID. Make a melee attack that deals +30 damage. Attach this card to this creature. This creature's melee attacks deal -10 damage.",
     requiresCreatureType: 'Humanoid',
     faction: FACTION_NAME,
-    imageUrl: shatteredWeaponOrder31Img
+    imageUrl: shatteredWeaponOrder31Img,
   },
   // Card 32: Strength in Numbers - Level 3, CHA, STANDARD
   {
@@ -720,7 +761,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Gain 1 Leadership.',
     faction: FACTION_NAME,
-    imageUrl: strengthInNumbersOrder32Img
+    imageUrl: strengthInNumbersOrder32Img,
   },
   // Card 33: Strength in Numbers - Level 3, CHA, STANDARD
   {
@@ -731,7 +772,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Gain 1 Leadership.',
     faction: FACTION_NAME,
-    imageUrl: strengthInNumbersOrder33Img
+    imageUrl: strengthInNumbersOrder33Img,
   },
   // Card 34: Tough as Nails - Level 2, CON, IMMEDIATE - ABILITY IMPLEMENTED
   // Proactive IMMEDIATE: Removes all attachments, attaches itself, grants Block 10
@@ -742,7 +783,8 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Remove all cards attached to this creature. Attach this card to this creature. This creature gains Block 10 (Prevent 10 damage whenever a source deals damage to this creature).',
+    effectDescription:
+      'Remove all cards attached to this creature. Attach this card to this creature. This creature gains Block 10 (Prevent 10 damage whenever a source deals damage to this creature).',
     faction: FACTION_NAME,
     imageUrl: toughAsNailsOrder34Img,
     damagePrevented: 0,
@@ -752,8 +794,8 @@ export const orderCards = [
       preventsMovement: false,
       removableAsStandard: false,
       destroyAtDeploy: false,
-      blockAmount: 10
-    }
+      blockAmount: 10,
+    },
   },
   // Card 35: Undaunted Surge - Level 3, CON, MINOR
   {
@@ -762,9 +804,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CON',
     actionType: 'MINOR',
-    effectDescription: 'Remove all cards attached to this creature. Attach this card to this creature. This creature\'s melee attacks deal +10 damage.',
+    effectDescription:
+      "Remove all cards attached to this creature. Attach this card to this creature. This creature's melee attacks deal +10 damage.",
     faction: FACTION_NAME,
-    imageUrl: undauntedSurgeOrder35Img
+    imageUrl: undauntedSurgeOrder35Img,
   },
   // Card 36: Undaunted Surge - Level 3, CON, MINOR
   {
@@ -773,15 +816,16 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CON',
     actionType: 'MINOR',
-    effectDescription: 'Remove all cards attached to this creature. Attach this card to this creature. This creature\'s melee attacks deal +10 damage.',
+    effectDescription:
+      "Remove all cards attached to this creature. Attach this card to this creature. This creature's melee attacks deal +10 damage.",
     faction: FACTION_NAME,
-    imageUrl: undauntedSurgeOrder36Img
-  }
+    imageUrl: undauntedSurgeOrder36Img,
+  },
 ]
 
 export default {
   FACTION_NAME,
   commanders,
   creatures,
-  orderCards
+  orderCards,
 }

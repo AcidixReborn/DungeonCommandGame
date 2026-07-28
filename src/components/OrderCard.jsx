@@ -13,7 +13,14 @@ import './OrderCard.css'
  * @param {boolean} isTargeting - Whether this card is in targeting mode (glowing border)
  * @param {boolean} compact - Use compact display mode
  */
-function OrderCard({ order, onClick, onRightClick, isSelected, isTargeting = false, compact = false }) {
+function OrderCard({
+  order,
+  onClick,
+  onRightClick,
+  isSelected,
+  isTargeting = false,
+  compact = false,
+}) {
   /**
    * Get badge color for action type
    * @returns {string} Bootstrap variant color
@@ -61,7 +68,7 @@ function OrderCard({ order, onClick, onRightClick, isSelected, isTargeting = fal
       INT: 'primary',
       WIS: 'info',
       CHA: 'secondary',
-      ANY: 'light'
+      ANY: 'light',
     }
     return colors[ability] || 'secondary'
   }
@@ -108,10 +115,12 @@ function OrderCard({ order, onClick, onRightClick, isSelected, isTargeting = fal
   }
 
   // Style for targeting mode (glowing cyan border)
-  const targetingStyle = isTargeting ? {
-    boxShadow: '0 0 10px 3px #00ffff',
-    border: '2px solid #00ffff'
-  } : {}
+  const targetingStyle = isTargeting
+    ? {
+        boxShadow: '0 0 10px 3px #00ffff',
+        border: '2px solid #00ffff',
+      }
+    : {}
 
   if (compact) {
     // If order has an image, show image-only view
@@ -123,11 +132,7 @@ function OrderCard({ order, onClick, onRightClick, isSelected, isTargeting = fal
           onContextMenu={handleContextMenu}
           style={targetingStyle}
         >
-          <img
-            src={order.imageUrl}
-            alt={order.name}
-            className="order-card-img"
-          />
+          <img src={order.imageUrl} alt={order.name} className="order-card-img" />
         </div>
       )
     }
@@ -171,9 +176,7 @@ function OrderCard({ order, onClick, onRightClick, isSelected, isTargeting = fal
           </Badge>
         </div>
       </Card.Header>
-      {order.imageUrl && (
-        <Card.Img variant="top" src={order.imageUrl} alt={order.name} />
-      )}
+      {order.imageUrl && <Card.Img variant="top" src={order.imageUrl} alt={order.name} />}
       <Card.Body>
         <div className="mb-2 d-flex gap-2 flex-wrap">
           <div className="d-flex gap-1">
@@ -196,9 +199,7 @@ function OrderCard({ order, onClick, onRightClick, isSelected, isTargeting = fal
               </Badge>
             )}
           </div>
-          <Badge bg={getActionBadgeColor()}>
-            {getActionTypeAbbreviation()}
-          </Badge>
+          <Badge bg={getActionBadgeColor()}>{getActionTypeAbbreviation()}</Badge>
           {order.requiresCreatureType && (
             <Badge bg="warning" text="dark">
               Requires: {order.requiresCreatureType}

@@ -38,7 +38,7 @@ export function useAITurn() {
    * @param {Object} deathInfo - { attackerInstance, defenderInstance, damageDealt, attackType, abilitiesTriggered, moraleChanges }
    */
   const queueAiDeath = useCallback((deathInfo) => {
-    setAiDeathQueue(prev => [...prev, deathInfo])
+    setAiDeathQueue((prev) => [...prev, deathInfo])
   }, [])
 
   /**
@@ -64,7 +64,7 @@ export function useAITurn() {
    */
   const acknowledgeAiDeath = useCallback(() => {
     // Remove the current death from queue
-    setAiDeathQueue(prev => prev.slice(1))
+    setAiDeathQueue((prev) => prev.slice(1))
     setShowAiDeathModal(false)
     setCurrentAiDeath(null)
 
@@ -139,7 +139,7 @@ export function useAITurn() {
     setAiCurrentAction,
 
     // Clear all
-    clearAllAiTurnState
+    clearAllAiTurnState,
   }
 }
 

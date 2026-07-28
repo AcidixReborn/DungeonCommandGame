@@ -38,43 +38,46 @@ export function useNotifications(options = {}) {
    *
    * @param {string} message - Message to display
    */
-  const addToast = useCallback((message) => {
-    // Filter out "AI turn ended" messages
-    if (message === 'AI: AI turn ended') return
+  const addToast = useCallback(
+    (message) => {
+      // Filter out "AI turn ended" messages
+      if (message === 'AI: AI turn ended') return
 
-    // Use ref for atomic increment - avoids duplicate IDs when called rapidly
-    const id = nextToastIdRef.current++
+      // Use ref for atomic increment - avoids duplicate IDs when called rapidly
+      const id = nextToastIdRef.current++
 
-    const turnNumber = getCurrentTurnNumber ? getCurrentTurnNumber() : 1
+      const turnNumber = getCurrentTurnNumber ? getCurrentTurnNumber() : 1
 
-    const newToast = {
-      id,
-      message,
-      timestamp: Date.now(),
-      round: turnNumber
-    }
+      const newToast = {
+        id,
+        message,
+        timestamp: Date.now(),
+        round: turnNumber,
+      }
 
-    // Always add to turn log
-    setTurnLog(prev => [...prev, newToast])
+      // Always add to turn log
+      setTurnLog((prev) => [...prev, newToast])
 
-    // Only show popup during AI turns (not human turns)
-    const isHuman = isCurrentPlayerHuman ? isCurrentPlayerHuman() : true
+      // Only show popup during AI turns (not human turns)
+      const isHuman = isCurrentPlayerHuman ? isCurrentPlayerHuman() : true
 
-    if (!isHuman) {
-      setToastMessages(prev => {
-        const updated = [...prev, newToast]
-        // Keep only the last 10 toasts
-        return updated.slice(-10)
-      })
-    }
-  }, [getCurrentTurnNumber, isCurrentPlayerHuman])
+      if (!isHuman) {
+        setToastMessages((prev) => {
+          const updated = [...prev, newToast]
+          // Keep only the last 10 toasts
+          return updated.slice(-10)
+        })
+      }
+    },
+    [getCurrentTurnNumber, isCurrentPlayerHuman]
+  )
 
   /**
    * Remove a toast by ID (memoized to prevent timer resets)
    * @param {number} id - Toast ID to remove
    */
   const removeToast = useCallback((id) => {
-    setToastMessages(prev => prev.filter(t => t.id !== id))
+    setToastMessages((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
   /**
@@ -83,8 +86,8 @@ export function useNotifications(options = {}) {
    * @param {number} turnNumber - Current turn number
    */
   const clearOldLogs = useCallback((turnNumber) => {
-    setTurnLog(prev => prev.filter(t => t.round >= turnNumber - 1))
-    setToastMessages(prev => prev.filter(t => t.round >= turnNumber - 1))
+    setTurnLog((prev) => prev.filter((t) => t.round >= turnNumber - 1))
+    setToastMessages((prev) => prev.filter((t) => t.round >= turnNumber - 1))
   }, [])
 
   /**
@@ -108,7 +111,7 @@ export function useNotifications(options = {}) {
     addToast,
     removeToast,
     clearOldLogs,
-    clearAll
+    clearAll,
   }
 }
 

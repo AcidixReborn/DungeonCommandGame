@@ -56,13 +56,13 @@ export class AITurnManager {
 
     // Extract attack intentions for queuing
     const actions = result.actions || []
-    const attackIntentions = actions.filter(action => action.type === 'attack_intention')
+    const attackIntentions = actions.filter((action) => action.type === 'attack_intention')
 
     return {
       actions,
       message: result.message,
       attackIntentions,
-      usedHorde: this.checkHordeUsage(actions)
+      usedHorde: this.checkHordeUsage(actions),
     }
   }
 
@@ -72,9 +72,11 @@ export class AITurnManager {
    * @returns {boolean} True if HORDE was used
    */
   checkHordeUsage(actions) {
-    return this.gameState.currentPhase === GamePhases.REFRESH &&
-           this.gameState.canDeployDuringRefresh(this.gameState.currentPlayer) &&
-           actions.some(a => a.isHordeDeploy)
+    return (
+      this.gameState.currentPhase === GamePhases.REFRESH &&
+      this.gameState.canDeployDuringRefresh(this.gameState.currentPlayer) &&
+      actions.some((a) => a.isHordeDeploy)
+    )
   }
 
   /**
@@ -83,7 +85,7 @@ export class AITurnManager {
    */
   clearHordeProtection() {
     const player = this.gameState.getCurrentPlayerState()
-    player.creaturesInPlay.forEach(creature => {
+    player.creaturesInPlay.forEach((creature) => {
       if (creature.deployedThisTurn && creature.turnDeployed === this.gameState.turnNumber) {
         creature.clearDeploymentProtection()
       }
@@ -117,8 +119,9 @@ export class AITurnManager {
     // Re-validate attack is still valid from current position
     const currentValidTargets = this.gameState.getValidAttackTargets(attackerInstance)
     const isStillValidTarget = currentValidTargets.some(
-      t => t.creature.instanceId === defenderInstance.instanceId &&
-           t.attackType === targetInfo.attackType
+      (t) =>
+        t.creature.instanceId === defenderInstance.instanceId &&
+        t.attackType === targetInfo.attackType
     )
 
     if (!isStillValidTarget) {
@@ -142,16 +145,25 @@ export class AITurnManager {
     const reactionDecision = defenderAI.decideImmediateReactions(defenderInstance)
 
     // Calculate incoming damage
-    const incomingDamage = targetInfo.attackType === 'melee'
-      ? attackerInstance.creature.meleeAttack?.damage || 0
-      : attackerInstance.creature.rangedAttack?.damage || 0
+    const incomingDamage =
+      targetInfo.attackType === 'melee'
+        ? attackerInstance.creature.meleeAttack?.damage || 0
+        : attackerInstance.creature.rangedAttack?.damage || 0
 
     // AI decides whether to use defensive abilities
-    const defenseDecision = defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
+    const defenseDecision = defenderAI.decideDefense(
+      defenderInstance,
+      incomingDamage,
+      attackerInstance.owner
+    )
     let defenseResult = null
 
     if (defenseDecision.type === 'cower') {
-      defenseResult = this.gameState.applyCower(defenderInstance, incomingDamage, attackerInstance.owner)
+      defenseResult = this.gameState.applyCower(
+        defenderInstance,
+        incomingDamage,
+        attackerInstance.owner
+      )
       if (defenseResult.success) {
         defenseResult.type = 'cower'
         defenseResult.damagePrevented = defenseResult.damageAvoided
@@ -183,16 +195,24 @@ export class AITurnManager {
           type: 'unstoppable_hordes',
           damagePrevented: totalDamagePrevented,
           moraleCost: creaturesUsed.length,
-          creaturesUsed
+          creaturesUsed,
         }
       }
     } else if (defenseDecision.type === 'immediate_card') {
       // Apply IMMEDIATE card defense (pass discardCard for cards like Uncanny Dodge)
-      const result = this.gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature, defenseDecision.discardCard)
+      const result = this.gameState.applyImmediateCardDefense(
+        defenseDecision.card,
+        defenseDecision.creature,
+        defenseDecision.discardCard
+      )
       if (result.success) {
         // Handle shift after use (Cloud of Bats)
         if (result.shiftAfterUse > 0 && result.creatureToShift) {
-          const shiftResult = this.handleAIShiftAfterDefense(result.creatureToShift, result.shiftAfterUse, attackerInstance)
+          const shiftResult = this.handleAIShiftAfterDefense(
+            result.creatureToShift,
+            result.shiftAfterUse,
+            attackerInstance
+          )
           if (shiftResult.shifted) {
             // Tap the creature after shifting
             result.creatureToShift.tap()
@@ -220,7 +240,7 @@ export class AITurnManager {
           bonusDrawsQueued: result.bonusDrawsQueued || 0,
           shiftedTo: result.shiftAfterUse > 0 ? result.creatureToShift?.position : null,
           counterAttackResults: counterAttackResults,
-          discardedCardName: result.discardedCardName // Name of card discarded as cost (Uncanny Dodge)
+          discardedCardName: result.discardedCardName, // Name of card discarded as cost (Uncanny Dodge)
         }
       }
     }
@@ -232,7 +252,7 @@ export class AITurnManager {
       // Sort by cardIndex descending to prevent array shift issues
       reactionDecision.reactions.sort((a, b) => b.cardIndex - a.cardIndex)
 
-      reactionDecision.reactions.forEach(reaction => {
+      reactionDecision.reactions.forEach((reaction) => {
         reaction.creature.isTapped = true
         defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
       })
@@ -251,7 +271,14 @@ export class AITurnManager {
    * @param {string} attackType - 'melee' or 'ranged'
    * @returns {string} Formatted message
    */
-  formatAttackMessage(result, defenseResult, reactionDecision, attackerInstance, defenderInstance, attackType) {
+  formatAttackMessage(
+    result,
+    defenseResult,
+    reactionDecision,
+    attackerInstance,
+    defenderInstance,
+    attackType
+  ) {
     let message = ''
 
     // Add defense info to message
@@ -262,10 +289,13 @@ export class AITurnManager {
         message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
       } else if (defenseResult.type === 'immediate_card') {
         let extraEffects = ''
-        if (defenseResult.discardedCardName) extraEffects += ` Discarded ${defenseResult.discardedCardName}.`
+        if (defenseResult.discardedCardName)
+          extraEffects += ` Discarded ${defenseResult.discardedCardName}.`
         if (defenseResult.moraleGain > 0) extraEffects += ` +${defenseResult.moraleGain} morale!`
-        if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
-        if (defenseResult.bonusDrawsQueued > 0) extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
+        if (defenseResult.untapAfterUse)
+          extraEffects += ` ${defenseResult.creatureTapped} untapped!`
+        if (defenseResult.bonusDrawsQueued > 0)
+          extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
         message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented${defenseResult.untapAfterUse ? '' : ` (${defenseResult.creatureTapped} tapped)`}!${extraEffects} `
 
         // Add counter-attack results
@@ -286,13 +316,15 @@ export class AITurnManager {
       message += `⚡ AI used ${reactionDecision.reactions.length} Immediate card${reactionDecision.reactions.length !== 1 ? 's' : ''}! `
     }
 
-    message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
-               `with ${attackType} for ${result.damage} damage!`
+    message +=
+      `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+      `with ${attackType} for ${result.damage} damage!`
 
     if (result.destroyed) {
       message += ` ${defenderInstance.creature.name} was destroyed! `
-      message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
-                `Defender ${result.moraleChange.defender}`
+      message +=
+        `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+        `Defender ${result.moraleChange.defender}`
       // BLOODTHIRSTY ability notification
       if (result.bloodthirsty) {
         message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
@@ -342,7 +374,7 @@ export class AITurnManager {
           Math.abs(tile.y - ally.position.y)
         )
         // Prefer being closer to allies (lower distance = higher score)
-        allyScore += (10 - Math.min(distToAlly, 10))
+        allyScore += 10 - Math.min(distToAlly, 10)
         allyCount++
       }
 
@@ -383,23 +415,29 @@ export class AITurnManager {
 
     if (targetType === 'attacker') {
       // Riposte: Must target attacker, must be adjacent
-      if (requiresAdjacent && !this.gameState.isAttackerAdjacent(defenderInstance, attackerInstance)) {
+      if (
+        requiresAdjacent &&
+        !this.gameState.isAttackerAdjacent(defenderInstance, attackerInstance)
+      ) {
         // Attacker not adjacent (ranged attack) - counter-attack skipped
         return null
       }
       targets.push(attackerInstance)
-    }
-    else if (targetType === 'adjacent_tapped') {
+    } else if (targetType === 'adjacent_tapped') {
       // Seize the Opportunity: AI picks best target from adjacent tapped enemies
       const adjacentTapped = this.gameState.getAdjacentTappedEnemies(defenderInstance)
 
       // Also check if attacker will be tapped after this attack resolves
       // Attacker must be adjacent AND have moved this turn (attacking completes the tap)
-      if (attackerInstance &&
-          this.gameState.isAttackerAdjacent(defenderInstance, attackerInstance) &&
-          attackerInstance.hasMovedThisTurn) {
+      if (
+        attackerInstance &&
+        this.gameState.isAttackerAdjacent(defenderInstance, attackerInstance) &&
+        attackerInstance.hasMovedThisTurn
+      ) {
         // Attacker will be tapped - add to valid targets if not already included
-        const alreadyIncluded = adjacentTapped.some(c => c.instanceId === attackerInstance.instanceId)
+        const alreadyIncluded = adjacentTapped.some(
+          (c) => c.instanceId === attackerInstance.instanceId
+        )
         if (!alreadyIncluded) {
           adjacentTapped.push(attackerInstance)
         }
@@ -416,7 +454,10 @@ export class AITurnManager {
       for (const target of adjacentTapped) {
         const wouldKill = target.currentHP <= damage
         // Score: killing is worth a lot, then consider creature level
-        const score = (wouldKill ? 1000 : 0) + target.creature.level * 10 + (target.creature.hitPoints - target.currentHP)
+        const score =
+          (wouldKill ? 1000 : 0) +
+          target.creature.level * 10 +
+          (target.creature.hitPoints - target.currentHP)
         if (score > bestScore) {
           bestScore = score
           bestTarget = target
@@ -424,8 +465,7 @@ export class AITurnManager {
       }
 
       targets.push(bestTarget)
-    }
-    else if (targetType === 'all_adjacent_tapped') {
+    } else if (targetType === 'all_adjacent_tapped') {
       // Corrosive Blood: Hit ALL adjacent tapped enemies
       const adjacentTapped = this.gameState.getAdjacentTappedEnemies(defenderInstance)
       if (adjacentTapped.length === 0) {
@@ -453,7 +493,9 @@ export class AITurnManager {
         targetPlayer.morale -= target.creature.level
 
         // Remove from play
-        const index = targetPlayer.creaturesInPlay.findIndex(c => c.instanceId === target.instanceId)
+        const index = targetPlayer.creaturesInPlay.findIndex(
+          (c) => c.instanceId === target.instanceId
+        )
         if (index !== -1) {
           targetPlayer.creaturesInPlay.splice(index, 1)
         }
@@ -471,7 +513,7 @@ export class AITurnManager {
         damage,
         prevHP,
         remainingHP: Math.max(0, target.currentHP),
-        killed
+        killed,
       })
     }
 

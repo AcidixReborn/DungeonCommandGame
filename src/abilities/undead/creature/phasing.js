@@ -24,7 +24,7 @@ export const Phasing = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('PHASING')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('PHASING')
     )
   },
 
@@ -62,7 +62,7 @@ export const Phasing = {
    */
   takesWaterDamage() {
     return false
-  }
+  },
 }
 
 export default Phasing

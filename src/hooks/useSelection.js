@@ -102,26 +102,26 @@ export function useSelection() {
     setValidMoveTiles(moves)
 
     // Calculate valid attack targets (filter out eliminated players)
-    const targets = gameState.getValidAttackTargets(creature)
-      .filter(target => gameState.activePlayers.includes(target.creature.owner))
+    const targets = gameState
+      .getValidAttackTargets(creature)
+      .filter((target) => gameState.activePlayers.includes(target.creature.owner))
     setValidAttackTargets(targets)
 
     // Calculate line-of-sight paths for ranged attacks
     const losPath = []
-    targets.forEach(targetInfo => {
+    targets.forEach((targetInfo) => {
       if (targetInfo.attackType === 'ranged') {
-        const lineTiles = gameState.getLineTiles(
-          creature.position,
-          targetInfo.creature.position
-        )
-        lineTiles.forEach(pos => {
+        const lineTiles = gameState.getLineTiles(creature.position, targetInfo.creature.position)
+        lineTiles.forEach((pos) => {
           // Skip attacker and target positions
-          if ((pos.x === creature.position.x && pos.y === creature.position.y) ||
-              (pos.x === targetInfo.creature.position.x && pos.y === targetInfo.creature.position.y)) {
+          if (
+            (pos.x === creature.position.x && pos.y === creature.position.y) ||
+            (pos.x === targetInfo.creature.position.x && pos.y === targetInfo.creature.position.y)
+          ) {
             return
           }
           // Add to path if not already there
-          if (!losPath.some(p => p.x === pos.x && p.y === pos.y)) {
+          if (!losPath.some((p) => p.x === pos.x && p.y === pos.y)) {
             losPath.push(pos)
           }
         })
@@ -147,7 +147,7 @@ export function useSelection() {
    * Toggle view mode between movement and ranged
    */
   const toggleViewMode = useCallback(() => {
-    setCreatureViewMode(prev => prev === 'movement' ? 'ranged' : 'movement')
+    setCreatureViewMode((prev) => (prev === 'movement' ? 'ranged' : 'movement'))
   }, [])
 
   return {
@@ -191,7 +191,7 @@ export function useSelection() {
     clearAllSelection,
     clearDragState,
     selectBoardCreature,
-    toggleViewMode
+    toggleViewMode,
   }
 }
 

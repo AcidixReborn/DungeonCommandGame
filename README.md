@@ -9,11 +9,13 @@ The game is now in a playable state! You can start a game, see the board with te
 ## 🚀 Quick Start
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Start development server:
+
    ```bash
    npm run dev
    ```
@@ -36,6 +38,7 @@ The game is now in a playable state! You can start a game, see the board with te
 ## ✅ Implemented Features
 
 ### Core Game Systems
+
 - ✅ **Full Game State Management** - Complete turn phases, morale, leadership tracking
 - ✅ **Random Terrain Generation** - Dynamic battlefield with varied terrain types
 - ✅ **5 Factions** - All factions with sample creatures and commanders
@@ -46,6 +49,7 @@ The game is now in a playable state! You can start a game, see the board with te
   - Blood of Gruumsh (Orcs)
 
 ### UI Components
+
 - ✅ **Game Board** - 12x12 grid with terrain visualization
 - ✅ **Board Tiles** - Color-coded terrain with symbols (forests 🌲, mountains ⛰️, etc.)
 - ✅ **Creature Cards** - Full and compact views with stats
@@ -55,6 +59,7 @@ The game is now in a playable state! You can start a game, see the board with te
 - ✅ **Creature Deployment** - Click-to-deploy from hand during Deploy phase
 
 ### Visual Features
+
 - ✅ Creature tokens on board with HP display
 - ✅ Tapped/untapped indicators
 - ✅ Player-colored tokens (5 different colors)
@@ -65,6 +70,7 @@ The game is now in a playable state! You can start a game, see the board with te
 ## 🎯 Current Features
 
 ### Fully Playable Gameplay
+
 - ✅ **Complete turn-based system** - All four phases implemented
 - ✅ **Creature movement** - A* pathfinding with terrain costs
 - ✅ **Melee & ranged combat** - Attack adjacent or distant enemies
@@ -76,6 +82,7 @@ The game is now in a playable state! You can start a game, see the board with te
 - ✅ **Faction selection** - Choose from 5 unique factions
 
 ### Game Mechanics
+
 - Flying creatures ignore terrain costs
 - Pathfinding respects movement speed and terrain
 - Tapping/untapping system for action management
@@ -92,12 +99,14 @@ The game is now in a playable state! You can start a game, see the board with te
 Dungeon Command is a dice-less, card-driven tactical miniatures game where:
 
 ### Turn Structure
+
 1. **Refresh Phase** - Draw 1 order card, untap all creatures
 2. **Activate Phase** - Move creatures and perform actions
 3. **Deploy Phase** - Leadership increases by 1, deploy new creatures, draw creatures back to hand limit
 4. **Cleanup Phase** - Untap creatures, draw orders back to hand limit, end turn
 
 ### Key Mechanics
+
 - **Leadership** - Limits total level of creatures you can have in play
 - **Morale** - Your life total; reach 0 and you lose
 - **Order Cards** - Grant special abilities/actions to creatures
@@ -107,6 +116,7 @@ Dungeon Command is a dice-less, card-driven tactical miniatures game where:
 - **Creature Abilities** - STR, DEX, CON, INT, WIS, CHA determine which order cards they can use
 
 ### Win Conditions
+
 - Reduce opponent's morale to 0
 - Eliminate all enemy creatures (player with higher morale wins)
 
@@ -145,12 +155,14 @@ DungeonCommandGame/
 ## 📸 Features to Add Images For
 
 To complete the visual experience, you'll want to add:
+
 - Creature card artwork (12 cards per faction × 5 factions = 60 images)
 - Order card artwork (36 cards per faction × 5 factions = 180 images)
 - Commander portraits (2 per faction × 5 factions = 10 images)
 - Optional: Miniature images for board display
 
 Images can be added via:
+
 1. The Data Entry interface (when complete)
 2. Directly in the faction data files
 3. Placed in a `/public/images/` folder and referenced by URL
@@ -176,6 +188,7 @@ Images can be added via:
 ## 🤝 Contributing Your Card Data
 
 Since you own the physical game, you can help complete the card database:
+
 1. Use the Data Entry tab (when complete) to add cards
 2. Or directly edit `src/data/factions.js`
 3. Take photos of your cards and add them to `/public/images/`

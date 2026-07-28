@@ -27,9 +27,10 @@ export const TombGuardianSplash = {
     if (!creatureInstance?.creature?.specialAbilities) return false
     if (creatureInstance.creature.name !== 'Skeletal Tomb Guardian') return false
     return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' &&
-           (a.toUpperCase().includes('SWIRL') ||
-            (a.toUpperCase().includes('20 DAMAGE') && a.toUpperCase().includes('ADJACENT')))
+      (a) =>
+        typeof a === 'string' &&
+        (a.toUpperCase().includes('SWIRL') ||
+          (a.toUpperCase().includes('20 DAMAGE') && a.toUpperCase().includes('ADJACENT')))
     )
   },
 
@@ -71,7 +72,7 @@ export const TombGuardianSplash = {
     }
 
     return targets
-  }
+  },
 }
 
 export default TombGuardianSplash

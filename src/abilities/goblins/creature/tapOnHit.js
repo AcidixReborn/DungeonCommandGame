@@ -30,8 +30,11 @@ export const TapOnHit = {
     // Fallback: check specialAbilities array
     if (!creatureInstance.creature.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => (typeof ability === 'object' && ability.id === 'tap_on_hit') ||
-                 (typeof ability === 'string' && ability.toUpperCase().includes('TAP') && ability.toUpperCase().includes('HIT'))
+      (ability) =>
+        (typeof ability === 'object' && ability.id === 'tap_on_hit') ||
+        (typeof ability === 'string' &&
+          ability.toUpperCase().includes('TAP') &&
+          ability.toUpperCase().includes('HIT'))
     )
   },
 
@@ -47,7 +50,7 @@ export const TapOnHit = {
 
     targetInstance.tap()
     return true
-  }
+  },
 }
 
 export default TapOnHit

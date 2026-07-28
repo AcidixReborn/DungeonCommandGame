@@ -23,18 +23,21 @@ Defeat your opponent by reducing their **Morale** to 0, or eliminate all their c
 ## 📊 Understanding the Interface
 
 ### Game Board
+
 - **Dynamic grid size**: 20×20 for 2 players (+4 tiles per additional player)
 - **Terrain symbols**: 🌲 Forest, ⛰️ Mountain, 🟫 Difficult Terrain, ⭐ Magic Circle, 🏠 Starting Zone, 🌊 Water
 - **Treasure tokens**: 💎 Morale tokens scattered across the board
 - **Creatures**: Colored tokens representing your creatures on the board
 
 ### Player Panel
+
 - **Morale Bar**: Your life total (starts at 15-25 depending on commander)
 - **Leadership**: Limits the total level of creatures you can deploy
 - **Creature Hand**: Creatures you can deploy
 - **Order Card Hand**: Special action cards you can play
 
 ### Turn Phases Display
+
 Shows the current phase: REFRESH → ACTIVATE → DEPLOY → CLEANUP
 
 ---
@@ -44,7 +47,9 @@ Shows the current phase: REFRESH → ACTIVATE → DEPLOY → CLEANUP
 Each turn consists of four phases:
 
 ### 1. REFRESH Phase
+
 **What Happens:**
+
 - Draw 1 order card from your deck
 - All your creatures untap (ready for action)
 
@@ -53,9 +58,11 @@ Each turn consists of four phases:
 ---
 
 ### 2. ACTIVATE Phase
+
 This is where the main action happens!
 
 #### **Movement**
+
 1. Click on one of your creatures to select it
 2. Valid movement tiles will be highlighted in green
 3. Click on a green tile to move your creature
@@ -68,6 +75,7 @@ This is where the main action happens!
    - Flying creatures ignore terrain costs (except mountains)
 
 #### **Combat**
+
 1. Select your creature
 2. Valid attack targets are highlighted on the board
    - **Melee attacks** (⚔️): Adjacent tiles only
@@ -78,6 +86,7 @@ This is where the main action happens!
 6. Attacking **taps** your creature (turns it sideways)
 
 **Ranged Attack Restrictions:**
+
 - Cannot shoot **from** a forest tile
 - Cannot shoot **at** a creature on a forest tile
 - Cannot shoot **through** forests or mountains (line of sight blocked)
@@ -86,6 +95,7 @@ This is where the main action happens!
 - When you select a creature with ranged attacks, orange arrows (➤) show the line-of-sight path
 
 #### **Using Order Cards**
+
 1. Click on an order card in your hand
 2. Select a target creature (yours or enemy's, depending on the card)
 3. The card effect is applied
@@ -94,6 +104,7 @@ This is where the main action happens!
    - **Immediate (IMD) Actions**: Can be used on opponent's turn as a reaction
 
 #### **Collecting Treasure**
+
 1. Move your creature onto a treasure token (💎)
 2. The treasure value is revealed
 3. Click "Collect Morale" button
@@ -106,11 +117,14 @@ This is where the main action happens!
 ---
 
 ### 3. DEPLOY Phase
+
 **What Happens:**
+
 - Your leadership increases by +1
 - You can deploy new creatures from your hand
 
 #### **Deploying Creatures**
+
 1. Click a creature card in your hand
 2. Click an empty tile in your **starting zone** (🏠)
 3. The creature is placed if you have enough leadership
@@ -118,13 +132,16 @@ This is where the main action happens!
    - Total levels of deployed creatures can't exceed your leadership
 
 **Actions:**
+
 - Click "Execute Deploy" to draw creatures back to hand limit
 - Click "End Deploy Phase" when ready
 
 ---
 
 ### 4. CLEANUP Phase
+
 **What Happens:**
+
 - All your creatures untap again
 - Draw order cards back to your hand limit
 - Turn passes to the next player
@@ -136,7 +153,9 @@ This is where the main action happens!
 ## 🎴 Understanding Cards
 
 ### Creature Cards
+
 Each creature has:
+
 - **Name**: The creature's name
 - **Level**: Leadership cost to deploy
 - **HP**: Health points (when reduced to 0, creature dies)
@@ -147,13 +166,16 @@ Each creature has:
 - **Special Abilities**: Unique powers like Flying, Regeneration, etc.
 
 **Visual Indicators:**
+
 - Creature cards in your hand display both Melee and Ranged attack values
 - On the board, attack targets show different icons:
   - ⚔️ **Sword icon** = Melee attack available
   - 🏹 **Bow icon** = Ranged attack available
 
 ### Order Cards
+
 Order cards provide special actions and effects:
+
 - **Action Type**:
   - STD (Standard): Main action, taps creature
   - MNR (Minor): Doesn't tap creature
@@ -166,6 +188,7 @@ Order cards provide special actions and effects:
 ## 🗺️ Terrain Effects
 
 ### Movement Costs
+
 - **Normal**: 1 movement point per tile
 - **Forest** 🌲: 2 movement points per tile
 - **Difficult** 🟫: 2 movement points per tile
@@ -175,6 +198,7 @@ Order cards provide special actions and effects:
 - **Starting Zone** 🏠: 1 movement point
 
 ### Special Rules
+
 - **Flying creatures** ignore terrain costs (but still can't land on mountains)
 - **Treasures** 💎 reveal their value when you move onto them (treasures never spawn on water tiles)
 - Creatures can move through allied creatures but not enemy creatures
@@ -185,6 +209,7 @@ Order cards provide special actions and effects:
 ## 💎 Treasure System
 
 Treasures are morale tokens placed by each faction:
+
 - Each faction places **3 random tokens** worth 1, 2, or 3 morale
 - Tokens are **hidden** until a creature moves onto them
 - **Collecting morale** uses your creature's action (taps them)
@@ -212,6 +237,7 @@ Treasures are morale tokens placed by each faction:
 ## 🏆 Winning the Game
 
 You win when:
+
 1. Your opponent's morale reaches **0**
 2. Your opponent has **no creatures left** and you have more morale
 
@@ -220,6 +246,7 @@ You win when:
 ## 🎲 Game Controls
 
 ### Mouse Controls
+
 - **Left-click creature**: Select for movement/attack
 - **Left-click tile**: Move selected creature
 - **Left-click enemy**: Attack with selected creature
@@ -227,6 +254,7 @@ You win when:
 - **Left-click button**: Execute phase actions
 
 ### Keyboard Shortcuts
+
 - Currently no keyboard shortcuts implemented
 
 ---

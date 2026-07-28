@@ -33,7 +33,7 @@ export class Creature {
     faction = '', // Sting of Lolth, Heart of Cormyr, etc.
     imageUrl = null,
     reach = 0, // REACH: Extended melee attack range (e.g., 2 = can attack 2 tiles away)
-    tapOnHit = false // TAP ON HIT: Target is tapped when taking damage from melee attack
+    tapOnHit = false, // TAP ON HIT: Target is tapped when taking damage from melee attack
   }) {
     this.id = id
     this.name = name

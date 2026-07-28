@@ -19,7 +19,7 @@ class ErrorBoundary extends React.Component {
 
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     })
   }
 
@@ -38,9 +38,7 @@ class ErrorBoundary extends React.Component {
             {this.state.error && (
               <div className="mt-3">
                 <strong>Error:</strong>
-                <pre className="bg-dark text-white p-2 rounded">
-                  {this.state.error.toString()}
-                </pre>
+                <pre className="bg-dark text-white p-2 rounded">{this.state.error.toString()}</pre>
               </div>
             )}
             {this.state.errorInfo && (

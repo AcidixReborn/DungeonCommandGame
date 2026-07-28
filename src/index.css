@@ -25,11 +25,11 @@
   --card-glow-hover: 0 0 15px rgba(255, 255, 255, 0.2);
 
   /* Border radius scale (for reference - not replacing hardcoded values to preserve layout) */
-  --border-radius-panel: 10px;     /* Large panels */
-  --border-radius-section: 8px;    /* Sections within panels */
-  --border-radius-button: 6px;     /* Buttons and medium elements */
-  --border-radius-small: 4px;      /* Small UI elements */
-  --border-radius-tiny: 2px;       /* Badges, indicators */
+  --border-radius-panel: 10px; /* Large panels */
+  --border-radius-section: 8px; /* Sections within panels */
+  --border-radius-button: 6px; /* Buttons and medium elements */
+  --border-radius-small: 4px; /* Small UI elements */
+  --border-radius-tiny: 2px; /* Badges, indicators */
 
   /* Panel backgrounds */
   --panel-bg: linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.95) 100%);

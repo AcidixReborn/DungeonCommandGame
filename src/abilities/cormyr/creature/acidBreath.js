@@ -26,7 +26,7 @@ export const AcidBreath = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('ACID BREATH')
+      (a) => typeof a === 'string' && a.toUpperCase().includes('ACID BREATH')
     )
   },
 
@@ -75,7 +75,7 @@ export const AcidBreath = {
     }
 
     return targets
-  }
+  },
 }
 
 export default AcidBreath

@@ -19,7 +19,7 @@
   position: relative;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth anime-style transition */
-  font-size: clamp(0.4rem, 0.8vw, 0.7rem);  /* Base font size scales with viewport */
+  font-size: clamp(0.4rem, 0.8vw, 0.7rem); /* Base font size scales with viewport */
   border-radius: 0; /* No rounding - tiles connect perfectly */
   box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.05); /* Very subtle inset highlight for slight depth */
   margin: 0; /* No gaps between tiles */
@@ -61,7 +61,8 @@
 }
 
 @keyframes glow-green {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 0 3px #76ff03,
       inset 0 0 12px rgba(118, 255, 3, 0.6),
@@ -89,7 +90,8 @@
 }
 
 @keyframes pulse-red-cartoon {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 0 2px #ff5252,
       0 0 15px rgba(255, 23, 68, 0.8),
@@ -121,7 +123,8 @@
 }
 
 @keyframes pulse-gold-cartoon {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 0 2px #ffeb3b,
       0 0 20px rgba(255, 196, 0, 1),
@@ -146,7 +149,8 @@
 }
 
 @keyframes pulse-shadow-stalker {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 0 3px #9c27b0,
       inset 0 0 12px rgba(156, 39, 176, 0.6),
@@ -171,7 +175,8 @@
 }
 
 @keyframes pulse-confusion-gaze-slide {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 0 3px #4ecdc4,
       inset 0 0 12px rgba(78, 205, 196, 0.6),
@@ -196,7 +201,8 @@
 }
 
 @keyframes pulse-confusion-gaze-attack {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 0 3px #ffe66d,
       inset 0 0 12px rgba(255, 230, 109, 0.6),
@@ -232,7 +238,8 @@
 }
 
 @keyframes pulse-shift {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 0 3px #9b59b6,
       inset 0 0 12px rgba(155, 89, 182, 0.6),
@@ -258,7 +265,8 @@
 }
 
 @keyframes pulse-charge {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 0 3px #28a745,
       inset 0 0 12px rgba(40, 167, 69, 0.6),
@@ -283,7 +291,8 @@
 }
 
 @keyframes pulse-order-card-target {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 0 3px #00ffff,
       inset 0 0 12px rgba(0, 255, 255, 0.6),
@@ -326,7 +335,11 @@
     linear-gradient(135deg, #757575 25%, transparent 25%),
     linear-gradient(225deg, #757575 25%, transparent 25%),
     radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 40%);
-  background-size: 100%, 8px 8px, 8px 8px, 100%;
+  background-size:
+    100%,
+    8px 8px,
+    8px 8px,
+    100%;
   box-shadow: inset 3px 3px 0px rgba(255, 255, 255, 0.1);
 }
 
@@ -349,7 +362,8 @@
 }
 
 @keyframes water-shimmer {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
     filter: brightness(1);
   }
@@ -370,7 +384,8 @@
 }
 
 @keyframes magic-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 15px rgba(186, 104, 200, 0.6),
       0 0 8px rgba(156, 39, 176, 0.4);
@@ -434,9 +449,9 @@
 
 .terrain-symbol {
   position: absolute;
-  top: 1px;   /* Reduced from 2px */
-  left: 1px;  /* Reduced from 2px */
-  font-size: 11px;  /* Reduced from 14px */
+  top: 1px; /* Reduced from 2px */
+  left: 1px; /* Reduced from 2px */
+  font-size: 11px; /* Reduced from 14px */
   opacity: 0.7;
   pointer-events: none;
   filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
@@ -450,9 +465,9 @@
   background: rgba(255, 235, 59, 0.95);
   color: #000;
   font-weight: bold;
-  font-size: 0.5rem;  /* Reduced from 0.7rem */
-  padding: 1px 3px;   /* Reduced from 2px 4px */
-  border-radius: 2px;  /* Reduced from 3px */
+  font-size: 0.5rem; /* Reduced from 0.7rem */
+  padding: 1px 3px; /* Reduced from 2px 4px */
+  border-radius: 2px; /* Reduced from 3px */
   border: 1px solid #ffa000;
   z-index: 10;
   pointer-events: none;
@@ -595,7 +610,8 @@
 }
 
 @keyframes bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -612,7 +628,8 @@
 }
 
 @keyframes pulse-target {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -632,7 +649,8 @@
 }
 
 @keyframes pulse-target-cartoon {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 0 2px #ff5252,
       0 0 15px rgba(255, 23, 68, 0.9),
@@ -661,7 +679,8 @@
 }
 
 @keyframes pulse-shield-cartoon {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 0 2px #80deea,
       0 0 15px rgba(0, 229, 255, 0.9),
@@ -696,8 +715,7 @@
   box-shadow:
     inset 0 0 8px rgba(255, 215, 0, 0.9),
     inset 0 0 15px rgba(255, 215, 0, 0.6),
-    /* Preserve existing outer shadows from getCreatureTokenStyle() */
-    0 0 0 1px currentColor,
+    /* Preserve existing outer shadows from getCreatureTokenStyle() */ 0 0 0 1px currentColor,
     2px 3px 0px rgba(0, 0, 0, 0.5) !important;
   /* Subtle gold border tint */
   border-color: rgba(255, 215, 0, 0.7) !important;
@@ -706,7 +724,8 @@
 }
 
 @keyframes factionHighlightPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 8px rgba(255, 215, 0, 0.9),
       inset 0 0 15px rgba(255, 215, 0, 0.6),
@@ -747,7 +766,8 @@
 }
 
 @keyframes treasure-sparkle {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1) rotate(0deg);
     filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
   }
@@ -785,7 +805,8 @@
 }
 
 @keyframes treasure-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.8));
   }
@@ -809,7 +830,8 @@
 }
 
 @keyframes los-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 0 0 2px rgba(255, 165, 0, 0.6),
       inset 0 0 8px rgba(255, 165, 0, 0.8);
@@ -839,7 +861,8 @@
 }
 
 @keyframes arrow-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0.8;
   }
@@ -1003,7 +1026,8 @@
 }
 
 @keyframes combat-attacker-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 0 3px #ff1744,
       0 0 20px rgba(255, 23, 68, 0.8),
@@ -1040,7 +1064,8 @@
 }
 
 @keyframes combat-defender-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 0 3px #2196f3,
       0 0 20px rgba(33, 150, 243, 0.8),

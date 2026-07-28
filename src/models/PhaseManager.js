@@ -7,10 +7,10 @@ import { logger } from '../utils/logger.js'
 
 // Game phase constants - defines the turn sequence
 export const GamePhases = {
-  REFRESH: 'REFRESH',     // Draw cards, untap creatures
-  ACTIVATE: 'ACTIVATE',   // Move creatures and attack
-  DEPLOY: 'DEPLOY',       // Deploy creatures from hand
-  CLEANUP: 'CLEANUP'      // End turn, draw cards
+  REFRESH: 'REFRESH', // Draw cards, untap creatures
+  ACTIVATE: 'ACTIVATE', // Move creatures and attack
+  DEPLOY: 'DEPLOY', // Deploy creatures from hand
+  CLEANUP: 'CLEANUP', // End turn, draw cards
 }
 
 /**
@@ -34,7 +34,7 @@ export class PhaseManager {
     const currentPlayer = gs.currentPlayer
 
     // Check all tiles for creatures standing on water
-    gs.getAllTiles().forEach(tile => {
+    gs.getAllTiles().forEach((tile) => {
       if (tile.terrain === TerrainTypes.WATER && tile.occupant) {
         const creature = tile.occupant
 
@@ -56,7 +56,7 @@ export class PhaseManager {
           creature: creature.creature.name,
           position: { x: tile.x, y: tile.y },
           damage: damageTaken,
-          destroyed: creature.currentHP <= 0
+          destroyed: creature.currentHP <= 0,
         })
 
         logger.damage('Water damage', {
@@ -65,7 +65,7 @@ export class PhaseManager {
           damage: damageTaken,
           hpBefore: creature.currentHP + damageTaken,
           hpAfter: creature.currentHP,
-          destroyed: creature.currentHP <= 0
+          destroyed: creature.currentHP <= 0,
         })
 
         // If creature died, handle death
@@ -97,7 +97,12 @@ export class PhaseManager {
    */
   advancePhase() {
     const gs = this.gameState
-    const phaseOrder = [GamePhases.REFRESH, GamePhases.ACTIVATE, GamePhases.DEPLOY, GamePhases.CLEANUP]
+    const phaseOrder = [
+      GamePhases.REFRESH,
+      GamePhases.ACTIVATE,
+      GamePhases.DEPLOY,
+      GamePhases.CLEANUP,
+    ]
     const currentIndex = phaseOrder.indexOf(gs.currentPhase)
 
     let waterDamageResults = []
@@ -128,7 +133,10 @@ export class PhaseManager {
         gs.pendingActivatePhaseDamage = activatePhaseDamageResults
         if (activatePhaseDamageResults.length > 0) {
           logger.ability('DEEP WOUND damage processed', {
-            creatures: activatePhaseDamageResults.map(r => ({ name: r.creature, damage: r.damage }))
+            creatures: activatePhaseDamageResults.map((r) => ({
+              name: r.creature,
+              damage: r.damage,
+            })),
           })
         }
       }
@@ -141,7 +149,7 @@ export class PhaseManager {
         logger.gameEvent('Leadership increased', {
           player: gs.currentPlayer,
           from: oldLeadership,
-          to: player.leadership
+          to: player.leadership,
         })
       }
 
@@ -153,7 +161,7 @@ export class PhaseManager {
         gs.pendingMortalWoundDestructions = mortalWoundDestructions
         if (mortalWoundDestructions.length > 0) {
           logger.ability('MORTAL WOUND destructions', {
-            creatures: mortalWoundDestructions.map(r => r.creature)
+            creatures: mortalWoundDestructions.map((r) => r.creature),
           })
         }
       }
@@ -172,12 +180,12 @@ export class PhaseManager {
 
     logger.gameEvent('Turn ending', {
       player: previousPlayer,
-      turnNumber: gs.turnNumber
+      turnNumber: gs.turnNumber,
     })
 
     // Check for defeated players and eliminate them
-    const defeatedPlayers = gs.activePlayers.filter(
-      playerId => gs.players[playerId].isDefeated(gs.turnNumber)
+    const defeatedPlayers = gs.activePlayers.filter((playerId) =>
+      gs.players[playerId].isDefeated(gs.turnNumber)
     )
 
     // Eliminate defeated players (remove their creatures from board)
@@ -185,14 +193,12 @@ export class PhaseManager {
       this.eliminatePlayer(playerId)
       logger.gameEvent('Player eliminated', {
         player: playerId,
-        reason: gs.players[playerId].morale <= 0 ? 'morale' : 'no creatures'
+        reason: gs.players[playerId].morale <= 0 ? 'morale' : 'no creatures',
       })
     }
 
     // Remove defeated players from active players list
-    gs.activePlayers = gs.activePlayers.filter(
-      playerId => !defeatedPlayers.includes(playerId)
-    )
+    gs.activePlayers = gs.activePlayers.filter((playerId) => !defeatedPlayers.includes(playerId))
 
     // Check if game should end (1 or fewer players remaining)
     if (gs.activePlayers.length <= 1) {
@@ -200,7 +206,7 @@ export class PhaseManager {
       gs.winner = gs.activePlayers[0] || null
       logger.gameEvent('Game over', {
         winner: gs.winner,
-        reason: 'last player standing'
+        reason: 'last player standing',
       })
       return
     }
@@ -231,7 +237,7 @@ export class PhaseManager {
     logger.gameEvent('Turn started', {
       player: gs.currentPlayer,
       turnNumber: gs.turnNumber,
-      phase: gs.currentPhase
+      phase: gs.currentPhase,
     })
 
     // Check for game over conditions (handles turn limit, etc.)
@@ -270,13 +276,15 @@ export class PhaseManager {
     const gs = this.gameState
 
     // Get all non-defeated players
-    const alivePlayers = gs.activePlayers.filter(playerId => !gs.players[playerId].isDefeated(gs.turnNumber))
+    const alivePlayers = gs.activePlayers.filter(
+      (playerId) => !gs.players[playerId].isDefeated(gs.turnNumber)
+    )
 
     if (alivePlayers.length === 0) {
       // All defeated - highest morale wins
       gs.gameOver = true
       let highestMorale = -1
-      gs.activePlayers.forEach(playerId => {
+      gs.activePlayers.forEach((playerId) => {
         const morale = gs.players[playerId].morale
         if (morale > highestMorale) {
           highestMorale = morale
@@ -292,7 +300,7 @@ export class PhaseManager {
       gs.gameOver = true
       let highestMorale = -1
       let winner = null
-      gs.activePlayers.forEach(playerId => {
+      gs.activePlayers.forEach((playerId) => {
         const morale = gs.players[playerId].morale
         if (morale > highestMorale) {
           highestMorale = morale
@@ -319,14 +327,14 @@ export class PhaseManager {
     // Check morale defeat
     if (player.morale <= 0) {
       this.eliminatePlayer(playerId)
-      gs.activePlayers = gs.activePlayers.filter(id => id !== playerId)
+      gs.activePlayers = gs.activePlayers.filter((id) => id !== playerId)
       return { eliminated: true, reason: 'morale' }
     }
 
     // Check creature defeat (after turn 1)
     if (gs.turnNumber > 1 && player.creaturesInPlay.length === 0) {
       this.eliminatePlayer(playerId)
-      gs.activePlayers = gs.activePlayers.filter(id => id !== playerId)
+      gs.activePlayers = gs.activePlayers.filter((id) => id !== playerId)
       return { eliminated: true, reason: 'creatures' }
     }
 
@@ -359,7 +367,7 @@ export class PhaseManager {
       normalDraw: 1,
       bonusDraws: bonusDraws,
       totalCards: totalCardsToDraw,
-      bonusSources: player.bonusDrawSources || []
+      bonusSources: player.bonusDrawSources || [],
     })
 
     // Store bonus draw sources before resetting (for modal display)
@@ -375,7 +383,7 @@ export class PhaseManager {
 
     // Merge pending card reveals (from opponent effects like Recoil) into the drawn cards display
     if (player.pendingCardReveals && player.pendingCardReveals.length > 0) {
-      player.pendingCardReveals.forEach(reveal => {
+      player.pendingCardReveals.forEach((reveal) => {
         // Add the card to cards drawn this turn (for modal display)
         player.cardsDrawnThisTurn.push(reveal.card)
         // Add source to bonus sources (so modal shows "Received from Recoil")
@@ -383,7 +391,7 @@ export class PhaseManager {
         player.bonusDrawSourcesThisTurn.push(`Received from ${reveal.source}`)
         logger.card(reveal.card.name, 'received from opponent effect', {
           source: reveal.source,
-          fromPlayer: reveal.fromPlayer
+          fromPlayer: reveal.fromPlayer,
         })
       })
       // Clear pending reveals after processing
@@ -391,17 +399,17 @@ export class PhaseManager {
     }
 
     // Untap all creatures
-    const untappedCount = player.creaturesInPlay.filter(c => c.isTapped).length
-    player.creaturesInPlay.forEach(creature => creature.untap())
+    const untappedCount = player.creaturesInPlay.filter((c) => c.isTapped).length
+    player.creaturesInPlay.forEach((creature) => creature.untap())
     if (untappedCount > 0) {
       logger.gameEvent('Creatures untapped', {
         player: gs.currentPlayer,
-        count: untappedCount
+        count: untappedCount,
       })
     }
 
     // Clear deployment protection from creatures deployed on previous turns
-    player.creaturesInPlay.forEach(creature => {
+    player.creaturesInPlay.forEach((creature) => {
       if (creature.deployedThisTurn && creature.turnDeployed !== gs.turnNumber) {
         creature.clearDeploymentProtection()
       }
@@ -410,7 +418,7 @@ export class PhaseManager {
     // INSUBSTANTIAL: Reset ability for Curse of Undeath creatures
     // Only reset when the Undead faction enters their refresh phase
     if (player.faction === 'Curse of Undeath') {
-      player.creaturesInPlay.forEach(creature => {
+      player.creaturesInPlay.forEach((creature) => {
         if (creature.insubstantialUsed !== undefined) {
           creature.insubstantialUsed = false
         }
@@ -421,7 +429,7 @@ export class PhaseManager {
     // MAGIC CIRCLE AURA: Reset shields for Tyranny of Goblins creatures
     // Each Goblin/Hobgoblin/Bugbear can block 10 damage once per turn
     if (player.faction === 'Tyranny of Goblins') {
-      player.creaturesInPlay.forEach(creature => {
+      player.creaturesInPlay.forEach((creature) => {
         if (creature.magicCircleShieldUsed !== undefined) {
           creature.magicCircleShieldUsed = false
         }
@@ -432,7 +440,7 @@ export class PhaseManager {
     // REGENERATE: Heal creatures with Regenerate ability at start of refresh
     // AI difficulty affects whether regeneration is applied (0/50/100 pattern)
     const regeneratedCreatures = []
-    player.creaturesInPlay.forEach(creature => {
+    player.creaturesInPlay.forEach((creature) => {
       if (gs.hasRegenerate(creature) && creature.damageTokens > 0) {
         // AI difficulty check (0/50/100 pattern)
         // Human players (no aiDifficulty) always regenerate
@@ -445,7 +453,7 @@ export class PhaseManager {
           logger.ability('REGENERATE', {
             creature: creature.creature.name,
             healAmount: healAmount,
-            hpAfter: creature.currentHP
+            hpAfter: creature.currentHP,
           })
         }
       }
@@ -490,12 +498,12 @@ export class PhaseManager {
     logger.phase('CLEANUP executing', gs.currentPlayer)
 
     // Untap only current player's creatures (not opponent's)
-    const untappedCount = player.creaturesInPlay.filter(c => c.isTapped).length
-    player.creaturesInPlay.forEach(creature => creature.untap())
+    const untappedCount = player.creaturesInPlay.filter((c) => c.isTapped).length
+    player.creaturesInPlay.forEach((creature) => creature.untap())
     if (untappedCount > 0) {
       logger.gameEvent('Cleanup phase untap', {
         player: gs.currentPlayer,
-        creaturesUntapped: untappedCount
+        creaturesUntapped: untappedCount,
       })
     }
 
@@ -507,7 +515,7 @@ export class PhaseManager {
         player: gs.currentPlayer,
         handLimit: creatureHandLimit,
         currentHand: player.creatureHand.length,
-        drawing: cardsToDraw
+        drawing: cardsToDraw,
       })
     }
     player.drawCreatureCards(cardsToDraw)

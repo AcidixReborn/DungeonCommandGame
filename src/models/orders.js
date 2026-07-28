@@ -2,9 +2,9 @@
 
 // Action type constants - determines when card can be played and if it taps creature
 export const ActionTypes = {
-  STANDARD: 'STANDARD',     // Taps creature, main phase only
-  MINOR: 'MINOR',           // Doesn't tap creature, main phase only
-  IMMEDIATE: 'IMMEDIATE'    // Taps creature, can play on any turn (yours or opponent's)
+  STANDARD: 'STANDARD', // Taps creature, main phase only
+  MINOR: 'MINOR', // Doesn't tap creature, main phase only
+  IMMEDIATE: 'IMMEDIATE', // Taps creature, can play on any turn (yours or opponent's)
 }
 
 // Ability type constants - determines which creatures can use the card
@@ -15,7 +15,7 @@ export const AbilityTypes = {
   INT: 'INT',
   WIS: 'WIS',
   CHA: 'CHA',
-  ANY: 'ANY'  // Any creature can use regardless of abilities
+  ANY: 'ANY', // Any creature can use regardless of abilities
 }
 
 /**
@@ -81,7 +81,7 @@ export class OrderCard {
     moveBeforeAttack = null, // 'speed' for Charge cards - move creature's full speed before melee attack
     // STANDARD attack + heal properties (Phase STD-6)
     healOnAttack = 0, // Fixed healing after attack resolves (Feral Vitality=10, Victorious Surge=20, Vampiric Touch=30)
-    healOnAttackMinDamage = 0 // Minimum damage required to trigger healing (Vampiric Touch=10)
+    healOnAttackMinDamage = 0, // Minimum damage required to trigger healing (Vampiric Touch=10)
   }) {
     this.id = id
     this.name = name
@@ -176,8 +176,8 @@ export class OrderCard {
     //   - Creature with matching affinity BYPASSES level and ability requirements
     //   - Creature WITHOUT matching affinity CANNOT use the card at all
     if (this.affinityRequired) {
-      const hasAffinity = creature.type.some(t =>
-        t.toUpperCase() === this.affinityRequired.toUpperCase()
+      const hasAffinity = creature.type.some(
+        (t) => t.toUpperCase() === this.affinityRequired.toUpperCase()
       )
 
       if (this.affinityOverridesRequirements) {
@@ -213,7 +213,7 @@ export class OrderCard {
 
     // If abilityRequired is an array, creature needs at least one of those abilities
     if (Array.isArray(this.abilityRequired)) {
-      return this.abilityRequired.some(ability => creature.abilities[ability])
+      return this.abilityRequired.some((ability) => creature.abilities[ability])
     }
 
     // If single ability, creature must have that ability

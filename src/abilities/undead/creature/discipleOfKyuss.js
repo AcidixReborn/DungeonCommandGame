@@ -29,7 +29,7 @@ export const DiscipleOfKyuss = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('DISCIPLE_OF_KYUSS')
+      (a) => typeof a === 'string' && a.toUpperCase().includes('DISCIPLE_OF_KYUSS')
     )
   },
 
@@ -72,7 +72,7 @@ export const DiscipleOfKyuss = {
       if (!creature.position) continue
       if (creature.currentHP <= 0) continue
       const isAdjacent = adjacentTiles.some(
-        tile => tile.x === creature.position.x && tile.y === creature.position.y
+        (tile) => tile.x === creature.position.x && tile.y === creature.position.y
       )
       if (isAdjacent) {
         adjacentCreatures.push(creature)
@@ -94,12 +94,12 @@ export const DiscipleOfKyuss = {
     const aiDifficulty = disciplePlayer.aiDifficulty || 'medium'
 
     if (aiDifficulty === 'easy') {
-      return false  // Easy AI: 0%
+      return false // Easy AI: 0%
     } else if (aiDifficulty === 'medium') {
-      return Math.random() < 0.5  // Medium AI: 50%
+      return Math.random() < 0.5 // Medium AI: 50%
     }
-    return true  // Hard AI: 100%
-  }
+    return true // Hard AI: 100%
+  },
 }
 
 export default DiscipleOfKyuss

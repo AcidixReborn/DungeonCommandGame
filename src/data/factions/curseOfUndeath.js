@@ -65,18 +65,21 @@ export const commanders = [
     startingOrderHandSize: 3,
     startingMorale: 12,
     startingLeadership: 6,
-    specialAbilityDescription: 'BLOODTHIRSTY: Gain 1 Leadership for each enemy creature destroyed during your turn.',
+    specialAbilityDescription:
+      'BLOODTHIRSTY: Gain 1 Leadership for each enemy creature destroyed during your turn.',
     imageUrl: undeathCmd1,
-    abilities: [{
-      id: 'bloodthirsty',
-      name: 'BLOODTHIRSTY',
-      type: 'PASSIVE',
-      category: 'RESOURCE',
-      description: 'Gain 1 Leadership for each enemy creature destroyed during your turn.',
-      effect: {
-        gainLeadershipOnKill: 1
-      }
-    }]
+    abilities: [
+      {
+        id: 'bloodthirsty',
+        name: 'BLOODTHIRSTY',
+        type: 'PASSIVE',
+        category: 'RESOURCE',
+        description: 'Gain 1 Leadership for each enemy creature destroyed during your turn.',
+        effect: {
+          gainLeadershipOnKill: 1,
+        },
+      },
+    ],
   },
   {
     id: 'cou_cmd_2',
@@ -86,22 +89,26 @@ export const commanders = [
     startingOrderHandSize: 5,
     startingMorale: 14,
     startingLeadership: 7,
-    specialAbilityDescription: 'UNSTOPPABLE HORDES: All Undead creatures you control gain the Cower power. Lose 1 MORALE. Prevent 20 DAMAGE to this creature from 1 source.',
+    specialAbilityDescription:
+      'UNSTOPPABLE HORDES: All Undead creatures you control gain the Cower power. Lose 1 MORALE. Prevent 20 DAMAGE to this creature from 1 source.',
     imageUrl: undeathCmd2,
-    abilities: [{
-      id: 'unstoppable_hordes',
-      name: 'UNSTOPPABLE HORDES',
-      type: 'PASSIVE',
-      category: 'COMBAT',
-      description: 'All Undead creatures you control can prevent damage. Tap an untapped Undead creature: Lose 1 MORALE, prevent 20 DAMAGE. Multiple creatures can stack.',
-      effect: {
-        grantUnstoppableHordes: true,
-        creatureTypesAffected: ['Undead'],
-        unstoppableHordesMoraleCost: 1,
-        unstoppableHordesDamagePrevented: 20
-      }
-    }]
-  }
+    abilities: [
+      {
+        id: 'unstoppable_hordes',
+        name: 'UNSTOPPABLE HORDES',
+        type: 'PASSIVE',
+        category: 'COMBAT',
+        description:
+          'All Undead creatures you control can prevent damage. Tap an untapped Undead creature: Lose 1 MORALE, prevent 20 DAMAGE. Multiple creatures can stack.',
+        effect: {
+          grantUnstoppableHordes: true,
+          creatureTypesAffected: ['Undead'],
+          unstoppableHordesMoraleCost: 1,
+          unstoppableHordesDamagePrevented: 20,
+        },
+      },
+    ],
+  },
 ]
 
 // O(n) where n = 12 creatures - Array of creature definitions with accurate physical card stats
@@ -117,9 +124,11 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: { damage: 20, range: 10 },
-    specialAbilities: ['DISCIPLE_OF_KYUSS: Each enemy creature takes 10 DAMAGE whenever it ends its activation adjacent to this creature.'],
+    specialAbilities: [
+      'DISCIPLE_OF_KYUSS: Each enemy creature takes 10 DAMAGE whenever it ends its activation adjacent to this creature.',
+    ],
     faction: FACTION_NAME,
-    imageUrl: discipleOfKyussImg
+    imageUrl: discipleOfKyussImg,
   },
   // Card 2: Dracolich - Level 6, HP 110, Speed 6, INT CHA, Ranged 20 (5), Melee 30
   {
@@ -132,9 +141,12 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: { damage: 20, range: 5 },
-    specialAbilities: ['FLYING: This creature ignores difficult terrain and can move over mountains (but cannot stop on them).', 'LIGHTNING BREATH: As a standard action, make up to 3 ranged attacks. Each attack must target a different enemy creature.'],
+    specialAbilities: [
+      'FLYING: This creature ignores difficult terrain and can move over mountains (but cannot stop on them).',
+      'LIGHTNING BREATH: As a standard action, make up to 3 ranged attacks. Each attack must target a different enemy creature.',
+    ],
     faction: FACTION_NAME,
-    imageUrl: dracolichImg
+    imageUrl: dracolichImg,
   },
   // Card 3: Gravehound - Level 2, HP 40, Speed 8, DEX CON, Melee 10
   {
@@ -149,7 +161,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: gravehoundImg
+    imageUrl: gravehoundImg,
   },
   // Card 4: Hypnotic Spirit - Level 3, HP 40, Speed 6, CHA, Melee 20
   {
@@ -162,9 +174,12 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['PHASING: This creature ignores terrain and can move through other creatures. Cannot end movement on mountains or other creatures.', 'INSUBSTANTIAL: Prevent all damage to this creature from 1 source. Resets at the start of this creature\'s faction Refresh phase.'],
+    specialAbilities: [
+      'PHASING: This creature ignores terrain and can move through other creatures. Cannot end movement on mountains or other creatures.',
+      "INSUBSTANTIAL: Prevent all damage to this creature from 1 source. Resets at the start of this creature's faction Refresh phase.",
+    ],
     faction: FACTION_NAME,
-    imageUrl: hypnoticSpiritImg
+    imageUrl: hypnoticSpiritImg,
   },
   // Card 5: Lich Necromancer - Level 5, HP 80, Speed 6, INT CHA, Ranged 30 (5), Melee 20
   {
@@ -177,9 +192,11 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: false, INT: true, WIS: false, CHA: true },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: { damage: 30, range: 5 },
-    specialAbilities: ['ADJACENT UNDEAD DEPLOY: When deploying any Undead creature from Curse of Undeath, you can place it in any unoccupied square adjacent to this creature (not on mountains).'],
+    specialAbilities: [
+      'ADJACENT UNDEAD DEPLOY: When deploying any Undead creature from Curse of Undeath, you can place it in any unoccupied square adjacent to this creature (not on mountains).',
+    ],
     faction: FACTION_NAME,
-    imageUrl: lichNecromancerImg
+    imageUrl: lichNecromancerImg,
   },
   // Card 6: Skeletal Lancer - Level 4, HP 100, Speed 8, CON, Melee 20
   {
@@ -192,9 +209,11 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['RIDER: When this creature is destroyed, you may deploy 1 Skeleton creature (Level 3 or lower) from your hand to this tile. Morale loss = (4 - deployed creature level).'],
+    specialAbilities: [
+      'RIDER: When this creature is destroyed, you may deploy 1 Skeleton creature (Level 3 or lower) from your hand to this tile. Morale loss = (4 - deployed creature level).',
+    ],
     faction: FACTION_NAME,
-    imageUrl: skeletalLancerImg
+    imageUrl: skeletalLancerImg,
   },
   // Card 7: Skeletal Tomb Guardian - Level 3, HP 60, Speed 6, CON, Melee 20
   {
@@ -207,9 +226,11 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 20, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['SWIRL: Whenever this creature makes a melee attack, it deals 20 DAMAGE to each other enemy creature adjacent to this creature (automatic, each target can defend).'],
+    specialAbilities: [
+      'SWIRL: Whenever this creature makes a melee attack, it deals 20 DAMAGE to each other enemy creature adjacent to this creature (automatic, each target can defend).',
+    ],
     faction: FACTION_NAME,
-    imageUrl: skeletalTombGuardianImg
+    imageUrl: skeletalTombGuardianImg,
   },
   // Card 8: Vampire Stalker - Level 4, HP 80, Speed 6, DEX CON CHA, Melee 30
   {
@@ -222,9 +243,11 @@ export const creatures = [
     abilities: { STR: false, DEX: true, CON: true, INT: false, WIS: false, CHA: true },
     meleeAttack: { damage: 30, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['LIFE DRAIN: Whenever a target takes damage from this creature\'s melee attack, this creature heals 10 DAMAGE (capped at max HP).'],
+    specialAbilities: [
+      "LIFE DRAIN: Whenever a target takes damage from this creature's melee attack, this creature heals 10 DAMAGE (capped at max HP).",
+    ],
     faction: FACTION_NAME,
-    imageUrl: vampireStalkerImg
+    imageUrl: vampireStalkerImg,
   },
   // Card 9: Warrior Skeleton - Level 2, HP 50, Speed 6, CON, Melee 20
   {
@@ -239,7 +262,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: warriorSkeleton9Img
+    imageUrl: warriorSkeleton9Img,
   },
   // Card 10: Warrior Skeleton - Level 2, HP 50, Speed 6, CON, Melee 20
   {
@@ -254,7 +277,7 @@ export const creatures = [
     rangedAttack: null,
     specialAbilities: [],
     faction: FACTION_NAME,
-    imageUrl: warriorSkeleton10Img
+    imageUrl: warriorSkeleton10Img,
   },
   // Card 11: Zombie - Level 1, HP 40, Speed 4, CON, Melee 10
   {
@@ -267,9 +290,11 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['GRAVEYARD DEPLOY: During your Deploy phase, pay 1 MORALE to deploy this creature from your graveyard.'],
+    specialAbilities: [
+      'GRAVEYARD DEPLOY: During your Deploy phase, pay 1 MORALE to deploy this creature from your graveyard.',
+    ],
     faction: FACTION_NAME,
-    imageUrl: zombie11Img
+    imageUrl: zombie11Img,
   },
   // Card 12: Zombie - Level 1, HP 40, Speed 4, CON, Melee 10
   {
@@ -282,10 +307,12 @@ export const creatures = [
     abilities: { STR: false, DEX: false, CON: true, INT: false, WIS: false, CHA: false },
     meleeAttack: { damage: 10, range: 1 },
     rangedAttack: null,
-    specialAbilities: ['GRAVEYARD DEPLOY: During your Deploy phase, pay 1 MORALE to deploy this creature from your graveyard.'],
+    specialAbilities: [
+      'GRAVEYARD DEPLOY: During your Deploy phase, pay 1 MORALE to deploy this creature from your graveyard.',
+    ],
     faction: FACTION_NAME,
-    imageUrl: zombie12Img
-  }
+    imageUrl: zombie12Img,
+  },
 ]
 
 // O(n) where n = 36 order cards - Array of order card definitions
@@ -297,9 +324,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. (S): As a standard action, deploy 1 creature now. If this creature is in a Magic Circle square, you gain 1 Morale before deploying.',
+    effectDescription:
+      'Attach this card to this creature. (S): As a standard action, deploy 1 creature now. If this creature is in a Magic Circle square, you gain 1 Morale before deploying.',
     faction: FACTION_NAME,
-    imageUrl: callToBattleOrder1Img
+    imageUrl: callToBattleOrder1Img,
   },
   // Card 2: Careful Attack - Level 1, CON, STANDARD
   {
@@ -308,9 +336,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 damage. Attach this card to this creature. Remove this card to prevent 10 damage to this creature from 1 source.',
+    effectDescription:
+      'Make a melee attack that deals +10 damage. Attach this card to this creature. Remove this card to prevent 10 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: carefulAttackOrder2Img
+    imageUrl: carefulAttackOrder2Img,
   },
   // Card 3: Careful Attack - Level 1, CON, STANDARD
   {
@@ -319,9 +348,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 damage. Attach this card to this creature. Remove this card to prevent 10 damage to this creature from 1 source.',
+    effectDescription:
+      'Make a melee attack that deals +10 damage. Attach this card to this creature. Remove this card to prevent 10 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: carefulAttackOrder3Img
+    imageUrl: carefulAttackOrder3Img,
   },
   // Card 4: Cloud of Bats - Level 5, INT, IMMEDIATE
   {
@@ -330,13 +360,14 @@ export const orderCards = [
     level: 5,
     abilityRequired: 'INT',
     actionType: 'IMMEDIATE',
-    effectDescription: 'VAMPIRE AFFINITY (Any Vampire creature can take this action.) Prevent all damage to this creature from 1 source, then shift 6 squares.',
+    effectDescription:
+      'VAMPIRE AFFINITY (Any Vampire creature can take this action.) Prevent all damage to this creature from 1 source, then shift 6 squares.',
     preventsAllDamage: true,
     shiftAfterUse: 6,
     affinityRequired: 'VAMPIRE',
     affinityOverridesRequirements: true, // VAMPIRE affinity bypasses level/ability requirements
     faction: FACTION_NAME,
-    imageUrl: cloudOfBatsOrder4Img
+    imageUrl: cloudOfBatsOrder4Img,
   },
   // Card 5: Corrosive Blood - Level 1, CON, IMMEDIATE (counter-attack vs all adjacent tapped enemies)
   {
@@ -345,13 +376,14 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'IMMEDIATE',
-    effectDescription: 'REQUIRES UNDEAD. Prevent 10 damage to this creature from 1 source. Deal 10 damage to each tapped creature adjacent to this creature.',
+    effectDescription:
+      'REQUIRES UNDEAD. Prevent 10 damage to this creature from 1 source. Deal 10 damage to each tapped creature adjacent to this creature.',
     damagePrevented: 10,
     counterAttackDamage: 10,
     counterAttackTarget: 'all_adjacent_tapped',
     requiresCreatureType: 'Undead',
     faction: FACTION_NAME,
-    imageUrl: corrosiveBloodOrder5Img
+    imageUrl: corrosiveBloodOrder5Img,
   },
   // Card 6: Death Grip - Level 1, ANY, STANDARD
   {
@@ -360,10 +392,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'STANDARD',
-    effectDescription: 'REQUIRES UNDEAD. Make a melee attack that deals +10 damage for each other Undead creature you control that is adjacent to the target.',
+    effectDescription:
+      'REQUIRES UNDEAD. Make a melee attack that deals +10 damage for each other Undead creature you control that is adjacent to the target.',
     requiresCreatureType: 'Undead',
     faction: FACTION_NAME,
-    imageUrl: deathGripOrder6Img
+    imageUrl: deathGripOrder6Img,
   },
   // Card 7: Death Grip - Level 1, ANY, STANDARD
   {
@@ -372,10 +405,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'STANDARD',
-    effectDescription: 'REQUIRES UNDEAD. Make a melee attack that deals +10 damage for each other Undead creature you control that is adjacent to the target.',
+    effectDescription:
+      'REQUIRES UNDEAD. Make a melee attack that deals +10 damage for each other Undead creature you control that is adjacent to the target.',
     requiresCreatureType: 'Undead',
     faction: FACTION_NAME,
-    imageUrl: deathGripOrder7Img
+    imageUrl: deathGripOrder7Img,
   },
   // Card 8: Defensive Advantage - Level 2, CON, IMMEDIATE (IMPLEMENTED - prevents 20 damage, draws 1 card)
   {
@@ -388,7 +422,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: defensiveAdvantageOrder8Img,
     damagePrevented: 20,
-    drawCards: 1
+    drawCards: 1,
   },
   // Card 9: Defensive Advantage - Level 2, CON, IMMEDIATE (IMPLEMENTED - prevents 20 damage, draws 1 card)
   {
@@ -401,7 +435,7 @@ export const orderCards = [
     faction: FACTION_NAME,
     imageUrl: defensiveAdvantageOrder9Img,
     damagePrevented: 20,
-    drawCards: 1
+    drawCards: 1,
   },
   // Card 10: Dimension Door - Level 4, INT, MINOR
   {
@@ -410,9 +444,10 @@ export const orderCards = [
     level: 4,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'Place this creature in any square within 9 squares. (This creature does not need line of sight to the target square.)',
+    effectDescription:
+      'Place this creature in any square within 9 squares. (This creature does not need line of sight to the target square.)',
     faction: FACTION_NAME,
-    imageUrl: dimensionDoorOrder10Img
+    imageUrl: dimensionDoorOrder10Img,
   },
   // Card 11: Dispel Magic - Level 3, INT, MINOR
   {
@@ -421,9 +456,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'Choose this creature or any creature within 5 squares. The chosen creature removes 1 attached Order card of your choice.',
+    effectDescription:
+      'Choose this creature or any creature within 5 squares. The chosen creature removes 1 attached Order card of your choice.',
     faction: FACTION_NAME,
-    imageUrl: dispelMagicOrder11Img
+    imageUrl: dispelMagicOrder11Img,
   },
   // Card 12: Fear - Level 3, CHA, MINOR
   {
@@ -432,9 +468,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'DRAGON AFFINITY (Any Dragon creature can take this action.) Slide each adjacent enemy creature 5 squares.',
+    effectDescription:
+      'DRAGON AFFINITY (Any Dragon creature can take this action.) Slide each adjacent enemy creature 5 squares.',
     faction: FACTION_NAME,
-    imageUrl: fearOrder12Img
+    imageUrl: fearOrder12Img,
   },
   // Card 13: Fear - Level 3, CHA, MINOR
   {
@@ -443,9 +480,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'DRAGON AFFINITY (Any Dragon creature can take this action.) Slide each adjacent enemy creature 5 squares.',
+    effectDescription:
+      'DRAGON AFFINITY (Any Dragon creature can take this action.) Slide each adjacent enemy creature 5 squares.',
     faction: FACTION_NAME,
-    imageUrl: fearOrder13Img
+    imageUrl: fearOrder13Img,
   },
   // Card 14: Gout of Fire - Level 3, INT, STANDARD (Phase STD-2: Ranged Damage Boost)
   {
@@ -457,7 +495,7 @@ export const orderCards = [
     effectDescription: 'REQUIRES RANGED. Make a ranged attack that deals +20 damage.',
     rangedDamageBonus: 20,
     faction: FACTION_NAME,
-    imageUrl: goutOfFireOrder14Img
+    imageUrl: goutOfFireOrder14Img,
   },
   // Card 15: Gout of Fire - Level 3, INT, STANDARD (Phase STD-2: Ranged Damage Boost)
   {
@@ -469,7 +507,7 @@ export const orderCards = [
     effectDescription: 'REQUIRES RANGED. Make a ranged attack that deals +20 damage.',
     rangedDamageBonus: 20,
     faction: FACTION_NAME,
-    imageUrl: goutOfFireOrder15Img
+    imageUrl: goutOfFireOrder15Img,
   },
   // Card 16: Hulking Attack - Level 2, CON, STANDARD
   {
@@ -478,9 +516,10 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 damage. If the target takes damage from this attack, you gain 1 morale.',
+    effectDescription:
+      'Make a melee attack that deals +10 damage. If the target takes damage from this attack, you gain 1 morale.',
     faction: FACTION_NAME,
-    imageUrl: hulkingAttackOrder16Img
+    imageUrl: hulkingAttackOrder16Img,
   },
   // Card 17: Hulking Attack - Level 2, CON, STANDARD
   {
@@ -489,9 +528,10 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'CON',
     actionType: 'STANDARD',
-    effectDescription: 'Make a melee attack that deals +10 damage. If the target takes damage from this attack, you gain 1 morale.',
+    effectDescription:
+      'Make a melee attack that deals +10 damage. If the target takes damage from this attack, you gain 1 morale.',
     faction: FACTION_NAME,
-    imageUrl: hulkingAttackOrder17Img
+    imageUrl: hulkingAttackOrder17Img,
   },
   // Card 18: Hypnotic Gaze - Level 3, CHA, STANDARD
   {
@@ -500,9 +540,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'STANDARD',
-    effectDescription: 'Choose 1 enemy creature within 5 squares. Slide that creature 3 squares. Make a melee attack that deals +20 damage.',
+    effectDescription:
+      'Choose 1 enemy creature within 5 squares. Slide that creature 3 squares. Make a melee attack that deals +20 damage.',
     faction: FACTION_NAME,
-    imageUrl: hypnoticGazeOrder18Img
+    imageUrl: hypnoticGazeOrder18Img,
   },
   // Card 19: Hypnotic Gaze - Level 3, CHA, STANDARD
   {
@@ -511,9 +552,10 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'STANDARD',
-    effectDescription: 'Choose 1 enemy creature within 5 squares. Slide that creature 3 squares. Make a melee attack that deals +20 damage.',
+    effectDescription:
+      'Choose 1 enemy creature within 5 squares. Slide that creature 3 squares. Make a melee attack that deals +20 damage.',
     faction: FACTION_NAME,
-    imageUrl: hypnoticGazeOrder19Img
+    imageUrl: hypnoticGazeOrder19Img,
   },
   // Card 20: Mage Armor - Level 1, INT, MINOR
   {
@@ -522,9 +564,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. (S): Prevent 10 damage to this creature from 1 source.',
+    effectDescription:
+      'Attach this card to this creature. (S): Prevent 10 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: mageArmorOrder20Img
+    imageUrl: mageArmorOrder20Img,
   },
   // Card 21: Mage Armor - Level 1, INT, MINOR
   {
@@ -533,9 +576,10 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'INT',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. (S): Prevent 10 damage to this creature from 1 source.',
+    effectDescription:
+      'Attach this card to this creature. (S): Prevent 10 damage to this creature from 1 source.',
     faction: FACTION_NAME,
-    imageUrl: mageArmorOrder21Img
+    imageUrl: mageArmorOrder21Img,
   },
   // Card 22: Magic Short Sword - Level 1, ANY, MINOR
   {
@@ -544,10 +588,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'ANY',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES HUMANOID. Attach this card to this creature. Damage from this creature\'s melee attacks cannot be prevented.',
+    effectDescription:
+      "REQUIRES HUMANOID. Attach this card to this creature. Damage from this creature's melee attacks cannot be prevented.",
     requiresCreatureType: 'Humanoid',
     faction: FACTION_NAME,
-    imageUrl: magicShortSwordOrder22Img
+    imageUrl: magicShortSwordOrder22Img,
   },
   // Card 23: Necrotic Howl - Level 3, CHA, MINOR
   {
@@ -556,10 +601,11 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES UNDEAD. Deal 10 damage to each enemy creature adjacent to this creature.',
+    effectDescription:
+      'REQUIRES UNDEAD. Deal 10 damage to each enemy creature adjacent to this creature.',
     requiresCreatureType: 'Undead',
     faction: FACTION_NAME,
-    imageUrl: necroticHowlOrder23Img
+    imageUrl: necroticHowlOrder23Img,
   },
   // Card 24: Necrotic Howl - Level 3, CHA, MINOR
   {
@@ -568,10 +614,11 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES UNDEAD. Deal 10 damage to each enemy creature adjacent to this creature.',
+    effectDescription:
+      'REQUIRES UNDEAD. Deal 10 damage to each enemy creature adjacent to this creature.',
     requiresCreatureType: 'Undead',
     faction: FACTION_NAME,
-    imageUrl: necroticHowlOrder24Img
+    imageUrl: necroticHowlOrder24Img,
   },
   // Card 25: Regenerate - Level 4, CON, MINOR
   {
@@ -580,9 +627,10 @@ export const orderCards = [
     level: 4,
     abilityRequired: 'CON',
     actionType: 'MINOR',
-    effectDescription: 'Attach this card to this creature. REGENERATE 10 (At the start of its controller\'s turn, this creature heals 10 damage).',
+    effectDescription:
+      "Attach this card to this creature. REGENERATE 10 (At the start of its controller's turn, this creature heals 10 damage).",
     faction: FACTION_NAME,
-    imageUrl: regenerateOrder25Img
+    imageUrl: regenerateOrder25Img,
   },
   // Card 26: Relentless Advance - Level 1, CON, MINOR
   {
@@ -593,7 +641,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'This creature takes 10 damage to shift 5 squares.',
     faction: FACTION_NAME,
-    imageUrl: relentlessAdvanceOrder26Img
+    imageUrl: relentlessAdvanceOrder26Img,
   },
   // Card 27: Relentless Advance - Level 1, CON, MINOR
   {
@@ -604,7 +652,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'This creature takes 10 damage to shift 5 squares.',
     faction: FACTION_NAME,
-    imageUrl: relentlessAdvanceOrder27Img
+    imageUrl: relentlessAdvanceOrder27Img,
   },
   // Card 28: Spawn of Kyuss - Level 1, CON, MINOR
   {
@@ -613,10 +661,11 @@ export const orderCards = [
     level: 1,
     abilityRequired: 'CON',
     actionType: 'MINOR',
-    effectDescription: 'REQUIRES UNDEAD. Attach this card to this creature. Each enemy creature takes 10 damage whenever it ends its activation adjacent to this creature.',
+    effectDescription:
+      'REQUIRES UNDEAD. Attach this card to this creature. Each enemy creature takes 10 damage whenever it ends its activation adjacent to this creature.',
     requiresCreatureType: 'Undead',
     faction: FACTION_NAME,
-    imageUrl: spawnOfKyussOrder28Img
+    imageUrl: spawnOfKyussOrder28Img,
   },
   // Card 29: Terrifying Revelation - Level 6, CHA, STANDARD
   {
@@ -627,7 +676,7 @@ export const orderCards = [
     actionType: 'STANDARD',
     effectDescription: 'Target opponent loses 3 Morale.',
     faction: FACTION_NAME,
-    imageUrl: terrifyingRevelationOrder29Img
+    imageUrl: terrifyingRevelationOrder29Img,
   },
   // Card 30: Unbreakable - Level 3, CON, IMMEDIATE (IMPLEMENTED)
   {
@@ -639,7 +688,7 @@ export const orderCards = [
     effectDescription: 'Prevent 50 damage to this creature from 1 source.',
     damagePrevented: 50,
     faction: FACTION_NAME,
-    imageUrl: unbreakableOrder30Img
+    imageUrl: unbreakableOrder30Img,
   },
   // Card 31: Unbreakable - Level 3, CON, IMMEDIATE (IMPLEMENTED)
   {
@@ -651,7 +700,7 @@ export const orderCards = [
     effectDescription: 'Prevent 50 damage to this creature from 1 source.',
     damagePrevented: 50,
     faction: FACTION_NAME,
-    imageUrl: unbreakableOrder31Img
+    imageUrl: unbreakableOrder31Img,
   },
   // Card 32: Unending Horde - Level 3, CHA, MINOR
   {
@@ -662,7 +711,7 @@ export const orderCards = [
     actionType: 'MINOR',
     effectDescription: 'Each creature you control other than this creature shifts 3 squares.',
     faction: FACTION_NAME,
-    imageUrl: unendingHordeOrder32Img
+    imageUrl: unendingHordeOrder32Img,
   },
   // Card 33: Vampiric Touch - Level 3, INT, STANDARD (Phase STD-6: Attack + Heal with Vampire Affinity)
   // VAMPIRE AFFINITY: Only Vampire creatures can use this - level and ability requirements are bypassed
@@ -672,14 +721,15 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'INT',
     actionType: 'STANDARD',
-    effectDescription: 'VAMPIRE AFFINITY (Any Vampire creature can take this action.) Make a melee attack that deals 30 damage. If the target takes damage from this attack, this creature heals 30 damage.',
+    effectDescription:
+      'VAMPIRE AFFINITY (Any Vampire creature can take this action.) Make a melee attack that deals 30 damage. If the target takes damage from this attack, this creature heals 30 damage.',
     flatMeleeDamage: 30, // Fixed 30 damage (replaces base melee damage)
     healOnAttack: 30,
     healOnAttackMinDamage: 10, // Must deal at least 10 damage to trigger healing
     affinityRequired: 'VAMPIRE',
     affinityOverridesRequirements: true, // Level and INT ability don't matter - only Vampire type
     faction: FACTION_NAME,
-    imageUrl: vampiricTouchOrder33Img
+    imageUrl: vampiricTouchOrder33Img,
   },
   // Card 34: Vampiric Touch - Level 3, INT, STANDARD (Phase STD-6: Attack + Heal with Vampire Affinity)
   // VAMPIRE AFFINITY: Only Vampire creatures can use this - level and ability requirements are bypassed
@@ -689,14 +739,15 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'INT',
     actionType: 'STANDARD',
-    effectDescription: 'VAMPIRE AFFINITY (Any Vampire creature can take this action.) Make a melee attack that deals 30 damage. If the target takes damage from this attack, this creature heals 30 damage.',
+    effectDescription:
+      'VAMPIRE AFFINITY (Any Vampire creature can take this action.) Make a melee attack that deals 30 damage. If the target takes damage from this attack, this creature heals 30 damage.',
     flatMeleeDamage: 30, // Fixed 30 damage (replaces base melee damage)
     healOnAttack: 30,
     healOnAttackMinDamage: 10, // Must deal at least 10 damage to trigger healing
     affinityRequired: 'VAMPIRE',
     affinityOverridesRequirements: true, // Level and INT ability don't matter - only Vampire type
     faction: FACTION_NAME,
-    imageUrl: vampiricTouchOrder34Img
+    imageUrl: vampiricTouchOrder34Img,
   },
   // Card 35: Warning Shout - Level 3, CHA, IMMEDIATE (protects ally in LOS)
   {
@@ -705,11 +756,12 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Choose 1 allied creature within line of sight. Prevent 30 damage to that creature from 1 source.',
+    effectDescription:
+      'Choose 1 allied creature within line of sight. Prevent 30 damage to that creature from 1 source.',
     damagePrevented: 30,
     protectTargetType: 'ally_los', // Can only protect allies in line of sight, not self
     faction: FACTION_NAME,
-    imageUrl: warningShoutOrder35Img
+    imageUrl: warningShoutOrder35Img,
   },
   // Card 36: Warning Shout - Level 3, CHA, IMMEDIATE (protects ally in LOS)
   {
@@ -718,17 +770,18 @@ export const orderCards = [
     level: 3,
     abilityRequired: 'CHA',
     actionType: 'IMMEDIATE',
-    effectDescription: 'Choose 1 allied creature within line of sight. Prevent 30 damage to that creature from 1 source.',
+    effectDescription:
+      'Choose 1 allied creature within line of sight. Prevent 30 damage to that creature from 1 source.',
     damagePrevented: 30,
     protectTargetType: 'ally_los', // Can only protect allies in line of sight, not self
     faction: FACTION_NAME,
-    imageUrl: warningShoutOrder36Img
-  }
+    imageUrl: warningShoutOrder36Img,
+  },
 ]
 
 export default {
   FACTION_NAME,
   commanders,
   creatures,
-  orderCards
+  orderCards,
 }

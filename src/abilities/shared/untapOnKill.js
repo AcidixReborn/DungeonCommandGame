@@ -23,8 +23,9 @@ export const UntapOnKill = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => (typeof ability === 'object' && ability.id === 'untap_on_adjacent_kill') ||
-                 (typeof ability === 'string' && ability.toUpperCase().includes('UNTAP'))
+      (ability) =>
+        (typeof ability === 'object' && ability.id === 'untap_on_adjacent_kill') ||
+        (typeof ability === 'string' && ability.toUpperCase().includes('UNTAP'))
     )
   },
 
@@ -58,8 +59,8 @@ export const UntapOnKill = {
     if (!currentPlayer) return null
 
     // Find creatures with this ability belonging to the current turn's player
-    const creatures = currentPlayer.creaturesInPlay.filter(creature =>
-      this.has(creature) && creature.currentHP > 0
+    const creatures = currentPlayer.creaturesInPlay.filter(
+      (creature) => this.has(creature) && creature.currentHP > 0
     )
 
     if (creatures.length === 0) return null
@@ -78,10 +79,10 @@ export const UntapOnKill = {
         const aiDifficulty = currentPlayer.aiDifficulty || 'medium'
 
         if (aiDifficulty === 'easy') {
-          continue  // Easy AI never uses ability
+          continue // Easy AI never uses ability
         } else if (aiDifficulty === 'medium') {
           if (Math.random() >= 0.5) {
-            continue  // Medium AI: 50% chance
+            continue // Medium AI: 50% chance
           }
         }
       }
@@ -93,13 +94,13 @@ export const UntapOnKill = {
           triggered: true,
           creatureName: creature.creature.name,
           instanceId: creature.instanceId,
-          owner: creature.owner
+          owner: creature.owner,
         }
       }
     }
 
     return null
-  }
+  },
 }
 
 export default UntapOnKill

@@ -33,7 +33,7 @@ function AttackConfirmPanel({
   damageBoostFlat = null,
   onConfirm,
   onCancel,
-  onLightningBreath
+  onLightningBreath,
 }) {
   // Hover state for order card preview
   const [showOrderCardPreview, setShowOrderCardPreview] = useState(false)
@@ -51,18 +51,18 @@ function AttackConfirmPanel({
   const isMeleeAttack = attackInfo.attackType === 'melee'
 
   // Check for FLANKING bonus (only on melee primary attacks)
-  const flankingBonus = isMeleeAttack && gameState?.getFlankingBonus
-    ? gameState.getFlankingBonus(attacker, defender)
-    : 0
+  const flankingBonus =
+    isMeleeAttack && gameState?.getFlankingBonus
+      ? gameState.getFlankingBonus(attacker, defender)
+      : 0
 
   // Check for CUTTER bonus (+10 vs tapped creatures)
-  const cutterBonus = isMeleeAttack && gameState?.getCutterBonus
-    ? gameState.getCutterBonus(attacker, defender)
-    : 0
+  const cutterBonus =
+    isMeleeAttack && gameState?.getCutterBonus ? gameState.getCutterBonus(attacker, defender) : 0
 
   // Check if using flat damage from order card (Killing Strike)
   const usedFlatDamage = damageBoostFlat !== null
-  const orderCardBonus = (!usedFlatDamage && damageBoostBonus > 0) ? damageBoostBonus : 0
+  const orderCardBonus = !usedFlatDamage && damageBoostBonus > 0 ? damageBoostBonus : 0
 
   // Calculate base damage - flat damage replaces creature's base damage
   let baseDamage
@@ -93,15 +93,21 @@ function AttackConfirmPanel({
 
   // Check for LIGHTNING BREATH ability (Dracolich) - only on ranged attacks with 2+ valid targets
   const isRangedAttack = attackInfo.attackType === 'ranged'
-  const canUseLightningBreath = isRangedAttack && gameState?.canUseLightningBreath && gameState.canUseLightningBreath(attacker)
-  const lightningBreathDamage = canUseLightningBreath ? (gameState?.getLightningBreathDamage?.(attacker) || 20) : 0
+  const canUseLightningBreath =
+    isRangedAttack && gameState?.canUseLightningBreath && gameState.canUseLightningBreath(attacker)
+  const lightningBreathDamage = canUseLightningBreath
+    ? gameState?.getLightningBreathDamage?.(attacker) || 20
+    : 0
 
   // Check for MAGIC CIRCLE AURA passive (Hobgoblin Sorcerer on Magic Circle)
   // Prevents 10 damage from 1 source for Goblins/Hobgoblins/Bugbears (once per turn)
   // This is the FIRST damage reduction (before Shield Block)
-  const magicCircleReduction = gameState?.hasMagicCircleProtection && gameState.hasMagicCircleProtection(defender)
-    ? (gameState?.getMagicCircleDamageReduction ? 10 : 0) // Preview shows 10 if protected
-    : 0
+  const magicCircleReduction =
+    gameState?.hasMagicCircleProtection && gameState.hasMagicCircleProtection(defender)
+      ? gameState?.getMagicCircleDamageReduction
+        ? 10
+        : 0 // Preview shows 10 if protected
+      : 0
   const damageAfterMagicCircle = Math.max(0, damage - magicCircleReduction)
 
   // Check for SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
@@ -113,9 +119,7 @@ function AttackConfirmPanel({
 
   // Check for BLOCK from attached cards (Tough as Nails = Block 10)
   // This reduces damage from each source by the block amount
-  const attachmentBlockAmount = gameState?.getBlockAmount
-    ? gameState.getBlockAmount(defender)
-    : 0
+  const attachmentBlockAmount = gameState?.getBlockAmount ? gameState.getBlockAmount(defender) : 0
   const damageAfterAttachmentBlock = Math.max(0, damageAfterShieldBlock - attachmentBlockAmount)
 
   // Check for TAP ON HIT ability (Horned Devil, Wolf) - only on melee attacks
@@ -133,16 +137,27 @@ function AttackConfirmPanel({
   const attackWouldKill = damageAfterAttachmentBlock >= defender.currentHP
   const isTrulyAdjacent = attackInfo?.distance === 1 || (!isReachAttack && isMeleeAttack)
   const deathStrikeApplies = hasDeathStrike && isMeleeAttack && isTrulyAdjacent && attackWouldKill
-  const deathStrikeDamage = deathStrikeApplies ? (defender.creature.meleeAttack?.damage || 0) : 0
+  const deathStrikeDamage = deathStrikeApplies ? defender.creature.meleeAttack?.damage || 0 : 0
 
   return (
     <div className="combat-panel attack-confirm-panel">
       {/* Header */}
-      <div className="combat-panel-header attack-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        className="combat-panel-header attack-header"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
         <h5 style={{ margin: 0 }}>
-          {isConfusionGaze ? '😵 CONFUSION GAZE' : isFlashingBlades ? '⚔️ FLASHING BLADES' : isHiddenBlade ? '🗡️ HIDDEN BLADE' : '⚔️ Confirm Attack'}
+          {isConfusionGaze
+            ? '😵 CONFUSION GAZE'
+            : isFlashingBlades
+              ? '⚔️ FLASHING BLADES'
+              : isHiddenBlade
+                ? '🗡️ HIDDEN BLADE'
+                : '⚔️ Confirm Attack'}
         </h5>
-        {defenderPlayerState && <Badge bg="info">Target Morale: {defenderPlayerState.morale}</Badge>}
+        {defenderPlayerState && (
+          <Badge bg="info">Target Morale: {defenderPlayerState.morale}</Badge>
+        )}
       </div>
 
       {/* Combat Creatures Display */}
@@ -175,8 +190,26 @@ function AttackConfirmPanel({
       <div className="combat-info">
         <div className="combat-info-row">
           <span>Attack Type:</span>
-          <Badge bg={isConfusionGaze ? 'warning' : isFlashingBlades || isHiddenBlade ? 'warning' : attackInfo.attackType === 'ranged' ? 'info' : 'danger'}>
-            {isConfusionGaze ? '😵 Gaze Strike' : isFlashingBlades ? '⚔️ Splash' : isHiddenBlade ? '🗡️ Hidden Strike' : attackInfo.attackType === 'ranged' ? '🏹 Ranged' : '⚔️ Melee'}
+          <Badge
+            bg={
+              isConfusionGaze
+                ? 'warning'
+                : isFlashingBlades || isHiddenBlade
+                  ? 'warning'
+                  : attackInfo.attackType === 'ranged'
+                    ? 'info'
+                    : 'danger'
+            }
+          >
+            {isConfusionGaze
+              ? '😵 Gaze Strike'
+              : isFlashingBlades
+                ? '⚔️ Splash'
+                : isHiddenBlade
+                  ? '🗡️ Hidden Strike'
+                  : attackInfo.attackType === 'ranged'
+                    ? '🏹 Ranged'
+                    : '⚔️ Melee'}
           </Badge>
         </div>
         <div className="combat-info-row">
@@ -189,9 +222,11 @@ function AttackConfirmPanel({
                 (flat damage from {damageBoostCard?.name || 'Order Card'})
               </span>
             </span>
-          ) : (cutterBonus > 0 || flankingBonus > 0 || orderCardBonus > 0) ? (
+          ) : cutterBonus > 0 || flankingBonus > 0 || orderCardBonus > 0 ? (
             <span>
-              <Badge bg="warning" text="dark">{baseDamage}</Badge>
+              <Badge bg="warning" text="dark">
+                {baseDamage}
+              </Badge>
               {flankingBonus > 0 && (
                 <>
                   <span style={{ color: '#4caf50', marginLeft: '4px' }}>+{flankingBonus}</span>
@@ -207,14 +242,20 @@ function AttackConfirmPanel({
               {orderCardBonus > 0 && (
                 <>
                   <span style={{ color: '#ff9800', marginLeft: '4px' }}>+{orderCardBonus}</span>
-                  <span style={{ color: '#888', marginLeft: '4px' }}>({damageBoostCard?.name || 'Order Card'})</span>
+                  <span style={{ color: '#888', marginLeft: '4px' }}>
+                    ({damageBoostCard?.name || 'Order Card'})
+                  </span>
                 </>
               )}
               <span style={{ marginLeft: '4px' }}>=</span>
-              <Badge bg="success" style={{ marginLeft: '4px' }}>{damage}</Badge>
+              <Badge bg="success" style={{ marginLeft: '4px' }}>
+                {damage}
+              </Badge>
             </span>
           ) : (
-            <Badge bg="warning" text="dark">{damage}</Badge>
+            <Badge bg="warning" text="dark">
+              {damage}
+            </Badge>
           )}
         </div>
         <div className="combat-info-row">
@@ -225,109 +266,123 @@ function AttackConfirmPanel({
         </div>
 
         {/* ORDER CARD USED - Shows the damage boost card being used for this attack */}
-        {damageBoostCard && (() => {
-          // Determine card styling based on attack type or card type
-          // For shift+attack cards (Spring Attack), use the actual attack type being made
-          const isShiftAttackCard = damageBoostCard.shiftBeforeAttack > 0
-          const isRangedBoostCard = damageBoostCard.rangedDamageBonus > 0
-          const isRangedAttack = attackInfo.attackType === 'ranged'
+        {damageBoostCard &&
+          (() => {
+            // Determine card styling based on attack type or card type
+            // For shift+attack cards (Spring Attack), use the actual attack type being made
+            const isShiftAttackCard = damageBoostCard.shiftBeforeAttack > 0
+            const isRangedBoostCard = damageBoostCard.rangedDamageBonus > 0
+            const isRangedAttack = attackInfo.attackType === 'ranged'
 
-          // Use attack type for styling if it's a shift+attack card, otherwise use card type
-          const useRangedStyle = isShiftAttackCard ? isRangedAttack : isRangedBoostCard
-          const cardAccentColor = useRangedStyle ? '#0d6efd' : '#dc3545'
-          const cardShadowColor = useRangedStyle ? 'rgba(13, 110, 253, 0.4)' : 'rgba(220, 53, 69, 0.4)'
-          const cardIcon = useRangedStyle ? '🔥' : '🗡️'
+            // Use attack type for styling if it's a shift+attack card, otherwise use card type
+            const useRangedStyle = isShiftAttackCard ? isRangedAttack : isRangedBoostCard
+            const cardAccentColor = useRangedStyle ? '#0d6efd' : '#dc3545'
+            const cardShadowColor = useRangedStyle
+              ? 'rgba(13, 110, 253, 0.4)'
+              : 'rgba(220, 53, 69, 0.4)'
+            const cardIcon = useRangedStyle ? '🔥' : '🗡️'
 
-          // For damage text: don't show attack type if bonus is 0 (like Spring Attack)
-          const hasDamageBonus = damageBoostBonus > 0 || damageBoostFlat > 0
+            // For damage text: don't show attack type if bonus is 0 (like Spring Attack)
+            const hasDamageBonus = damageBoostBonus > 0 || damageBoostFlat > 0
 
-          return (
-            <div style={{
-              borderTop: `2px solid ${cardAccentColor}`,
-              paddingTop: '12px',
-              marginTop: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              position: 'relative'
-            }}>
-              <div style={{ fontWeight: 'bold', color: cardAccentColor, fontSize: '1rem' }}>
-                {cardIcon} Using: {damageBoostCard.name}
-              </div>
+            return (
               <div
-                style={{ position: 'relative', cursor: 'pointer' }}
-                onMouseEnter={() => setShowOrderCardPreview(true)}
-                onMouseLeave={() => setShowOrderCardPreview(false)}
+                style={{
+                  borderTop: `2px solid ${cardAccentColor}`,
+                  paddingTop: '12px',
+                  marginTop: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  position: 'relative',
+                }}
               >
-                <img
-                  src={damageBoostCard.imageUrl}
-                  alt={damageBoostCard.name}
-                  style={{
-                    width: '160px',
-                    height: 'auto',
-                    borderRadius: '6px',
-                    border: `3px solid ${cardAccentColor}`,
-                    boxShadow: `0 4px 12px ${cardShadowColor}`,
-                    transition: 'transform 0.2s ease'
-                  }}
-                />
-                <div style={{
-                  position: 'absolute',
-                  bottom: '4px',
-                  right: '4px',
-                  backgroundColor: 'rgba(0,0,0,0.7)',
-                  color: '#aaa',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontSize: '0.65rem'
-                }}>
-                  Hover for details
+                <div style={{ fontWeight: 'bold', color: cardAccentColor, fontSize: '1rem' }}>
+                  {cardIcon} Using: {damageBoostCard.name}
                 </div>
+                <div
+                  style={{ position: 'relative', cursor: 'pointer' }}
+                  onMouseEnter={() => setShowOrderCardPreview(true)}
+                  onMouseLeave={() => setShowOrderCardPreview(false)}
+                >
+                  <img
+                    src={damageBoostCard.imageUrl}
+                    alt={damageBoostCard.name}
+                    style={{
+                      width: '160px',
+                      height: 'auto',
+                      borderRadius: '6px',
+                      border: `3px solid ${cardAccentColor}`,
+                      boxShadow: `0 4px 12px ${cardShadowColor}`,
+                      transition: 'transform 0.2s ease',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '4px',
+                      right: '4px',
+                      backgroundColor: 'rgba(0,0,0,0.7)',
+                      color: '#aaa',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '0.65rem',
+                    }}
+                  >
+                    Hover for details
+                  </div>
 
-                {/* Hover Preview - Larger image, fixed position to the left of the panel */}
-                {showOrderCardPreview && (
-                  <div style={{
-                    position: 'fixed',
-                    right: '450px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    zIndex: 9999,
-                    pointerEvents: 'none'
-                  }}>
-                    <img
-                      src={damageBoostCard.imageUrl}
-                      alt={damageBoostCard.name}
+                  {/* Hover Preview - Larger image, fixed position to the left of the panel */}
+                  {showOrderCardPreview && (
+                    <div
                       style={{
-                        width: '320px',
-                        height: 'auto',
-                        borderRadius: '8px',
-                        border: `3px solid ${cardAccentColor}`,
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.8)'
+                        position: 'fixed',
+                        right: '450px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        zIndex: 9999,
+                        pointerEvents: 'none',
                       }}
-                    />
+                    >
+                      <img
+                        src={damageBoostCard.imageUrl}
+                        alt={damageBoostCard.name}
+                        style={{
+                          width: '320px',
+                          height: 'auto',
+                          borderRadius: '8px',
+                          border: `3px solid ${cardAccentColor}`,
+                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.8)',
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                {/* Only show damage bonus line if there's actually a bonus */}
+                {(usedFlatDamage || hasDamageBonus) && (
+                  <div style={{ fontSize: '0.9rem', color: '#ff9800', fontWeight: 'bold' }}>
+                    {usedFlatDamage
+                      ? `Deals ${damageBoostFlat} flat damage`
+                      : `+${damageBoostBonus} damage`}
                   </div>
                 )}
               </div>
-              {/* Only show damage bonus line if there's actually a bonus */}
-              {(usedFlatDamage || hasDamageBonus) && (
-                <div style={{ fontSize: '0.9rem', color: '#ff9800', fontWeight: 'bold' }}>
-                  {usedFlatDamage
-                    ? `Deals ${damageBoostFlat} flat damage`
-                    : `+${damageBoostBonus} damage`}
-                </div>
-              )}
-            </div>
-          )
-        })()}
+            )
+          })()}
 
         {/* LIFE DRAIN preview - shows potential healing on melee damage */}
         {lifeDrainApplies && (
-          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+          <div
+            className="combat-info-row"
+            style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}
+          >
             <span style={{ color: '#4caf50' }}>LIFE DRAIN:</span>
             <span style={{ color: '#4caf50' }}>
               {potentialHeal > 0 ? (
-                <>+{potentialHeal} HP ({currentHP} → {currentHP + potentialHeal})</>
+                <>
+                  +{potentialHeal} HP ({currentHP} → {currentHP + potentialHeal})
+                </>
               ) : (
                 <>Already at max HP</>
               )}
@@ -335,13 +390,18 @@ function AttackConfirmPanel({
           </div>
         )}
         {lifeDrainApplies && (
-          <div style={{ fontSize: '0.75rem', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
+          <div
+            style={{ fontSize: '0.75rem', color: '#888', fontStyle: 'italic', marginTop: '4px' }}
+          >
             * Heals only if damage is dealt (blocked = no heal)
           </div>
         )}
         {/* MAGIC CIRCLE AURA preview - shows damage reduction from Hobgoblin Sorcerer on Magic Circle */}
         {magicCircleReduction > 0 && (
-          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+          <div
+            className="combat-info-row"
+            style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}
+          >
             <span style={{ color: '#9932cc' }}>🔮 MAGIC CIRCLE AURA:</span>
             <span style={{ color: '#9932cc' }}>
               Block {magicCircleReduction} ({damage} → {damageAfterMagicCircle})
@@ -350,7 +410,10 @@ function AttackConfirmPanel({
         )}
         {/* SHIELD BLOCK preview - shows damage reduction from adjacent Dwarven Defender */}
         {shieldBlockReduction > 0 && (
-          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+          <div
+            className="combat-info-row"
+            style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}
+          >
             <span style={{ color: '#2196f3' }}>SHIELD BLOCK:</span>
             <span style={{ color: '#2196f3' }}>
               Block {shieldBlockReduction} ({damageAfterMagicCircle} → {damageAfterShieldBlock})
@@ -359,7 +422,10 @@ function AttackConfirmPanel({
         )}
         {/* BLOCK from attachments (Tough as Nails) - shows damage reduction from attached cards */}
         {attachmentBlockAmount > 0 && (
-          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+          <div
+            className="combat-info-row"
+            style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}
+          >
             <span style={{ color: '#17a2b8' }}>🛡️ BLOCK (Tough as Nails):</span>
             <span style={{ color: '#17a2b8' }}>
               -{attachmentBlockAmount} dmg ({damageAfterShieldBlock} → {damageAfterAttachmentBlock})
@@ -368,7 +434,10 @@ function AttackConfirmPanel({
         )}
         {/* REACH 2 indicator - shows when attacking from extended range */}
         {isReachAttack && (
-          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+          <div
+            className="combat-info-row"
+            style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}
+          >
             <span style={{ color: '#ff9800' }}>🗡️ REACH 2:</span>
             <span style={{ color: '#ff9800' }}>
               Attacking from range {reachDistance} (extended melee)
@@ -377,44 +446,54 @@ function AttackConfirmPanel({
         )}
         {/* TAP ON HIT preview - shows that target will be tapped if damage is dealt */}
         {tapOnHitApplies && (
-          <div className="combat-info-row" style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}>
+          <div
+            className="combat-info-row"
+            style={{ borderTop: '1px solid #444', paddingTop: '6px', marginTop: '6px' }}
+          >
             <span style={{ color: '#e91e63' }}>💫 TAP ON HIT:</span>
             <span style={{ color: '#e91e63' }}>
               {defenderAlreadyTapped
                 ? 'Target already tapped (no additional effect)'
-                : 'Target will be TAPPED if damage is dealt'
-              }
+                : 'Target will be TAPPED if damage is dealt'}
             </span>
           </div>
         )}
         {tapOnHitApplies && !defenderAlreadyTapped && (
-          <div style={{ fontSize: '0.75rem', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
+          <div
+            style={{ fontSize: '0.75rem', color: '#888', fontStyle: 'italic', marginTop: '4px' }}
+          >
             * Tap only occurs if target takes any damage (fully blocked = no tap)
           </div>
         )}
         {/* DEATH STRIKE warning - shows when attacking a creature that would die and has DEATH STRIKE */}
         {deathStrikeApplies && (
-          <div className="combat-info-row" style={{
-            borderTop: '2px solid #ff5722',
-            paddingTop: '8px',
-            marginTop: '8px',
-            backgroundColor: 'rgba(255, 87, 34, 0.15)',
-            padding: '8px',
-            borderRadius: '4px'
-          }}>
+          <div
+            className="combat-info-row"
+            style={{
+              borderTop: '2px solid #ff5722',
+              paddingTop: '8px',
+              marginTop: '8px',
+              backgroundColor: 'rgba(255, 87, 34, 0.15)',
+              padding: '8px',
+              borderRadius: '4px',
+            }}
+          >
             <span style={{ color: '#ff5722', fontWeight: 'bold' }}>⚠️ DEATH STRIKE WARNING:</span>
           </div>
         )}
         {deathStrikeApplies && (
-          <div style={{
-            color: '#ff5722',
-            fontSize: '0.9rem',
-            marginTop: '4px',
-            backgroundColor: 'rgba(255, 87, 34, 0.15)',
-            padding: '8px',
-            borderRadius: '4px'
-          }}>
-            This creature will deal <strong>{deathStrikeDamage} damage</strong> to your attacker before dying!
+          <div
+            style={{
+              color: '#ff5722',
+              fontSize: '0.9rem',
+              marginTop: '4px',
+              backgroundColor: 'rgba(255, 87, 34, 0.15)',
+              padding: '8px',
+              borderRadius: '4px',
+            }}
+          >
+            This creature will deal <strong>{deathStrikeDamage} damage</strong> to your attacker
+            before dying!
             {deathStrikeDamage >= attacker.currentHP && (
               <div style={{ color: '#ff1744', fontWeight: 'bold', marginTop: '4px' }}>
                 ☠️ YOUR ATTACKER WILL DIE! ({attacker.creature.name}: {attacker.currentHP} HP)
@@ -446,7 +525,15 @@ function AttackConfirmPanel({
           </Button>
         )}
         <Button variant="danger" size="sm" onClick={onConfirm}>
-          {isConfusionGaze ? '😵 Strike!' : isFlashingBlades ? '⚔️ Deal Splash Damage!' : isHiddenBlade ? '🗡️ Strike!' : isRangedAttack ? `🏹 Ranged Attack (${damage} dmg)` : '⚔️ Attack!'}
+          {isConfusionGaze
+            ? '😵 Strike!'
+            : isFlashingBlades
+              ? '⚔️ Deal Splash Damage!'
+              : isHiddenBlade
+                ? '🗡️ Strike!'
+                : isRangedAttack
+                  ? `🏹 Ranged Attack (${damage} dmg)`
+                  : '⚔️ Attack!'}
         </Button>
       </div>
     </div>

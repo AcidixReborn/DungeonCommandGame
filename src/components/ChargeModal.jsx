@@ -21,13 +21,7 @@ import { Modal, Button, Alert } from 'react-bootstrap'
  * @param {Function} onConfirm - Callback when player confirms (enters movement selection)
  * @param {Function} onCancel - Callback when player cancels (returns card to hand)
  */
-function ChargeModal({
-  show,
-  card,
-  creature,
-  onConfirm,
-  onCancel
-}) {
+function ChargeModal({ show, card, creature, onConfirm, onCancel }) {
   if (!show || !card || !creature) return null
 
   // Get creature info
@@ -41,7 +35,13 @@ function ChargeModal({
 
   return (
     <Modal show={show} onHide={onCancel} centered size="md" backdrop="static">
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: `2px solid ${accentColor}` }}>
+      <Modal.Header
+        style={{
+          backgroundColor: '#212529',
+          color: 'white',
+          borderBottom: `2px solid ${accentColor}`,
+        }}
+      >
         <Modal.Title>Use {card.name}</Modal.Title>
       </Modal.Header>
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white', textAlign: 'center' }}>
@@ -54,7 +54,7 @@ function ChargeModal({
               style={{
                 maxHeight: '200px',
                 borderRadius: '8px',
-                border: `2px solid ${accentColor}`
+                border: `2px solid ${accentColor}`,
               }}
             />
           ) : (
@@ -68,7 +68,7 @@ function ChargeModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto'
+                margin: '0 auto',
               }}
             >
               <span style={{ fontSize: '0.9rem' }}>{card.name}</span>
@@ -82,7 +82,7 @@ function ChargeModal({
             fontSize: '0.9rem',
             color: '#adb5bd',
             marginBottom: '15px',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
           }}
         >
           {card.effectDescription}
@@ -120,10 +120,15 @@ function ChargeModal({
         {card.drawCardsOnAttack > 0 && (
           <Alert
             variant="success"
-            style={{ backgroundColor: 'rgba(40, 167, 69, 0.2)', border: '1px solid #28a745', marginBottom: '10px' }}
+            style={{
+              backgroundColor: 'rgba(40, 167, 69, 0.2)',
+              border: '1px solid #28a745',
+              marginBottom: '10px',
+            }}
           >
             <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
-              Draw {card.drawCardsOnAttack} Order card{card.drawCardsOnAttack > 1 ? 's' : ''} after attack
+              Draw {card.drawCardsOnAttack} Order card{card.drawCardsOnAttack > 1 ? 's' : ''} after
+              attack
             </div>
           </Alert>
         )}
@@ -135,7 +140,8 @@ function ChargeModal({
           style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)', border: '1px solid #ffc107' }}
         >
           <div style={{ fontSize: '0.85rem', marginBottom: '5px' }}>
-            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s STANDARD action.
+            <strong>Note:</strong> This will consume {creature.creature?.name || creature.name}'s
+            STANDARD action.
           </div>
           <div style={{ fontSize: '0.85rem', color: '#ffc107' }}>
             <strong>Once you move, you must complete the attack.</strong>

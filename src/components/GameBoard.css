@@ -18,14 +18,13 @@
   width: 100%;
   position: relative;
   /* Subtle texture overlay */
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(255, 255, 255, 0.005) 2px,
-      rgba(255, 255, 255, 0.005) 4px
-    );
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.005) 2px,
+    rgba(255, 255, 255, 0.005) 4px
+  );
   box-shadow:
     inset 0 0 20px rgba(0, 0, 0, 0.3),
     0 0 10px rgba(0, 0, 0, 0.2);

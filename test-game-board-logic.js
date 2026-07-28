@@ -22,7 +22,7 @@ const CONFIG = {
   MAX_TURNS_PER_GAME: 100,
   PLAYER_COUNTS_TO_TEST: [2, 3, 4, 5], // Test multi-player games
   VERBOSE_LOGGING: false, // Set to true for detailed per-game logs
-  TRACK_BALANCE: true // Track faction/commander win rates
+  TRACK_BALANCE: true, // Track faction/commander win rates
 }
 
 /**
@@ -119,7 +119,7 @@ const stats = {
   startingZoneSpacingDetails: [], // Details of spacing violations
   minStartingZoneGap: Infinity, // Smallest gap observed between any two zones
   avgStartingZoneGap: 0, // Average gap between zones
-  totalStartingZoneGapMeasurements: 0 // Number of measurements taken
+  totalStartingZoneGapMeasurements: 0, // Number of measurements taken
 }
 
 /**
@@ -177,12 +177,14 @@ function checkForNaNMorale(gameState, gameNum, turnNum, phase) {
         phase,
         playerId,
         morale: player.morale,
-        faction: player.faction
+        faction: player.faction,
       })
       nanDetected = true
 
       if (CONFIG.VERBOSE_LOGGING) {
-        console.error(`[NaN MORALE] Game ${gameNum}, Turn ${turnNum}, Phase ${phase}: ${playerId} has morale = ${player.morale}`)
+        console.error(
+          `[NaN MORALE] Game ${gameNum}, Turn ${turnNum}, Phase ${phase}: ${playerId} has morale = ${player.morale}`
+        )
       }
     }
   }
@@ -209,7 +211,10 @@ function checkStartingZoneSpacing(gameState, gameNum) {
     const player = gameState.players[playerId]
     if (player.startingZoneTiles && player.startingZoneTiles.length > 0) {
       // Calculate bounding box from starting zone tiles
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+      let minX = Infinity,
+        maxX = -Infinity,
+        minY = Infinity,
+        maxY = -Infinity
       for (const tile of player.startingZoneTiles) {
         // Handle both tile objects and coordinate objects
         const x = tile.x !== undefined ? tile.x : tile.position?.x
@@ -227,7 +232,7 @@ function checkStartingZoneSpacing(gameState, gameNum) {
           left: minX,
           right: maxX,
           top: minY,
-          bottom: maxY
+          bottom: maxY,
         })
       }
     }
@@ -260,7 +265,9 @@ function checkStartingZoneSpacing(gameState, gameNum) {
 
       // Track statistics
       stats.totalStartingZoneGapMeasurements++
-      stats.avgStartingZoneGap = ((stats.avgStartingZoneGap * (stats.totalStartingZoneGapMeasurements - 1)) + totalGap) / stats.totalStartingZoneGapMeasurements
+      stats.avgStartingZoneGap =
+        (stats.avgStartingZoneGap * (stats.totalStartingZoneGapMeasurements - 1) + totalGap) /
+        stats.totalStartingZoneGapMeasurements
       stats.minStartingZoneGap = Math.min(stats.minStartingZoneGap, totalGap)
 
       // Check for violation
@@ -272,13 +279,25 @@ function checkStartingZoneSpacing(gameState, gameNum) {
           player2: zone2.playerId,
           gap: totalGap,
           required: MIN_REQUIRED_GAP,
-          zone1Bounds: { left: zone1.left, right: zone1.right, top: zone1.top, bottom: zone1.bottom },
-          zone2Bounds: { left: zone2.left, right: zone2.right, top: zone2.top, bottom: zone2.bottom }
+          zone1Bounds: {
+            left: zone1.left,
+            right: zone1.right,
+            top: zone1.top,
+            bottom: zone1.bottom,
+          },
+          zone2Bounds: {
+            left: zone2.left,
+            right: zone2.right,
+            top: zone2.top,
+            bottom: zone2.bottom,
+          },
         })
         violationDetected = true
 
         if (CONFIG.VERBOSE_LOGGING) {
-          console.error(`[ZONE SPACING] Game ${gameNum}: ${zone1.playerId} and ${zone2.playerId} zones only ${totalGap} tiles apart (required: ${MIN_REQUIRED_GAP})`)
+          console.error(
+            `[ZONE SPACING] Game ${gameNum}: ${zone1.playerId} and ${zone2.playerId} zones only ${totalGap} tiles apart (required: ${MIN_REQUIRED_GAP})`
+          )
         }
       }
     }
@@ -297,7 +316,7 @@ function checkStartingZoneSpacing(gameState, gameNum) {
  */
 function createCreatureDeck(faction) {
   // Create single copy of each creature (12 total per faction)
-  return sampleCreatures[faction].map(c => new Creature(c))
+  return sampleCreatures[faction].map((c) => new Creature(c))
 }
 
 /**
@@ -310,7 +329,7 @@ function createCreatureDeck(faction) {
  */
 function createOrderDeck(faction) {
   // Create single copy of each order card (36 total per faction)
-  return sampleOrderCards[faction].map(o => new OrderCard(o))
+  return sampleOrderCards[faction].map((o) => new OrderCard(o))
 }
 
 /**
@@ -337,7 +356,7 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
     rangedAttacks: 0,
     reactionsUsed: 0,
     reactionsDeclined: 0,
-    reactionsAvailable: 0
+    reactionsAvailable: 0,
   }
 
   // Process each attack intention sequentially (like GameBoard.jsx does)
@@ -373,7 +392,9 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
       results.skippedInvalidTarget++
       stats.attacksSkippedInvalidTarget++
       if (CONFIG.VERBOSE_LOGGING) {
-        console.log(`  [SKIPPED] Attack on ${defenderInstance.creature.name} - deployment protection`)
+        console.log(
+          `  [SKIPPED] Attack on ${defenderInstance.creature.name} - deployment protection`
+        )
       }
       continue
     }
@@ -395,7 +416,7 @@ function processAttackQueue(attackIntentions, gameState, currentPlayerId) {
           // Process reactions - tap creatures and discard cards
           const defenderPlayer = gameState.players[defenderPlayerId]
           reactionDecision.reactions.sort((a, b) => b.cardIndex - a.cardIndex)
-          reactionDecision.reactions.forEach(reaction => {
+          reactionDecision.reactions.forEach((reaction) => {
             reaction.creature.isTapped = true
             if (defenderPlayer.orderHand && reaction.cardIndex < defenderPlayer.orderHand.length) {
               defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
@@ -467,7 +488,7 @@ function executeAITurn(gameState, playerId) {
   const result = {
     phase: gameState.currentPhase,
     actions: [],
-    attackResults: null
+    attackResults: null,
   }
 
   // Create AI instance with stats tracking for ranged restrictions
@@ -476,7 +497,7 @@ function executeAITurn(gameState, playerId) {
     rangedBlockedByForestTarget: 0,
     rangedBlockedByAdjacent: 0,
     rangedBlockedByLineOfSight: 0,
-    rangedOnlyCreaturesBlocked: 0
+    rangedOnlyCreaturesBlocked: 0,
   }
 
   const ai = new SimpleAI(gameState, playerId, trackStats)
@@ -518,12 +539,14 @@ function executeAITurn(gameState, playerId) {
             for (const pid of gameState.activePlayers) {
               const player = gameState.players[pid]
               for (const creature of player.creaturesInPlay) {
-                if (creature.position &&
-                    creature.position.x === action.position.x &&
-                    creature.position.y === action.position.y) {
+                if (
+                  creature.position &&
+                  creature.position.x === action.position.x &&
+                  creature.position.y === action.position.y
+                ) {
                   creaturesAtPosition.push({
                     name: creature.creature.name,
-                    owner: pid
+                    owner: pid,
                   })
                 }
               }
@@ -534,9 +557,12 @@ function executeAITurn(gameState, playerId) {
               stats.deploymentCollisionDetails.push({
                 position: action.position,
                 creatures: creaturesAtPosition,
-                turn: gameState.turnNumber
+                turn: gameState.turnNumber,
               })
-              console.error(`[DEPLOYMENT COLLISION] Multiple creatures at (${action.position.x}, ${action.position.y}):`, creaturesAtPosition)
+              console.error(
+                `[DEPLOYMENT COLLISION] Multiple creatures at (${action.position.x}, ${action.position.y}):`,
+                creaturesAtPosition
+              )
             }
           }
         }
@@ -590,7 +616,7 @@ function runGameSimulation(gameNum, numPlayers = 2) {
     completed: false,
     winner: null,
     turns: 0,
-    error: null
+    error: null,
   }
 
   try {
@@ -600,7 +626,13 @@ function runGameSimulation(gameNum, numPlayers = 2) {
 
     // Setup players
     const playerSetups = []
-    const playerIds = [Players.PLAYER1, Players.PLAYER2, Players.PLAYER3, Players.PLAYER4, Players.PLAYER5]
+    const playerIds = [
+      Players.PLAYER1,
+      Players.PLAYER2,
+      Players.PLAYER3,
+      Players.PLAYER4,
+      Players.PLAYER5,
+    ]
 
     for (let i = 0; i < numPlayers; i++) {
       const playerId = playerIds[i]
@@ -616,12 +648,12 @@ function runGameSimulation(gameNum, numPlayers = 2) {
         commander: new Commander(commander),
         creatures: createCreatureDeck(faction),
         orders: createOrderDeck(faction),
-        faction
+        faction,
       })
 
       gameResult[playerId] = {
         faction,
-        commander: commander.name
+        commander: commander.name,
       }
     }
 
@@ -655,7 +687,9 @@ function runGameSimulation(gameNum, numPlayers = 2) {
       if (currentPhase === lastPhase && currentPlayerId === lastPlayer) {
         consecutiveSamePhase++
         if (consecutiveSamePhase > 20) {
-          stats.warnings.push(`Game ${gameNum}: Possible infinite loop at turn ${turnCount}, phase ${currentPhase}, player ${currentPlayerId}`)
+          stats.warnings.push(
+            `Game ${gameNum}: Possible infinite loop at turn ${turnCount}, phase ${currentPhase}, player ${currentPlayerId}`
+          )
           stats.infiniteLoops++
           break
         }
@@ -681,7 +715,7 @@ function runGameSimulation(gameNum, numPlayers = 2) {
             const waterResults = gameState.applyWaterDamage()
             if (waterResults && waterResults.length > 0) {
               stats.waterDamageInstances += waterResults.length
-              waterResults.forEach(r => {
+              waterResults.forEach((r) => {
                 if (r.destroyed) stats.waterDeaths++
               })
             }
@@ -700,8 +734,10 @@ function runGameSimulation(gameNum, numPlayers = 2) {
             // Note: executeCleanupPhase auto-advances and may end turn
 
             // Count turns when we cycle back to first player's REFRESH
-            if (gameState.currentPlayer === Players.PLAYER1 &&
-                gameState.currentPhase === GamePhases.REFRESH) {
+            if (
+              gameState.currentPlayer === Players.PLAYER1 &&
+              gameState.currentPhase === GamePhases.REFRESH
+            ) {
               // Turn cycle complete - this is handled by turnNumber in gameState
             }
             turnCount = gameState.turnNumber
@@ -732,7 +768,7 @@ function runGameSimulation(gameNum, numPlayers = 2) {
       gameState.gameOver = true
       let highestMorale = -1
       let winner = null
-      gameState.activePlayers.forEach(playerId => {
+      gameState.activePlayers.forEach((playerId) => {
         const morale = gameState.players[playerId].morale
         if (morale > highestMorale) {
           highestMorale = morale
@@ -764,7 +800,7 @@ function runGameSimulation(gameNum, numPlayers = 2) {
         stats.winsByPlayerCount[numPlayers][gameState.winner]++
 
         // Track faction/commander wins
-        const winnerSetup = playerSetups.find(p => p.playerId === gameState.winner)
+        const winnerSetup = playerSetups.find((p) => p.playerId === gameState.winner)
         if (winnerSetup) {
           stats.factionWins[winnerSetup.faction]++
           stats.commanderWins[winnerSetup.commander.name]++
@@ -772,14 +808,13 @@ function runGameSimulation(gameNum, numPlayers = 2) {
       }
 
       // Track final morale stats
-      playerSetups.forEach(setup => {
+      playerSetups.forEach((setup) => {
         const player = gameState.players[setup.playerId]
         if (player) {
           gameResult[setup.playerId].finalMorale = player.morale
         }
       })
     }
-
   } catch (e) {
     stats.gamesErrored++
     stats.errors.push(`Game ${gameNum}: Fatal error - ${e.message}\nStack: ${e.stack}`)
@@ -807,11 +842,14 @@ function printResults() {
   console.log(`  Total Simulations Attempted: ${CONFIG.NUM_SIMULATIONS}`)
   console.log(`  Games Completed: ${stats.gamesCompleted}`)
   console.log(`  Games Errored: ${stats.gamesErrored}`)
-  console.log(`  Success Rate: ${((stats.gamesCompleted / CONFIG.NUM_SIMULATIONS) * 100).toFixed(1)}%`)
+  console.log(
+    `  Success Rate: ${((stats.gamesCompleted / CONFIG.NUM_SIMULATIONS) * 100).toFixed(1)}%`
+  )
 
   // ===== Turn Statistics =====
   console.log('\n[TURN STATISTICS]')
-  const avgTurns = stats.gamesCompleted > 0 ? (stats.totalTurns / stats.gamesCompleted).toFixed(2) : 'N/A'
+  const avgTurns =
+    stats.gamesCompleted > 0 ? (stats.totalTurns / stats.gamesCompleted).toFixed(2) : 'N/A'
   console.log(`  Average Turns: ${avgTurns}`)
   console.log(`  Min Turns: ${stats.minTurns === Infinity ? 'N/A' : stats.minTurns}`)
   console.log(`  Max Turns: ${stats.maxTurns}`)
@@ -825,7 +863,9 @@ function printResults() {
   console.log(`  >>> Attacks Skipped (Dead Attacker): ${stats.attacksSkippedDeadAttacker} <<<`)
   console.log(`  Attacks Skipped (Invalid Target): ${stats.attacksSkippedInvalidTarget}`)
   if (stats.attacksSkippedDeadTarget > 0 || stats.attacksSkippedDeadAttacker > 0) {
-    console.log(`  ✓ BUG FIX VERIFIED: ${stats.attacksSkippedDeadTarget + stats.attacksSkippedDeadAttacker} attacks correctly skipped`)
+    console.log(
+      `  ✓ BUG FIX VERIFIED: ${stats.attacksSkippedDeadTarget + stats.attacksSkippedDeadAttacker} attacks correctly skipped`
+    )
   }
 
   // ===== Combat Statistics =====
@@ -842,7 +882,9 @@ function printResults() {
     console.log(`  >>> Collisions Detected: ${stats.deploymentCollisions} <<<`)
     console.log(`  This indicates the deployment bug has regressed!`)
     stats.deploymentCollisionDetails.slice(0, 5).forEach((detail, idx) => {
-      console.log(`  ${idx + 1}. Turn ${detail.turn} at (${detail.position.x}, ${detail.position.y}): ${detail.creatures.map(c => c.name).join(', ')}`)
+      console.log(
+        `  ${idx + 1}. Turn ${detail.turn} at (${detail.position.x}, ${detail.position.y}): ${detail.creatures.map((c) => c.name).join(', ')}`
+      )
     })
     if (stats.deploymentCollisionDetails.length > 5) {
       console.log(`  ... and ${stats.deploymentCollisionDetails.length - 5} more collisions`)
@@ -869,7 +911,9 @@ function printResults() {
     console.log(`  >>> NaN Morale Incidents: ${stats.nanMoraleDetected} <<<`)
     console.log(`  This indicates morale corruption from undefined arithmetic!`)
     stats.nanMoraleDetails.slice(0, 5).forEach((detail, idx) => {
-      console.log(`  ${idx + 1}. Game ${detail.gameNum}, Turn ${detail.turn}, Phase ${detail.phase}: ${detail.playerId} (${detail.faction}) morale = ${detail.morale}`)
+      console.log(
+        `  ${idx + 1}. Game ${detail.gameNum}, Turn ${detail.turn}, Phase ${detail.phase}: ${detail.playerId} (${detail.faction}) morale = ${detail.morale}`
+      )
     })
     if (stats.nanMoraleDetails.length > 5) {
       console.log(`  ... and ${stats.nanMoraleDetails.length - 5} more incidents`)
@@ -888,7 +932,9 @@ function printResults() {
     console.log(`  >>> Spacing Violations: ${stats.startingZoneSpacingViolations} <<<`)
     console.log(`  Starting zones are closer than the required 10 tile minimum!`)
     stats.startingZoneSpacingDetails.slice(0, 5).forEach((detail, idx) => {
-      console.log(`  ${idx + 1}. Game ${detail.gameNum}: ${detail.player1} and ${detail.player2} only ${detail.gap} tiles apart (required: ${detail.required})`)
+      console.log(
+        `  ${idx + 1}. Game ${detail.gameNum}: ${detail.player1} and ${detail.player2} only ${detail.gap} tiles apart (required: ${detail.required})`
+      )
     })
     if (stats.startingZoneSpacingDetails.length > 5) {
       console.log(`  ... and ${stats.startingZoneSpacingDetails.length - 5} more violations`)
@@ -906,7 +952,10 @@ function printResults() {
   console.log(`  Reactions Used: ${stats.immediateReactionsUsed}`)
   console.log(`  Reactions Declined: ${stats.immediateReactionsDeclined}`)
   if (stats.immediateReactionsAvailable > 0) {
-    const useRate = ((stats.immediateReactionsUsed / stats.immediateReactionsAvailable) * 100).toFixed(1)
+    const useRate = (
+      (stats.immediateReactionsUsed / stats.immediateReactionsAvailable) *
+      100
+    ).toFixed(1)
     console.log(`  Reaction Use Rate: ${useRate}%`)
   }
 
@@ -948,7 +997,7 @@ function printResults() {
         faction,
         games,
         wins: stats.factionWins[faction] || 0,
-        winRate: ((stats.factionWins[faction] || 0) / games * 100).toFixed(1)
+        winRate: (((stats.factionWins[faction] || 0) / games) * 100).toFixed(1),
       }))
       .sort((a, b) => parseFloat(b.winRate) - parseFloat(a.winRate))
 
@@ -964,7 +1013,7 @@ function printResults() {
         commander,
         games,
         wins: stats.commanderWins[commander] || 0,
-        winRate: ((stats.commanderWins[commander] || 0) / games * 100).toFixed(1)
+        winRate: (((stats.commanderWins[commander] || 0) / games) * 100).toFixed(1),
       }))
       .sort((a, b) => parseFloat(b.winRate) - parseFloat(a.winRate))
 
@@ -1017,13 +1066,17 @@ function printResults() {
     criticalIssues.push(`${stats.phaseErrors} phase errors`)
   }
   if (stats.deploymentCollisions > 0) {
-    criticalIssues.push(`${stats.deploymentCollisions} deployment collisions (multiple creatures on same tile)`)
+    criticalIssues.push(
+      `${stats.deploymentCollisions} deployment collisions (multiple creatures on same tile)`
+    )
   }
   if (stats.nanMoraleDetected > 0) {
     criticalIssues.push(`${stats.nanMoraleDetected} NaN morale incidents (morale corruption bug)`)
   }
   if (stats.startingZoneSpacingViolations > 0) {
-    criticalIssues.push(`${stats.startingZoneSpacingViolations} starting zone spacing violations (zones closer than 10 tiles)`)
+    criticalIssues.push(
+      `${stats.startingZoneSpacingViolations} starting zone spacing violations (zones closer than 10 tiles)`
+    )
   }
 
   // Check for passed items
@@ -1042,7 +1095,12 @@ function printResults() {
   if (stats.treasuresCollected > 0) {
     passedChecks.push('Treasure collection working')
   }
-  if (stats.rangedBlockedByForestAttacker + stats.rangedBlockedByForestTarget + stats.rangedBlockedByLineOfSight > 0) {
+  if (
+    stats.rangedBlockedByForestAttacker +
+      stats.rangedBlockedByForestTarget +
+      stats.rangedBlockedByLineOfSight >
+    0
+  ) {
     passedChecks.push('Ranged attack restrictions working')
   }
   if (stats.waterDamageInstances > 0) {
@@ -1060,17 +1118,17 @@ function printResults() {
 
   if (criticalIssues.length === 0) {
     console.log('✓ ALL TESTS PASSED!')
-    passedChecks.forEach(check => {
+    passedChecks.forEach((check) => {
       console.log(`  ✓ ${check}`)
     })
   } else {
     console.log('✗ CRITICAL ISSUES FOUND:')
-    criticalIssues.forEach(issue => {
+    criticalIssues.forEach((issue) => {
       console.log(`  ✗ ${issue}`)
     })
     if (passedChecks.length > 0) {
       console.log('\nPassed checks:')
-      passedChecks.forEach(check => {
+      passedChecks.forEach((check) => {
         console.log(`  ✓ ${check}`)
       })
     }
@@ -1084,7 +1142,9 @@ function printResults() {
 // ============================================================================
 
 console.log('Starting Game Board Logic Test v2.0...')
-console.log(`Configuration: ${CONFIG.NUM_SIMULATIONS} games, max ${CONFIG.MAX_TURNS_PER_GAME} turns each`)
+console.log(
+  `Configuration: ${CONFIG.NUM_SIMULATIONS} games, max ${CONFIG.MAX_TURNS_PER_GAME} turns each`
+)
 console.log(`Testing player counts: ${CONFIG.PLAYER_COUNTS_TO_TEST.join(', ')}`)
 console.log('')
 
@@ -1093,9 +1153,10 @@ const gamesPerPlayerCount = Math.floor(CONFIG.NUM_SIMULATIONS / CONFIG.PLAYER_CO
 let gameNum = 1
 
 for (const playerCount of CONFIG.PLAYER_COUNTS_TO_TEST) {
-  const gamesToRun = playerCount === CONFIG.PLAYER_COUNTS_TO_TEST[CONFIG.PLAYER_COUNTS_TO_TEST.length - 1]
-    ? CONFIG.NUM_SIMULATIONS - (gamesPerPlayerCount * (CONFIG.PLAYER_COUNTS_TO_TEST.length - 1))
-    : gamesPerPlayerCount
+  const gamesToRun =
+    playerCount === CONFIG.PLAYER_COUNTS_TO_TEST[CONFIG.PLAYER_COUNTS_TO_TEST.length - 1]
+      ? CONFIG.NUM_SIMULATIONS - gamesPerPlayerCount * (CONFIG.PLAYER_COUNTS_TO_TEST.length - 1)
+      : gamesPerPlayerCount
 
   console.log(`Running ${gamesToRun} games with ${playerCount} players...`)
 

@@ -23,7 +23,7 @@ export const Insubstantial = {
   has(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('INSUBSTANTIAL')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('INSUBSTANTIAL')
     )
   },
 
@@ -51,10 +51,10 @@ export const Insubstantial = {
       const aiDifficulty = defenderPlayer.aiDifficulty || 'medium'
 
       if (aiDifficulty === 'easy') {
-        return false  // Easy AI never uses ability
+        return false // Easy AI never uses ability
       } else if (aiDifficulty === 'medium') {
         if (Math.random() >= 0.5) {
-          return false  // Medium AI: 50% chance
+          return false // Medium AI: 50% chance
         }
       }
       // Hard AI: always use
@@ -62,7 +62,7 @@ export const Insubstantial = {
 
     // Mark ability as used
     creatureInstance.insubstantialUsed = true
-    return true  // Damage blocked
+    return true // Damage blocked
   },
 
   /**
@@ -74,7 +74,7 @@ export const Insubstantial = {
       creatureInstance.insubstantialUsed = false
       creatureInstance.insubstantialAvailable = true
     }
-  }
+  },
 }
 
 export default Insubstantial

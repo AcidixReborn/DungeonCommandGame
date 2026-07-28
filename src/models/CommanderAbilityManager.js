@@ -91,7 +91,8 @@ export class CommanderAbilityManager {
 
     // Must be Blood of Gruumsh faction
     const player = this.gameState.players[playerId]
-    if (!player || !player.commander || player.commander.faction !== 'Blood of Gruumsh') return false
+    if (!player || !player.commander || player.commander.faction !== 'Blood of Gruumsh')
+      return false
 
     // Check if ability has already been used
     if (player.commanderAbilityState?.orcScoutUsed) return false
@@ -174,8 +175,8 @@ export class CommanderAbilityManager {
     const player = this.gameState.players[playerId]
     if (!player || !player.creatureHand) return []
 
-    return player.creatureHand.filter(creature =>
-      creature.type?.includes('Orc') && creature.level <= 3
+    return player.creatureHand.filter(
+      (creature) => creature.type?.includes('Orc') && creature.level <= 3
     )
   }
 
@@ -193,7 +194,7 @@ export class CommanderAbilityManager {
     }
 
     // Validate selected creature is in hand and eligible
-    const cardIndex = player.creatureHand.findIndex(c => c.id === selectedCreature.id)
+    const cardIndex = player.creatureHand.findIndex((c) => c.id === selectedCreature.id)
     if (cardIndex === -1) {
       return { success: false, message: 'Creature not in hand' }
     }
@@ -228,7 +229,7 @@ export class CommanderAbilityManager {
       success: true,
       leadershipGained,
       deployedCreature: creatureInstance,
-      message: `CHIEFTAIN CALL: Gained ${leadershipGained} Leadership and deployed ${creature.name}`
+      message: `CHIEFTAIN CALL: Gained ${leadershipGained} Leadership and deployed ${creature.name}`,
     }
   }
 
@@ -302,7 +303,8 @@ export class CommanderAbilityManager {
     if (!this.hasCommanderAbility(playerId, 'horde')) return false
     // Must be Tyranny of Goblins faction
     const player = this.gameState.players[playerId]
-    if (!player || !player.commander || player.commander.faction !== 'Tyranny of Goblins') return false
+    if (!player || !player.commander || player.commander.faction !== 'Tyranny of Goblins')
+      return false
     return true
   }
 
@@ -375,7 +377,7 @@ export class CommanderAbilityManager {
     return {
       canUse: true,
       moraleCost: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_MORALE_COST,
-      damagePrevented: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_DAMAGE_PREVENTION
+      damagePrevented: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_DAMAGE_PREVENTION,
     }
   }
 
@@ -400,7 +402,7 @@ export class CommanderAbilityManager {
     return {
       success: true,
       damagePrevented: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_DAMAGE_PREVENTION,
-      moraleCost: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_MORALE_COST
+      moraleCost: COMMANDER_ABILITIES.UNSTOPPABLE_HORDES_MORALE_COST,
     }
   }
 
@@ -424,14 +426,14 @@ export class CommanderAbilityManager {
 
     // Check all 8 directions
     const directions = [
-      { dx: 0, dy: -1 },   // North
-      { dx: 1, dy: -1 },   // NE
-      { dx: 1, dy: 0 },    // East
-      { dx: 1, dy: 1 },    // SE
-      { dx: 0, dy: 1 },    // South
-      { dx: -1, dy: 1 },   // SW
-      { dx: -1, dy: 0 },   // West
-      { dx: -1, dy: -1 }   // NW
+      { dx: 0, dy: -1 }, // North
+      { dx: 1, dy: -1 }, // NE
+      { dx: 1, dy: 0 }, // East
+      { dx: 1, dy: 1 }, // SE
+      { dx: 0, dy: 1 }, // South
+      { dx: -1, dy: 1 }, // SW
+      { dx: -1, dy: 0 }, // West
+      { dx: -1, dy: -1 }, // NW
     ]
 
     for (const dir of directions) {
@@ -540,7 +542,7 @@ export class CommanderAbilityManager {
       success: true,
       discardedCard,
       drawnCard,
-      message: `SCROLLBOOK: Discarded ${discardedCard.name}, drew ${drawnCard ? drawnCard.name : 'nothing (deck empty)'}`
+      message: `SCROLLBOOK: Discarded ${discardedCard.name}, drew ${drawnCard ? drawnCard.name : 'nothing (deck empty)'}`,
     }
   }
 
@@ -566,7 +568,8 @@ export class CommanderAbilityManager {
     }
 
     // Calculate morale cost: damage/COWER_DAMAGE_PREVENTION, rounded up
-    const safeDamage = (typeof incomingDamage === 'number' && !isNaN(incomingDamage)) ? incomingDamage : 0
+    const safeDamage =
+      typeof incomingDamage === 'number' && !isNaN(incomingDamage) ? incomingDamage : 0
     const baseMoraleCost = Math.ceil(safeDamage / COMBAT.COWER_DAMAGE_PREVENTION)
 
     // Check for BLACK HAND OF BANE extra cost
@@ -576,7 +579,13 @@ export class CommanderAbilityManager {
     // Player must have enough morale to pay
     const player = this.gameState.players[creatureInstance.owner]
     if (player.morale < totalCost) {
-      return { canCower: false, moraleCost: 0, extraCost: 0, damageAvoided: 0, reason: 'insufficient_morale' }
+      return {
+        canCower: false,
+        moraleCost: 0,
+        extraCost: 0,
+        damageAvoided: 0,
+        reason: 'insufficient_morale',
+      }
     }
 
     return {
@@ -584,7 +593,7 @@ export class CommanderAbilityManager {
       moraleCost: totalCost,
       baseMoraleCost,
       extraCost,
-      damageAvoided: incomingDamage
+      damageAvoided: incomingDamage,
     }
   }
 
@@ -612,7 +621,7 @@ export class CommanderAbilityManager {
       success: true,
       damageAvoided: cowerInfo.damageAvoided,
       moraleCost: cowerInfo.moraleCost,
-      extraCost: cowerInfo.extraCost
+      extraCost: cowerInfo.extraCost,
     }
   }
 
@@ -642,7 +651,8 @@ export class CommanderAbilityManager {
     const immediateCards = []
     for (const card of player.orderHand) {
       // Card must prevent damage (either fixed amount or all damage) OR be a self-sacrifice attack (Savage Demise)
-      const preventsDamage = (card.damagePrevented != null && card.damagePrevented > 0) || card.preventsAllDamage
+      const preventsDamage =
+        (card.damagePrevented != null && card.damagePrevented > 0) || card.preventsAllDamage
       const isSelfSacrifice = card.selfSacrificeAttack === true
       if (card.isImmediate && card.isImmediate() && (preventsDamage || isSelfSacrifice)) {
         // Check discard cost - player needs the card itself + additional cards to discard
@@ -672,7 +682,7 @@ export class CommanderAbilityManager {
           potentialCreatures = this.getCreaturesWithLOSToDefender(defenderInstance)
         }
 
-        const creaturesForCard = potentialCreatures.filter(creature => {
+        const creaturesForCard = potentialCreatures.filter((creature) => {
           // Check if affinity overrides normal requirements (e.g., Cloud of Bats, Vampiric Touch)
           // When affinityOverridesRequirements is true:
           // - Creature WITH matching affinity bypasses level/ability requirements
@@ -680,8 +690,8 @@ export class CommanderAbilityManager {
           if (card.affinityRequired && card.affinityOverridesRequirements) {
             // Check creature type array for affinity match
             const creatureTypes = creature.creature.type || []
-            const hasAffinity = creatureTypes.some(type =>
-              type.toUpperCase() === card.affinityRequired.toUpperCase()
+            const hasAffinity = creatureTypes.some(
+              (type) => type.toUpperCase() === card.affinityRequired.toUpperCase()
             )
             // With affinityOverridesRequirements, affinity is the ONLY requirement
             return hasAffinity
@@ -693,8 +703,8 @@ export class CommanderAbilityManager {
           // Check affinity requirement for cards without affinityOverridesRequirements
           if (card.affinityRequired && !card.affinityOverridesRequirements) {
             const creatureTypes = creature.creature.type || []
-            const hasAffinity = creatureTypes.some(type =>
-              type.toUpperCase() === card.affinityRequired.toUpperCase()
+            const hasAffinity = creatureTypes.some(
+              (type) => type.toUpperCase() === card.affinityRequired.toUpperCase()
             )
             if (!hasAffinity) return false
           }
@@ -706,11 +716,15 @@ export class CommanderAbilityManager {
           immediateCards.push({
             card,
             eligibleCreatures: creaturesForCard,
-            damagePrevented: card.preventsAllDamage ? 'ALL' : (card.damagePrevented != null ? card.damagePrevented : 0),
+            damagePrevented: card.preventsAllDamage
+              ? 'ALL'
+              : card.damagePrevented != null
+                ? card.damagePrevented
+                : 0,
             moraleCost: card.moraleCost != null ? card.moraleCost : 0,
             protectTargetType: protectType, // Include for UI to know if this protects defender vs self
             discardCost: card.discardCost || 0, // Number of cards player must discard to use this card
-            opponentDrawsCards: card.opponentDrawsCards || 0 // Cards opponent draws when this card is used (e.g., Recoil)
+            opponentDrawsCards: card.opponentDrawsCards || 0, // Cards opponent draws when this card is used (e.g., Recoil)
           })
         }
       }
@@ -739,14 +753,14 @@ export class CommanderAbilityManager {
     // Check adjacent friendly creatures
     const pos = defenderInstance.position
     const directions = [
-      { dx: 0, dy: -1 },   // North
-      { dx: 1, dy: -1 },   // NE
-      { dx: 1, dy: 0 },    // East
-      { dx: 1, dy: 1 },    // SE
-      { dx: 0, dy: 1 },    // South
-      { dx: -1, dy: 1 },   // SW
-      { dx: -1, dy: 0 },   // West
-      { dx: -1, dy: -1 }   // NW
+      { dx: 0, dy: -1 }, // North
+      { dx: 1, dy: -1 }, // NE
+      { dx: 1, dy: 0 }, // East
+      { dx: 1, dy: 1 }, // SE
+      { dx: 0, dy: 1 }, // South
+      { dx: -1, dy: 1 }, // SW
+      { dx: -1, dy: 0 }, // West
+      { dx: -1, dy: -1 }, // NW
     ]
 
     for (const dir of directions) {
@@ -779,14 +793,14 @@ export class CommanderAbilityManager {
     const adjacentCreatures = []
     const pos = defenderInstance.position
     const directions = [
-      { dx: 0, dy: -1 },   // North
-      { dx: 1, dy: -1 },   // NE
-      { dx: 1, dy: 0 },    // East
-      { dx: 1, dy: 1 },    // SE
-      { dx: 0, dy: 1 },    // South
-      { dx: -1, dy: 1 },   // SW
-      { dx: -1, dy: 0 },   // West
-      { dx: -1, dy: -1 }   // NW
+      { dx: 0, dy: -1 }, // North
+      { dx: 1, dy: -1 }, // NE
+      { dx: 1, dy: 0 }, // East
+      { dx: 1, dy: 1 }, // SE
+      { dx: 0, dy: 1 }, // South
+      { dx: -1, dy: 1 }, // SW
+      { dx: -1, dy: 0 }, // West
+      { dx: -1, dy: -1 }, // NW
     ]
 
     for (const dir of directions) {
@@ -896,14 +910,26 @@ export class CommanderAbilityManager {
 
     // Verify creature is untapped
     if (usingCreature.isTapped) {
-      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'creature_tapped', moraleCost: 0 }
+      return {
+        success: false,
+        damagePrevented: 0,
+        cardUsed: null,
+        reason: 'creature_tapped',
+        moraleCost: 0,
+      }
     }
 
     // Verify card is in player's hand
     const player = this.gameState.players[usingCreature.owner]
-    const cardIndex = player.orderHand.findIndex(c => c.id === card.id)
+    const cardIndex = player.orderHand.findIndex((c) => c.id === card.id)
     if (cardIndex === -1) {
-      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'card_not_in_hand', moraleCost: 0 }
+      return {
+        success: false,
+        damagePrevented: 0,
+        cardUsed: null,
+        reason: 'card_not_in_hand',
+        moraleCost: 0,
+      }
     }
 
     // Verify creature can use the card
@@ -911,8 +937,8 @@ export class CommanderAbilityManager {
     let canUse = false
     if (card.affinityRequired && card.affinityOverridesRequirements) {
       const creatureTypes = usingCreature.creature.type || []
-      const hasAffinity = creatureTypes.some(type =>
-        type.toUpperCase() === card.affinityRequired.toUpperCase()
+      const hasAffinity = creatureTypes.some(
+        (type) => type.toUpperCase() === card.affinityRequired.toUpperCase()
       )
       if (hasAffinity) {
         canUse = true // Affinity match bypasses normal requirements
@@ -920,7 +946,13 @@ export class CommanderAbilityManager {
     }
     // Fall back to normal check if no affinity override
     if (!canUse && !card.canBeUsedBy(usingCreature.creature)) {
-      return { success: false, damagePrevented: 0, cardUsed: null, reason: 'creature_cannot_use', moraleCost: 0 }
+      return {
+        success: false,
+        damagePrevented: 0,
+        cardUsed: null,
+        reason: 'creature_cannot_use',
+        moraleCost: 0,
+      }
     }
 
     // Get card's morale cost (default 0 if not defined)
@@ -939,7 +971,11 @@ export class CommanderAbilityManager {
     let removedAttachments = []
     if (card.attachOnUse) {
       // Use gameState's attachment method to handle cleansing (Tough as Nails)
-      removedAttachments = this.gameState.applyImmediateCardAttachment(usingCreature, card, usingCreature.owner)
+      removedAttachments = this.gameState.applyImmediateCardAttachment(
+        usingCreature,
+        card,
+        usingCreature.owner
+      )
       attachedCard = true
     } else {
       // Normal discard behavior
@@ -951,7 +987,7 @@ export class CommanderAbilityManager {
     // Handle discard cost - discard the additional card (Uncanny Dodge)
     let discardedCardName = null
     if (discardCard && card.discardCost > 0) {
-      const discardIndex = player.orderHand.findIndex(c => c.id === discardCard.id)
+      const discardIndex = player.orderHand.findIndex((c) => c.id === discardCard.id)
       if (discardIndex !== -1) {
         discardedCardName = discardCard.name
         player.orderHand.splice(discardIndex, 1)
@@ -972,7 +1008,11 @@ export class CommanderAbilityManager {
 
     // Get card's damage prevention amount
     // If preventsAllDamage is true, return Infinity so Math.max(0, damage - prevented) = 0
-    const damagePrevented = card.preventsAllDamage ? Infinity : (card.damagePrevented != null ? card.damagePrevented : 0)
+    const damagePrevented = card.preventsAllDamage
+      ? Infinity
+      : card.damagePrevented != null
+        ? card.damagePrevented
+        : 0
 
     // Handle morale gain effect
     const moraleGain = card.moraleGain || 0
@@ -999,12 +1039,15 @@ export class CommanderAbilityManager {
     }
 
     // Build counter-attack info if card has counter-attack ability
-    const counterAttack = card.counterAttackDamage > 0 ? {
-      damage: card.counterAttackDamage,
-      targetType: card.counterAttackTarget,
-      requiresAdjacent: card.counterAttackRequiresAdjacent || false,
-      defenderInstance: usingCreature
-    } : null
+    const counterAttack =
+      card.counterAttackDamage > 0
+        ? {
+            damage: card.counterAttackDamage,
+            targetType: card.counterAttackTarget,
+            requiresAdjacent: card.counterAttackRequiresAdjacent || false,
+            defenderInstance: usingCreature,
+          }
+        : null
 
     return {
       success: true,
@@ -1023,7 +1066,7 @@ export class CommanderAbilityManager {
       // Attachment info for cards that attach instead of discard (Leap Away, Mortal Wound, Tough as Nails)
       attachedCard: attachedCard,
       removedAttachments: removedAttachments,
-      attachOnUse: card.attachOnUse || null
+      attachOnUse: card.attachOnUse || null,
     }
   }
 
@@ -1047,14 +1090,14 @@ export class CommanderAbilityManager {
 
     // Check all 8 directions
     const directions = [
-      { dx: 0, dy: -1 },   // North
-      { dx: 1, dy: -1 },   // NE
-      { dx: 1, dy: 0 },    // East
-      { dx: 1, dy: 1 },    // SE
-      { dx: 0, dy: 1 },    // South
-      { dx: -1, dy: 1 },   // SW
-      { dx: -1, dy: 0 },   // West
-      { dx: -1, dy: -1 }   // NW
+      { dx: 0, dy: -1 }, // North
+      { dx: 1, dy: -1 }, // NE
+      { dx: 1, dy: 0 }, // East
+      { dx: 1, dy: 1 }, // SE
+      { dx: 0, dy: 1 }, // South
+      { dx: -1, dy: 1 }, // SW
+      { dx: -1, dy: 0 }, // West
+      { dx: -1, dy: -1 }, // NW
     ]
 
     for (const dir of directions) {
@@ -1109,7 +1152,7 @@ export class CommanderAbilityManager {
       cower: null,
       unstoppableHordes: null,
       adjacentUndead: [],
-      immediateCards: []
+      immediateCards: [],
     }
 
     // Check COWER availability (universal)

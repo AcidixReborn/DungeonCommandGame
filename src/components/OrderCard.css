@@ -339,7 +339,7 @@
 
 /* Order card image styling - fixed height for consistency */
 .order-card-compact-image .order-card-img {
-  height: 264px;  /* Fixed height - matches creature card 3-card scaling */
+  height: 264px; /* Fixed height - matches creature card 3-card scaling */
   width: auto;
   display: block;
   border-radius: 4px;

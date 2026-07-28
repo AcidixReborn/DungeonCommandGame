@@ -4,7 +4,8 @@
    ============================================ */
 
 /* ENHANCED VERSION */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100vh;
@@ -30,12 +31,12 @@ html, body {
     ),
     /* Subtle grid pattern */
     repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 40px,
-      rgba(135, 206, 235, 0.015) 40px,
-      rgba(135, 206, 235, 0.015) 41px
-    ),
+        0deg,
+        transparent,
+        transparent 40px,
+        rgba(135, 206, 235, 0.015) 40px,
+        rgba(135, 206, 235, 0.015) 41px
+      ),
     repeating-linear-gradient(
       90deg,
       transparent,
@@ -67,7 +68,8 @@ html, body {
 }
 
 @keyframes subtleGlow {
-  0%, 100% {
+  0%,
+  100% {
     text-shadow:
       2px 2px 0px rgba(0, 0, 0, 0.8),
       -1px -1px 0px rgba(0, 0, 0, 0.5),
@@ -132,12 +134,7 @@ html, body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(135, 206, 235, 0.1),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(135, 206, 235, 0.1), transparent);
   transition: left 0.5s ease;
   pointer-events: none !important;
   z-index: -1;
@@ -518,7 +515,8 @@ button::after,
 
 /* Subtle pulse animation for important UI elements */
 @keyframes subtlePulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

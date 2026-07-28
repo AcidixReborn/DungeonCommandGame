@@ -35,15 +35,15 @@ function DamageNotificationModal({
   damageDealt,
   attackType,
   abilitiesTriggered = [],
-  moraleChanges
+  moraleChanges,
 }) {
   if (!show) return null
 
   // Calculate totals for ability mode
   const totalDamage = damageEvents.reduce((sum, e) => sum + e.damage, 0)
-  const totalDeaths = damageEvents.filter(e => e.destroyed).length
+  const totalDeaths = damageEvents.filter((e) => e.destroyed).length
   const totalMoraleLost = damageEvents
-    .filter(e => e.destroyed)
+    .filter((e) => e.destroyed)
     .reduce((sum, e) => sum + (e.creatureLevel || 0), 0)
 
   /**
@@ -51,7 +51,9 @@ function DamageNotificationModal({
    */
   const renderAbilityMode = () => (
     <>
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #6f42c1' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #6f42c1' }}
+      >
         <Modal.Title>
           <span style={{ color: '#9c6ade' }}>☠️</span> {abilityName || 'Passive Ability'}
         </Modal.Title>
@@ -69,17 +71,23 @@ function DamageNotificationModal({
             />
             <div className="mt-2">
               <strong>{sourceCreature.creature.name}</strong>
-              <Badge bg="secondary" className="ms-2">{sourceCreature.owner}</Badge>
+              <Badge bg="secondary" className="ms-2">
+                {sourceCreature.owner}
+              </Badge>
             </div>
           </div>
         )}
 
         {/* Damage summary alert */}
         <Alert variant="danger" className="mb-3">
-          <strong>Adjacent enemies take {damageEvents.length > 0 ? damageEvents[0]?.damage : 10} damage!</strong>
+          <strong>
+            Adjacent enemies take {damageEvents.length > 0 ? damageEvents[0]?.damage : 10} damage!
+          </strong>
           {totalDeaths > 0 && (
             <span className="ms-2">
-              <Badge bg="dark">{totalDeaths} creature{totalDeaths > 1 ? 's' : ''} destroyed!</Badge>
+              <Badge bg="dark">
+                {totalDeaths} creature{totalDeaths > 1 ? 's' : ''} destroyed!
+              </Badge>
             </span>
           )}
         </Alert>
@@ -93,9 +101,11 @@ function DamageNotificationModal({
               style={{
                 padding: '10px',
                 marginBottom: '8px',
-                backgroundColor: event.destroyed ? 'rgba(220, 53, 69, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                backgroundColor: event.destroyed
+                  ? 'rgba(220, 53, 69, 0.2)'
+                  : 'rgba(255, 255, 255, 0.05)',
                 borderRadius: '6px',
-                border: event.destroyed ? '1px solid #dc3545' : '1px solid #444'
+                border: event.destroyed ? '1px solid #dc3545' : '1px solid #444',
               }}
             >
               <div className="d-flex justify-content-between align-items-center">
@@ -104,12 +114,20 @@ function DamageNotificationModal({
                     <img
                       src={event.creatureImageUrl}
                       alt={event.creatureName}
-                      style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', marginRight: '10px' }}
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        marginRight: '10px',
+                      }}
                     />
                   )}
                   <div>
                     <strong>{event.creatureName}</strong>
-                    <Badge bg="secondary" size="sm" className="ms-2">{event.creatureOwner}</Badge>
+                    <Badge bg="secondary" size="sm" className="ms-2">
+                      {event.creatureOwner}
+                    </Badge>
                   </div>
                 </div>
                 <div className="text-end">
@@ -144,10 +162,10 @@ function DamageNotificationModal({
 
     return (
       <>
-        <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #dc3545' }}>
-          <Modal.Title>
-            ⚔️ Combat Result
-          </Modal.Title>
+        <Modal.Header
+          style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #dc3545' }}
+        >
+          <Modal.Title>⚔️ Combat Result</Modal.Title>
         </Modal.Header>
 
         <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
@@ -164,7 +182,7 @@ function DamageNotificationModal({
                     maxHeight: '180px',
                     borderRadius: '8px',
                     border: '2px solid #28a745',
-                    boxShadow: '0 0 10px rgba(40, 167, 69, 0.5)'
+                    boxShadow: '0 0 10px rgba(40, 167, 69, 0.5)',
                   }}
                 />
               )}
@@ -192,7 +210,7 @@ function DamageNotificationModal({
                     borderRadius: '8px',
                     border: '2px solid #dc3545',
                     boxShadow: '0 0 10px rgba(220, 53, 69, 0.5)',
-                    filter: 'grayscale(50%)'
+                    filter: 'grayscale(50%)',
                   }}
                 />
               )}
@@ -209,7 +227,9 @@ function DamageNotificationModal({
           <Alert variant="danger" className="text-center">
             <div style={{ fontSize: '1.2rem' }}>
               <strong>{attackType === 'ranged' ? '🏹 Ranged' : '⚔️ Melee'} Attack:</strong>
-              <span className="ms-2 text-warning" style={{ fontSize: '1.4rem' }}>{damageDealt} damage</span>
+              <span className="ms-2 text-warning" style={{ fontSize: '1.4rem' }}>
+                {damageDealt} damage
+              </span>
             </div>
             <div className="mt-2" style={{ fontSize: '1.1rem' }}>
               <strong className="text-danger">{defenderCreature?.name} DESTROYED!</strong>

@@ -14,5 +14,5 @@ export { HiddenBlade, WebCard }
 // Default export
 export default {
   HiddenBlade,
-  WebCard
+  WebCard,
 }

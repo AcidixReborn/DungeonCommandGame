@@ -22,8 +22,8 @@ export function useCombat() {
   // ============================================
   const [combatPanelMode, setCombatPanelMode] = useState(null) // 'attack' | 'defense' | null
   const [combatHighlightCreatures, setCombatHighlightCreatures] = useState({
-    attacker: null,  // instanceId of attacking creature
-    defender: null   // instanceId of defending creature
+    attacker: null, // instanceId of attacking creature
+    defender: null, // instanceId of defending creature
   })
 
   // ============================================
@@ -54,7 +54,7 @@ export function useCombat() {
     setCombatPanelMode('defense')
     setCombatHighlightCreatures({
       attacker: attackInfo.attackerInstance.instanceId,
-      defender: attackInfo.defenderInstance.instanceId
+      defender: attackInfo.defenderInstance.instanceId,
     })
   }, [])
 
@@ -116,7 +116,7 @@ export function useCombat() {
     if (pendingAIActions.length === 0) return null
 
     const nextAction = pendingAIActions[0]
-    setPendingAIActions(prev => prev.slice(1))
+    setPendingAIActions((prev) => prev.slice(1))
     return nextAction
   }, [pendingAIActions])
 
@@ -149,11 +149,11 @@ export function useCombat() {
    * @param {number} reduction - Damage reduction to add
    */
   const addAccumulatedDamageReduction = useCallback((reduction) => {
-    setPendingAttack(prev => {
+    setPendingAttack((prev) => {
       if (!prev) return prev
       return {
         ...prev,
-        accumulatedDamageReduction: (prev.accumulatedDamageReduction || 0) + reduction
+        accumulatedDamageReduction: (prev.accumulatedDamageReduction || 0) + reduction,
       }
     })
   }, [])
@@ -196,7 +196,7 @@ export function useCombat() {
     getNextAIAction,
     clearAIActions,
     clearAllCombatState,
-    addAccumulatedDamageReduction
+    addAccumulatedDamageReduction,
   }
 }
 

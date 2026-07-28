@@ -19,7 +19,7 @@ function DeathStrikeResultModal({
   attackerInstance,
   defenderInstance,
   deathStrikeDamage,
-  originalDamage
+  originalDamage,
 }) {
   if (!show) return null
 
@@ -35,7 +35,9 @@ function DeathStrikeResultModal({
       backdrop="static"
       className="death-strike-modal"
     >
-      <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #ff5722' }}>
+      <Modal.Header
+        style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #ff5722' }}
+      >
         <Modal.Title>
           <span style={{ color: '#ff5722' }}>💀</span> DEATH STRIKE!
         </Modal.Title>
@@ -43,9 +45,14 @@ function DeathStrikeResultModal({
 
       <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
         {/* DEATH STRIKE explanation */}
-        <Alert variant="warning" className="text-center mb-3" style={{ backgroundColor: 'rgba(255, 87, 34, 0.2)', border: '1px solid #ff5722' }}>
+        <Alert
+          variant="warning"
+          className="text-center mb-3"
+          style={{ backgroundColor: 'rgba(255, 87, 34, 0.2)', border: '1px solid #ff5722' }}
+        >
           <div style={{ fontSize: '1.1rem', color: '#ff5722' }}>
-            <strong>{defenderCreature?.name}</strong> triggers <strong>DEATH STRIKE</strong> before dying!
+            <strong>{defenderCreature?.name}</strong> triggers <strong>DEATH STRIKE</strong> before
+            dying!
           </div>
         </Alert>
 
@@ -62,7 +69,7 @@ function DeathStrikeResultModal({
                   borderRadius: '8px',
                   border: '2px solid #dc3545',
                   boxShadow: '0 0 10px rgba(220, 53, 69, 0.5)',
-                  filter: 'grayscale(70%)'
+                  filter: 'grayscale(70%)',
                 }}
               />
             )}
@@ -80,7 +87,11 @@ function DeathStrikeResultModal({
           <Col xs={2} className="d-flex flex-column align-items-center justify-content-center">
             <span style={{ fontSize: '2rem', color: '#ff5722' }}>⚔️</span>
             <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ff5722' }}>←</span>
-            <small style={{ color: '#ff5722' }}>DEATH<br />STRIKE</small>
+            <small style={{ color: '#ff5722' }}>
+              DEATH
+              <br />
+              STRIKE
+            </small>
           </Col>
 
           {/* Defender (survives with DEATH STRIKE) */}
@@ -93,7 +104,7 @@ function DeathStrikeResultModal({
                   maxHeight: '180px',
                   borderRadius: '8px',
                   border: '2px solid #ff5722',
-                  boxShadow: '0 0 15px rgba(255, 87, 34, 0.6)'
+                  boxShadow: '0 0 15px rgba(255, 87, 34, 0.6)',
                 }}
               />
             )}
@@ -108,20 +119,26 @@ function DeathStrikeResultModal({
         </Row>
 
         {/* Combat sequence explanation */}
-        <div style={{
-          backgroundColor: 'rgba(0,0,0,0.3)',
-          padding: '15px',
-          borderRadius: '8px',
-          marginBottom: '15px'
-        }}>
+        <div
+          style={{
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '15px',
+          }}
+        >
           <h6 style={{ color: '#ff5722', marginBottom: '10px' }}>Combat Sequence:</h6>
           <ol style={{ marginBottom: 0, paddingLeft: '20px' }}>
             <li className="mb-2">
-              <span className="text-muted">{attackerCreature?.name} attacks {defenderCreature?.name}</span>
+              <span className="text-muted">
+                {attackerCreature?.name} attacks {defenderCreature?.name}
+              </span>
               <span className="text-warning ms-2">({originalDamage} damage would kill)</span>
             </li>
             <li className="mb-2">
-              <span style={{ color: '#ff5722' }}><strong>DEATH STRIKE triggers!</strong></span>
+              <span style={{ color: '#ff5722' }}>
+                <strong>DEATH STRIKE triggers!</strong>
+              </span>
               <span className="text-danger ms-2">
                 {defenderCreature?.name} deals <strong>{deathStrikeDamage} damage</strong> first
               </span>
@@ -160,7 +177,12 @@ function DeathStrikeResultModal({
       </Modal.Body>
 
       <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444' }}>
-        <Button variant="warning" onClick={onDismiss} size="lg" style={{ backgroundColor: '#ff5722', borderColor: '#ff5722' }}>
+        <Button
+          variant="warning"
+          onClick={onDismiss}
+          size="lg"
+          style={{ backgroundColor: '#ff5722', borderColor: '#ff5722' }}
+        >
           Continue
         </Button>
       </Modal.Footer>

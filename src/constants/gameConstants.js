@@ -23,7 +23,7 @@ export const BOARD = {
   STARTING_ZONE_WIDTH: 3,
   STARTING_ZONE_HEIGHT: 2,
   /** Region size for terrain generation clustering */
-  TERRAIN_REGION_SIZE: 4
+  TERRAIN_REGION_SIZE: 4,
 }
 
 // ============================================================================
@@ -40,7 +40,7 @@ export const TERRAIN = {
   /** Movement cost for water terrain (non-flying) */
   WATER_COST: 2,
   /** Damage dealt to non-flying creatures on water at end of ACTIVATE phase */
-  WATER_DAMAGE: 10
+  WATER_DAMAGE: 10,
 }
 
 // ============================================================================
@@ -53,7 +53,7 @@ export const COMBAT = {
   /** Leadership cost to cower from an attack */
   COWER_LEADERSHIP_COST: 1,
   /** Damage prevented per order card when cowering */
-  COWER_DAMAGE_PREVENTION: 10
+  COWER_DAMAGE_PREVENTION: 10,
 }
 
 // ============================================================================
@@ -70,7 +70,7 @@ export const COMMANDER_ABILITIES = {
   /** BLOODTHIRSTY: Leadership gained on kill */
   BLOODTHIRSTY_LEADERSHIP_GAIN: 1,
   /** BLACK HAND OF BANE: Extra leadership cost when enemy cowers */
-  BLACK_HAND_OF_BANE_EXTRA_COST: 1
+  BLACK_HAND_OF_BANE_EXTRA_COST: 1,
 }
 
 // ============================================================================
@@ -83,7 +83,7 @@ export const TREASURE = {
   /** Minimum distance from starting zones (Manhattan distance) */
   MIN_DISTANCE_FROM_START: 2,
   /** Morale gained when collecting a treasure */
-  MORALE_GAIN: 1
+  MORALE_GAIN: 1,
 }
 
 // ============================================================================
@@ -96,7 +96,7 @@ export const GAME_RULES = {
   /** Maximum players supported */
   MAX_PLAYERS: 4,
   /** Minimum players required */
-  MIN_PLAYERS: 2
+  MIN_PLAYERS: 2,
 }
 
 // ============================================================================
@@ -107,7 +107,7 @@ export const VISION = {
   /** Default vision range for creatures */
   DEFAULT_RANGE: 5,
   /** Maximum range to check for line of sight calculations */
-  MAX_LOS_RANGE: 20
+  MAX_LOS_RANGE: 20,
 }
 
 // ============================================================================
@@ -118,7 +118,7 @@ export const MAGIC_CIRCLE = {
   /** Percentage of players that receive magic circles */
   PLAYER_PERCENTAGE: 0.4,
   /** Minimum number of magic circles to place */
-  MIN_CIRCLES: 1
+  MIN_CIRCLES: 1,
 }
 
 // ============================================================================
@@ -145,7 +145,7 @@ export const ABILITIES = {
   /** ACID BREATH: Splash damage to adjacent enemies on ranged attack */
   ACID_BREATH_SPLASH_DAMAGE: 20,
   /** EXPLOSIVE BOLTS: Splash damage to adjacent enemies on ranged attack */
-  EXPLOSIVE_BOLTS_SPLASH_DAMAGE: 10
+  EXPLOSIVE_BOLTS_SPLASH_DAMAGE: 10,
 }
 
 // ============================================================================
@@ -160,7 +160,7 @@ export const UI = {
   /** AI thinking delay in milliseconds */
   AI_THINKING_DELAY_MS: 500,
   /** Hover preview delay in milliseconds */
-  HOVER_PREVIEW_DELAY_MS: 300
+  HOVER_PREVIEW_DELAY_MS: 300,
 }
 
 // Default export for convenient importing
@@ -174,5 +174,5 @@ export default {
   VISION,
   MAGIC_CIRCLE,
   ABILITIES,
-  UI
+  UI,
 }
