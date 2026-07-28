@@ -18,16 +18,53 @@
 
 import { COMBAT, COMMANDER_ABILITIES } from '../constants/gameConstants.js'
 import { CreatureInstance } from './creatures.js'
+import type { CommanderAbility } from './commanders.js'
+import type { OrderCard } from './orders.js'
+
+export interface CowerInfo {
+  canCower: boolean
+  moraleCost: number
+  baseMoraleCost?: number
+  extraCost: number
+  damageAvoided: number
+  reason?: 'tapped' | 'insufficient_morale'
+}
+
+export interface UnstoppableHordesInfo {
+  canUse: boolean
+  moraleCost: number
+  damagePrevented: number
+  reason?: 'tapped' | 'insufficient_morale'
+}
+
+export interface ImmediateCardOption {
+  card: OrderCard
+  eligibleCreatures: CreatureInstance[]
+  damagePrevented: number | 'ALL'
+  moraleCost: number
+  protectTargetType: string
+  discardCost: number
+  opponentDrawsCards: number
+}
+
+export interface DefenseOptions {
+  cower: CowerInfo | null
+  unstoppableHordes: UnstoppableHordesInfo | null
+  adjacentUndead: CreatureInstance[]
+  immediateCards: ImmediateCardOption[]
+}
 
 /**
  * CommanderAbilityManager class
  * Requires a reference to gameState for accessing game data
+ *
+ * `gameState` is intentionally `any` for now - see CombatResolver.ts for why (circular
+ * coupling with GameState, tightened once gameState.ts exists).
  */
 export class CommanderAbilityManager {
-  /**
-   * @param {GameState} gameState - Reference to the main game state
-   */
-  constructor(gameState) {
+  gameState: any
+
+  constructor(gameState: any) {
     this.gameState = gameState
   }
 
@@ -37,11 +74,8 @@ export class CommanderAbilityManager {
 
   /**
    * Check if a player's commander has a specific ability
-   * @param {string} playerId - The player ID
-   * @param {string} abilityId - The ability ID to check for
-   * @returns {boolean} True if commander has this ability
    */
-  hasCommanderAbility(playerId, abilityId) {
+  hasCommanderAbility(playerId: string, abilityId: string): boolean {
     const player = this.gameState.players[playerId]
     if (!player || !player.commander) return false
     return player.commander.hasAbility(abilityId)
@@ -49,11 +83,8 @@ export class CommanderAbilityManager {
 
   /**
    * Get a commander ability by ID for a player
-   * @param {string} playerId - The player ID
-   * @param {string} abilityId - The ability ID to get
-   * @returns {Object|null} The ability object or null
    */
-  getCommanderAbility(playerId, abilityId) {
+  getCommanderAbility(playerId: string, abilityId: string): CommanderAbility | null {
     const player = this.gameState.players[playerId]
     if (!player || !player.commander) return null
     return player.commander.getAbility(abilityId)
@@ -66,10 +97,8 @@ export class CommanderAbilityManager {
   /**
    * Check if a creature's owner has the "ignore difficult terrain" ability
    * (GRUUMSH COMMANDS IT ability - Blood of Gruumsh only)
-   * @param {CreatureInstance} creatureInstance - The creature to check
-   * @returns {boolean} True if creature ignores difficult terrain
    */
-  ignoresDifficultTerrain(creatureInstance) {
+  ignoresDifficultTerrain(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance || !creatureInstance.owner) return false
     // Must belong to Blood of Gruumsh faction
     if (creatureInstance.creature.faction !== 'Blood of Gruumsh') return false
@@ -79,10 +108,8 @@ export class CommanderAbilityManager {
   /**
    * Check if player can use ORC SCOUT ability to deploy to treasure tiles
    * (Blood of Gruumsh only, turn 1 only)
-   * @param {string} playerId - Player to check
-   * @returns {boolean} True if ORC SCOUT is available
    */
-  canUseOrcScout(playerId) {
+  canUseOrcScout(playerId: string): boolean {
     // Only available on turn 1 (initial deployment)
     if (this.gameState.turnNumber !== 1) return false
 
@@ -102,9 +129,8 @@ export class CommanderAbilityManager {
 
   /**
    * Get valid treasure tiles for ORC SCOUT deployment
-   * @returns {Array} Array of valid treasure tiles
    */
-  getOrcScoutValidTiles() {
+  getOrcScoutValidTiles(): unknown[] {
     const validTiles = []
     for (let y = 0; y < this.gameState.boardHeight; y++) {
       for (let x = 0; x < this.gameState.boardWidth; x++) {
@@ -119,9 +145,8 @@ export class CommanderAbilityManager {
 
   /**
    * Mark ORC SCOUT ability as used
-   * @param {string} playerId - Player who used the ability
    */
-  markOrcScoutUsed(playerId) {
+  markOrcScoutUsed(playerId: string): void {
     const player = this.gameState.players[playerId]
     if (!player.commanderAbilityState) {
       player.commanderAbilityState = {}
@@ -135,10 +160,8 @@ export class CommanderAbilityManager {
 
   /**
    * Check if CHIEFTAIN CALL ability should trigger (Orc Chieftain deployed)
-   * @param {CreatureInstance} creatureInstance - The creature that was just deployed
-   * @returns {boolean} True if should trigger CHIEFTAIN CALL modal
    */
-  shouldTriggerChieftainCall(creatureInstance) {
+  shouldTriggerChieftainCall(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance || !creatureInstance.creature) return false
     return creatureInstance.creature.name === 'Orc Chieftain'
   }
@@ -146,10 +169,8 @@ export class CommanderAbilityManager {
   /**
    * Check if OGRE DEPLOY MORALE ability should trigger
    * (Ogre was just deployed - player gains 1 MORALE)
-   * @param {Object} creatureInstance - The creature that was deployed
-   * @returns {boolean} True if creature is Ogre
    */
-  shouldTriggerOgreDeployMorale(creatureInstance) {
+  shouldTriggerOgreDeployMorale(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance || !creatureInstance.creature) return false
     return creatureInstance.creature.name === 'Ogre'
   }
@@ -157,10 +178,8 @@ export class CommanderAbilityManager {
   /**
    * Check if ORC CLERIC DEPLOY DRAW ORDER ability should trigger
    * (Orc Cleric of Gruumsh was just deployed - player draws 1 Order card)
-   * @param {Object} creatureInstance - The creature that was deployed
-   * @returns {boolean} True if creature is Orc Cleric of Gruumsh
    */
-  shouldTriggerClericDeployDrawOrder(creatureInstance) {
+  shouldTriggerClericDeployDrawOrder(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance || !creatureInstance.creature) return false
     return creatureInstance.creature.name === 'Orc Cleric of Gruumsh'
   }
@@ -168,33 +187,34 @@ export class CommanderAbilityManager {
   /**
    * Get eligible Orcs from player's hand for CHIEFTAIN CALL
    * (Orc creatures with Level 3 or lower)
-   * @param {string} playerId - The player whose hand to check
-   * @returns {Array} Array of eligible Orc creature cards
    */
-  getEligibleOrcsForChieftainCall(playerId) {
+  getEligibleOrcsForChieftainCall(playerId: string): unknown[] {
     const player = this.gameState.players[playerId]
     if (!player || !player.creatureHand) return []
 
     return player.creatureHand.filter(
-      (creature) => creature.type?.includes('Orc') && creature.level <= 3
+      (creature: { type?: string[]; level: number }) =>
+        creature.type?.includes('Orc') && creature.level <= 3
     )
   }
 
   /**
    * Execute CHIEFTAIN CALL ability - gain leadership and deploy creature
-   * @param {string} playerId - The player using the ability
-   * @param {Object} selectedCreature - The creature card to deploy from hand
-   * @param {Object} deployPosition - The position {x, y} to deploy the creature
-   * @returns {Object} { success, leadershipGained, deployedCreature, message }
    */
-  executeChieftainCall(playerId, selectedCreature, deployPosition) {
+  executeChieftainCall(
+    playerId: string,
+    selectedCreature: { id: string },
+    deployPosition: { x: number; y: number }
+  ): Record<string, unknown> {
     const player = this.gameState.players[playerId]
     if (!player) {
       return { success: false, message: 'Invalid player' }
     }
 
     // Validate selected creature is in hand and eligible
-    const cardIndex = player.creatureHand.findIndex((c) => c.id === selectedCreature.id)
+    const cardIndex = player.creatureHand.findIndex(
+      (c: { id: string }) => c.id === selectedCreature.id
+    )
     if (cardIndex === -1) {
       return { success: false, message: 'Creature not in hand' }
     }
@@ -240,10 +260,8 @@ export class CommanderAbilityManager {
   /**
    * Get commander speed bonus for a creature based on creature types
    * (WALLS OF WEB ability: +2 speed to Spider and Drow - Sting of Lolth only)
-   * @param {CreatureInstance} creatureInstance - The creature to check
-   * @returns {number} Speed bonus from commander abilities
    */
-  getCommanderSpeedBonus(creatureInstance) {
+  getCommanderSpeedBonus(creatureInstance: CreatureInstance): number {
     if (!creatureInstance || !creatureInstance.owner) return 0
 
     let bonus = 0
@@ -266,10 +284,8 @@ export class CommanderAbilityManager {
   /**
    * Check if SELLSWORD ability should trigger (Drow on treasure)
    * (Sting of Lolth only)
-   * @param {CreatureInstance} creatureInstance - The creature that landed on treasure
-   * @returns {boolean} True if should show SELLSWORD choice
    */
-  shouldTriggerSellsword(creatureInstance) {
+  shouldTriggerSellsword(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance || !creatureInstance.owner) return false
 
     // Must have the SELLSWORD ability
@@ -283,6 +299,7 @@ export class CommanderAbilityManager {
     if (!creatureTypes.includes('Drow')) return false
 
     // Must be standing on a tile with treasure
+    if (!creatureInstance.position) return false
     const tile = this.gameState.getTile(creatureInstance.position.x, creatureInstance.position.y)
     if (!tile || !tile.treasure) return false
 
@@ -296,10 +313,8 @@ export class CommanderAbilityManager {
   /**
    * Check if a player can deploy during Refresh phase
    * (HORDE ability - Tyranny of Goblins only)
-   * @param {string} playerId - The player ID
-   * @returns {boolean} True if can deploy in Refresh phase
    */
-  canDeployInRefreshPhase(playerId) {
+  canDeployInRefreshPhase(playerId: string): boolean {
     if (!this.hasCommanderAbility(playerId, 'horde')) return false
     // Must be Tyranny of Goblins faction
     const player = this.gameState.players[playerId]
@@ -310,20 +325,17 @@ export class CommanderAbilityManager {
 
   /**
    * Check if player can deploy during REFRESH phase (alias for canDeployInRefreshPhase)
-   * @param {string} playerId - Player to check
-   * @returns {boolean} True if player can deploy during refresh
    */
-  canDeployDuringRefresh(playerId) {
+  canDeployDuringRefresh(playerId: string): boolean {
     return this.canDeployInRefreshPhase(playerId)
   }
 
   /**
    * Check if BLACK HAND OF BANE applies (enemy cower costs extra morale)
    * (Tyranny of Goblins only)
-   * @param {string} attackerOwner - The owner of the attacking creature
-   * @returns {number} Extra morale cost (0 if not applicable)
+   * @returns Extra morale cost (0 if not applicable)
    */
-  getBlackHandOfBaneExtraCost(attackerOwner) {
+  getBlackHandOfBaneExtraCost(attackerOwner: string): number {
     // Check if the attacker's owner has BLACK HAND OF BANE
     if (!this.hasCommanderAbility(attackerOwner, 'black_hand_of_bane')) return 0
     // Must be Tyranny of Goblins faction
@@ -339,10 +351,8 @@ export class CommanderAbilityManager {
   /**
    * Check if creature can use UNSTOPPABLE HORDES ability
    * (Morgana's ability - Curse of Undeath Undead only)
-   * @param {CreatureInstance} creatureInstance - The creature taking damage
-   * @returns {Object} { canUse: boolean, moraleCost: number, damagePrevented: number }
    */
-  canUseUnstoppableHordes(creatureInstance) {
+  canUseUnstoppableHordes(creatureInstance: CreatureInstance): UnstoppableHordesInfo {
     if (!creatureInstance || !creatureInstance.owner) {
       return { canUse: false, moraleCost: 0, damagePrevented: 0 }
     }
@@ -383,10 +393,12 @@ export class CommanderAbilityManager {
 
   /**
    * Apply UNSTOPPABLE HORDES ability - prevent damage, pay morale, tap creature
-   * @param {CreatureInstance} creatureInstance - The Undead creature using the ability
-   * @returns {Object} { success: boolean, damagePrevented: number, moraleCost: number }
    */
-  applyUnstoppableHordes(creatureInstance) {
+  applyUnstoppableHordes(creatureInstance: CreatureInstance): {
+    success: boolean
+    damagePrevented: number
+    moraleCost: number
+  } {
     const abilityInfo = this.canUseUnstoppableHordes(creatureInstance)
     if (!abilityInfo.canUse) {
       return { success: false, damagePrevented: 0, moraleCost: 0 }
@@ -408,10 +420,8 @@ export class CommanderAbilityManager {
 
   /**
    * Get all adjacent untapped Undead creatures that can use UNSTOPPABLE HORDES
-   * @param {CreatureInstance} defendingCreature - The creature being attacked
-   * @returns {Array} Array of CreatureInstances that can use UNSTOPPABLE HORDES
    */
-  getAdjacentUndeadForUnstoppableHordes(defendingCreature) {
+  getAdjacentUndeadForUnstoppableHordes(defendingCreature: CreatureInstance): CreatureInstance[] {
     if (!defendingCreature || !defendingCreature.position || !defendingCreature.owner) {
       return []
     }
@@ -421,7 +431,7 @@ export class CommanderAbilityManager {
       return []
     }
 
-    const adjacentUndead = []
+    const adjacentUndead: CreatureInstance[] = []
     const pos = defendingCreature.position
 
     // Check all 8 directions
@@ -440,7 +450,7 @@ export class CommanderAbilityManager {
       const tile = this.gameState.getTile(pos.x + dir.dx, pos.y + dir.dy)
       if (!tile || !tile.occupant) continue
 
-      const adjacentCreature = tile.occupant
+      const adjacentCreature = tile.occupant as CreatureInstance
 
       // Must be same owner
       if (adjacentCreature.owner !== defendingCreature.owner) continue
@@ -462,10 +472,8 @@ export class CommanderAbilityManager {
   /**
    * Check if a creature can use VERSATILE ability (extra move action)
    * (Heart of Cormyr Adventurers only)
-   * @param {CreatureInstance} creatureInstance - The creature to check
-   * @returns {boolean} True if creature can use VERSATILE
    */
-  canUseVersatile(creatureInstance) {
+  canUseVersatile(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance || !creatureInstance.owner) return false
 
     // Must have the VERSATILE ability
@@ -489,10 +497,8 @@ export class CommanderAbilityManager {
   /**
    * Check if player can use SCROLLBOOK ability
    * (Heart of Cormyr only)
-   * @param {string} playerId - Player ID to check
-   * @returns {boolean} True if SCROLLBOOK can be used
    */
-  canUseScrollbook(playerId) {
+  canUseScrollbook(playerId: string): boolean {
     if (!this.hasCommanderAbility(playerId, 'scrollbook')) return false
 
     const player = this.gameState.players[playerId]
@@ -509,11 +515,8 @@ export class CommanderAbilityManager {
 
   /**
    * Use SCROLLBOOK ability - discard 1 order card to draw 1 order card
-   * @param {string} playerId - Player using the ability
-   * @param {number} discardIndex - Index of card to discard from hand
-   * @returns {Object} { success, discardedCard, drawnCard, message }
    */
-  useScrollbook(playerId, discardIndex) {
+  useScrollbook(playerId: string, discardIndex: number): Record<string, unknown> {
     if (!this.canUseScrollbook(playerId)) {
       return { success: false, message: 'Cannot use SCROLLBOOK ability' }
     }
@@ -552,12 +555,14 @@ export class CommanderAbilityManager {
 
   /**
    * Check if creature can use COWER ability (Universal mechanic - ALL creatures)
-   * @param {CreatureInstance} creatureInstance - The creature being attacked
-   * @param {number} incomingDamage - The amount of damage to potentially avoid
-   * @param {string} attackerOwner - Attacker owner to check for BLACK HAND OF BANE
-   * @returns {Object} { canCower: boolean, moraleCost: number, extraCost: number, damageAvoided: number }
+   * @param incomingDamage - The amount of damage to potentially avoid
+   * @param attackerOwner - Attacker owner to check for BLACK HAND OF BANE
    */
-  canCower(creatureInstance, incomingDamage, attackerOwner = null) {
+  canCower(
+    creatureInstance: CreatureInstance,
+    incomingDamage: number,
+    attackerOwner: string | null = null
+  ): CowerInfo {
     if (!creatureInstance || !creatureInstance.owner) {
       return { canCower: false, moraleCost: 0, extraCost: 0, damageAvoided: 0 }
     }
@@ -599,12 +604,12 @@ export class CommanderAbilityManager {
 
   /**
    * Apply COWER ability - avoid ALL damage, pay morale cost, tap creature
-   * @param {CreatureInstance} creatureInstance - The creature using Cower
-   * @param {number} incomingDamage - The amount of damage being avoided
-   * @param {string} attackerOwner - Attacker owner for BLACK HAND OF BANE check
-   * @returns {Object} { success: boolean, damageAvoided: number, moraleCost: number }
    */
-  applyCower(creatureInstance, incomingDamage, attackerOwner = null) {
+  applyCower(
+    creatureInstance: CreatureInstance,
+    incomingDamage: number,
+    attackerOwner: string | null = null
+  ): { success: boolean; damageAvoided: number; moraleCost: number; extraCost?: number } {
     const cowerInfo = this.canCower(creatureInstance, incomingDamage, attackerOwner)
     if (!cowerInfo.canCower) {
       return { success: false, damageAvoided: 0, moraleCost: 0 }
@@ -631,10 +636,8 @@ export class CommanderAbilityManager {
 
   /**
    * Get all IMMEDIATE cards that can be used for defense
-   * @param {CreatureInstance} defenderInstance - The creature being attacked
-   * @returns {Array} Array of { card, eligibleCreatures: [...] } objects
    */
-  getImmediateCardsForDefense(defenderInstance) {
+  getImmediateCardsForDefense(defenderInstance: CreatureInstance): ImmediateCardOption[] {
     if (!defenderInstance || !defenderInstance.owner) {
       return []
     }
@@ -648,8 +651,8 @@ export class CommanderAbilityManager {
     const selfProtectCreatures = this.getCreaturesForImmediateCard(defenderInstance)
 
     // Find IMMEDIATE cards that prevent damage or have special defense effects
-    const immediateCards = []
-    for (const card of player.orderHand) {
+    const immediateCards: ImmediateCardOption[] = []
+    for (const card of player.orderHand as OrderCard[]) {
       // Card must prevent damage (either fixed amount or all damage) OR be a self-sacrifice attack (Savage Demise)
       const preventsDamage =
         (card.damagePrevented != null && card.damagePrevented > 0) || card.preventsAllDamage
@@ -665,7 +668,7 @@ export class CommanderAbilityManager {
         }
         // Determine which creatures can use this card based on protectTargetType
         const protectType = card.protectTargetType || 'self'
-        let potentialCreatures = []
+        let potentialCreatures: CreatureInstance[] = []
 
         if (protectType === 'self') {
           // Self-protection: creature must be defender or adjacent to defender
@@ -691,7 +694,7 @@ export class CommanderAbilityManager {
             // Check creature type array for affinity match
             const creatureTypes = creature.creature.type || []
             const hasAffinity = creatureTypes.some(
-              (type) => type.toUpperCase() === card.affinityRequired.toUpperCase()
+              (type) => type.toUpperCase() === card.affinityRequired!.toUpperCase()
             )
             // With affinityOverridesRequirements, affinity is the ONLY requirement
             return hasAffinity
@@ -704,7 +707,7 @@ export class CommanderAbilityManager {
           if (card.affinityRequired && !card.affinityOverridesRequirements) {
             const creatureTypes = creature.creature.type || []
             const hasAffinity = creatureTypes.some(
-              (type) => type.toUpperCase() === card.affinityRequired.toUpperCase()
+              (type) => type.toUpperCase() === card.affinityRequired!.toUpperCase()
             )
             if (!hasAffinity) return false
           }
@@ -735,15 +738,13 @@ export class CommanderAbilityManager {
 
   /**
    * Get all creatures that can use an IMMEDIATE card for defense
-   * @param {CreatureInstance} defenderInstance - The creature being attacked
-   * @returns {Array} Array of CreatureInstances that can use immediate cards
    */
-  getCreaturesForImmediateCard(defenderInstance) {
+  getCreaturesForImmediateCard(defenderInstance: CreatureInstance): CreatureInstance[] {
     if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
       return []
     }
 
-    const eligibleCreatures = []
+    const eligibleCreatures: CreatureInstance[] = []
 
     // Check if defender itself can use immediate cards (must be untapped)
     if (!defenderInstance.isTapped) {
@@ -767,7 +768,7 @@ export class CommanderAbilityManager {
       const tile = this.gameState.getTile(pos.x + dir.dx, pos.y + dir.dy)
       if (!tile || !tile.occupant) continue
 
-      const adjacentCreature = tile.occupant
+      const adjacentCreature = tile.occupant as CreatureInstance
 
       // Must be same owner and untapped
       if (adjacentCreature.owner !== defenderInstance.owner) continue
@@ -782,15 +783,14 @@ export class CommanderAbilityManager {
   /**
    * Get all untapped friendly creatures ADJACENT to the defender
    * Used for 'adjacent_ally' protection cards like Defend Ally
-   * @param {CreatureInstance} defenderInstance - The creature being attacked
-   * @returns {Array} Array of CreatureInstances adjacent to defender (NOT including defender)
+   * @returns CreatureInstances adjacent to defender (NOT including defender)
    */
-  getCreaturesAdjacentToDefender(defenderInstance) {
+  getCreaturesAdjacentToDefender(defenderInstance: CreatureInstance): CreatureInstance[] {
     if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
       return []
     }
 
-    const adjacentCreatures = []
+    const adjacentCreatures: CreatureInstance[] = []
     const pos = defenderInstance.position
     const directions = [
       { dx: 0, dy: -1 }, // North
@@ -807,7 +807,7 @@ export class CommanderAbilityManager {
       const tile = this.gameState.getTile(pos.x + dir.dx, pos.y + dir.dy)
       if (!tile || !tile.occupant) continue
 
-      const adjacentCreature = tile.occupant
+      const adjacentCreature = tile.occupant as CreatureInstance
 
       // Must be same owner and untapped
       if (adjacentCreature.owner !== defenderInstance.owner) continue
@@ -824,16 +824,17 @@ export class CommanderAbilityManager {
   /**
    * Get all untapped friendly creatures within range of the defender
    * Used for 'ally_in_range' protection cards like Shield
-   * @param {CreatureInstance} defenderInstance - The creature being attacked
-   * @param {number} range - Maximum range in squares
-   * @returns {Array} Array of CreatureInstances within range (INCLUDING defender for self-targeting)
+   * @returns CreatureInstances within range (INCLUDING defender for self-targeting)
    */
-  getCreaturesInRangeOfDefender(defenderInstance, range) {
+  getCreaturesInRangeOfDefender(
+    defenderInstance: CreatureInstance,
+    range: number
+  ): CreatureInstance[] {
     if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
       return []
     }
 
-    const creaturesInRange = []
+    const creaturesInRange: CreatureInstance[] = []
     const player = this.gameState.players[defenderInstance.owner]
 
     if (!player || !player.creaturesInPlay) {
@@ -842,7 +843,7 @@ export class CommanderAbilityManager {
 
     const defenderPos = defenderInstance.position
 
-    for (const creature of player.creaturesInPlay) {
+    for (const creature of player.creaturesInPlay as CreatureInstance[]) {
       // Must be untapped
       if (creature.isTapped) continue
       if (!creature.position) continue
@@ -864,22 +865,21 @@ export class CommanderAbilityManager {
   /**
    * Get all untapped friendly creatures with line of sight to the defender
    * Used for 'ally_los' protection cards like Warning Shout
-   * @param {CreatureInstance} defenderInstance - The creature being attacked
-   * @returns {Array} Array of CreatureInstances with LOS to defender (NOT including defender)
+   * @returns CreatureInstances with LOS to defender (NOT including defender)
    */
-  getCreaturesWithLOSToDefender(defenderInstance) {
+  getCreaturesWithLOSToDefender(defenderInstance: CreatureInstance): CreatureInstance[] {
     if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
       return []
     }
 
-    const creaturesWithLOS = []
+    const creaturesWithLOS: CreatureInstance[] = []
     const player = this.gameState.players[defenderInstance.owner]
 
     if (!player || !player.creaturesInPlay) {
       return []
     }
 
-    for (const creature of player.creaturesInPlay) {
+    for (const creature of player.creaturesInPlay as CreatureInstance[]) {
       // Must be untapped
       if (creature.isTapped) continue
       if (!creature.position) continue
@@ -898,12 +898,13 @@ export class CommanderAbilityManager {
 
   /**
    * Apply an IMMEDIATE card for defense
-   * @param {OrderCard} card - The immediate card to use
-   * @param {CreatureInstance} usingCreature - The creature using the card
-   * @param {OrderCard} discardCard - Optional card to discard as cost (e.g., Uncanny Dodge)
-   * @returns {Object} { success: boolean, damagePrevented: number, cardUsed: card, moraleCost: number }
+   * @param discardCard - Optional card to discard as cost (e.g., Uncanny Dodge)
    */
-  applyImmediateCardDefense(card, usingCreature, discardCard = null) {
+  applyImmediateCardDefense(
+    card: OrderCard,
+    usingCreature: CreatureInstance,
+    discardCard: OrderCard | null = null
+  ): Record<string, unknown> {
     if (!card || !usingCreature || !usingCreature.owner) {
       return { success: false, damagePrevented: 0, cardUsed: null, moraleCost: 0 }
     }
@@ -921,7 +922,7 @@ export class CommanderAbilityManager {
 
     // Verify card is in player's hand
     const player = this.gameState.players[usingCreature.owner]
-    const cardIndex = player.orderHand.findIndex((c) => c.id === card.id)
+    const cardIndex = player.orderHand.findIndex((c: OrderCard) => c.id === card.id)
     if (cardIndex === -1) {
       return {
         success: false,
@@ -938,7 +939,7 @@ export class CommanderAbilityManager {
     if (card.affinityRequired && card.affinityOverridesRequirements) {
       const creatureTypes = usingCreature.creature.type || []
       const hasAffinity = creatureTypes.some(
-        (type) => type.toUpperCase() === card.affinityRequired.toUpperCase()
+        (type) => type.toUpperCase() === card.affinityRequired!.toUpperCase()
       )
       if (hasAffinity) {
         canUse = true // Affinity match bypasses normal requirements
@@ -968,7 +969,7 @@ export class CommanderAbilityManager {
 
     // If card has attachOnUse, attach it to the creature instead of discarding
     let attachedCard = false
-    let removedAttachments = []
+    let removedAttachments: unknown[] = []
     if (card.attachOnUse) {
       // Use gameState's attachment method to handle cleansing (Tough as Nails)
       removedAttachments = this.gameState.applyImmediateCardAttachment(
@@ -987,7 +988,7 @@ export class CommanderAbilityManager {
     // Handle discard cost - discard the additional card (Uncanny Dodge)
     let discardedCardName = null
     if (discardCard && card.discardCost > 0) {
-      const discardIndex = player.orderHand.findIndex((c) => c.id === discardCard.id)
+      const discardIndex = player.orderHand.findIndex((c: OrderCard) => c.id === discardCard.id)
       if (discardIndex !== -1) {
         discardedCardName = discardCard.name
         player.orderHand.splice(discardIndex, 1)
@@ -1077,15 +1078,14 @@ export class CommanderAbilityManager {
   /**
    * Get all adjacent tapped enemy creatures for counter-attack targeting
    * Used by Seize the Opportunity and Corrosive Blood
-   * @param {CreatureInstance} defenderInstance - The creature performing the counter-attack
-   * @returns {Array} Array of adjacent tapped enemy CreatureInstances
+   * @returns Adjacent tapped enemy CreatureInstances
    */
-  getAdjacentTappedEnemies(defenderInstance) {
+  getAdjacentTappedEnemies(defenderInstance: CreatureInstance): CreatureInstance[] {
     if (!defenderInstance || !defenderInstance.position || !defenderInstance.owner) {
       return []
     }
 
-    const adjacentTapped = []
+    const adjacentTapped: CreatureInstance[] = []
     const pos = defenderInstance.position
 
     // Check all 8 directions
@@ -1104,7 +1104,7 @@ export class CommanderAbilityManager {
       const tile = this.gameState.getTile(pos.x + dir.dx, pos.y + dir.dy)
       if (!tile || !tile.occupant) continue
 
-      const adjacentCreature = tile.occupant
+      const adjacentCreature = tile.occupant as CreatureInstance
 
       // Must be an enemy (different owner)
       if (adjacentCreature.owner === defenderInstance.owner) continue
@@ -1120,11 +1120,11 @@ export class CommanderAbilityManager {
 
   /**
    * Check if attacker is adjacent to defender (for Riposte)
-   * @param {CreatureInstance} defenderInstance - The creature using Riposte
-   * @param {CreatureInstance} attackerInstance - The creature that attacked
-   * @returns {boolean} True if attacker is adjacent to defender
    */
-  isAttackerAdjacent(defenderInstance, attackerInstance) {
+  isAttackerAdjacent(
+    defenderInstance: CreatureInstance,
+    attackerInstance: CreatureInstance
+  ): boolean {
     if (!defenderInstance?.position || !attackerInstance?.position) {
       return false
     }
@@ -1142,13 +1142,13 @@ export class CommanderAbilityManager {
 
   /**
    * Get all available defense options for a creature being attacked
-   * @param {CreatureInstance} defenderInstance - The creature being attacked
-   * @param {number} incomingDamage - The damage amount
-   * @param {string} attackerOwner - The attacker's owner ID
-   * @returns {Object} { cower: {...}, unstoppableHordes: {...}, adjacentUndead: [...], immediateCards: [...] }
    */
-  getDefenseOptions(defenderInstance, incomingDamage, attackerOwner) {
-    const options = {
+  getDefenseOptions(
+    defenderInstance: CreatureInstance,
+    incomingDamage: number,
+    attackerOwner: string
+  ): DefenseOptions {
+    const options: DefenseOptions = {
       cower: null,
       unstoppableHordes: null,
       adjacentUndead: [],

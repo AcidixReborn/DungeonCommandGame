@@ -15,19 +15,52 @@
  * - hasLineOfSight: O(n) where n = tiles between attacker and target
  */
 
-import { COMBAT, TERRAIN } from '../constants/gameConstants.js'
+import { COMBAT } from '../constants/gameConstants.js'
 import { TerrainTypes } from './Board.js'
 import { logger } from '../utils/logger.js'
+import type { CreatureInstance } from './creatures.js'
+
+export type AttackType = 'melee' | 'ranged'
+
+export interface AttackValidation {
+  valid: boolean
+  error?: string
+  damage?: number
+  baseDamage?: number
+  flankingBonus?: number
+  cutterBonus?: number
+  orderCardBonus?: number
+  usedFlatDamage?: boolean
+}
+
+export interface AttackTarget {
+  creature: CreatureInstance
+  attackType: AttackType
+  distance: number
+  isReachAttack?: boolean
+  reachDistance?: number | null
+}
+
+export interface RangeTile {
+  x: number
+  y: number
+  hasLOS: boolean
+  blockReason: string | null
+}
 
 /**
  * CombatResolver class
  * Requires a reference to gameState for accessing game data
+ *
+ * `gameState` is intentionally `any` for now — GameState is converted to TypeScript in
+ * the next migration step, and this coupling (CombatResolver reads dozens of ability-check
+ * methods off gameState, while GameState's constructor instantiates CombatResolver) is
+ * genuinely circular at runtime. Tightened once both sides are typed.
  */
 export class CombatResolver {
-  /**
-   * @param {GameState} gameState - Reference to the main game state
-   */
-  constructor(gameState) {
+  gameState: any
+
+  constructor(gameState: any) {
     this.gameState = gameState
   }
 
@@ -37,20 +70,16 @@ export class CombatResolver {
    *
    * Big O Complexity: O(1) for melee, O(n) for ranged where n = tiles in line
    *
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {CreatureInstance} defenderInstance - The defending creature
-   * @param {string} attackType - 'melee' or 'ranged'
-   * @param {number} damageBoostBonus - Bonus damage from STANDARD order cards (Power Attack, Hacking Frenzy)
-   * @param {number|null} damageBoostFlat - Flat damage that replaces base (Killing Strike), or null if not used
-   * @returns {Object} { valid: boolean, error?: string, damage?: number }
+   * @param damageBoostBonus - Bonus damage from STANDARD order cards (Power Attack, Hacking Frenzy)
+   * @param damageBoostFlat - Flat damage that replaces base (Killing Strike), or null if not used
    */
   validateAttack(
-    attackerInstance,
-    defenderInstance,
-    attackType = 'melee',
+    attackerInstance: CreatureInstance,
+    defenderInstance: CreatureInstance,
+    attackType: AttackType = 'melee',
     damageBoostBonus = 0,
-    damageBoostFlat = null
-  ) {
+    damageBoostFlat: number | null = null
+  ): AttackValidation {
     // Safety check: ensure both creatures have valid positions
     if (!attackerInstance?.position || !defenderInstance?.position) {
       return { valid: false, error: 'Cannot attack: invalid creature position' }
@@ -131,7 +160,7 @@ export class CombatResolver {
     if (attackType === 'melee' && attackerInstance.creature.meleeAttack) {
       // Check for flat damage (Killing Strike) - replaces base damage entirely
       if (usedFlatDamage) {
-        baseDamage = damageBoostFlat
+        baseDamage = damageBoostFlat as number
         // Flat damage ignores flanking/cutter bonuses
         flankingBonus = 0
         cutterBonus = 0
@@ -186,28 +215,24 @@ export class CombatResolver {
    *
    * Big O Complexity: O(c) where c = creatures in play (for removal)
    *
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {CreatureInstance} defenderInstance - The defending creature
-   * @param {string} attackType - 'melee' or 'ranged'
-   * @param {string} aiDifficulty - AI difficulty for 0/50/100 rule
-   * @param {number} damageReduction - Amount to reduce damage by (default 0)
-   * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
-   * @param {boolean} skipDeathStrike - Skip DEATH STRIKE check (if already processed)
-   * @param {number} damageBoostBonus - Bonus damage from STANDARD order cards (default 0)
-   * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
-   * @returns {Object} Attack result
+   * @param aiDifficulty - AI difficulty for 0/50/100 rule
+   * @param damageReduction - Amount to reduce damage by (default 0)
+   * @param defenseType - 'cower' | 'unstoppable_hordes' | null
+   * @param skipDeathStrike - Skip DEATH STRIKE check (if already processed)
+   * @param damageBoostBonus - Bonus damage from STANDARD order cards (default 0)
+   * @param damageBoostFlat - Flat damage that replaces base (default null)
    */
   executeAttack(
-    attackerInstance,
-    defenderInstance,
-    attackType = 'melee',
+    attackerInstance: CreatureInstance,
+    defenderInstance: CreatureInstance,
+    attackType: AttackType = 'melee',
     aiDifficulty = 'medium',
     damageReduction = 0,
-    defenseType = null,
+    defenseType: string | null = null,
     skipDeathStrike = false,
     damageBoostBonus = 0,
-    damageBoostFlat = null
-  ) {
+    damageBoostFlat: number | null = null
+  ): Record<string, unknown> {
     logger.combat('Attack initiated', {
       attacker: attackerInstance.creature.name,
       attackerOwner: attackerInstance.owner,
@@ -234,7 +259,7 @@ export class CombatResolver {
     }
 
     // Calculate damage (with optional reduction from defense)
-    const originalDamage = validation.damage
+    const originalDamage = validation.damage as number
     const damage = Math.max(0, originalDamage - damageReduction)
 
     // ========== DEATH STRIKE CHECK ==========
@@ -243,7 +268,7 @@ export class CombatResolver {
     // - Attack would kill the defender (based on ORIGINAL damage before defense)
     // - Attack is melee and attacker is truly adjacent (distance = 1)
     // skipDeathStrike flag is used when DEATH STRIKE was already processed
-    let deathStrikeResult = null
+    let deathStrikeResult: Record<string, unknown> | null = null
     if (!skipDeathStrike) {
       deathStrikeResult = this.checkDeathStrike(
         attackerInstance,
@@ -291,7 +316,7 @@ export class CombatResolver {
       attackType,
       defenderInstance
     )
-    const hasPendingSplash = pendingSplashAttacks && pendingSplashAttacks.length > 0
+    const hasPendingSplash = Boolean(pendingSplashAttacks && pendingSplashAttacks.length > 0)
 
     // Check for RANGED SPLASH abilities (ACID BREATH / EXPLOSIVE BOLTS) - defer tapping until ability resolves
     const hasRangedSplash =
@@ -346,29 +371,18 @@ export class CombatResolver {
   /**
    * Execute attack with defense options (COWER or UNSTOPPABLE HORDES)
    * @deprecated Use executeAttack(attacker, defender, type, difficulty, damageReduction, defenseType, skipDeathStrike, damageBoostBonus, damageBoostFlat) instead
-   *
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {CreatureInstance} defenderInstance - The defending creature
-   * @param {string} attackType - 'melee' or 'ranged'
-   * @param {number} damageReduction - Amount to reduce damage by
-   * @param {string} defenseType - 'cower' | 'unstoppable_hordes' | null
-   * @param {string} aiDifficulty - AI difficulty for 0/50/100 rule
-   * @param {boolean} skipDeathStrike - Skip DEATH STRIKE check
-   * @param {number} damageBoostBonus - Bonus damage from STANDARD order cards (default 0)
-   * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
-   * @returns {Object} Attack result
    */
   executeAttackWithDefense(
-    attackerInstance,
-    defenderInstance,
-    attackType = 'melee',
+    attackerInstance: CreatureInstance,
+    defenderInstance: CreatureInstance,
+    attackType: AttackType = 'melee',
     damageReduction = 0,
-    defenseType = null,
+    defenseType: string | null = null,
     aiDifficulty = 'medium',
     skipDeathStrike = false,
     damageBoostBonus = 0,
-    damageBoostFlat = null
-  ) {
+    damageBoostFlat: number | null = null
+  ): Record<string, unknown> {
     // Delegate to consolidated executeAttack function
     return this.executeAttack(
       attackerInstance,
@@ -388,13 +402,12 @@ export class CombatResolver {
    * CUSTOM RULE: Killing a creature grants +1 morale to attacker's owner
    *
    * Big O Complexity: O(c) where c = creatures in play (for removal via findIndex)
-   *
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {CreatureInstance} defenderInstance - The defending creature
-   * @param {number} damageAmount - Damage to apply
-   * @returns {Object} Resolution result
    */
-  resolveAttack(attackerInstance, defenderInstance, damageAmount) {
+  resolveAttack(
+    attackerInstance: CreatureInstance,
+    defenderInstance: CreatureInstance,
+    damageAmount: number
+  ): Record<string, unknown> {
     const attackerOwner = attackerInstance.owner
     const defenderOwner = defenderInstance.owner
 
@@ -426,7 +439,7 @@ export class CombatResolver {
     }
 
     // Apply Magic Circle reduction first
-    let workingDamage = Math.max(0, damageAmount - magicCircleReduction)
+    const workingDamage = Math.max(0, damageAmount - magicCircleReduction)
 
     // If damage fully absorbed by Magic Circle Aura, return early
     if (workingDamage === 0 && magicCircleReduction > 0) {
@@ -535,7 +548,7 @@ export class CombatResolver {
       // Remove from battlefield
       const defenderPlayer = this.gameState.players[defenderOwner]
       const index = defenderPlayer.creaturesInPlay.findIndex(
-        (c) => c.instanceId === defenderInstance.instanceId
+        (c: CreatureInstance) => c.instanceId === defenderInstance.instanceId
       )
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
@@ -685,12 +698,12 @@ export class CombatResolver {
   /**
    * Apply LIFE DRAIN if attacker has the ability and attack dealt damage
    * Big O: O(1) - constant time check and heal
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {string} attackType - 'melee' or 'ranged'
-   * @param {number} damageDealt - Actual damage dealt to defender
-   * @returns {Object|null} Life drain result or null if not applicable
    */
-  checkLifeDrain(attackerInstance, attackType, damageDealt) {
+  checkLifeDrain(
+    attackerInstance: CreatureInstance,
+    attackType: AttackType,
+    damageDealt: number
+  ): Record<string, unknown> | null {
     // LIFE DRAIN only triggers on melee attacks that deal damage
     if (attackType !== 'melee' || damageDealt <= 0) return null
 
@@ -726,20 +739,16 @@ export class CombatResolver {
    *
    * Big O: O(1) - constant time checks
    *
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {CreatureInstance} defenderInstance - The defending creature (with DEATH STRIKE)
-   * @param {string} attackType - 'melee' or 'ranged'
-   * @param {number} incomingDamage - Damage that would be dealt to defender
-   * @param {string} aiDifficulty - AI difficulty for 0/50/100 rule
-   * @returns {Object|null} DEATH STRIKE result or null if not triggered
+   * @param incomingDamage - Damage that would be dealt to defender
+   * @param aiDifficulty - AI difficulty for 0/50/100 rule
    */
   checkDeathStrike(
-    attackerInstance,
-    defenderInstance,
-    attackType,
-    incomingDamage,
+    attackerInstance: CreatureInstance,
+    defenderInstance: CreatureInstance,
+    attackType: AttackType,
+    incomingDamage: number,
     aiDifficulty = 'medium'
-  ) {
+  ): Record<string, unknown> | null {
     // DEATH STRIKE only triggers on melee attacks
     if (attackType !== 'melee') return null
 
@@ -760,18 +769,15 @@ export class CombatResolver {
     // DEATH STRIKE conditions met - check AI difficulty
     const isHuman = this.gameState.players[defenderInstance.owner]?.isHuman
     let shouldTrigger = true
-    let wasDeclined = false
 
     if (!isHuman) {
       if (aiDifficulty === 'easy') {
         // Easy AI: never use DEATH STRIKE (0%)
         shouldTrigger = false
-        wasDeclined = true
       } else if (aiDifficulty === 'medium') {
         // Medium AI: 50% chance
         if (Math.random() >= 0.5) {
           shouldTrigger = false
-          wasDeclined = true
         }
       }
       // Hard AI: always use DEATH STRIKE (100%)
@@ -818,7 +824,7 @@ export class CombatResolver {
       // Remove from battlefield
       const attackerPlayer = this.gameState.players[attackerOwner]
       const index = attackerPlayer.creaturesInPlay.findIndex(
-        (c) => c.instanceId === attackerInstance.instanceId
+        (c: CreatureInstance) => c.instanceId === attackerInstance.instanceId
       )
       if (index !== -1) {
         attackerPlayer.creaturesInPlay.splice(index, 1)
@@ -867,24 +873,23 @@ export class CombatResolver {
    * 4. Line of sight - cannot shoot through enemy creatures (allies don't block)
    *
    * Big O Complexity: O(p * c) where p = active players, c = creatures per player
-   *
-   * @param {CreatureInstance} creatureInstance - The attacking creature
-   * @param {Object} trackStats - Optional stats tracking object
-   * @returns {Array} Array of valid targets
    */
-  getValidAttackTargets(creatureInstance, trackStats = null) {
+  getValidAttackTargets(
+    creatureInstance: CreatureInstance,
+    trackStats: Record<string, number> | null = null
+  ): AttackTarget[] {
     if (!creatureInstance.position) return []
 
-    const targets = []
+    const targets: AttackTarget[] = []
     const attackerOwner = creatureInstance.owner
     const hasMelee = creatureInstance.creature.meleeAttack !== null
     const hasRanged = creatureInstance.creature.rangedAttack !== null
-    const rangedRange = hasRanged ? creatureInstance.creature.rangedAttack.range : 0
+    const rangedRange = hasRanged ? (creatureInstance.creature.rangedAttack?.range ?? 0) : 0
     // REACH ability: Creatures with reach property can melee attack at extended range
     // e.g., reach: 2 allows melee attacks at range 1 OR 2
     const creatureReach = creatureInstance.creature.reach || 0
     const meleeRange = hasMelee
-      ? Math.max(creatureInstance.creature.meleeAttack.range || 1, creatureReach)
+      ? Math.max(creatureInstance.creature.meleeAttack?.range || 1, creatureReach)
       : 0
 
     // Ranged restriction #1: Check if attacker is on forest
@@ -899,7 +904,7 @@ export class CombatResolver {
       if (playerId === attackerOwner) continue // Skip own creatures
 
       const player = this.gameState.players[playerId]
-      for (const enemyCreature of player.creaturesInPlay) {
+      for (const enemyCreature of player.creaturesInPlay as CreatureInstance[]) {
         if (!enemyCreature.position) continue
 
         // Skip creatures that were deployed this turn (protected from attacks)
@@ -983,15 +988,15 @@ export class CombatResolver {
    * Forest terrain and enemy creatures block line of sight, but allied creatures do not
    *
    * Big O Complexity: O(n) where n = tiles between attacker and target
-   *
-   * @param {CreatureInstance} attacker - The attacking creature
-   * @param {CreatureInstance} target - The target creature
-   * @param {string} attackerOwner - Owner ID of the attacker
-   * @returns {boolean} True if line of sight is clear
    */
-  hasLineOfSight(attacker, target, attackerOwner) {
+  hasLineOfSight(
+    attacker: CreatureInstance,
+    target: CreatureInstance,
+    attackerOwner: string
+  ): boolean {
     const from = attacker.position
     const to = target.position
+    if (!from || !to) return false
 
     // Get all tiles along the line between attacker and target
     const lineTiles = this.gameState.getLineTiles(from, to)
@@ -1033,12 +1038,13 @@ export class CombatResolver {
    *
    * Big O: O(8) - checks at most 8 adjacent tiles
    *
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {string} attackType - 'melee' or 'ranged'
-   * @param {CreatureInstance} mainTarget - The primary attack target (excluded from splash)
-   * @returns {Array|null} Array of splash target info or null if ability doesn't trigger
+   * @param mainTarget - The primary attack target (excluded from splash)
    */
-  checkTombGuardianSplash(attackerInstance, attackType, mainTarget) {
+  checkTombGuardianSplash(
+    attackerInstance: CreatureInstance,
+    attackType: AttackType,
+    mainTarget: CreatureInstance
+  ): Record<string, unknown>[] | null {
     // SPLASH only triggers on melee attacks
     if (attackType !== 'melee') return null
 
@@ -1073,7 +1079,7 @@ export class CombatResolver {
     if (splashTargets.length === 0) return null
 
     // Return pending splash attacks that need defense resolution
-    return splashTargets.map((target) => ({
+    return splashTargets.map((target: CreatureInstance) => ({
       attackerInstance,
       targetInstance: target,
       damage: 20, // Splash damage amount
@@ -1088,12 +1094,13 @@ export class CombatResolver {
    *
    * Big O: O(c) where c = creatures in play (for removal)
    *
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {CreatureInstance} targetInstance - The splash target
-   * @param {number} damageAfterDefense - Damage to apply after defense (0 if fully blocked)
-   * @returns {Object} Splash attack result
+   * @param damageAfterDefense - Damage to apply after defense (0 if fully blocked)
    */
-  executeSplashDamage(attackerInstance, targetInstance, damageAfterDefense) {
+  executeSplashDamage(
+    attackerInstance: CreatureInstance,
+    targetInstance: CreatureInstance,
+    damageAfterDefense: number
+  ): Record<string, unknown> {
     const result = this.gameState.applyTombGuardianSplash(
       targetInstance,
       attackerInstance.owner,
@@ -1112,15 +1119,12 @@ export class CombatResolver {
    *
    * Big O Complexity: O((2R+1)^2 * n) where R = range, n = tiles in line
    * For range 5: O(121 * 5) = O(605)
-   *
-   * @param {CreatureInstance} creatureInstance - The creature to check range for
-   * @returns {Array} Array of {x, y, hasLOS, blockReason} for tiles in range
    */
-  getRangedAttackRangeTiles(creatureInstance) {
+  getRangedAttackRangeTiles(creatureInstance: CreatureInstance): RangeTile[] {
     if (!creatureInstance?.position) return []
     if (!creatureInstance.creature.rangedAttack) return []
 
-    const rangeTiles = []
+    const rangeTiles: RangeTile[] = []
     const pos = creatureInstance.position
     const range = creatureInstance.creature.rangedAttack.range
     const attackerOwner = creatureInstance.owner
@@ -1154,7 +1158,7 @@ export class CombatResolver {
 
         const tile = this.gameState.getTile(x, y)
         let hasLOS = true
-        let blockReason = null
+        let blockReason: string | null = null
 
         // Check blocking reasons
         if (attackerOnForest) {
