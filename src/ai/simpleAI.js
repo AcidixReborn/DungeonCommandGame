@@ -1,5 +1,6 @@
 import { GamePhases } from '../models/gameState.js'
 import { CreatureInstance } from '../models/creatures.js'
+import { logger } from '../utils/logger.js'
 // ActionTypes import removed - not used
 
 /**
@@ -975,7 +976,7 @@ export class SimpleAI {
               creatureInstance: creature,
               reason: shouldRemove.reason
             })
-            console.log(`[AI] Removed Web from ${creature.creature.name}: ${shouldRemove.reason}`)
+            logger.ai(`Removed Web from ${creature.creature.name}: ${shouldRemove.reason}`)
             // Creature can still move after removing web!
           }
         }
@@ -1093,7 +1094,7 @@ export class SimpleAI {
               const sortedTargets = [...lightningTargets].sort((a, b) => a.currentHP - b.currentHP)
               const selectedTargets = sortedTargets.slice(0, 3)
 
-              console.log(`[AI] LIGHTNING BREATH: ${creature.creature.name} targeting ${selectedTargets.map(t => t.creature.name).join(', ')}`)
+              logger.ai(`LIGHTNING BREATH: ${creature.creature.name} targeting ${selectedTargets.map(t => t.creature.name).join(', ')}`)
 
               actions.push({
                 type: 'lightning_breath',
@@ -1166,7 +1167,7 @@ export class SimpleAI {
             }
 
             if (bestShiftAttack) {
-              console.log(`[AI] SHIFT+ATTACK: ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`)
+              logger.ai(`SHIFT+ATTACK: ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`)
 
               actions.push({
                 type: 'shift_attack',
@@ -1201,7 +1202,7 @@ export class SimpleAI {
               }
 
               if (bestCharge) {
-                console.log(`[AI] CHARGE: ${creature.creature.name} using ${bestCharge.card.name} - move to (${bestCharge.moveTo.x},${bestCharge.moveTo.y}) then melee attack ${bestCharge.target.creature.name}`)
+                logger.ai(`CHARGE: ${creature.creature.name} using ${bestCharge.card.name} - move to (${bestCharge.moveTo.x},${bestCharge.moveTo.y}) then melee attack ${bestCharge.target.creature.name}`)
 
                 actions.push({
                   type: 'charge_attack',
@@ -1308,7 +1309,7 @@ export class SimpleAI {
             }
 
             if (bestShiftAttack) {
-              console.log(`[AI] SHIFT+ATTACK (post-move): ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`)
+              logger.ai(`SHIFT+ATTACK (post-move): ${creature.creature.name} using ${bestShiftAttack.card.name} - shift to (${bestShiftAttack.shiftTo.x},${bestShiftAttack.shiftTo.y}) then ${bestShiftAttack.attackType} attack ${bestShiftAttack.target.creature.name}`)
 
               actions.push({
                 type: 'shift_attack',
@@ -1961,7 +1962,7 @@ export class SimpleAI {
         if (scoredTargets.length > 0 && scoredTargets[0].score > 0) {
           const bestTarget = scoredTargets[0]
           if (bestTarget.score >= 50) {
-            console.log(`[AI HARD] UNTAP ON KILL: Prioritizing target ${bestTarget.target.creature.creature.name} adjacent to tapped Bugbear (score: ${bestTarget.score})`)
+            logger.ai(`HARD: UNTAP ON KILL: Prioritizing target ${bestTarget.target.creature.creature.name} adjacent to tapped Bugbear (score: ${bestTarget.score})`)
           }
           return bestTarget.target
         }
@@ -2130,7 +2131,7 @@ export class SimpleAI {
 
       const result = this.gameState.executeHealingTouch(healerInstance, mostDamaged, 'heal')
       if (result.success) {
-        console.log(`[AI] HEALING TOUCH: ${healerInstance.creature.name} healed ${mostDamaged.creature.name} - ${result.message}`)
+        logger.ai(`HEALING TOUCH: ${healerInstance.creature.name} healed ${mostDamaged.creature.name} - ${result.message}`)
         return {
           type: 'healing_touch',
           healerInstance,
@@ -2151,7 +2152,7 @@ export class SimpleAI {
       const target = hasAttachedCards[0]
       const result = this.gameState.executeHealingTouch(healerInstance, target, 'removeCard', 0)
       if (result.success) {
-        console.log(`[AI] HEALING TOUCH: ${healerInstance.creature.name} removed ${result.removedCard?.name} from ${target.creature.name}`)
+        logger.ai(`HEALING TOUCH: ${healerInstance.creature.name} removed ${result.removedCard?.name} from ${target.creature.name}`)
         return {
           type: 'healing_touch',
           healerInstance,
@@ -3076,7 +3077,7 @@ export class SimpleAI {
 
     if (webCards.length === 0) return actions
 
-    console.log(`[AI] tryUseWebCards: Found ${webCards.length} Web cards in hand`)
+    logger.ai(`tryUseWebCards: Found ${webCards.length} Web cards in hand`)
 
     // For each Web card, find best caster and target
     for (const webCard of webCards) {
@@ -3112,7 +3113,7 @@ export class SimpleAI {
 
       // If we found a good target, add the action
       if (bestAction && bestScore > 0) {
-        console.log(`[AI] Web: ${bestAction.casterInstance.creature.name} targeting ${bestAction.targetInstance.creature.name} (score: ${bestScore})`)
+        logger.ai(`Web: ${bestAction.casterInstance.creature.name} targeting ${bestAction.targetInstance.creature.name} (score: ${bestScore})`)
 
         // Apply the Web immediately
         const result = this.gameState.applyWeb(
@@ -3301,7 +3302,7 @@ export class SimpleAI {
         player.orderHand.splice(cardIndex, 1)
       }
 
-      console.log(`[AI] Patch Up: ${best.creature.creature.name} healed ${best.healValue} damage (score: ${best.score})`)
+      logger.ai(`Patch Up: ${best.creature.creature.name} healed ${best.healValue} damage (score: ${best.score})`)
 
       actions.push({
         type: 'patch_up_heal',
@@ -3436,7 +3437,7 @@ export class SimpleAI {
         player.orderHand.splice(cardIndex, 1)
       }
 
-      console.log(`[AI] Tough as Nails: ${best.creature.creature.name} - ${best.reason} (score: ${best.score})`)
+      logger.ai(`Tough as Nails: ${best.creature.creature.name} - ${best.reason} (score: ${best.score})`)
 
       actions.push({
         type: 'tough_as_nails',

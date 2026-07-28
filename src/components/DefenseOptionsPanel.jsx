@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button, Badge, Card, Alert, Form } from 'react-bootstrap'
 import CreatureCard from './CreatureCard'
+import { logger } from '../utils/logger'
 import './CombatPanel.css'
 
 /**
@@ -117,8 +118,7 @@ function DefenseOptionsPanel({
   // For display purposes - track if ability attack has a bonus included
   const abilityIncludesBonus = isAbilityAttackWithPreCalcDamage && damageBoostBonus > 0
 
-  // DEBUG: Log calculated values
-  console.log('[DefenseOptionsPanel] Calculated - isAbilityAttackWithPreCalcDamage:', isAbilityAttackWithPreCalcDamage, 'baseDamage:', baseDamage, 'orderCardBonus:', orderCardBonus, 'abilityIncludesBonus:', abilityIncludesBonus)
+  logger.combat('DefenseOptionsPanel damage calculated', { isAbilityAttackWithPreCalcDamage, baseDamage, orderCardBonus, abilityIncludesBonus })
 
   // Total damage calculation
   // Flat damage (Killing Strike) replaces base damage and ignores flanking/cutter

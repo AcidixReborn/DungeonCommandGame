@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Container, Row, Col, Card, Button, Form, Badge, Alert } from 'react-bootstrap'
 import { Factions } from '../data/factions'
+import { logger } from '../utils/logger'
 import './FactionSelector.css'
 
 const factionInfo = {
@@ -106,16 +107,13 @@ function FactionSelector({ onStartGame }) {
   }
 
   const handleStartGame = () => {
-    console.log('handleStartGame called')
-    console.log('numPlayers:', numPlayers)
-    console.log('selectedFactions:', selectedFactions)
-    console.log('playerTypes:', playerTypes)
+    logger.info('handleStartGame called', { numPlayers, selectedFactions, playerTypes })
 
     // Validate all active players have factions
     for (let i = 1; i <= numPlayers; i++) {
       if (!selectedFactions[`player${i}`]) {
         setError(`Player ${i} must select a faction!`)
-        console.log(`Error: Player ${i} faction not selected`)
+        logger.warn(`Player ${i} faction not selected`)
         return
       }
     }
@@ -135,7 +133,7 @@ function FactionSelector({ onStartGame }) {
 
     config.numPlayers = numPlayers
 
-    console.log('Calling onStartGame with config:', config)
+    logger.info('Calling onStartGame with config', config)
     onStartGame(config)
   }
 

@@ -19,9 +19,19 @@
 // Format timestamp for log entries
 const timestamp = () => new Date().toISOString().replace('T', ' ').substring(0, 19)
 
-// Write to file via Electron IPC (async, fire-and-forget)
-// FILE-ONLY OUTPUT - no console logging
-const writeToFile = (level, category, message, data) => {
+const CONSOLE_FN = { ERROR: console.error, WARN: console.warn }
+
+// Log to console always (works in both browser dev and Electron), and additionally
+// persist to the debug.log file via Electron IPC when running inside Electron.
+const emit = (level, category, message, data) => {
+  const consoleFn = CONSOLE_FN[level] || console.log
+  const tag = `[${category}] ${message}`
+  if (data !== undefined && data !== null) {
+    consoleFn(tag, data)
+  } else {
+    consoleFn(tag)
+  }
+
   if (window.electronAPI?.writeLog) {
     const dataStr = data !== undefined && data !== null ? ' ' + JSON.stringify(data) : ''
     const entry = `[${timestamp()}] [${level}] [${category}] ${message}${dataStr}`
@@ -53,108 +63,120 @@ export const getLogPath = async () => {
 
 export const logger = {
   /**
-   * Info logging - file only
+   * Debug logging - variadic, mirrors console.log's flexible signature.
+   * Use for ad-hoc trace logging where a fixed (msg, data) shape doesn't fit.
+   */
+  debug: (...args) => {
+    console.log(...args)
+    if (window.electronAPI?.writeLog) {
+      const entry = `[${timestamp()}] [DEBUG] ${args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')}`
+      window.electronAPI.writeLog(entry)
+    }
+  },
+
+  /**
+   * Info logging
    */
   info: (msg, data) => {
-    writeToFile('INFO', 'GENERAL', msg, data)
+    emit('INFO', 'GENERAL', msg, data)
   },
 
   /**
-   * Warning logging - file only
+   * Warning logging
    */
   warn: (msg, data) => {
-    writeToFile('WARN', 'GENERAL', msg, data)
+    emit('WARN', 'GENERAL', msg, data)
   },
 
   /**
-   * Error logging - file only
+   * Error logging
    */
   error: (msg, data) => {
-    writeToFile('ERROR', 'GENERAL', msg, data)
+    emit('ERROR', 'GENERAL', msg, data)
   },
 
   /**
    * Game event logging - key game state changes
    */
   gameEvent: (event, data) => {
-    writeToFile('INFO', 'GAME', event, data)
+    emit('INFO', 'GAME', event, data)
   },
 
   /**
    * Phase logging - phase transitions
    */
   phase: (phase, player) => {
-    writeToFile('INFO', 'PHASE', `${phase} - Player ${player}`)
+    emit('INFO', 'PHASE', `${phase} - Player ${player}`)
   },
 
   /**
    * Combat logging - attacks, damage, defense
    */
   combat: (action, details) => {
-    writeToFile('INFO', 'COMBAT', action, details)
+    emit('INFO', 'COMBAT', action, details)
   },
 
   /**
    * Card logging - order card usage and draws
    */
   card: (cardName, action, details) => {
-    writeToFile('INFO', 'CARD', `${cardName}: ${action}`, details)
+    emit('INFO', 'CARD', `${cardName}: ${action}`, details)
   },
 
   /**
    * Ability logging - creature abilities
    */
   ability: (ability, details) => {
-    writeToFile('INFO', 'ABILITY', ability, details)
+    emit('INFO', 'ABILITY', ability, details)
   },
 
   /**
    * AI logging - AI decisions
    */
   ai: (decision, context) => {
-    writeToFile('INFO', 'AI', decision, context)
+    emit('INFO', 'AI', decision, context)
   },
 
   /**
    * Modal logging - modal opens/closes
    */
   modal: (modalName, action, details) => {
-    writeToFile('INFO', 'MODAL', `${modalName}: ${action}`, details)
+    emit('INFO', 'MODAL', `${modalName}: ${action}`, details)
   },
 
   /**
    * Damage logging - damage dealt/prevented
    */
   damage: (action, details) => {
-    writeToFile('INFO', 'DAMAGE', action, details)
+    emit('INFO', 'DAMAGE', action, details)
   },
 
   /**
    * Movement logging - creature movement
    */
   movement: (creatureName, details) => {
-    writeToFile('INFO', 'MOVEMENT', `${creatureName} moved`, details)
+    emit('INFO', 'MOVEMENT', `${creatureName} moved`, details)
   },
 
   /**
    * Tap logging - creature tap/untap
    */
   tap: (creatureName, action, details) => {
-    writeToFile('INFO', 'TAP', `${creatureName}: ${action}`, details)
+    emit('INFO', 'TAP', `${creatureName}: ${action}`, details)
   },
 
   /**
    * Deploy logging - creature deployment
    */
   deploy: (creatureName, details) => {
-    writeToFile('INFO', 'DEPLOY', `${creatureName} deployed`, details)
+    emit('INFO', 'DEPLOY', `${creatureName} deployed`, details)
   },
 
   /**
    * Defense logging - defense actions
    */
   defense: (action, details) => {
-    writeToFile('INFO', 'DEFENSE', action, details)
+    emit('INFO', 'DEFENSE', action, details)
   }
 }
 

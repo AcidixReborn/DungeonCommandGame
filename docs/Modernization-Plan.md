@@ -14,16 +14,18 @@ Master plan for paying down technical debt before resuming Order Card content wo
 
 ---
 
-## Phase A: Foundation & Git Hygiene
+## Phase A: Foundation & Git Hygiene ✅ COMPLETE
 
 | Item | Status |
 |------|--------|
-| Add `dist-electron/`, `.vite/` to `.gitignore` | ⬜ |
-| `git rm --cached` the currently-tracked build artifacts | ⬜ |
-| Add `LICENSE` file (MIT for code; WotC IP disclaimer in README/ABOUT stays as-is) | ⬜ |
-| Flesh out `package.json` metadata (`description`, `repository`, `author`, `keywords`, `license`) | ⬜ |
-| Resolve/remove stale `// TODO: Apply card effects` at `GameBoard.jsx:1470` | ⬜ |
-| Roll out file-based `logger` (`src/utils/logger.js`) to remaining ~95 `console.log` sites | ⬜ |
+| Add `dist-electron/`, `.vite/` to `.gitignore` | ✅ |
+| `git rm --cached` the currently-tracked build artifacts | ✅ |
+| Add `LICENSE` file (MIT for code; WotC IP disclaimer in README/ABOUT stays as-is) | ✅ |
+| Flesh out `package.json` metadata (`description`, `repository`, `author`, `keywords`, `license`) | ✅ |
+| Resolve/remove stale `// TODO: Apply card effects` at `GameBoard.jsx:1470` | ✅ — the whole surrounding code path (`handleReactionsPlayed`) was dead, never wired up; removed it along with the orphaned 667-line `ImmediateReactionModal.jsx`/`.css` it belonged to (fully superseded by `DefenseOptionsPanel`, no longer imported anywhere) |
+| Roll out file-based `logger` (`src/utils/logger.js`) to remaining ~95 `console.log` sites | ✅ — also fixed `logger.js` itself, which had drifted to file-only output (Electron IPC only) despite its docstring promising console+file; that would've silently killed all logging under the documented browser `npm run dev` workflow. Added a `logger.debug(...)` variadic passthrough for GameBoard.jsx's dense multi-arg trace logs. Left `src/test/AbilitiesTest.jsx`'s `console.log` calls alone — those are an interactive test-runner's progress output, not gameplay debug noise |
+
+**Checkpoint**: `npm install` + `npm run build` succeed cleanly.
 
 ---
 

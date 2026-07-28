@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Modal, Button, Alert } from 'react-bootstrap'
+import { logger } from '../utils/logger'
 
 /**
  * DamageBoostModal - Confirmation modal for STANDARD damage boost order cards
@@ -46,7 +47,7 @@ function DamageBoostModal({
     if (canConfirm) {
       onConfirm()
     } else {
-      console.log('[DamageBoostModal] Blocked early confirm - modal just opened')
+      logger.modal('DamageBoostModal', 'Blocked early confirm - modal just opened')
     }
   }
 

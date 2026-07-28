@@ -2,6 +2,21 @@
   "name": "dungeon-command-game",
   "private": true,
   "version": "0.0.1",
+  "description": "A digital, browser/desktop recreation of the Wizards of the Coast tactical miniatures game Dungeon Command, built with React, Vite, and Electron.",
+  "author": "douglasgbays",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AcidixReborn/DungeonCommandGame.git"
+  },
+  "keywords": [
+    "dungeon-command",
+    "board-game",
+    "tactics",
+    "react",
+    "electron",
+    "vite"
+  ],
   "type": "module",
   "main": "electron/main.mjs",
   "scripts": {

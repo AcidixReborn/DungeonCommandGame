@@ -1,4 +1,5 @@
 import { Modal, Button, Badge, Alert, ListGroup } from 'react-bootstrap'
+import { logger } from '../utils/logger'
 
 /**
  * HealingTouchModal - Allows player to choose Healing Touch action
@@ -44,8 +45,7 @@ function HealingTouchModal({
   // Get attached cards
   const attachedCards = targetInstance.attachedCards || []
   const hasAttachedCards = attachedCards.length > 0
-  console.log('[HEALING TOUCH DEBUG] targetInstance.attachedCards:', targetInstance.attachedCards,
-    'hasAttachedCards:', hasAttachedCards, 'target:', target.name)
+  logger.modal('HealingTouchModal', 'target info', { attachedCards: targetInstance.attachedCards, hasAttachedCards, target: target.name })
 
   return (
     <Modal

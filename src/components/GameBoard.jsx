@@ -1450,31 +1450,6 @@ function GameBoard({ onTurnInfoChange }) {
     }
   }
 
-  // Handle when defender uses Immediate reaction cards
-  const handleReactionsPlayed = (selectedReactions) => {
-    if (!pendingAttack) return
-
-    const defenderPlayer = gameState.players[pendingAttack.defenderInstance.owner]
-
-    // Sort reactions by cardIndex in descending order to prevent index shifting issues
-    const sortedReactions = [...selectedReactions].sort((a, b) => b.cardIndex - a.cardIndex)
-
-    // Process each reaction
-    sortedReactions.forEach(reaction => {
-      // Tap the creature that used the card
-      reaction.creature.isTapped = true
-
-      // Discard the order card from hand
-      defenderPlayer.orderHand.splice(reaction.cardIndex, 1)
-
-      // TODO: Apply card effects (will be implemented in Step 8)
-    })
-
-    // Close modal/panel and execute the attack
-    closeCombatPanel()
-    executeAttackAfterReactions(selectedReactions)
-  }
-
   // Handle when defender skips reactions
   const handleReactionsSkipped = () => {
     closeCombatPanel()
@@ -1920,13 +1895,13 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} defenseResult - { type, damageReduction, moraleCost, success, ... }
    */
   const executeAttackAfterDefense = (defenseResult) => {
-    console.log('[executeAttackAfterDefense] === CALLED ===')
-    console.log('[executeAttackAfterDefense] defenseResult:', defenseResult)
-    console.log('[executeAttackAfterDefense] pendingAttack:', pendingAttack)
-    console.log('[executeAttackAfterDefense] savageDemisePending:', savageDemisePending)
+    logger.debug('[executeAttackAfterDefense] === CALLED ===')
+    logger.debug('[executeAttackAfterDefense] defenseResult:', defenseResult)
+    logger.debug('[executeAttackAfterDefense] pendingAttack:', pendingAttack)
+    logger.debug('[executeAttackAfterDefense] savageDemisePending:', savageDemisePending)
 
     if (!pendingAttack) {
-      console.log('[executeAttackAfterDefense] No pendingAttack - returning early')
+      logger.debug('[executeAttackAfterDefense] No pendingAttack - returning early')
       return
     }
 
@@ -1934,7 +1909,7 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Handle RANGED SPLASH damage (ACID BREATH / EXPLOSIVE BOLTS)
     if (isRangedSplash && rangedSplashAttackInfo) {
-      console.log('[executeAttackAfterDefense] Handling RANGED SPLASH')
+      logger.debug('[executeAttackAfterDefense] Handling RANGED SPLASH')
       const damageReduction = defenseResult.damageReduction || 0
       handleRangedSplashDefenseComplete({ damageReduction })
       return
@@ -2141,7 +2116,7 @@ function GameBoard({ onTurnInfoChange }) {
           attachedTurn: gameState.turnNumber,
           attachOnUse: damageBoostCard.attachOnUse  // Contains damageOnActivation: 10
         })
-        console.log('[DEEP WOUND DEBUG] Attached to', defenderInstance.creature.name,
+        logger.debug('[DEEP WOUND DEBUG] Attached to', defenderInstance.creature.name,
           'attachedCards:', defenderInstance.attachedCards,
           'card:', damageBoostCard.name)
         addToast(`🩸 ${damageBoostCard.name} attached to ${defenderInstance.creature.name}!`)
@@ -2245,12 +2220,12 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // Check for FLASHING BLADES trigger after defense (only for normal melee attacks, not splash/ability attacks)
-      console.log('[executeAttackAfterDefense] Checking ability triggers - isFlashingBlades:', isFlashingBlades, 'isHiddenBlade:', isHiddenBlade, 'isConfusionGaze:', isConfusionGaze)
-      console.log('[executeAttackAfterDefense] targetInfo.attackType:', targetInfo.attackType)
+      logger.debug('[executeAttackAfterDefense] Checking ability triggers - isFlashingBlades:', isFlashingBlades, 'isHiddenBlade:', isHiddenBlade, 'isConfusionGaze:', isConfusionGaze)
+      logger.debug('[executeAttackAfterDefense] targetInfo.attackType:', targetInfo.attackType)
       if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades' &&
           !isHiddenBlade && targetInfo.attackType !== 'hidden_blade' &&
           !isConfusionGaze && targetInfo.attackType !== 'confusion_gaze') {
-        console.log('[executeAttackAfterDefense] Passed ability trigger condition check - checking FLASHING BLADES and HIDDEN BLADE')
+        logger.debug('[executeAttackAfterDefense] Passed ability trigger condition check - checking FLASHING BLADES and HIDDEN BLADE')
         if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
           // Modal shown - don't clear state yet, wait for modal response
           // BUT we DO need to trigger a re-render to show destroyed creature being removed
@@ -2598,15 +2573,15 @@ function GameBoard({ onTurnInfoChange }) {
 
   // Execute the attack after reactions have been handled
   const executeAttackAfterReactions = (reactions) => {
-    console.log('[executeAttackAfterReactions] === CALLED ===')
-    console.log('[executeAttackAfterReactions] pendingAttack:', pendingAttack)
+    logger.debug('[executeAttackAfterReactions] === CALLED ===')
+    logger.debug('[executeAttackAfterReactions] pendingAttack:', pendingAttack)
     if (!pendingAttack) {
-      console.log('[executeAttackAfterReactions] EARLY RETURN - no pendingAttack')
+      logger.debug('[executeAttackAfterReactions] EARLY RETURN - no pendingAttack')
       return
     }
 
     const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze, damageBoostCard, damageBoostBonus, damageBoostFlat } = pendingAttack
-    console.log('[executeAttackAfterReactions] isHiddenBlade:', isHiddenBlade, 'targetInfo.attackType:', targetInfo?.attackType)
+    logger.debug('[executeAttackAfterReactions] isHiddenBlade:', isHiddenBlade, 'targetInfo.attackType:', targetInfo?.attackType)
 
     // Discard damage boost card from hand before executing attack (card is committed at this point)
     if (damageBoostCard && pendingDamageBoostAttack) {
@@ -2629,11 +2604,11 @@ function GameBoard({ onTurnInfoChange }) {
       }
     } else if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
       // HIDDEN BLADE attack - use special handling
-      console.log('[executeAttackAfterReactions] Executing HIDDEN BLADE attack')
-      console.log('[executeAttackAfterReactions] defenderInstance:', defenderInstance?.creature?.name, 'HP before:', defenderInstance?.currentHP)
+      logger.debug('[executeAttackAfterReactions] Executing HIDDEN BLADE attack')
+      logger.debug('[executeAttackAfterReactions] defenderInstance:', defenderInstance?.creature?.name, 'HP before:', defenderInstance?.currentHP)
       result = gameState.applyHiddenBlade(defenderInstance, attackerInstance.owner)
-      console.log('[executeAttackAfterReactions] HIDDEN BLADE result:', result)
-      console.log('[executeAttackAfterReactions] defenderInstance HP after:', defenderInstance?.currentHP)
+      logger.debug('[executeAttackAfterReactions] HIDDEN BLADE result:', result)
+      logger.debug('[executeAttackAfterReactions] defenderInstance HP after:', defenderInstance?.currentHP)
       // Now tap the attacker (deferred from original attack)
       if (attackerInstance.hasMovedThisTurn) {
         attackerInstance.tap()
@@ -2758,7 +2733,7 @@ function GameBoard({ onTurnInfoChange }) {
           attachedTurn: gameState.turnNumber,
           attachOnUse: damageBoostCard.attachOnUse  // Contains damageOnActivation: 10
         })
-        console.log('[DEEP WOUND DEBUG] Attached to', defenderInstance.creature.name,
+        logger.debug('[DEEP WOUND DEBUG] Attached to', defenderInstance.creature.name,
           'attachedCards:', defenderInstance.attachedCards,
           'card:', damageBoostCard.name)
         addToast(`🩸 ${damageBoostCard.name} attached to ${defenderInstance.creature.name}!`)
@@ -3242,19 +3217,19 @@ function GameBoard({ onTurnInfoChange }) {
    * Consumes action (like STANDARD), does NOT tap unless already moved
    */
   const executeToughAsNails = () => {
-    console.log('[TOUGH AS NAILS] executeToughAsNails called', toughAsNailsConfig)
+    logger.debug('[TOUGH AS NAILS] executeToughAsNails called', toughAsNailsConfig)
     if (!toughAsNailsConfig?.card || !toughAsNailsConfig?.creature) {
-      console.log('[TOUGH AS NAILS] Missing config, aborting')
+      logger.debug('[TOUGH AS NAILS] Missing config, aborting')
       return
     }
 
     const { card, creature } = toughAsNailsConfig
     const player = gameState.players[creature.owner]
-    console.log('[TOUGH AS NAILS] Player:', player?.id, 'Hand size:', player?.orderHand?.length)
+    logger.debug('[TOUGH AS NAILS] Player:', player?.id, 'Hand size:', player?.orderHand?.length)
 
     // Find and remove card from hand
     const handCardIndex = player.orderHand.findIndex(c => c.id === card.id)
-    console.log('[TOUGH AS NAILS] Card index in hand:', handCardIndex)
+    logger.debug('[TOUGH AS NAILS] Card index in hand:', handCardIndex)
     if (handCardIndex === -1) {
       addToast(`Card not found in hand`)
       setShowToughAsNailsModal(false)
@@ -3264,13 +3239,13 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Remove from hand
     player.orderHand.splice(handCardIndex, 1)
-    console.log('[TOUGH AS NAILS] Card removed, new hand size:', player.orderHand.length)
+    logger.debug('[TOUGH AS NAILS] Card removed, new hand size:', player.orderHand.length)
 
     // Apply attachment (cleanse + attach)
-    console.log('[TOUGH AS NAILS] Before attachment, creature.attachedCards:', creature.attachedCards)
+    logger.debug('[TOUGH AS NAILS] Before attachment, creature.attachedCards:', creature.attachedCards)
     const removedCards = gameState.applyImmediateCardAttachment(creature, card, creature.owner)
-    console.log('[TOUGH AS NAILS] After attachment, creature.attachedCards:', creature.attachedCards)
-    console.log('[TOUGH AS NAILS] Removed cards:', removedCards)
+    logger.debug('[TOUGH AS NAILS] After attachment, creature.attachedCards:', creature.attachedCards)
+    logger.debug('[TOUGH AS NAILS] Removed cards:', removedCards)
 
     // Mark creature as having acted
     creature.hasAttackedThisTurn = true
@@ -3284,7 +3259,7 @@ function GameBoard({ onTurnInfoChange }) {
       const cardNames = removedCards.map(att => att.card?.name || 'Unknown').join(', ')
       message = `🛡️ TOUGH AS NAILS: ${creature.creature.name} removes ${cardNames} and gains Block 10!`
     }
-    console.log('[TOUGH AS NAILS] Toast message:', message)
+    logger.debug('[TOUGH AS NAILS] Toast message:', message)
     addToast(message)
 
     // Close modal and clear state
@@ -3299,7 +3274,7 @@ function GameBoard({ onTurnInfoChange }) {
    * Cancel Tough as Nails proactive use
    */
   const cancelToughAsNails = () => {
-    console.log('[TOUGH AS NAILS] Cancelled by user')
+    logger.debug('[TOUGH AS NAILS] Cancelled by user')
     setShowToughAsNailsModal(false)
     setToughAsNailsConfig({ card: null, cardIndex: null, creature: null })
   }
@@ -4717,7 +4692,7 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const handleOrderCardRightClick = (card, cardIndex) => {
     // [STD-ORDER DEBUG] Log entry point
-    console.log('[STD-ORDER DEBUG] handleOrderCardRightClick START', {
+    logger.debug('[STD-ORDER DEBUG] handleOrderCardRightClick START', {
       cardName: card?.name,
       cardId: card?.id,
       actionType: card?.actionType,
@@ -4732,11 +4707,11 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Guard: Prevent re-triggering if damage boost modal is showing or attack targeting is active
     if (showDamageBoostModal) {
-      console.log('[STD-ORDER DEBUG] BLOCKED - damage boost modal is showing')
+      logger.debug('[STD-ORDER DEBUG] BLOCKED - damage boost modal is showing')
       return
     }
     if (pendingDamageBoostAttack) {
-      console.log('[STD-ORDER DEBUG] BLOCKED - pending damage boost attack is active')
+      logger.debug('[STD-ORDER DEBUG] BLOCKED - pending damage boost attack is active')
       return
     }
 
@@ -4833,7 +4808,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Show confirmation modal before applying
     if (card.canUseProactively && card.attachOnUse) {
       const creature = orderCardFilterCreature
-      console.log('[TOUGH AS NAILS] Checking eligibility', { card: card.name, creature: creature.creature.name })
+      logger.debug('[TOUGH AS NAILS] Checking eligibility', { card: card.name, creature: creature.creature.name })
 
       // Check level requirement
       if (card.level > creature.creature.level) {
@@ -4860,7 +4835,7 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // Show confirmation modal
-      console.log('[TOUGH AS NAILS] Showing confirmation modal')
+      logger.debug('[TOUGH AS NAILS] Showing confirmation modal')
       setToughAsNailsConfig({
         card,
         cardIndex,
@@ -5006,7 +4981,7 @@ function GameBoard({ onTurnInfoChange }) {
     const isShiftAttackType = card.shiftBeforeAttack > 0
 
     // [STD-ORDER DEBUG] Log STANDARD card property checks
-    console.log('[STD-ORDER DEBUG] STANDARD card property check', {
+    logger.debug('[STD-ORDER DEBUG] STANDARD card property check', {
       cardName: card.name,
       actionType: card.actionType,
       meleeDamageBonus: card.meleeDamageBonus,
@@ -5080,7 +5055,7 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Show confirmation modal
       // [STD-ORDER DEBUG] Log DamageBoostModal being shown
-      console.log('[STD-ORDER DEBUG] SHOWING DamageBoostModal', {
+      logger.debug('[STD-ORDER DEBUG] SHOWING DamageBoostModal', {
         cardName: card.name,
         creatureName: creature.creature.name,
         config: { card, cardIndex, creature: creature.creature.name }
@@ -5095,7 +5070,7 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     // [STD-ORDER DEBUG] Log fallthrough to generic handler
-    console.log('[STD-ORDER DEBUG] FALLTHROUGH to generic targeting mode', {
+    logger.debug('[STD-ORDER DEBUG] FALLTHROUGH to generic targeting mode', {
       cardName: card.name,
       actionType: card.actionType,
       reason: 'Did not match any specialized handler (DamageBoost, Charge, ShiftAttack, etc.)'
@@ -5160,14 +5135,14 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const confirmDamageBoost = () => {
     // [STD-ORDER DEBUG] Log confirmDamageBoost entry
-    console.log('[STD-ORDER DEBUG] confirmDamageBoost called', {
+    logger.debug('[STD-ORDER DEBUG] confirmDamageBoost called', {
       hasConfig: !!damageBoostConfig,
       cardName: damageBoostConfig?.card?.name,
       creatureName: damageBoostConfig?.creature?.creature?.name
     })
 
     if (!damageBoostConfig?.card || !damageBoostConfig?.creature || !gameState) {
-      console.log('[STD-ORDER DEBUG] confirmDamageBoost EARLY EXIT - missing config')
+      logger.debug('[STD-ORDER DEBUG] confirmDamageBoost EARLY EXIT - missing config')
       cancelDamageBoostAttack()
       return
     }
@@ -8247,28 +8222,28 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} defenseResult - { damageReduction: number, type: string, ... }
    */
   const handleSavageDemiseResolution = (defenseResult) => {
-    console.log('[handleSavageDemiseResolution] === CALLED ===')
-    console.log('[handleSavageDemiseResolution] defenseResult:', defenseResult)
-    console.log('[handleSavageDemiseResolution] savageDemisePending:', savageDemisePending)
-    console.log('[handleSavageDemiseResolution] pendingAttack:', pendingAttack)
+    logger.debug('[handleSavageDemiseResolution] === CALLED ===')
+    logger.debug('[handleSavageDemiseResolution] defenseResult:', defenseResult)
+    logger.debug('[handleSavageDemiseResolution] savageDemisePending:', savageDemisePending)
+    logger.debug('[handleSavageDemiseResolution] pendingAttack:', pendingAttack)
 
     if (!savageDemisePending || !pendingAttack) {
-      console.log('[handleSavageDemiseResolution] Missing state - savageDemisePending:', !!savageDemisePending, 'pendingAttack:', !!pendingAttack)
+      logger.debug('[handleSavageDemiseResolution] Missing state - savageDemisePending:', !!savageDemisePending, 'pendingAttack:', !!pendingAttack)
       return
     }
 
     const { attacker, target, damage, originalAttacker, card } = savageDemisePending
     const damageReduction = defenseResult.damageReduction || 0
 
-    console.log('[handleSavageDemiseResolution] attacker:', attacker?.creature?.name)
-    console.log('[handleSavageDemiseResolution] target:', target?.creature?.name)
-    console.log('[handleSavageDemiseResolution] damage:', damage)
-    console.log('[handleSavageDemiseResolution] damageReduction:', damageReduction)
+    logger.debug('[handleSavageDemiseResolution] attacker:', attacker?.creature?.name)
+    logger.debug('[handleSavageDemiseResolution] target:', target?.creature?.name)
+    logger.debug('[handleSavageDemiseResolution] damage:', damage)
+    logger.debug('[handleSavageDemiseResolution] damageReduction:', damageReduction)
 
     // Apply Savage Demise damage to target using the dedicated method
-    console.log('[handleSavageDemiseResolution] Calling applySavageDemiseDamage...')
+    logger.debug('[handleSavageDemiseResolution] Calling applySavageDemiseDamage...')
     const savageDemiseResult = gameState.applySavageDemiseDamage(target, attacker.owner, damage, damageReduction)
-    console.log('[handleSavageDemiseResolution] savageDemiseResult:', savageDemiseResult)
+    logger.debug('[handleSavageDemiseResolution] savageDemiseResult:', savageDemiseResult)
     const finalDamage = savageDemiseResult.damage
 
     // Build message
@@ -8319,13 +8294,13 @@ function GameBoard({ onTurnInfoChange }) {
     const sacrificer = attacker
     const sacrificerOwner = sacrificer.owner
 
-    console.log('[handleSavageDemiseResolution] Sacrificing creature:', sacrificer?.creature?.name)
-    console.log('[handleSavageDemiseResolution] Calling sacrificeCreature...')
+    logger.debug('[handleSavageDemiseResolution] Sacrificing creature:', sacrificer?.creature?.name)
+    logger.debug('[handleSavageDemiseResolution] Calling sacrificeCreature...')
 
     // Apply death - creature dies, owner loses morale equal to creature level
     const sacrificeDeathResult = gameState.sacrificeCreature(sacrificer)
 
-    console.log('[handleSavageDemiseResolution] sacrificeDeathResult:', sacrificeDeathResult)
+    logger.debug('[handleSavageDemiseResolution] sacrificeDeathResult:', sacrificeDeathResult)
 
     addToast(`☠️ SACRIFICE: ${sacrificer.creature.name} dies from Savage Demise! (Morale -${sacrificeDeathResult.moraleLost})`)
 
@@ -8350,13 +8325,13 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     // Clear Savage Demise state
-    console.log('[handleSavageDemiseResolution] Clearing state...')
+    logger.debug('[handleSavageDemiseResolution] Clearing state...')
     clearSavageDemiseState()
     setPendingAttack(null)
 
     // Force re-render to update UI
     setRenderCounter(prev => prev + 1)
-    console.log('[handleSavageDemiseResolution] === COMPLETE ===')
+    logger.debug('[handleSavageDemiseResolution] === COMPLETE ===')
   }
 
   /**
