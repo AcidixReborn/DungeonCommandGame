@@ -3,23 +3,30 @@
 
 import { useState, useCallback, useRef } from 'react'
 
+export interface ToastMessage {
+  id: number
+  message: string
+  timestamp: number
+  round: number
+}
+
+export interface UseNotificationsOptions {
+  getCurrentTurnNumber?: () => number
+  isCurrentPlayerHuman?: () => boolean
+}
+
 /**
  * Custom hook for managing toast notifications and turn log
  * Provides auto-dismiss toasts and a filterable log of game events
- *
- * @param {Object} options - Configuration options
- * @param {Function} options.getCurrentTurnNumber - Function to get current turn number
- * @param {Function} options.isCurrentPlayerHuman - Function to check if current player is human
- * @returns {Object} Notification state and handlers
  */
-export function useNotifications(options = {}) {
+export function useNotifications(options: UseNotificationsOptions = {}) {
   const { getCurrentTurnNumber, isCurrentPlayerHuman } = options
 
   // Toast notification array - each toast has {id, message, timestamp, round}
-  const [toastMessages, setToastMessages] = useState([])
+  const [toastMessages, setToastMessages] = useState<ToastMessage[]>([])
 
   // Full log of messages since last turn (for expanded view)
-  const [turnLog, setTurnLog] = useState([])
+  const [turnLog, setTurnLog] = useState<ToastMessage[]>([])
 
   // Track if log panel is expanded
   const [isLogExpanded, setIsLogExpanded] = useState(false)
@@ -35,11 +42,9 @@ export function useNotifications(options = {}) {
    * - Adds to turn log for expanded view
    * - Filters out "AI turn ended" messages
    * - Only shows popup during AI turns - human turns just add to log
-   *
-   * @param {string} message - Message to display
    */
   const addToast = useCallback(
-    (message) => {
+    (message: string) => {
       // Filter out "AI turn ended" messages
       if (message === 'AI: AI turn ended') return
 
@@ -48,7 +53,7 @@ export function useNotifications(options = {}) {
 
       const turnNumber = getCurrentTurnNumber ? getCurrentTurnNumber() : 1
 
-      const newToast = {
+      const newToast: ToastMessage = {
         id,
         message,
         timestamp: Date.now(),
@@ -74,18 +79,16 @@ export function useNotifications(options = {}) {
 
   /**
    * Remove a toast by ID (memoized to prevent timer resets)
-   * @param {number} id - Toast ID to remove
    */
-  const removeToast = useCallback((id) => {
+  const removeToast = useCallback((id: number) => {
     setToastMessages((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
   /**
    * Clear old logs when a turn ends
    * Keeps current turn and previous turn visible
-   * @param {number} turnNumber - Current turn number
    */
-  const clearOldLogs = useCallback((turnNumber) => {
+  const clearOldLogs = useCallback((turnNumber: number) => {
     setTurnLog((prev) => prev.filter((t) => t.round >= turnNumber - 1))
     setToastMessages((prev) => prev.filter((t) => t.round >= turnNumber - 1))
   }, [])

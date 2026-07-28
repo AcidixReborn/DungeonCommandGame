@@ -3,11 +3,19 @@
 
 import { useState, useCallback } from 'react'
 
+// { creature, tile, creatureIndex, isFromGraveyard, source: 'drag'|'rightClick' }
+export interface PendingDeployment {
+  creature: unknown
+  tile: unknown
+  creatureIndex: number
+  isFromGraveyard?: boolean
+  source?: 'drag' | 'rightClick'
+  [key: string]: unknown
+}
+
 /**
  * Custom hook for managing deployment state
  * Handles deploy confirmation, graveyard deployment, and related UI state
- *
- * @returns {Object} Deployment state and handlers
  */
 export function useDeployment() {
   // ============================================
@@ -15,15 +23,14 @@ export function useDeployment() {
   // Shows leadership cost before deploying
   // ============================================
   const [showDeployConfirm, setShowDeployConfirm] = useState(false)
-  const [pendingDeployment, setPendingDeployment] = useState(null)
-  // { creature, tile, creatureIndex, isFromGraveyard, source: 'drag'|'rightClick' }
+  const [pendingDeployment, setPendingDeployment] = useState<PendingDeployment | null>(null)
 
   // ============================================
   // GRAVEYARD DEPLOY STATE
   // Tracks selected creature from graveyard for resurrection
   // ============================================
-  const [selectedGraveyardCreature, setSelectedGraveyardCreature] = useState(null)
-  const [selectedGraveyardIndex, setSelectedGraveyardIndex] = useState(null)
+  const [selectedGraveyardCreature, setSelectedGraveyardCreature] = useState<unknown>(null)
+  const [selectedGraveyardIndex, setSelectedGraveyardIndex] = useState<number | null>(null)
   const [draggingFromGraveyard, setDraggingFromGraveyard] = useState(false)
 
   // ============================================
@@ -35,9 +42,8 @@ export function useDeployment() {
 
   /**
    * Start a deployment confirmation
-   * @param {Object} deploymentInfo - { creature, tile, creatureIndex, isFromGraveyard, source }
    */
-  const startDeployConfirmation = useCallback((deploymentInfo) => {
+  const startDeployConfirmation = useCallback((deploymentInfo: PendingDeployment) => {
     setPendingDeployment(deploymentInfo)
     setShowDeployConfirm(true)
   }, [])
@@ -60,10 +66,8 @@ export function useDeployment() {
 
   /**
    * Select a creature from the graveyard for resurrection
-   * @param {Creature} creature - Creature to select
-   * @param {number} index - Index in graveyard array
    */
-  const selectGraveyardCreature = useCallback((creature, index) => {
+  const selectGraveyardCreature = useCallback((creature: unknown, index: number) => {
     setSelectedGraveyardCreature(creature)
     setSelectedGraveyardIndex(index)
   }, [])

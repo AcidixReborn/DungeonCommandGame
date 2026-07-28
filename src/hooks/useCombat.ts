@@ -3,25 +3,43 @@
 
 import { useState, useCallback } from 'react'
 
+// These loosely-shaped ad-hoc objects are assembled at many different call sites in
+// GameBoard.jsx with varying fields depending on the attack/card involved.
+export interface AttackInfo {
+  attackerInstance: { instanceId: string; [key: string]: unknown }
+  defenderInstance: { instanceId: string; [key: string]: unknown }
+  targetInfo?: unknown
+  [key: string]: unknown
+}
+
+export interface PendingMove {
+  creature: unknown
+  destination: unknown
+  path: unknown
+  cost: unknown
+  [key: string]: unknown
+}
+
 /**
  * Custom hook for managing combat state
  * Handles pending attacks, defense options, and combat panel mode
- *
- * @returns {Object} Combat state and handlers
  */
 export function useCombat() {
   // ============================================
   // PENDING ATTACK STATE
   // Stores attack info while waiting for defender reactions
   // ============================================
-  const [pendingAttack, setPendingAttack] = useState(null)
+  const [pendingAttack, setPendingAttack] = useState<AttackInfo | null>(null)
 
   // ============================================
   // COMBAT PANEL STATE
   // Used for in-panel attack confirmation and defense options
   // ============================================
-  const [combatPanelMode, setCombatPanelMode] = useState(null) // 'attack' | 'defense' | null
-  const [combatHighlightCreatures, setCombatHighlightCreatures] = useState({
+  const [combatPanelMode, setCombatPanelMode] = useState<'attack' | 'defense' | null>(null)
+  const [combatHighlightCreatures, setCombatHighlightCreatures] = useState<{
+    attacker: string | null
+    defender: string | null
+  }>({
     attacker: null, // instanceId of attacking creature
     defender: null, // instanceId of defending creature
   })
@@ -30,26 +48,25 @@ export function useCombat() {
   // MOVEMENT CONFIRMATION STATE
   // ============================================
   const [showMoveConfirm, setShowMoveConfirm] = useState(false)
-  const [pendingMove, setPendingMove] = useState(null) // {creature, destination, path, cost}
+  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null)
 
   // ============================================
   // RIGHT-CLICK ATTACK STATE
   // ============================================
-  const [pendingRightClickAttack, setPendingRightClickAttack] = useState(null) // {attacker, target, attackInfo}
+  const [pendingRightClickAttack, setPendingRightClickAttack] = useState<unknown>(null)
 
   // ============================================
   // AI ACTION QUEUE
   // For processing attacks with modal support
   // ============================================
-  const [pendingAIActions, setPendingAIActions] = useState([])
+  const [pendingAIActions, setPendingAIActions] = useState<unknown[]>([])
   const [processingAIAction, setProcessingAIAction] = useState(false)
 
   /**
    * Start combat panel in defense mode
    * Called when a human defender is attacked
-   * @param {Object} attackInfo - {attackerInstance, defenderInstance, targetInfo}
    */
-  const startDefensePanel = useCallback((attackInfo) => {
+  const startDefensePanel = useCallback((attackInfo: AttackInfo) => {
     setPendingAttack(attackInfo)
     setCombatPanelMode('defense')
     setCombatHighlightCreatures({
@@ -77,9 +94,8 @@ export function useCombat() {
 
   /**
    * Start movement confirmation
-   * @param {Object} moveInfo - {creature, destination, path, cost}
    */
-  const startMoveConfirmation = useCallback((moveInfo) => {
+  const startMoveConfirmation = useCallback((moveInfo: PendingMove) => {
     setPendingMove(moveInfo)
     setShowMoveConfirm(true)
   }, [])
@@ -102,15 +118,14 @@ export function useCombat() {
 
   /**
    * Queue AI attack intentions for processing
-   * @param {Array} attackIntentions - Array of attack intention objects
    */
-  const queueAIActions = useCallback((attackIntentions) => {
+  const queueAIActions = useCallback((attackIntentions: unknown[]) => {
     setPendingAIActions(attackIntentions)
   }, [])
 
   /**
    * Get next AI action from queue
-   * @returns {Object|null} Next action or null if queue is empty
+   * @returns Next action or null if queue is empty
    */
   const getNextAIAction = useCallback(() => {
     if (pendingAIActions.length === 0) return null
@@ -146,14 +161,13 @@ export function useCombat() {
   /**
    * Add accumulated damage reduction to pending attack
    * Used when stacking multiple defensive abilities
-   * @param {number} reduction - Damage reduction to add
    */
-  const addAccumulatedDamageReduction = useCallback((reduction) => {
+  const addAccumulatedDamageReduction = useCallback((reduction: number) => {
     setPendingAttack((prev) => {
       if (!prev) return prev
       return {
         ...prev,
-        accumulatedDamageReduction: (prev.accumulatedDamageReduction || 0) + reduction,
+        accumulatedDamageReduction: ((prev.accumulatedDamageReduction as number) || 0) + reduction,
       }
     })
   }, [])

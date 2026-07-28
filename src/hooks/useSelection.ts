@@ -2,47 +2,55 @@
 // Extracted from GameBoard.jsx for single responsibility
 
 import { useState, useCallback } from 'react'
+import type { CreatureInstance } from '../models/creatures.js'
+import type { GameState } from '../models/gameState.js'
+import type { Position } from '../models/Board.js'
+import type { AttackTarget, RangeTile } from '../models/CombatResolver.js'
+
+export interface ValidMoveTile {
+  tile: unknown
+  path: Position[]
+  cost: number
+}
 
 /**
  * Custom hook for managing selection state in the game
  * Handles tile, creature, and card selection
- *
- * @returns {Object} Selection state and handlers
  */
 export function useSelection() {
   // Selected tile on the board
-  const [selectedTile, setSelectedTile] = useState(null)
+  const [selectedTile, setSelectedTile] = useState<unknown>(null)
 
   // Selected creature card index in hand (for deployment)
-  const [selectedCreatureIndex, setSelectedCreatureIndex] = useState(null)
+  const [selectedCreatureIndex, setSelectedCreatureIndex] = useState<number | null>(null)
 
   // Selected order card index in hand
-  const [selectedOrderIndex, setSelectedOrderIndex] = useState(null)
+  const [selectedOrderIndex, setSelectedOrderIndex] = useState<number | null>(null)
 
   // Selected creature on the board (for movement/attack)
-  const [selectedBoardCreature, setSelectedBoardCreature] = useState(null)
+  const [selectedBoardCreature, setSelectedBoardCreature] = useState<CreatureInstance | null>(null)
 
   // Valid movement tiles for selected creature (array of {tile, path, cost})
-  const [validMoveTiles, setValidMoveTiles] = useState([])
+  const [validMoveTiles, setValidMoveTiles] = useState<ValidMoveTile[]>([])
 
   // Valid attack targets for selected creature (array of {creature, attackType, ...})
-  const [validAttackTargets, setValidAttackTargets] = useState([])
+  const [validAttackTargets, setValidAttackTargets] = useState<AttackTarget[]>([])
 
   // Line of sight path for ranged attacks visualization
-  const [lineOfSightPath, setLineOfSightPath] = useState([])
+  const [lineOfSightPath, setLineOfSightPath] = useState<Position[]>([])
 
   // All tiles within ranged attack range (for ranged view mode)
-  const [rangedRangeTiles, setRangedRangeTiles] = useState([])
+  const [rangedRangeTiles, setRangedRangeTiles] = useState<RangeTile[]>([])
 
   // View mode toggle: 'movement' shows move tiles, 'ranged' shows attack range
-  const [creatureViewMode, setCreatureViewMode] = useState('movement')
+  const [creatureViewMode, setCreatureViewMode] = useState<'movement' | 'ranged'>('movement')
 
   // Drag and drop state for creature deployment
-  const [draggingCreatureIndex, setDraggingCreatureIndex] = useState(null)
-  const [dragOverTile, setDragOverTile] = useState(null)
+  const [draggingCreatureIndex, setDraggingCreatureIndex] = useState<number | null>(null)
+  const [dragOverTile, setDragOverTile] = useState<unknown>(null)
 
   // Faction highlight for board creatures (playerId to highlight, or null)
-  const [factionHighlight, setFactionHighlight] = useState(null)
+  const [factionHighlight, setFactionHighlight] = useState<string | null>(null)
 
   /**
    * Clear all board creature selection state
@@ -88,11 +96,10 @@ export function useSelection() {
 
   /**
    * Select a creature on the board and calculate valid actions
-   * @param {CreatureInstance} creature - Creature to select
-   * @param {Object} gameState - Current game state for calculations
-   * @returns {Object} { moves, targets } for toast messages
+   * @param gameState - Current game state for calculations
+   * @returns { moves, targets } for toast messages
    */
-  const selectBoardCreature = useCallback((creature, gameState) => {
+  const selectBoardCreature = useCallback((creature: CreatureInstance, gameState: GameState) => {
     if (!creature || !gameState) return { moves: [], targets: [] }
 
     setSelectedBoardCreature(creature)
@@ -104,19 +111,19 @@ export function useSelection() {
     // Calculate valid attack targets (filter out eliminated players)
     const targets = gameState
       .getValidAttackTargets(creature)
-      .filter((target) => gameState.activePlayers.includes(target.creature.owner))
+      .filter((target: AttackTarget) => gameState.activePlayers.includes(target.creature.owner))
     setValidAttackTargets(targets)
 
     // Calculate line-of-sight paths for ranged attacks
-    const losPath = []
-    targets.forEach((targetInfo) => {
-      if (targetInfo.attackType === 'ranged') {
+    const losPath: Position[] = []
+    targets.forEach((targetInfo: AttackTarget) => {
+      if (targetInfo.attackType === 'ranged' && creature.position && targetInfo.creature.position) {
         const lineTiles = gameState.getLineTiles(creature.position, targetInfo.creature.position)
-        lineTiles.forEach((pos) => {
+        lineTiles.forEach((pos: Position) => {
           // Skip attacker and target positions
           if (
-            (pos.x === creature.position.x && pos.y === creature.position.y) ||
-            (pos.x === targetInfo.creature.position.x && pos.y === targetInfo.creature.position.y)
+            (pos.x === creature.position!.x && pos.y === creature.position!.y) ||
+            (pos.x === targetInfo.creature.position!.x && pos.y === targetInfo.creature.position!.y)
           ) {
             return
           }
