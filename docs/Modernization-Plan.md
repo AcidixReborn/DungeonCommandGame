@@ -61,17 +61,15 @@ All tests build real `GameState`/`CombatResolver`/`SimpleAI` instances via a sha
 
 **Checkpoint**: `npm test` (52/52 passing), `npm run lint` (0 errors), `npm run build` all pass clean.
 
-_Write these tests in JS, before converting the corresponding files to TS in Phase D — they lock in current behavior so the migration can't silently change game rules._
-
 ---
 
 ## Phase D: TypeScript Migration (Incremental, Bottom-Up)
 
-Convert in dependency order — each step should only depend on already-typed code:
+Convert in dependency order — each step should only depend on already-typed code. Confirmed pattern: files keep their `.js` import specifiers (e.g. `from './logger.js'`) even after the source becomes `logger.ts` — Vite/esbuild and `tsc` (with `moduleResolution: "Bundler"`) both resolve `.js` specifiers to a sibling `.ts` file automatically, so **no import statements need to change anywhere in the codebase** as files convert.
 
 | Step | Files                                                                                                                  | Status |
 | ---- | ---------------------------------------------------------------------------------------------------------------------- | ------ |
-| 1    | `constants/gameConstants.js`, `utils/` (PriorityQueue, pathfinding, logger)                                            | ⬜     |
+| 1    | `constants/gameConstants.js`, `utils/` (PriorityQueue, pathfinding, logger)                                            | ✅ Also wired `typescript-eslint` into `eslint.config.js` (scoped to `.ts`/`.tsx` only), and pinned `typescript` to 5.9.3 — `typescript-eslint` doesn't support TS 7 yet (very new native rewrite, ecosystem hasn't caught up). Added `src/types/electron.d.ts` for the `window.electronAPI` ambient type. |
 | 2    | Core models: `creatures.js`, `orders.js`, `commanders.js`, `Board.js`, `treasure.js` (define shared domain types here) | ⬜     |
 | 3    | `CombatResolver.js`, `CommanderAbilityManager.js`                                                                      | ⬜     |
 | 4    | `gameState.js` (`PlayerState`, `GameState`)                                                                            | ⬜     |

@@ -16,14 +16,19 @@
  *   logger.combat('Attack', details)   // Combat events
  */
 
+type LogLevel = 'INFO' | 'WARN' | 'ERROR'
+
 // Format timestamp for log entries
 const timestamp = () => new Date().toISOString().replace('T', ' ').substring(0, 19)
 
-const CONSOLE_FN = { ERROR: console.error, WARN: console.warn }
+const CONSOLE_FN: Partial<Record<LogLevel, (...args: unknown[]) => void>> = {
+  ERROR: console.error,
+  WARN: console.warn,
+}
 
 // Log to console always (works in both browser dev and Electron), and additionally
 // persist to the debug.log file via Electron IPC when running inside Electron.
-const emit = (level, category, message, data) => {
+const emit = (level: LogLevel, category: string, message: string, data?: unknown) => {
   const consoleFn = CONSOLE_FN[level] || console.log
   const tag = `[${category}] ${message}`
   if (data !== undefined && data !== null) {
@@ -52,9 +57,8 @@ export const clearDebugLog = () => {
 
 /**
  * Get the path to the debug log file
- * @returns {Promise<string>} Path to the log file
  */
-export const getLogPath = async () => {
+export const getLogPath = async (): Promise<string | null> => {
   if (window.electronAPI?.getLogPath) {
     return await window.electronAPI.getLogPath()
   }
@@ -66,7 +70,7 @@ export const logger = {
    * Debug logging - variadic, mirrors console.log's flexible signature.
    * Use for ad-hoc trace logging where a fixed (msg, data) shape doesn't fit.
    */
-  debug: (...args) => {
+  debug: (...args: unknown[]) => {
     console.log(...args)
     if (window.electronAPI?.writeLog) {
       const entry = `[${timestamp()}] [DEBUG] ${args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ')}`
@@ -77,105 +81,105 @@ export const logger = {
   /**
    * Info logging
    */
-  info: (msg, data) => {
+  info: (msg: string, data?: unknown) => {
     emit('INFO', 'GENERAL', msg, data)
   },
 
   /**
    * Warning logging
    */
-  warn: (msg, data) => {
+  warn: (msg: string, data?: unknown) => {
     emit('WARN', 'GENERAL', msg, data)
   },
 
   /**
    * Error logging
    */
-  error: (msg, data) => {
+  error: (msg: string, data?: unknown) => {
     emit('ERROR', 'GENERAL', msg, data)
   },
 
   /**
    * Game event logging - key game state changes
    */
-  gameEvent: (event, data) => {
+  gameEvent: (event: string, data?: unknown) => {
     emit('INFO', 'GAME', event, data)
   },
 
   /**
    * Phase logging - phase transitions
    */
-  phase: (phase, player) => {
+  phase: (phase: string, player: string) => {
     emit('INFO', 'PHASE', `${phase} - Player ${player}`)
   },
 
   /**
    * Combat logging - attacks, damage, defense
    */
-  combat: (action, details) => {
+  combat: (action: string, details?: unknown) => {
     emit('INFO', 'COMBAT', action, details)
   },
 
   /**
    * Card logging - order card usage and draws
    */
-  card: (cardName, action, details) => {
+  card: (cardName: string, action: string, details?: unknown) => {
     emit('INFO', 'CARD', `${cardName}: ${action}`, details)
   },
 
   /**
    * Ability logging - creature abilities
    */
-  ability: (ability, details) => {
+  ability: (ability: string, details?: unknown) => {
     emit('INFO', 'ABILITY', ability, details)
   },
 
   /**
    * AI logging - AI decisions
    */
-  ai: (decision, context) => {
+  ai: (decision: string, context?: unknown) => {
     emit('INFO', 'AI', decision, context)
   },
 
   /**
    * Modal logging - modal opens/closes
    */
-  modal: (modalName, action, details) => {
+  modal: (modalName: string, action: string, details?: unknown) => {
     emit('INFO', 'MODAL', `${modalName}: ${action}`, details)
   },
 
   /**
    * Damage logging - damage dealt/prevented
    */
-  damage: (action, details) => {
+  damage: (action: string, details?: unknown) => {
     emit('INFO', 'DAMAGE', action, details)
   },
 
   /**
    * Movement logging - creature movement
    */
-  movement: (creatureName, details) => {
+  movement: (creatureName: string, details?: unknown) => {
     emit('INFO', 'MOVEMENT', `${creatureName} moved`, details)
   },
 
   /**
    * Tap logging - creature tap/untap
    */
-  tap: (creatureName, action, details) => {
+  tap: (creatureName: string, action: string, details?: unknown) => {
     emit('INFO', 'TAP', `${creatureName}: ${action}`, details)
   },
 
   /**
    * Deploy logging - creature deployment
    */
-  deploy: (creatureName, details) => {
+  deploy: (creatureName: string, details?: unknown) => {
     emit('INFO', 'DEPLOY', `${creatureName} deployed`, details)
   },
 
   /**
    * Defense logging - defense actions
    */
-  defense: (action, details) => {
+  defense: (action: string, details?: unknown) => {
     emit('INFO', 'DEFENSE', action, details)
   },
 }

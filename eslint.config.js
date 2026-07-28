@@ -1,4 +1,5 @@
 import js from '@eslint/js'
+import tseslint from 'typescript-eslint'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
@@ -20,8 +21,15 @@ export default [
     ],
   },
   js.configs.recommended,
+  // Scope typescript-eslint's recommended rules to .ts/.tsx only — spreading it unscoped
+  // would also apply `@typescript-eslint/no-unused-vars` etc. to plain .js/.jsx files.
+  ...tseslint.configs.recommended.map((config) => ({
+    ...config,
+    files: ['**/*.{ts,tsx}'],
+  })),
   {
-    files: ['**/*.{js,jsx}'],
+    // Applies to both plain JS/JSX (not yet migrated to TS, Phase D) and TS/TSX.
+    files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -56,6 +64,21 @@ export default [
       // as a warning for future polish rather than blocking on ~27 pre-existing instances.
       'react/no-unescaped-entities': 'warn',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    // TS's own unused-vars check understands types (e.g. imported-only-as-a-type usage)
+    // better than the base rule, so swap it in for .ts/.tsx and disable the base rule there.
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      // Ratcheted up incrementally as more of the codebase converts (Phase D) — an explicit
+      // `any` is still far better than no types at all during a large incremental migration.
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   {

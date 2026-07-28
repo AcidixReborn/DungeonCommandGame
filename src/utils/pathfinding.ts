@@ -3,42 +3,86 @@
 
 import { PriorityQueue } from './PriorityQueue.js'
 
+export interface Position {
+  x: number
+  y: number
+}
+
+// Loose shape for now — Board.ts (converted later in the migration) will define the
+// canonical Tile type; pathfinding only needs `terrain` and `occupant` off of it.
+export interface PathTile {
+  terrain: string
+  occupant?: unknown
+  [key: string]: unknown
+}
+
+export type GetTerrainCostFn = (terrain: string, flying: boolean) => number
+export type IsPassableFn = (tile: PathTile, flying: boolean) => boolean
+export type GetTileFn = (x: number, y: number) => PathTile | null
+export type CanPassThroughFn = (tile: PathTile, occupant: unknown) => boolean
+export type CanStopOnFn = (tile: PathTile) => boolean
+
+export interface FindPathOptions {
+  flying?: boolean
+  maxCost?: number
+}
+
+export interface ValidMovementTile {
+  tile: PathTile | null
+  path: Position[]
+  cost: number
+}
+
 /**
  * Node class for A* pathfinding
  */
 export class PathfindingNode {
-  constructor(x, y, g = 0, h = 0, parent = null) {
+  x: number
+  y: number
+  g: number // Cost from start to this node
+  h: number // Heuristic cost to goal
+  f: number // Total cost (g + h)
+  parent: PathfindingNode | null
+
+  constructor(x: number, y: number, g = 0, h = 0, parent: PathfindingNode | null = null) {
     this.x = x
     this.y = y
-    this.g = g // Cost from start to this node
-    this.h = h // Heuristic cost to goal
-    this.f = g + h // Total cost (g + h)
-    this.parent = parent // Parent node for path reconstruction
+    this.g = g
+    this.h = h
+    this.f = g + h
+    this.parent = parent
   }
 
   /**
    * Check if two nodes represent the same position
    */
-  equals(other) {
+  equals(other: Position): boolean {
     return this.x === other.x && this.y === other.y
   }
 }
 
 /**
  * A* pathfinding algorithm
- * @param {Object} start - Starting position {x, y}
- * @param {Object} goal - Goal position {x, y}
- * @param {Function} getTerrainCost - Function to get terrain movement cost (terrain, flying) => number
- * @param {Function} isPassable - Function to check if tile is passable (tile, flying) => boolean
- * @param {Function} getTile - Function to get tile at position (x, y) => tile
- * @param {Object} options - Options: { flying: boolean, maxCost: number }
- * @returns {Object|null} - { path: [{x, y},...], cost: number } or null if no path found
+ * @param start - Starting position {x, y}
+ * @param goal - Goal position {x, y}
+ * @param getTerrainCost - Function to get terrain movement cost (terrain, flying) => number
+ * @param isPassable - Function to check if tile is passable (tile, flying) => boolean
+ * @param getTile - Function to get tile at position (x, y) => tile
+ * @param options - Options: { flying: boolean, maxCost: number }
+ * @returns { path: [{x, y},...], cost: number } or null if no path found
  */
-export function findPath(start, goal, getTerrainCost, isPassable, getTile, options = {}) {
+export function findPath(
+  start: Position,
+  goal: Position,
+  getTerrainCost: GetTerrainCostFn,
+  isPassable: IsPassableFn,
+  getTile: GetTileFn,
+  options: FindPathOptions = {}
+): { path: Position[]; cost: number } | null {
   const { flying = false, maxCost = Infinity } = options
 
-  const openList = []
-  const closedList = []
+  const openList: PathfindingNode[] = []
+  const closedList: PathfindingNode[] = []
 
   // Create start node
   const startNode = new PathfindingNode(start.x, start.y, 0, heuristic(start, goal))
@@ -109,22 +153,16 @@ export function findPath(start, goal, getTerrainCost, isPassable, getTile, optio
 
 /**
  * Manhattan distance heuristic for grid-based pathfinding
- * @param {PathfindingNode} node - Current node
- * @param {Object} goal - Goal position {x, y}
- * @returns {number} Estimated distance to goal
  */
-function heuristic(node, goal) {
+function heuristic(node: Position, goal: Position): number {
   return Math.abs(node.x - goal.x) + Math.abs(node.y - goal.y)
 }
 
 /**
  * Get all neighboring tiles (8-directional movement - includes diagonals)
- * @param {PathfindingNode} node - Current node
- * @param {Function} getTile - Function to get tile at position
- * @returns {Array<PathfindingNode>} Array of neighbor nodes
  */
-function getNeighbors(node, getTile) {
-  const neighbors = []
+function getNeighbors(node: Position, getTile: GetTileFn): PathfindingNode[] {
+  const neighbors: PathfindingNode[] = []
   const directions = [
     { dx: 0, dy: -1 }, // North
     { dx: 1, dy: -1 }, // Northeast
@@ -150,12 +188,10 @@ function getNeighbors(node, getTile) {
 
 /**
  * Reconstruct the path from goal node by following parent links
- * @param {PathfindingNode} goalNode - Final node reached
- * @returns {Object} {path: Array, cost: number}
  */
-function reconstructPath(goalNode) {
-  const path = []
-  let current = goalNode
+function reconstructPath(goalNode: PathfindingNode): { path: Position[]; cost: number } {
+  const path: Position[] = []
+  let current: PathfindingNode | null = goalNode
   const totalCost = goalNode.g
 
   while (current !== null) {
@@ -181,41 +217,36 @@ function reconstructPath(goalNode) {
  * instead of array.sort() which was O(n log n) per iteration.
  *
  * Big O: O((V + E) * log V) where V = tiles in range, E = edges (8 per tile)
- * For typical movement range of 7: V ≈ 150 tiles, so O(150 * 8 * log 150) ≈ O(8700)
+ * For typical movement range of 7: V ~ 150 tiles, so O(150 * 8 * log 150) ~ O(8700)
  *
- * @param {Object} start - Starting position {x, y}
- * @param {number} maxMovement - Maximum movement points
- * @param {Function} getTerrainCost - Function to get terrain cost
- * @param {Function} isPassable - Function to check if tile is passable
- * @param {Function} getTile - Function to get tile at position
- * @param {boolean} flying - Whether creature is flying
- * @param {Function|null} canPassThrough - Optional callback (tile, occupant) => boolean for SCUTTLE ability
- * @param {Function|null} canStopOn - Optional callback (tile) => boolean for tiles that can be passed but not stopped on (e.g., mountains for flying/burrowing)
- * @returns {Array} - Array of {tile, path, cost} objects
+ * @param canPassThrough - Optional callback (tile, occupant) => boolean for SCUTTLE ability
+ * @param canStopOn - Optional callback (tile) => boolean for tiles that can be passed but not stopped on (e.g., mountains for flying/burrowing)
  */
 export function getValidMovementTiles(
-  start,
-  maxMovement,
-  getTerrainCost,
-  isPassable,
-  getTile,
+  start: Position,
+  maxMovement: number,
+  getTerrainCost: GetTerrainCostFn,
+  isPassable: IsPassableFn,
+  getTile: GetTileFn,
   flying = false,
-  canPassThrough = null,
-  canStopOn = null
-) {
-  const validTiles = []
+  canPassThrough: CanPassThroughFn | null = null,
+  canStopOn: CanStopOnFn | null = null
+): ValidMovementTile[] {
+  const validTiles: ValidMovementTile[] = []
   // Track best cost to reach each tile (allows updating if better path found)
-  const bestCost = new Map()
+  const bestCost = new Map<string, number>()
   // Track best path to reach each tile
-  const bestPath = new Map()
+  const bestPath = new Map<string, Position[]>()
   // Track tiles that are occupied (for SCUTTLE - can pass through but not stop on)
-  const occupiedTiles = new Set()
+  const occupiedTiles = new Set<string>()
   // Track tiles that can be passed through but not stopped on (for FLYING/BURROW - mountains)
-  const noStopTiles = new Set()
+  const noStopTiles = new Set<string>()
 
   // Priority queue using binary heap - O(log n) insert/extract
   // Compare by node.g (cost from start)
-  const queue = new PriorityQueue((a, b) => a.node.g - b.node.g)
+  const queue = new PriorityQueue<{ node: PathfindingNode; path: Position[] }>(
+    (a, b) => a.node.g - b.node.g
+  )
   queue.insert({ node: new PathfindingNode(start.x, start.y, 0, 0), path: [start] })
 
   const startKey = `${start.x},${start.y}`
@@ -224,12 +255,16 @@ export function getValidMovementTiles(
 
   while (!queue.isEmpty()) {
     // Extract minimum cost node - O(log n)
-    const { node: current, path } = queue.extractMin()
+    const { node: current, path } = queue.extractMin() as {
+      node: PathfindingNode
+      path: Position[]
+    }
 
     const currentKey = `${current.x},${current.y}`
 
     // Skip if we've already found a better path to this node
-    if (bestCost.has(currentKey) && current.g > bestCost.get(currentKey)) {
+    const knownCost = bestCost.get(currentKey)
+    if (knownCost !== undefined && current.g > knownCost) {
       continue
     }
 
@@ -265,7 +300,7 @@ export function getValidMovementTiles(
 
       // Calculate cost to reach this tile
       // SCUTTLE: Moving through a creature costs 1 speed (ignores terrain cost for that tile)
-      const isOccupied = tile.occupant !== null
+      const isOccupied = tile.occupant !== null && tile.occupant !== undefined
       const terrainCost = isOccupied ? 1 : getTerrainCost(tile.terrain, flying)
       const newCost = current.g + terrainCost
 
@@ -273,7 +308,8 @@ export function getValidMovementTiles(
       if (newCost > maxMovement) continue
 
       // Only process if this is a better path than previously found
-      if (!bestCost.has(key) || newCost < bestCost.get(key)) {
+      const existingCost = bestCost.get(key)
+      if (existingCost === undefined || newCost < existingCost) {
         bestCost.set(key, newCost)
 
         const newPath = [...path, { x: neighbor.x, y: neighbor.y }]
@@ -297,7 +333,7 @@ export function getValidMovementTiles(
 
     validTiles.push({
       tile,
-      path: bestPath.get(key),
+      path: bestPath.get(key) as Position[],
       cost,
     })
   }
