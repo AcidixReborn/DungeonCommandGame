@@ -10,6 +10,7 @@
  * Only applies to Cormyr faction Adventurers
  * Applies 0/50/100 AI difficulty rule based on DEFENDER's owner
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const ShieldBlock = {
   id: 'shield_block',
@@ -20,10 +21,8 @@ export const ShieldBlock = {
 
   /**
    * Check if creature has SHIELD BLOCK ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has SHIELD BLOCK
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toUpperCase().includes('SHIELD BLOCK')
@@ -32,20 +31,16 @@ export const ShieldBlock = {
 
   /**
    * Check if creature has Adventurer type
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has Adventurer type
    */
-  isAdventurerType(creatureInstance) {
+  isAdventurerType(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.type) return false
     return creatureInstance.creature.type.some((type) => type.toUpperCase() === 'ADVENTURER')
   },
 
   /**
    * Check if creature is from Cormyr faction
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature is from Heart of Cormyr faction
    */
-  isCormyrFaction(creatureInstance) {
+  isCormyrFaction(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.faction) return false
     const faction = creatureInstance.creature.faction.toUpperCase()
     return faction.includes('CORMYR') || faction.includes('HEART OF CORMYR')
@@ -53,11 +48,10 @@ export const ShieldBlock = {
 
   /**
    * Get SHIELD BLOCK damage reduction for a defending creature
-   * @param {Object} gameState - Game state for adjacency lookup and AI check
-   * @param {CreatureInstance} defenderInstance - The creature being attacked
-   * @returns {number} Damage reduction amount (0, 10, 20, etc.)
+   * @param gameState - Game state for adjacency lookup and AI check
+   * @returns Damage reduction amount (0, 10, 20, etc.)
    */
-  getReduction(gameState, defenderInstance) {
+  getReduction(gameState: any, defenderInstance: CreatureInstance): number {
     // Must be Adventurer type AND Cormyr faction
     if (!this.isAdventurerType(defenderInstance)) return 0
     if (!this.isCormyrFaction(defenderInstance)) return 0

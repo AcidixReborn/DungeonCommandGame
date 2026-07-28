@@ -9,6 +9,7 @@
  */
 
 import { ABILITIES } from '../../../constants/gameConstants.js'
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const LifeDrain = {
   id: 'life_drain',
@@ -19,10 +20,8 @@ export const LifeDrain = {
 
   /**
    * Check if creature has LIFE DRAIN ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has LIFE DRAIN ability
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (a) => typeof a === 'string' && a.toUpperCase().includes('LIFE DRAIN')
@@ -31,10 +30,9 @@ export const LifeDrain = {
 
   /**
    * Apply LIFE DRAIN healing (10 HP, capped at max HP)
-   * @param {CreatureInstance} attackerInstance - The attacking creature instance
-   * @returns {number} Amount actually healed (0 if already at max HP)
+   * @returns Amount actually healed (0 if already at max HP)
    */
-  apply(attackerInstance) {
+  apply(attackerInstance: CreatureInstance): number {
     if (!attackerInstance) return 0
 
     const maxHP = attackerInstance.creature.hitPoints

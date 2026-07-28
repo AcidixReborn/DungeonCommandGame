@@ -10,6 +10,14 @@
  * Only triggers during the creature's faction's turn.
  * Applies 0/50/100 AI difficulty rule
  */
+import type { CreatureInstance } from '../../models/creatures.js'
+
+export interface UntapTriggerResult {
+  triggered: boolean
+  creatureName: string
+  instanceId: string
+  owner: string
+}
 
 export const UntapOnKill = {
   id: 'untap_on_adjacent_kill',
@@ -17,25 +25,22 @@ export const UntapOnKill = {
 
   /**
    * Check if creature has UNTAP ON KILL ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has UNTAP ON KILL
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) =>
-        (typeof ability === 'object' && ability.id === 'untap_on_adjacent_kill') ||
+        (typeof ability === 'object' &&
+          (ability as { id?: string })?.id === 'untap_on_adjacent_kill') ||
         (typeof ability === 'string' && ability.toUpperCase().includes('UNTAP'))
     )
   },
 
   /**
    * Check if creature is adjacent to a position
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @param {Object} position - Position {x, y} to check adjacency to
-   * @returns {boolean} True if adjacent (8-directional)
+   * @returns True if adjacent (8-directional)
    */
-  isAdjacentTo(creatureInstance, position) {
+  isAdjacentTo(creatureInstance: CreatureInstance, position: { x: number; y: number }): boolean {
     if (!creatureInstance.position || !position) return false
 
     const dx = Math.abs(position.x - creatureInstance.position.x)
@@ -45,13 +50,13 @@ export const UntapOnKill = {
 
   /**
    * Check and trigger untap when a creature dies
-   * @param {Object} gameState - Game state
-   * @param {Object} destroyedPosition - {x, y} position where creature died
-   * @param {string} destroyedOwner - Player ID of the destroyed creature's owner
-   * @param {string} killerOwner - Player ID of the creature that killed
-   * @returns {Object|null} Untap result data or null if no untap occurred
    */
-  checkTrigger(gameState, destroyedPosition, destroyedOwner, killerOwner) {
+  checkTrigger(
+    gameState: any,
+    destroyedPosition: { x: number; y: number },
+    destroyedOwner: string,
+    _killerOwner: string
+  ): UntapTriggerResult | null {
     const currentTurnPlayer = gameState.currentPlayer
     if (!currentTurnPlayer) return null
 
@@ -60,7 +65,7 @@ export const UntapOnKill = {
 
     // Find creatures with this ability belonging to the current turn's player
     const creatures = currentPlayer.creaturesInPlay.filter(
-      (creature) => this.has(creature) && creature.currentHP > 0
+      (creature: CreatureInstance) => this.has(creature) && creature.currentHP > 0
     )
 
     if (creatures.length === 0) return null

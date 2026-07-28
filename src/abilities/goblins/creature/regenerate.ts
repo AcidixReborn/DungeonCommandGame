@@ -10,6 +10,7 @@
  */
 
 import { ABILITIES } from '../../../constants/gameConstants.js'
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const Regenerate = {
   id: 'regenerate',
@@ -19,10 +20,8 @@ export const Regenerate = {
 
   /**
    * Check if creature has REGENERATE ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has REGENERATE
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toUpperCase().includes('REGENERATE')
@@ -31,10 +30,9 @@ export const Regenerate = {
 
   /**
    * Get the regeneration amount for a creature
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {number} Amount to regenerate (default 10 for REGENERATE 10, 0 if no ability)
+   * @returns Amount to regenerate (default 10 for REGENERATE 10, 0 if no ability)
    */
-  getAmount(creatureInstance) {
+  getAmount(creatureInstance: CreatureInstance): number {
     if (!this.has(creatureInstance)) return 0
 
     // Parse amount from ability text if needed, default to 10
@@ -50,14 +48,16 @@ export const Regenerate = {
 
   /**
    * Apply regeneration healing to a creature
-   * @param {CreatureInstance} creatureInstance - Creature to heal
-   * @returns {number} Amount actually healed
+   * @returns Amount actually healed
    */
-  apply(creatureInstance) {
+  apply(creatureInstance: CreatureInstance): number {
     const amount = this.getAmount(creatureInstance)
     if (amount <= 0) return 0
 
-    const maxHP = creatureInstance.creature.hp
+    // Bug fix: was reading `creature.hp`, which doesn't exist on the Creature model
+    // (the field is `hitPoints`) - maxHP was always undefined, so actualHeal was always
+    // NaN and REGENERATE never healed anything. Caught by the TypeScript conversion.
+    const maxHP = creatureInstance.creature.hitPoints
     const currentHP = creatureInstance.currentHP
     const actualHeal = Math.min(amount, maxHP - currentHP)
 

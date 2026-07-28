@@ -10,6 +10,7 @@
  */
 
 import { ABILITIES } from '../../../constants/gameConstants.js'
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const HealingTouch = {
   id: 'healing_touch',
@@ -20,10 +21,8 @@ export const HealingTouch = {
 
   /**
    * Check if creature has HEALING TOUCH ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has HEALING TOUCH
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toUpperCase().includes('HEALING TOUCH')
@@ -32,15 +31,15 @@ export const HealingTouch = {
 
   /**
    * Get valid targets (self + adjacent allies)
-   * @param {Object} gameState - Game state for adjacency lookup
-   * @param {CreatureInstance} healerInstance - The Dwarf Cleric
-   * @returns {Array} Array of valid target CreatureInstances (includes self)
+   * @param gameState - Game state for adjacency lookup
+   * @param healerInstance - The Dwarf Cleric
+   * @returns Valid target CreatureInstances (includes self)
    */
-  getTargets(gameState, healerInstance) {
+  getTargets(gameState: any, healerInstance: CreatureInstance): CreatureInstance[] {
     if (!this.has(healerInstance)) return []
     if (!healerInstance.position) return []
 
-    const validTargets = []
+    const validTargets: CreatureInstance[] = []
     const healerOwner = healerInstance.owner
 
     // Self is always a valid target
@@ -69,12 +68,12 @@ export const HealingTouch = {
 
   /**
    * Check if a creature is a valid target
-   * @param {Object} gameState - Game state
-   * @param {CreatureInstance} healerInstance - The Dwarf Cleric
-   * @param {CreatureInstance} targetInstance - Potential target
-   * @returns {boolean} True if target is valid
    */
-  isValidTarget(gameState, healerInstance, targetInstance) {
+  isValidTarget(
+    gameState: any,
+    healerInstance: CreatureInstance,
+    targetInstance: CreatureInstance
+  ): boolean {
     if (!this.has(healerInstance)) return false
     if (!healerInstance.position || !targetInstance.position) return false
     if (targetInstance.currentHP <= 0) return false
@@ -91,12 +90,13 @@ export const HealingTouch = {
 
   /**
    * Execute heal action
-   * @param {Object} gameState - Game state
-   * @param {CreatureInstance} healerInstance - The Dwarf Cleric
-   * @param {CreatureInstance} targetInstance - Creature to heal
-   * @returns {Object} Result { success, message, healedAmount }
+   * @returns { success, message, healedAmount }
    */
-  heal(gameState, healerInstance, targetInstance) {
+  heal(
+    gameState: any,
+    healerInstance: CreatureInstance,
+    targetInstance: CreatureInstance
+  ): Record<string, unknown> {
     if (!this.has(healerInstance)) {
       return { success: false, message: 'Creature does not have HEALING TOUCH ability' }
     }
@@ -131,13 +131,15 @@ export const HealingTouch = {
 
   /**
    * Execute remove attached card action
-   * @param {Object} gameState - Game state for player lookup
-   * @param {CreatureInstance} healerInstance - The Dwarf Cleric
-   * @param {CreatureInstance} targetInstance - Creature to remove card from
-   * @param {number} cardIndex - Index of attached card to remove
-   * @returns {Object} Result { success, message, removedCard }
+   * @param gameState - Game state for player lookup
+   * @returns { success, message, removedCard }
    */
-  removeCard(gameState, healerInstance, targetInstance, cardIndex = 0) {
+  removeCard(
+    gameState: any,
+    healerInstance: CreatureInstance,
+    targetInstance: CreatureInstance,
+    cardIndex = 0
+  ): Record<string, unknown> {
     if (!this.has(healerInstance)) {
       return { success: false, message: 'Creature does not have HEALING TOUCH ability' }
     }
@@ -160,7 +162,7 @@ export const HealingTouch = {
 
     // Remove the card
     const [removedAttachment] = targetInstance.attachedCards.splice(cardIndex, 1)
-    const removedCard = removedAttachment.card
+    const removedCard = removedAttachment.card as { name: string }
 
     // Return card to caster's discard pile
     const casterPlayer = gameState.players[removedAttachment.casterOwner]

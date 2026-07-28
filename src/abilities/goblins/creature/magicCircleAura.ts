@@ -15,6 +15,7 @@
  * - Does NOT tap creatures when preventing damage
  * - Applies 0/50/100 AI difficulty rule based on DEFENDER's owner
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const MagicCircleAura = {
   id: 'magic_circle_aura',
@@ -25,10 +26,8 @@ export const MagicCircleAura = {
 
   /**
    * Check if creature has MAGIC CIRCLE AURA ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has MAGIC CIRCLE AURA
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) =>
@@ -38,11 +37,9 @@ export const MagicCircleAura = {
 
   /**
    * Check if a Sorcerer is currently on a Magic Circle
-   * @param {Object} gameState - Game state for tile lookup
-   * @param {CreatureInstance} sorcererInstance - The Sorcerer
-   * @returns {boolean} True if Sorcerer is active on Magic Circle
+   * @param gameState - Game state for tile lookup
    */
-  isOnMagicCircle(gameState, sorcererInstance) {
+  isOnMagicCircle(gameState: any, sorcererInstance: CreatureInstance): boolean {
     if (!this.has(sorcererInstance)) return false
     if (!sorcererInstance.position) return false
     if (sorcererInstance.currentHP <= 0) return false
@@ -53,15 +50,13 @@ export const MagicCircleAura = {
 
   /**
    * Get the active Sorcerer on a Magic Circle for a player
-   * @param {Object} gameState - Game state
-   * @param {string} playerId - Player to check
-   * @returns {CreatureInstance|null} The active Sorcerer or null
+   * @returns The active Sorcerer or null
    */
-  getActiveSorcerer(gameState, playerId) {
+  getActiveSorcerer(gameState: any, playerId: string): CreatureInstance | null {
     const player = gameState.players[playerId]
     if (!player) return null
 
-    for (const creature of player.creaturesInPlay) {
+    for (const creature of player.creaturesInPlay as CreatureInstance[]) {
       if (this.isOnMagicCircle(gameState, creature)) {
         return creature
       }
@@ -72,10 +67,8 @@ export const MagicCircleAura = {
   /**
    * Check if creature type qualifies for Magic Circle Aura buff
    * Must be Goblin, Hobgoblin, or Bugbear type
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature is a valid type
    */
-  isGoblinFactionType(creatureInstance) {
+  isGoblinFactionType(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.type) return false
     const types = creatureInstance.creature.type
     return types.some((type) => {
@@ -86,10 +79,8 @@ export const MagicCircleAura = {
 
   /**
    * Check if creature is from Tyranny of Goblins faction
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature is from faction
    */
-  isGoblinFaction(creatureInstance) {
+  isGoblinFaction(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.faction) return false
     const faction = creatureInstance.creature.faction.toUpperCase()
     return faction.includes('GOBLIN') || faction.includes('TYRANNY OF GOBLINS')
@@ -97,11 +88,8 @@ export const MagicCircleAura = {
 
   /**
    * Check if creature has active protection from Magic Circle Aura
-   * @param {Object} gameState - Game state
-   * @param {CreatureInstance} defenderInstance - Creature taking damage
-   * @returns {boolean} True if creature has active protection
    */
-  hasProtection(gameState, defenderInstance) {
+  hasProtection(gameState: any, defenderInstance: CreatureInstance): boolean {
     if (!this.isGoblinFactionType(defenderInstance)) return false
     if (!this.isGoblinFaction(defenderInstance)) return false
 
@@ -115,11 +103,9 @@ export const MagicCircleAura = {
 
   /**
    * Get damage reduction amount
-   * @param {Object} gameState - Game state
-   * @param {CreatureInstance} defenderInstance - Creature taking damage
-   * @returns {number} Damage reduction (10 or 0)
+   * @returns Damage reduction (10 or 0)
    */
-  getReduction(gameState, defenderInstance) {
+  getReduction(gameState: any, defenderInstance: CreatureInstance): number {
     if (!this.hasProtection(gameState, defenderInstance)) return 0
 
     // AI difficulty check
@@ -141,24 +127,21 @@ export const MagicCircleAura = {
 
   /**
    * Mark shield as used for this turn
-   * @param {CreatureInstance} defenderInstance - Creature using the shield
-   * @returns {boolean} True if shield was applied
+   * @returns True if shield was applied
    */
-  useShield(defenderInstance) {
+  useShield(defenderInstance: CreatureInstance): boolean {
     defenderInstance.magicCircleShieldUsed = true
     return true
   },
 
   /**
    * Reset shields for all creatures at start of turn
-   * @param {Object} gameState - Game state
-   * @param {string} playerId - Player whose turn is starting
    */
-  resetShields(gameState, playerId) {
+  resetShields(gameState: any, playerId: string): void {
     const player = gameState.players[playerId]
     if (!player) return
 
-    for (const creature of player.creaturesInPlay) {
+    for (const creature of player.creaturesInPlay as CreatureInstance[]) {
       creature.magicCircleShieldUsed = false
     }
   },

@@ -8,6 +8,7 @@
  *
  * Whenever this creature deals melee damage, tap the target.
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const TapOnHit = {
   id: 'tap_on_hit',
@@ -16,10 +17,8 @@ export const TapOnHit = {
 
   /**
    * Check if creature has TAP ON HIT ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has TAP ON HIT ability
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature) return false
 
     // Check direct property first (most efficient)
@@ -31,7 +30,7 @@ export const TapOnHit = {
     if (!creatureInstance.creature.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) =>
-        (typeof ability === 'object' && ability.id === 'tap_on_hit') ||
+        (typeof ability === 'object' && (ability as { id?: string })?.id === 'tap_on_hit') ||
         (typeof ability === 'string' &&
           ability.toUpperCase().includes('TAP') &&
           ability.toUpperCase().includes('HIT'))
@@ -40,10 +39,9 @@ export const TapOnHit = {
 
   /**
    * Apply TAP ON HIT effect to target
-   * @param {CreatureInstance} targetInstance - The target that was hit
-   * @returns {boolean} True if target was tapped
+   * @returns True if target was tapped
    */
-  apply(targetInstance) {
+  apply(targetInstance: CreatureInstance): boolean {
     if (!targetInstance) return false
     if (targetInstance.currentHP <= 0) return false
     if (targetInstance.isTapped) return false

@@ -9,6 +9,7 @@
  * This creature's melee attacks deal double damage to tapped creatures.
  * Applies 0/50/100 AI difficulty rule
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const DeathStrike = {
   id: 'death_strike',
@@ -17,15 +18,14 @@ export const DeathStrike = {
 
   /**
    * Check if creature has DEATH STRIKE ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has DEATH STRIKE
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) {
       return false
     }
     return creatureInstance.creature.specialAbilities.some((ability) => {
-      const isObjectMatch = typeof ability === 'object' && ability.id === 'death_strike'
+      const isObjectMatch =
+        typeof ability === 'object' && (ability as { id?: string })?.id === 'death_strike'
       const isStringMatch =
         typeof ability === 'string' && ability.toUpperCase().includes('DEATH STRIKE')
       return isObjectMatch || isStringMatch
@@ -34,12 +34,14 @@ export const DeathStrike = {
 
   /**
    * Get damage multiplier for DEATH STRIKE
-   * @param {Object} gameState - Game state for AI check
-   * @param {CreatureInstance} attackerInstance - The attacking creature
-   * @param {CreatureInstance} defenderInstance - The target creature
-   * @returns {number} Damage multiplier (2 if triggered, 1 otherwise)
+   * @param gameState - Game state for AI check
+   * @returns Damage multiplier (2 if triggered, 1 otherwise)
    */
-  getMultiplier(gameState, attackerInstance, defenderInstance) {
+  getMultiplier(
+    gameState: any,
+    attackerInstance: CreatureInstance,
+    defenderInstance: CreatureInstance
+  ): number {
     if (!this.has(attackerInstance)) return 1
     if (!defenderInstance) return 1
     if (!defenderInstance.isTapped) return 1

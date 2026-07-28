@@ -13,6 +13,7 @@
  */
 
 import { ABILITIES } from '../../../constants/gameConstants.js'
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const DiscipleOfKyuss = {
   id: 'disciple_of_kyuss',
@@ -23,10 +24,8 @@ export const DiscipleOfKyuss = {
 
   /**
    * Check if creature has DISCIPLE_OF_KYUSS ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has DISCIPLE_OF_KYUSS
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (a) => typeof a === 'string' && a.toUpperCase().includes('DISCIPLE_OF_KYUSS')
@@ -35,17 +34,16 @@ export const DiscipleOfKyuss = {
 
   /**
    * Get all enemy Disciples of Kyuss on the board
-   * @param {Object} gameState - Game state
-   * @param {string} currentPlayerId - The player ending their Activate phase
-   * @returns {Array} Array of enemy Disciples of Kyuss
+   * @param gameState - Game state
+   * @param currentPlayerId - The player ending their Activate phase
    */
-  getEnemyDisciples(gameState, currentPlayerId) {
-    const disciples = []
+  getEnemyDisciples(gameState: any, currentPlayerId: string): CreatureInstance[] {
+    const disciples: CreatureInstance[] = []
     for (const playerId of gameState.activePlayers) {
       if (playerId === currentPlayerId) continue
       const player = gameState.players[playerId]
       if (!player) continue
-      for (const creature of player.creaturesInPlay) {
+      for (const creature of player.creaturesInPlay as CreatureInstance[]) {
         if (creature.currentHP > 0 && this.has(creature)) {
           disciples.push(creature)
         }
@@ -56,23 +54,27 @@ export const DiscipleOfKyuss = {
 
   /**
    * Get creatures adjacent to a Disciple
-   * @param {Object} gameState - Game state
-   * @param {string} playerId - Player whose creatures to check
-   * @param {CreatureInstance} disciple - The Disciple of Kyuss
-   * @returns {Array} Array of adjacent creatures
+   * @param gameState - Game state
+   * @param playerId - Player whose creatures to check
+   * @param disciple - The Disciple of Kyuss
    */
-  getAdjacentCreatures(gameState, playerId, disciple) {
-    const adjacentCreatures = []
+  getAdjacentCreatures(
+    gameState: any,
+    playerId: string,
+    disciple: CreatureInstance
+  ): CreatureInstance[] {
+    const adjacentCreatures: CreatureInstance[] = []
     const player = gameState.players[playerId]
     if (!player || !disciple.position) return adjacentCreatures
 
     const adjacentTiles = gameState.getAdjacentTiles8Dir(disciple.position.x, disciple.position.y)
 
-    for (const creature of player.creaturesInPlay) {
+    for (const creature of player.creaturesInPlay as CreatureInstance[]) {
       if (!creature.position) continue
       if (creature.currentHP <= 0) continue
       const isAdjacent = adjacentTiles.some(
-        (tile) => tile.x === creature.position.x && tile.y === creature.position.y
+        (tile: { x: number; y: number }) =>
+          tile.x === creature.position!.x && tile.y === creature.position!.y
       )
       if (isAdjacent) {
         adjacentCreatures.push(creature)
@@ -83,11 +85,8 @@ export const DiscipleOfKyuss = {
 
   /**
    * Check if Disciple should trigger based on AI difficulty
-   * @param {Object} gameState - Game state
-   * @param {CreatureInstance} disciple - The Disciple of Kyuss
-   * @returns {boolean} True if should trigger
    */
-  shouldTrigger(gameState, disciple) {
+  shouldTrigger(gameState: any, disciple: CreatureInstance): boolean {
     const disciplePlayer = gameState.players[disciple.owner]
     if (!disciplePlayer || disciplePlayer.isHuman) return true
 

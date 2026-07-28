@@ -11,6 +11,7 @@
  * Cannot land on mountains
  * Immune to water damage
  */
+import type { CreatureInstance } from '../../models/creatures.js'
 
 export const Flying = {
   id: 'flying',
@@ -18,10 +19,8 @@ export const Flying = {
 
   /**
    * Check if creature has FLYING ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature can fly
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toLowerCase().includes('flying')
@@ -30,26 +29,24 @@ export const Flying = {
 
   /**
    * Get movement cost for a flying creature on any terrain
-   * @returns {number} Always returns 1 (flying ignores terrain)
+   * @returns Always returns 1 (flying ignores terrain)
    */
-  getMovementCost() {
+  getMovementCost(): number {
     return 1
   },
 
   /**
    * Check if flying creature can land on terrain
-   * @param {string} terrainType - Type of terrain
-   * @returns {boolean} True if creature can land (false for mountains)
    */
-  canLandOn(terrainType) {
+  canLandOn(terrainType: string): boolean {
     return terrainType !== 'mountain'
   },
 
   /**
    * Check if creature takes water damage
-   * @returns {boolean} Always false - flying creatures don't take water damage
+   * @returns Always false - flying creatures don't take water damage
    */
-  takesWaterDamage() {
+  takesWaterDamage(): boolean {
     return false
   },
 }

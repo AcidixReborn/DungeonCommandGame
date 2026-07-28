@@ -8,6 +8,7 @@
  * Prevents all damage from 1 source, then resets at owner's refresh phase
  * Follows 0/50/100 AI difficulty rule for automatic usage
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const Insubstantial = {
   id: 'insubstantial',
@@ -17,10 +18,8 @@ export const Insubstantial = {
 
   /**
    * Check if creature has INSUBSTANTIAL ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has INSUBSTANTIAL
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toUpperCase().includes('INSUBSTANTIAL')
@@ -29,21 +28,19 @@ export const Insubstantial = {
 
   /**
    * Check if creature can use INSUBSTANTIAL ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has INSUBSTANTIAL and hasn't used it yet
+   * @returns True if creature has INSUBSTANTIAL and hasn't used it yet
    */
-  canUse(creatureInstance) {
+  canUse(creatureInstance: CreatureInstance): boolean {
     return this.has(creatureInstance) && !creatureInstance.insubstantialUsed
   },
 
   /**
    * Attempt to use INSUBSTANTIAL ability to block damage
    * Applies 0/50/100 AI difficulty rule for AI players
-   * @param {CreatureInstance} creatureInstance - Creature attempting to use ability
-   * @param {Object} defenderPlayer - The player who owns the defender
-   * @returns {boolean} True if damage was blocked, false otherwise
+   * @param defenderPlayer - The player who owns the defender
+   * @returns True if damage was blocked, false otherwise
    */
-  use(creatureInstance, defenderPlayer) {
+  use(creatureInstance: CreatureInstance, defenderPlayer: any): boolean {
     if (!this.canUse(creatureInstance)) return false
 
     // AI difficulty check (0/50/100 rule)
@@ -67,9 +64,8 @@ export const Insubstantial = {
 
   /**
    * Reset INSUBSTANTIAL ability at refresh phase
-   * @param {CreatureInstance} creatureInstance - Creature to reset
    */
-  reset(creatureInstance) {
+  reset(creatureInstance: CreatureInstance): void {
     if (this.has(creatureInstance)) {
       creatureInstance.insubstantialUsed = false
       creatureInstance.insubstantialAvailable = true

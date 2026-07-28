@@ -9,6 +9,7 @@
  * Cannot end movement on mountains or other creatures
  * Immune to water damage (like flying)
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const Phasing = {
   id: 'phasing',
@@ -18,10 +19,8 @@ export const Phasing = {
 
   /**
    * Check if creature has PHASING ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has PHASING
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toUpperCase().includes('PHASING')
@@ -30,27 +29,25 @@ export const Phasing = {
 
   /**
    * Get movement cost for a phasing creature on any terrain
-   * @returns {number} Always returns 1 (phasing ignores terrain)
+   * @returns Always returns 1 (phasing ignores terrain)
    */
-  getMovementCost() {
+  getMovementCost(): number {
     return 1
   },
 
   /**
    * Check if phasing creature can move through a tile occupied by another creature
-   * @returns {boolean} Always true - phasing can move through creatures
+   * @returns Always true - phasing can move through creatures
    */
-  canMoveThroughCreatures() {
+  canMoveThroughCreatures(): boolean {
     return true
   },
 
   /**
    * Check if phasing creature can end movement on a tile
-   * @param {string} terrainType - Type of terrain
-   * @param {boolean} hasCreature - Whether tile has another creature
-   * @returns {boolean} True if creature can end movement there
+   * @param hasCreature - Whether tile has another creature
    */
-  canEndMovementOn(terrainType, hasCreature) {
+  canEndMovementOn(terrainType: string, hasCreature: boolean): boolean {
     if (terrainType === 'mountain') return false
     if (hasCreature) return false
     return true
@@ -58,9 +55,9 @@ export const Phasing = {
 
   /**
    * Check if creature takes water damage
-   * @returns {boolean} Always false - phasing creatures don't take water damage
+   * @returns Always false - phasing creatures don't take water damage
    */
-  takesWaterDamage() {
+  takesWaterDamage(): boolean {
     return false
   },
 }

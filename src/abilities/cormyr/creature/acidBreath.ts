@@ -10,6 +10,7 @@
  */
 
 import { ABILITIES } from '../../../constants/gameConstants.js'
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const AcidBreath = {
   id: 'acid_breath',
@@ -20,10 +21,8 @@ export const AcidBreath = {
 
   /**
    * Check if creature has ACID BREATH ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has ACID BREATH
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (a) => typeof a === 'string' && a.toUpperCase().includes('ACID BREATH')
@@ -32,23 +31,25 @@ export const AcidBreath = {
 
   /**
    * Get splash damage amount
-   * @returns {number} Splash damage (20)
    */
-  getSplashDamage() {
+  getSplashDamage(): number {
     return this.splashDamage
   },
 
   /**
    * Get all enemies adjacent to the target (for splash damage)
-   * @param {Object} gameState - Game state
-   * @param {CreatureInstance} targetInstance - The main attack target
-   * @param {string} attackerOwner - Owner of the attacker
-   * @returns {Array} Array of enemy creature instances to receive splash damage
+   * @param gameState - Game state
+   * @param targetInstance - The main attack target
+   * @param attackerOwner - Owner of the attacker
    */
-  getSplashTargets(gameState, targetInstance, attackerOwner) {
+  getSplashTargets(
+    gameState: any,
+    targetInstance: CreatureInstance,
+    attackerOwner: string
+  ): CreatureInstance[] {
     if (!targetInstance?.position) return []
 
-    const targets = []
+    const targets: CreatureInstance[] = []
     const pos = targetInstance.position
 
     // Check all 8 adjacent tiles to the target

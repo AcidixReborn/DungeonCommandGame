@@ -10,6 +10,7 @@
  */
 
 import { ABILITIES } from '../../../constants/gameConstants.js'
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const ExplosiveBolts = {
   id: 'explosive_bolts',
@@ -20,10 +21,8 @@ export const ExplosiveBolts = {
 
   /**
    * Check if creature has EXPLOSIVE BOLTS ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has EXPLOSIVE BOLTS
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (a) => typeof a === 'string' && a.toUpperCase().includes('EXPLOSIVE BOLTS')
@@ -32,23 +31,25 @@ export const ExplosiveBolts = {
 
   /**
    * Get splash damage amount
-   * @returns {number} Splash damage (10)
    */
-  getSplashDamage() {
+  getSplashDamage(): number {
     return this.splashDamage
   },
 
   /**
    * Get all enemies adjacent to the target (for splash damage)
-   * @param {Object} gameState - Game state
-   * @param {CreatureInstance} targetInstance - The main attack target
-   * @param {string} attackerOwner - Owner of the attacker
-   * @returns {Array} Array of enemy creature instances to receive splash damage
+   * @param gameState - Game state
+   * @param targetInstance - The main attack target
+   * @param attackerOwner - Owner of the attacker
    */
-  getSplashTargets(gameState, targetInstance, attackerOwner) {
+  getSplashTargets(
+    gameState: any,
+    targetInstance: CreatureInstance,
+    attackerOwner: string
+  ): CreatureInstance[] {
     if (!targetInstance?.position) return []
 
-    const targets = []
+    const targets: CreatureInstance[] = []
     const pos = targetInstance.position
 
     // Check all 8 adjacent tiles to the target

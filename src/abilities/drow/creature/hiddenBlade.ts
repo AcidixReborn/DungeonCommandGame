@@ -11,6 +11,7 @@
  */
 
 import { ABILITIES } from '../../../constants/gameConstants.js'
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const HiddenBlade = {
   id: 'hidden_blade',
@@ -21,10 +22,8 @@ export const HiddenBlade = {
 
   /**
    * Check if creature has HIDDEN BLADE ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has HIDDEN BLADE
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toUpperCase().includes('HIDDEN BLADE')
@@ -35,15 +34,15 @@ export const HiddenBlade = {
    * Get valid targets for HIDDEN BLADE damage
    * Returns adjacent enemy creatures that are TAPPED
    * Unlike FLASHING BLADES, this CAN include the original target if it became tapped
-   * @param {Object} gameState - Game state for adjacency lookup
-   * @param {CreatureInstance} attackerInstance - The Drow Assassin
-   * @returns {Array} Array of valid target CreatureInstances (must be tapped)
+   * @param gameState - Game state for adjacency lookup
+   * @param attackerInstance - The Drow Assassin
+   * @returns Valid target CreatureInstances (must be tapped)
    */
-  getTargets(gameState, attackerInstance) {
+  getTargets(gameState: any, attackerInstance: CreatureInstance): CreatureInstance[] {
     if (!this.has(attackerInstance)) return []
     if (!attackerInstance.position) return []
 
-    const targets = []
+    const targets: CreatureInstance[] = []
     const adjacent = gameState.getAdjacentTiles8Dir(
       attackerInstance.position.x,
       attackerInstance.position.y

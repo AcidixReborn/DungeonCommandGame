@@ -7,6 +7,8 @@
  * Webbed creatures have reduced speed and cannot fly.
  * Spider-type creatures can use Web without INT requirement (SPIDER AFFINITY).
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
+import type { OrderCard } from '../../../models/orders.js'
 
 export const WebCard = {
   id: 'web_card',
@@ -16,26 +18,22 @@ export const WebCard = {
 
   /**
    * Check if a creature is webbed (has Web card attached)
-   * @param {CreatureInstance} creatureInstance - The creature to check
-   * @returns {boolean} True if creature has Web attached
    */
-  isWebbed(creatureInstance) {
+  isWebbed(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.attachedCards) return false
     return creatureInstance.attachedCards.some((attached) =>
-      attached.card?.name?.toUpperCase().includes('WEB')
+      (attached.card as OrderCard | undefined)?.name?.toUpperCase().includes('WEB')
     )
   },
 
   /**
    * Get the Web card attached to a creature (if any)
-   * @param {CreatureInstance} creatureInstance - The creature to check
-   * @returns {Object|null} The attached Web card info or null
    */
-  getAttachedWeb(creatureInstance) {
+  getAttachedWeb(creatureInstance: CreatureInstance) {
     if (!creatureInstance?.attachedCards) return null
     return (
       creatureInstance.attachedCards.find((attached) =>
-        attached.card?.name?.toUpperCase().includes('WEB')
+        (attached.card as OrderCard | undefined)?.name?.toUpperCase().includes('WEB')
       ) || null
     )
   },
@@ -43,11 +41,8 @@ export const WebCard = {
   /**
    * Check if a creature can use a Web order card
    * Requires INT ability OR SPIDER AFFINITY (Spider-type creatures bypass INT requirement)
-   * @param {CreatureInstance} casterInstance - The creature casting Web
-   * @param {OrderCard} webCard - The Web order card
-   * @returns {boolean} True if creature can use Web
    */
-  canUse(casterInstance, webCard) {
+  canUse(casterInstance: CreatureInstance, webCard: OrderCard): boolean {
     if (!casterInstance?.creature || !webCard) return false
 
     // Check level requirement
@@ -63,20 +58,18 @@ export const WebCard = {
 
   /**
    * Get valid targets for Web card
-   * @param {Object} gameState - Game state for LOS and player lookup
-   * @param {CreatureInstance} casterInstance - The creature casting Web
-   * @returns {Array} Array of valid target CreatureInstances
+   * @param gameState - Game state for LOS and player lookup
    */
-  getValidTargets(gameState, casterInstance) {
+  getValidTargets(gameState: any, casterInstance: CreatureInstance): CreatureInstance[] {
     if (!casterInstance?.position) return []
 
     const casterPos = casterInstance.position
-    const validTargets = []
+    const validTargets: CreatureInstance[] = []
 
-    for (const [playerId, player] of Object.entries(gameState.players)) {
+    for (const [playerId, player] of Object.entries(gameState.players) as [string, any][]) {
       if (playerId === casterInstance.owner) continue
 
-      for (const enemy of player.creaturesInPlay) {
+      for (const enemy of player.creaturesInPlay as CreatureInstance[]) {
         if (!enemy.position) continue
 
         // Check if already webbed (only 1 Web per creature)
@@ -102,13 +95,15 @@ export const WebCard = {
 
   /**
    * Apply Web card to target creature
-   * @param {Object} gameState - Game state for player lookup
-   * @param {CreatureInstance} casterInstance - The creature casting Web
-   * @param {CreatureInstance} targetInstance - The target creature
-   * @param {OrderCard} webCard - The Web order card
-   * @returns {Object} Result { success, reason, card }
+   * @param gameState - Game state for player lookup
+   * @returns { success, reason, card }
    */
-  apply(gameState, casterInstance, targetInstance, webCard) {
+  apply(
+    gameState: any,
+    casterInstance: CreatureInstance,
+    targetInstance: CreatureInstance,
+    webCard: OrderCard
+  ): Record<string, unknown> {
     if (!casterInstance || !targetInstance || !webCard) {
       return { success: false, reason: 'Invalid parameters' }
     }
@@ -122,7 +117,7 @@ export const WebCard = {
       return { success: false, reason: 'Caster player not found' }
     }
 
-    const cardIndex = casterPlayer.orderHand.findIndex((c) => c.id === webCard.id)
+    const cardIndex = casterPlayer.orderHand.findIndex((c: OrderCard) => c.id === webCard.id)
     if (cardIndex === -1) {
       return { success: false, reason: 'Web card not in hand' }
     }
@@ -147,17 +142,16 @@ export const WebCard = {
 
   /**
    * Remove Web from a creature (costs standard action)
-   * @param {Object} gameState - Game state for player lookup
-   * @param {CreatureInstance} creatureInstance - The webbed creature
-   * @returns {Object} Result { success, reason, card, casterOwner }
+   * @param gameState - Game state for player lookup
+   * @returns { success, reason, card, casterOwner }
    */
-  remove(gameState, creatureInstance) {
+  remove(gameState: any, creatureInstance: CreatureInstance): Record<string, unknown> {
     if (!creatureInstance?.attachedCards) {
       return { success: false, reason: 'Invalid creature' }
     }
 
     const webIndex = creatureInstance.attachedCards.findIndex((attached) =>
-      attached.card?.name?.toUpperCase().includes('WEB')
+      (attached.card as OrderCard | undefined)?.name?.toUpperCase().includes('WEB')
     )
 
     if (webIndex === -1) {

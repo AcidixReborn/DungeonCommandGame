@@ -8,6 +8,7 @@
  * Whenever an adjacent creature takes damage from this creature's attack,
  * slide the damaged creature up to 3 squares.
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const Slam = {
   id: 'slam',
@@ -18,10 +19,8 @@ export const Slam = {
 
   /**
    * Check if creature has SLAM ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has SLAM ability
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toUpperCase().includes('SLAM')
@@ -32,24 +31,27 @@ export const Slam = {
    * Get valid tiles where a creature can be slammed to
    * Uses BFS - mountains block, all other tiles cost 1
    * Cannot stop on occupied tiles
-   * @param {Object} gameState - Game state for tile lookup
-   * @param {CreatureInstance} targetInstance - Creature being slammed
-   * @param {number} maxDistance - Maximum slide distance (default 3)
-   * @returns {Array} Array of {x, y} valid destinations
+   * @param gameState - Game state for tile lookup
+   * @param targetInstance - Creature being slammed
+   * @param maxDistance - Maximum slide distance (default 3)
    */
-  getValidTiles(gameState, targetInstance, maxDistance = 3) {
+  getValidTiles(
+    gameState: any,
+    targetInstance: CreatureInstance,
+    maxDistance = 3
+  ): { x: number; y: number }[] {
     if (!targetInstance?.position) return []
 
-    const validTiles = []
+    const validTiles: { x: number; y: number }[] = []
     const startPos = targetInstance.position
 
     // BFS to find all reachable tiles within maxDistance
-    const visited = new Set()
-    const queue = [{ pos: startPos, cost: 0 }]
+    const visited = new Set<string>()
+    const queue: { pos: { x: number; y: number }; cost: number }[] = [{ pos: startPos, cost: 0 }]
     visited.add(`${startPos.x},${startPos.y}`)
 
     while (queue.length > 0) {
-      const { pos, cost } = queue.shift()
+      const { pos, cost } = queue.shift()!
 
       // 8-directional movement (includes diagonals)
       const directions = [
@@ -95,13 +97,14 @@ export const Slam = {
 
   /**
    * Execute SLAM slide - move creature to new position
-   * @param {Object} gameState - Game state for tile lookup
-   * @param {CreatureInstance} targetInstance - Creature being slammed
-   * @param {Object} destination - {x, y} destination position
-   * @returns {Object} Result with oldPosition and newPosition
+   * @param gameState - Game state for tile lookup
    */
-  execute(gameState, targetInstance, destination) {
-    const oldPosition = { ...targetInstance.position }
+  execute(
+    gameState: any,
+    targetInstance: CreatureInstance,
+    destination: { x: number; y: number }
+  ): { oldPosition: { x: number; y: number }; newPosition: { x: number; y: number } } {
+    const oldPosition = { ...targetInstance.position! }
     const oldTile = gameState.getTile(oldPosition.x, oldPosition.y)
     const newTile = gameState.getTile(destination.x, destination.y)
 

@@ -9,6 +9,7 @@
  * +10 melee damage against tapped creatures
  * Applies 0/50/100 AI difficulty rule based on ATTACKER's owner
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const Cutter = {
   id: 'cutter',
@@ -19,10 +20,8 @@ export const Cutter = {
 
   /**
    * Check if creature has CUTTER ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has CUTTER ability
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toUpperCase().includes('CUTTER')
@@ -31,12 +30,14 @@ export const Cutter = {
 
   /**
    * Get CUTTER bonus damage (+10 if attacker has CUTTER and defender is tapped)
-   * @param {Object} gameState - Game state for AI check
-   * @param {CreatureInstance} attackerInstance - Creature making the attack
-   * @param {CreatureInstance} defenderInstance - Target of the attack
-   * @returns {number} Bonus damage (10 or 0)
+   * @param gameState - Game state for AI check
+   * @returns Bonus damage (10 or 0)
    */
-  getBonus(gameState, attackerInstance, defenderInstance) {
+  getBonus(
+    gameState: any,
+    attackerInstance: CreatureInstance,
+    defenderInstance: CreatureInstance
+  ): number {
     if (!this.has(attackerInstance)) return 0
     if (!defenderInstance) return 0
     if (!defenderInstance.isTapped) return 0

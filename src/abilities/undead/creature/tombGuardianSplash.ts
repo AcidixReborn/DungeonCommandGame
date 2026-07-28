@@ -10,6 +10,7 @@
  */
 
 import { ABILITIES } from '../../../constants/gameConstants.js'
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const TombGuardianSplash = {
   id: 'tomb_guardian_splash',
@@ -20,10 +21,8 @@ export const TombGuardianSplash = {
 
   /**
    * Check if creature has Tomb Guardian splash/swirl ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has splash ability
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     if (creatureInstance.creature.name !== 'Skeletal Tomb Guardian') return false
     return creatureInstance.creature.specialAbilities.some(
@@ -36,16 +35,19 @@ export const TombGuardianSplash = {
 
   /**
    * Get all enemies adjacent to Skeletal Tomb Guardian (NOT the main target)
-   * @param {Object} gameState - Game state for tile lookup
-   * @param {CreatureInstance} attackerInstance - The Skeletal Tomb Guardian
-   * @param {CreatureInstance} mainTargetInstance - The main attack target (excluded)
-   * @returns {Array} Array of enemy creature instances to receive splash damage
+   * @param gameState - Game state for tile lookup
+   * @param attackerInstance - The Skeletal Tomb Guardian
+   * @param mainTargetInstance - The main attack target (excluded)
    */
-  getTargets(gameState, attackerInstance, mainTargetInstance = null) {
+  getTargets(
+    gameState: any,
+    attackerInstance: CreatureInstance,
+    mainTargetInstance: CreatureInstance | null = null
+  ): CreatureInstance[] {
     if (!this.has(attackerInstance)) return []
     if (!attackerInstance.position) return []
 
-    const targets = []
+    const targets: CreatureInstance[] = []
     const pos = attackerInstance.position
 
     // Check all 8 adjacent tiles to the Guardian

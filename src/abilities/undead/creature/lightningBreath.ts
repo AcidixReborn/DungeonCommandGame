@@ -8,6 +8,7 @@
  * Standard action: Make up to 3 ranged attacks on different targets within range
  * Requires at least 2 valid targets to use
  */
+import type { CreatureInstance } from '../../../models/creatures.js'
 
 export const LightningBreath = {
   id: 'lightning_breath',
@@ -19,10 +20,8 @@ export const LightningBreath = {
 
   /**
    * Check if creature has LIGHTNING BREATH ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has LIGHTNING BREATH
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (a) => typeof a === 'string' && a.toUpperCase().includes('LIGHTNING BREATH')
@@ -31,11 +30,10 @@ export const LightningBreath = {
 
   /**
    * Check if LIGHTNING BREATH can be used (requires 2+ valid targets)
-   * @param {Object} gameState - Game state
-   * @param {CreatureInstance} creatureInstance - The Dracolich
-   * @returns {boolean} True if can use Lightning Breath
+   * @param gameState - Game state
+   * @param creatureInstance - The Dracolich
    */
-  canUse(gameState, creatureInstance) {
+  canUse(gameState: any, creatureInstance: CreatureInstance): boolean {
     if (!this.has(creatureInstance)) return false
     const validTargets = this.getTargets(gameState, creatureInstance)
     return validTargets.length >= this.minTargets
@@ -49,11 +47,10 @@ export const LightningBreath = {
    * - Line of sight
    * - Target not in FOREST
    * - Attacker not in FOREST
-   * @param {Object} gameState - Game state
-   * @param {CreatureInstance} creatureInstance - The Dracolich
-   * @returns {Array} Array of valid target creature instances
+   * @param gameState - Game state
+   * @param creatureInstance - The Dracolich
    */
-  getTargets(gameState, creatureInstance) {
+  getTargets(gameState: any, creatureInstance: CreatureInstance): CreatureInstance[] {
     if (!creatureInstance?.position) return []
     if (!this.has(creatureInstance)) return []
 
@@ -65,13 +62,13 @@ export const LightningBreath = {
     const attackerTile = gameState.getTile(attackerPos.x, attackerPos.y)
     if (attackerTile?.terrain === 'FOREST') return []
 
-    const validTargets = []
+    const validTargets: CreatureInstance[] = []
 
     for (const playerId of Object.keys(gameState.players)) {
       if (playerId === attackerOwner) continue
 
       const player = gameState.players[playerId]
-      for (const enemy of player.creaturesInPlay) {
+      for (const enemy of player.creaturesInPlay as CreatureInstance[]) {
         if (!enemy.position) continue
         if (enemy.currentHP <= 0) continue
 
@@ -95,10 +92,10 @@ export const LightningBreath = {
 
   /**
    * Get Lightning Breath damage per attack
-   * @param {CreatureInstance} creatureInstance - The Dracolich
-   * @returns {number} Damage per attack (20)
+   * @param creatureInstance - The Dracolich
+   * @returns Damage per attack (20)
    */
-  getDamage(creatureInstance) {
+  getDamage(creatureInstance: CreatureInstance): number {
     return creatureInstance?.creature?.rangedAttack?.damage || 20
   },
 }

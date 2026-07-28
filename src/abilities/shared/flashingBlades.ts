@@ -9,8 +9,8 @@
  * After melee attack deals damage, can deal 10 splash damage to an adjacent enemy
  * (excluding the original attack target)
  */
-
 import { ABILITIES } from '../../constants/gameConstants.js'
+import type { CreatureInstance } from '../../models/creatures.js'
 
 export const FlashingBlades = {
   id: 'flashing_blades',
@@ -19,10 +19,8 @@ export const FlashingBlades = {
 
   /**
    * Check if creature has FLASHING BLADES ability
-   * @param {CreatureInstance} creatureInstance - Creature to check
-   * @returns {boolean} True if creature has FLASHING BLADES
    */
-  has(creatureInstance) {
+  has(creatureInstance: CreatureInstance): boolean {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
       (ability) => typeof ability === 'string' && ability.toUpperCase().includes('FLASHING BLADES')
@@ -33,16 +31,17 @@ export const FlashingBlades = {
    * Get valid targets for FLASHING BLADES splash damage
    * Returns adjacent enemy creatures (excluding the original attack target)
    * Uses 8-directional adjacency (includes diagonals)
-   * @param {Object} gameState - Game state for adjacency lookup
-   * @param {CreatureInstance} attackerInstance - The attacker with Flashing Blades
-   * @param {CreatureInstance} originalTarget - The creature that was just attacked
-   * @returns {Array} Array of valid target CreatureInstances
+   * @param gameState - Game state for adjacency lookup
    */
-  getTargets(gameState, attackerInstance, originalTarget) {
+  getTargets(
+    gameState: any,
+    attackerInstance: CreatureInstance,
+    originalTarget: CreatureInstance | null
+  ): CreatureInstance[] {
     if (!this.has(attackerInstance)) return []
     if (!attackerInstance.position) return []
 
-    const targets = []
+    const targets: CreatureInstance[] = []
     const adjacent = gameState.getAdjacentTiles8Dir(
       attackerInstance.position.x,
       attackerInstance.position.y
