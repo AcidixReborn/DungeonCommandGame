@@ -19,8 +19,9 @@
 import { COMBAT, COMMANDER_ABILITIES } from '../constants/gameConstants.js'
 import { CreatureInstance } from './creatures.js'
 import type { CommanderAbility } from './commanders.js'
-import type { OrderCard } from './orders.js'
+import type { OrderCard, AttachOnUseConfig } from './orders.js'
 import type { GameState } from './gameState.js'
+import type { Tile } from './Board.js'
 
 export interface CowerInfo {
   canCower: boolean
@@ -53,6 +54,31 @@ export interface DefenseOptions {
   unstoppableHordes: UnstoppableHordesInfo | null
   adjacentUndead: CreatureInstance[]
   immediateCards: ImmediateCardOption[]
+}
+
+export interface ImmediateCardDefenseResult {
+  success: boolean
+  damagePrevented: number
+  preventsAllDamage?: boolean
+  cardUsed: OrderCard | null
+  moraleCost: number
+  moraleGain?: number
+  untapAfterUse?: boolean
+  bonusDrawsQueued?: number
+  shiftAfterUse?: number
+  creatureToShift?: CreatureInstance | null
+  counterAttack?: {
+    damage: number
+    targetType: string | null
+    requiresAdjacent: boolean
+    defenderInstance: CreatureInstance
+  } | null
+  discardedCardName?: string | null
+  opponentDrawsCards?: number
+  attachedCard?: boolean
+  removedAttachments?: unknown[]
+  attachOnUse?: AttachOnUseConfig | null
+  reason?: string
 }
 
 /**
@@ -131,8 +157,8 @@ export class CommanderAbilityManager {
   /**
    * Get valid treasure tiles for ORC SCOUT deployment
    */
-  getOrcScoutValidTiles(): unknown[] {
-    const validTiles = []
+  getOrcScoutValidTiles(): Tile[] {
+    const validTiles: Tile[] = []
     for (let y = 0; y < this.gameState.boardHeight; y++) {
       for (let x = 0; x < this.gameState.boardWidth; x++) {
         const tile = this.gameState.getTile(x, y)
@@ -905,7 +931,7 @@ export class CommanderAbilityManager {
     card: OrderCard,
     usingCreature: CreatureInstance,
     discardCard: OrderCard | null = null
-  ): Record<string, unknown> {
+  ): ImmediateCardDefenseResult {
     if (!card || !usingCreature || !usingCreature.owner) {
       return { success: false, damagePrevented: 0, cardUsed: null, moraleCost: 0 }
     }

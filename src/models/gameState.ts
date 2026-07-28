@@ -1769,7 +1769,7 @@ export class GameState {
       success: boolean
       healedAmount?: number
       message?: string
-      removedCard?: unknown
+      removedCard?: OrderCard
     } = { success: true }
 
     if (action === 'heal') {
@@ -4501,7 +4501,9 @@ export class GameState {
    * @param {CreatureInstance} creatureInstance - The creature collecting morale
    * @returns {Object} { success, message, moraleCollected, treasureDepleted, treasureValue }
    */
-  collectMorale(creatureInstance) {
+  collectMorale(creatureInstance: CreatureInstance):
+    | { success: true; message: string; moraleCollected: number; treasureDepleted: boolean; treasureValue: string }
+    | { success: false; message: string } {
     // Safety check: ensure creature has a valid position
     if (!creatureInstance?.position) {
       return { success: false, message: 'Cannot collect morale: invalid creature position' }

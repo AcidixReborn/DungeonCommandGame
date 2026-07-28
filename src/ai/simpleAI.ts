@@ -1,5 +1,7 @@
 import { GamePhases } from '../models/gameState.js'
+import type { GameState } from '../models/gameState.js'
 import { CreatureInstance } from '../models/creatures.js'
+import type { OrderCard } from '../models/orders.js'
 import { logger } from '../utils/logger.js'
 // ActionTypes import removed - not used
 
@@ -8,25 +10,58 @@ import { logger } from '../utils/logger.js'
  * - 'easy': Basic movement/attack only. No creature abilities, no IMMEDIATE cards.
  * - 'medium': Adds creature ability usage. No IMMEDIATE cards.
  * - 'hard': Full AI with creature abilities + IMMEDIATE card usage.
- *
- * @typedef {'easy' | 'medium' | 'hard'} AIDifficulty
  */
+export type AIDifficulty = 'easy' | 'medium' | 'hard'
+
+/** Return shape of decideDefense() and its two delegate methods - a discriminated union on `type`. */
+export type DefenseDecision =
+  | { type: 'none'; creatures: CreatureInstance[]; hadOpportunity: boolean }
+  | { type: 'cower'; creatures: CreatureInstance[]; hadOpportunity: boolean }
+  | {
+      type: 'unstoppable_hordes'
+      creatures: CreatureInstance[]
+      defenderCanUse: boolean
+      totalDamageReduction: number
+      hadOpportunity: true
+    }
+  | {
+      type: 'immediate_card'
+      card: OrderCard
+      creature: CreatureInstance
+      damagePrevented: number
+      cardName: string
+      hadOpportunity: true
+      discardCard: OrderCard | null
+      moraleTarget: unknown | null
+      sacrificeTarget: unknown | null
+    }
 
 /**
  * Simple AI for Dungeon Command
  * Makes basic tactical decisions for computer-controlled players
  *
  * Big O Complexity per turn:
- * - O(C × (T + E)) where C = creatures, T = treasures, E = enemies
+ * - O(C x (T + E)) where C = creatures, T = treasures, E = enemies
  */
 export class SimpleAI {
+  gameState: GameState
+  playerId: string
+  trackStats: Record<string, any> | null
+  difficulty: AIDifficulty
+  isConservative: boolean
+
   /**
-   * @param {Object} gameState - The game state object
-   * @param {string} playerId - The player ID this AI controls
-   * @param {Object|null} trackStats - Optional stats tracking object
-   * @param {AIDifficulty} difficulty - AI difficulty level ('easy', 'medium', 'hard')
+   * @param gameState - The game state object
+   * @param playerId - The player ID this AI controls
+   * @param trackStats - Optional stats tracking object
+   * @param difficulty - AI difficulty level ('easy', 'medium', 'hard')
    */
-  constructor(gameState, playerId, trackStats = null, difficulty = 'easy') {
+  constructor(
+    gameState: GameState,
+    playerId: string,
+    trackStats: Record<string, any> | null = null,
+    difficulty: AIDifficulty = 'easy'
+  ) {
     this.gameState = gameState
     this.playerId = playerId
     this.trackStats = trackStats // Optional stats tracking object
@@ -385,7 +420,7 @@ export class SimpleAI {
 
       for (const targetInfo of attackTargets) {
         const target = targetInfo.creature
-        let attackType = targetInfo.attackType
+        const attackType = targetInfo.attackType
         let damage = 0
 
         // Calculate damage based on attack type
@@ -2554,8 +2589,8 @@ export class SimpleAI {
     const hadOpportunity = true
 
     // Calculate threat level: How dangerous is this attack?
-    const defenderHP = defenderInstance.currentHP || defenderInstance.creature.hp
-    const defenderMaxHP = defenderInstance.creature.hp
+    const defenderHP = defenderInstance.currentHP || defenderInstance.creature.hitPoints
+    const defenderMaxHP = defenderInstance.creature.hitPoints
     const hpPercentage = (defenderHP / defenderMaxHP) * 100
 
     // Get creature level for value assessment
@@ -2587,7 +2622,7 @@ export class SimpleAI {
     }
 
     // Calculate final chance (capped at 100%)
-    let useChance = Math.min(100, baseChance * levelMultiplier)
+    const useChance = Math.min(100, baseChance * levelMultiplier)
 
     // Make decision based on chance
     const shouldUse = Math.random() * 100 < useChance
@@ -2618,7 +2653,7 @@ export class SimpleAI {
    * @param {string} attackerOwner - Owner of the attacking creature
    * @returns {Object} { type: 'cower' | 'unstoppable_hordes' | 'immediate_card' | 'none', creatures: [...], hadOpportunity: boolean }
    */
-  decideDefense(defenderInstance, incomingDamage, attackerOwner) {
+  decideDefense(defenderInstance, incomingDamage, attackerOwner): DefenseDecision {
     // Check if getDefenseOptions exists
     if (!this.gameState.getDefenseOptions) {
       return { type: 'none', creatures: [], hadOpportunity: false }
@@ -2644,7 +2679,7 @@ export class SimpleAI {
     const hadOpportunity = true
 
     // Decision factors
-    const defenderHP = defenderInstance.currentHP || defenderInstance.creature.hp
+    const defenderHP = defenderInstance.currentHP || defenderInstance.creature.hitPoints
     const creatureLevel = defenderInstance.creature.level || 1
     const currentMorale = player.morale
     const creaturesInPlay = player.creaturesInPlay?.length || 0
@@ -2803,7 +2838,7 @@ export class SimpleAI {
    * @param {number} incomingDamage - Amount of damage to prevent
    * @returns {Object} { type: 'unstoppable_hordes', creatures: [...], hadOpportunity: true }
    */
-  selectUnstoppableHordesCreatures(defenseOptions, incomingDamage) {
+  selectUnstoppableHordesCreatures(defenseOptions, incomingDamage): DefenseDecision {
     const creatures = []
 
     // Start with defender if available
@@ -2843,7 +2878,11 @@ export class SimpleAI {
    * @param {number} incomingDamage - Amount of damage to prevent
    * @returns {Object|null} { type: 'immediate_card', card, creature, ... } or null if shouldn't use
    */
-  selectImmediateCardForDefense(defenseOptions, defenderInstance, incomingDamage) {
+  selectImmediateCardForDefense(
+    defenseOptions,
+    defenderInstance,
+    incomingDamage
+  ): DefenseDecision | null {
     const immediateCards = defenseOptions.immediateCards || []
     if (immediateCards.length === 0) return null
 
@@ -3183,10 +3222,17 @@ export class SimpleAI {
         hadOpportunity: decision.hadOpportunity,
       }
     } else if (decision.type === 'unstoppable_hordes') {
+      const unstoppableDecision = decision as {
+        totalDamageReduction?: number
+        hadOpportunity: boolean
+      }
       return {
         useCower: true,
-        cowerInfo: { canCower: true, damageReduction: decision.totalDamageReduction || 20 },
-        hadOpportunity: decision.hadOpportunity,
+        cowerInfo: {
+          canCower: true,
+          damageReduction: unstoppableDecision.totalDamageReduction || 20,
+        },
+        hadOpportunity: unstoppableDecision.hadOpportunity,
       }
     }
 
@@ -3631,8 +3677,8 @@ export class SimpleAI {
       const treasures = this.gameState.treasures || []
       for (const treasure of treasures) {
         if (treasure && !treasure.isDepleted()) {
-          const dx = Math.abs(creature.position.x - treasure.x)
-          const dy = Math.abs(creature.position.y - treasure.y)
+          const dx = Math.abs(creature.position.x - treasure.position.x)
+          const dy = Math.abs(creature.position.y - treasure.position.y)
           const distance = Math.max(dx, dy)
 
           // If within movement range of treasure
@@ -3645,7 +3691,7 @@ export class SimpleAI {
 
     // Check if creature is in danger and needs to retreat
     // (surrounded by enemies or at low HP)
-    const hpPercent = creature.currentHP / creature.creature.hp
+    const hpPercent = creature.currentHP / creature.creature.hitPoints
     if (hpPercent < 0.3) {
       // Check if there are enemies nearby
       const enemies = this.getEnemiesInRange(creature, 3)
@@ -3657,7 +3703,7 @@ export class SimpleAI {
     // Check if creature is blocking an important position
     // (e.g., on own deploy zone or blocking friendly movement)
     const tile = this.gameState.getTile(creature.position.x, creature.position.y)
-    if (tile?.deployZone === creature.owner) {
+    if (tile?.startingZoneOwner === creature.owner) {
       return { reason: 'to clear deploy zone for reinforcements' }
     }
 
@@ -3719,7 +3765,7 @@ export class SimpleAI {
     }
 
     // Bonus: creature has high remaining HP (more value from immobilizing healthy enemies)
-    const maxHP = target.creature.hp || 1
+    const maxHP = target.creature.hitPoints || 1
     const currentHP = target.currentHP || 0
     const hpPercent = currentHP / maxHP
     score += hpPercent * 20
@@ -3734,8 +3780,8 @@ export class SimpleAI {
     const treasures = this.gameState.treasures || []
     for (const treasure of treasures) {
       if (treasure && !treasure.isDepleted()) {
-        const dx = Math.abs(target.position.x - treasure.x)
-        const dy = Math.abs(target.position.y - treasure.y)
+        const dx = Math.abs(target.position.x - treasure.position.x)
+        const dy = Math.abs(target.position.y - treasure.position.y)
         const distance = Math.max(dx, dy)
         if (distance <= 3) {
           score += 20 // Near a treasure

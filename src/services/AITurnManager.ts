@@ -3,13 +3,21 @@
 
 import SimpleAI from '../ai/simpleAI.js'
 import { GamePhases } from '../models/gameState.js'
+import type { GameState } from '../models/gameState.js'
+import type { AIDifficulty } from '../ai/simpleAI.js'
 
 /**
  * AITurnManager - Handles AI turn execution and action processing
  * Separates AI logic from UI concerns
+ *
+ * `gameConfig` stays loosely typed - it's the { player1: {...}, player2: {...}, ... }
+ * shape built up interactively in FactionSelector/GameBoard, not a formal model type.
  */
 export class AITurnManager {
-  constructor(gameState, gameConfig) {
+  gameState: GameState
+  gameConfig: any
+
+  constructor(gameState: GameState, gameConfig: any) {
     this.gameState = gameState
     this.gameConfig = gameConfig
   }
@@ -39,9 +47,9 @@ export class AITurnManager {
    * @param {string} playerId - Player ID
    * @returns {string} AI difficulty ('easy', 'medium', 'hard')
    */
-  getAIDifficulty(playerId) {
+  getAIDifficulty(playerId): AIDifficulty {
     const player = this.gameState.players[playerId]
-    return player?.aiDifficulty || 'easy'
+    return (player?.aiDifficulty as AIDifficulty) || 'easy'
   }
 
   /**
