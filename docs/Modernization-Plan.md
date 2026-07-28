@@ -46,16 +46,20 @@ Master plan for paying down technical debt before resuming Order Card content wo
 
 ---
 
-## Phase C: Testing Infrastructure
+## Phase C: Testing Infrastructure ✅ COMPLETE
 
-| Item                                                                          | Status |
-| ----------------------------------------------------------------------------- | ------ |
-| Add Vitest + `@testing-library/react` + `jsdom`                               | ⬜     |
-| Characterization tests: `CombatResolver.js` (combat math, damage prevention)  | ⬜     |
-| Characterization tests: `CommanderAbilityManager.js`                          | ⬜     |
-| Characterization tests: `GameState`/`PlayerState` core flows (`gameState.js`) | ⬜     |
-| Characterization tests: key `simpleAI.js` scoring functions                   | ⬜     |
-| Add `npm test` script                                                         | ⬜     |
+| Item                                                                          | Status                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Add Vitest + `@testing-library/react` + `jsdom`                               | ✅ — `vitest.config.js` merges `vite.config.js` so the real Vite/React setup is exercised; `vitest.setup.js` silences the logger's console noise in test output                                          |
+| Characterization tests: `CombatResolver.js` (combat math, damage prevention)  | ✅ — 15 tests: range/LOS validation, REACH, flat-damage cards, damage reduction, kill resolution (morale, graveyard, tile cleanup), line-of-sight blocking by terrain/creatures                          |
+| Characterization tests: `CommanderAbilityManager.js`                         | ✅ — 13 tests: the universal COWER mechanic (cost, tap, insufficient-morale/tapped rejection) and adjacency helpers                                                                                      |
+| Characterization tests: `GameState`/`PlayerState` core flows (`gameState.js`) | ✅ — 10 tests: morale accounting/clamping, `isDefeated` (including the turn-1 grace period), `checkGameOver` win conditions                                                                              |
+| Characterization tests: key `simpleAI.js` scoring functions                   | ✅ — 14 tests: the documented 0/0/100 AI difficulty gate pattern (`canUseCreatureAbilities`/`canUseImmediateCards`/`canUseDamageBoostCards`/`canUseOrderCards`), target selection, adjacency              |
+| Add `npm test` / `npm run test:watch` scripts                                | ✅                                                                                                                                                                                                          |
+
+All tests build real `GameState`/`CombatResolver`/`SimpleAI` instances via a shared `src/__tests__/testHelpers.js` fixture (not mocks) — they exercise the actual engine. **52 tests, all passing.** This is intentionally not exhaustive coverage of the ~1000+ lines of ability/card interactions — it targets the highest-risk, most foundational behaviors so Phase D's TypeScript conversion has a safety net for the core rules, not a full regression suite.
+
+**Checkpoint**: `npm test` (52/52 passing), `npm run lint` (0 errors), `npm run build` all pass clean.
 
 _Write these tests in JS, before converting the corresponding files to TS in Phase D — they lock in current behavior so the migration can't silently change game rules._
 
