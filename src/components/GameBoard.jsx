@@ -12,7 +12,14 @@ import CommanderSelector from './CommanderSelector'
 import DeployConfirmPanel from './DeployConfirmPanel'
 import SimpleAI from '../ai/simpleAI'
 // Import custom hooks for state management
-import { useNotifications, useSelection, useCombat, useAbilityModals, useAITurn, useDeployment } from '../hooks'
+import {
+  useNotifications,
+  useSelection,
+  useCombat,
+  useAbilityModals,
+  useAITurn,
+  useDeployment,
+} from '../hooks'
 import DamageNotificationModal from './DamageNotificationModal'
 import WebRemovalModal from './WebRemovalModal'
 import HealingTouchModal from './HealingTouchModal'
@@ -59,7 +66,7 @@ function ToastNotification({ toast, onRemove }) {
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
         animation: 'toastSlideIn 0.3s ease-out',
         maxWidth: '100%',
-        wordWrap: 'break-word'
+        wordWrap: 'break-word',
       }}
     >
       {toast.message}
@@ -87,33 +94,53 @@ function GameBoard({ onTurnInfoChange }) {
 
   // Selection state hook - handles tile/creature selection and valid moves
   const {
-    selectedTile, setSelectedTile,
-    selectedCreatureIndex, setSelectedCreatureIndex,
-    selectedOrderIndex, setSelectedOrderIndex,
-    selectedBoardCreature, setSelectedBoardCreature,
-    validMoveTiles, setValidMoveTiles,
-    validAttackTargets, setValidAttackTargets,
-    lineOfSightPath, setLineOfSightPath,
-    rangedRangeTiles, setRangedRangeTiles,
-    creatureViewMode, setCreatureViewMode,
-    draggingCreatureIndex, setDraggingCreatureIndex,
-    dragOverTile, setDragOverTile,
-    factionHighlight, setFactionHighlight,
+    selectedTile,
+    setSelectedTile,
+    selectedCreatureIndex,
+    setSelectedCreatureIndex,
+    selectedOrderIndex,
+    setSelectedOrderIndex,
+    selectedBoardCreature,
+    setSelectedBoardCreature,
+    validMoveTiles,
+    setValidMoveTiles,
+    validAttackTargets,
+    setValidAttackTargets,
+    lineOfSightPath,
+    setLineOfSightPath,
+    rangedRangeTiles,
+    setRangedRangeTiles,
+    creatureViewMode,
+    setCreatureViewMode,
+    draggingCreatureIndex,
+    setDraggingCreatureIndex,
+    dragOverTile,
+    setDragOverTile,
+    factionHighlight,
+    setFactionHighlight,
     clearBoardSelection,
-    clearDragState
+    clearDragState,
   } = useSelection()
 
   // Combat state hook - handles pending attacks, defense, move confirmation
   const {
-    pendingAttack, setPendingAttack,
-    combatPanelMode, setCombatPanelMode,
-    combatHighlightCreatures, setCombatHighlightCreatures,
-    showMoveConfirm, setShowMoveConfirm,
-    pendingMove, setPendingMove,
-    pendingRightClickAttack, setPendingRightClickAttack,
-    pendingAIActions, setPendingAIActions,
-    processingAIAction, setProcessingAIAction,
-    closeCombatPanel
+    pendingAttack,
+    setPendingAttack,
+    combatPanelMode,
+    setCombatPanelMode,
+    combatHighlightCreatures,
+    setCombatHighlightCreatures,
+    showMoveConfirm,
+    setShowMoveConfirm,
+    pendingMove,
+    setPendingMove,
+    pendingRightClickAttack,
+    setPendingRightClickAttack,
+    pendingAIActions,
+    setPendingAIActions,
+    processingAIAction,
+    setProcessingAIAction,
+    closeCombatPanel,
   } = useCombat()
 
   // Helper to check if current player is human (needed by notifications hook)
@@ -129,177 +156,286 @@ function GameBoard({ onTurnInfoChange }) {
   const {
     toastMessages,
     turnLog,
-    isLogExpanded, setIsLogExpanded,
+    isLogExpanded,
+    setIsLogExpanded,
     addToast,
     removeToast,
-    clearOldLogs
+    clearOldLogs,
   } = useNotifications({
     getCurrentTurnNumber: () => gameState?.turnNumber || 1,
-    isCurrentPlayerHuman: isCurrentPlayerHumanCheck
+    isCurrentPlayerHuman: isCurrentPlayerHumanCheck,
   })
 
   // Ability modal state hook - handles all ability-related modal states
   const {
     // Flashing Blades
-    showFlashingBladesModal, setShowFlashingBladesModal,
-    flashingBladesPending, setFlashingBladesPending,
-    flashingBladesTargetMode, setFlashingBladesTargetMode,
+    showFlashingBladesModal,
+    setShowFlashingBladesModal,
+    flashingBladesPending,
+    setFlashingBladesPending,
+    flashingBladesTargetMode,
+    setFlashingBladesTargetMode,
     clearFlashingBladesState,
     // Hidden Blade
-    showHiddenBladeModal, setShowHiddenBladeModal,
-    hiddenBladePending, setHiddenBladePending,
-    hiddenBladeTargetMode, setHiddenBladeTargetMode,
+    showHiddenBladeModal,
+    setShowHiddenBladeModal,
+    hiddenBladePending,
+    setHiddenBladePending,
+    hiddenBladeTargetMode,
+    setHiddenBladeTargetMode,
     clearHiddenBladeState,
     // Confusion Gaze
-    showConfusionGazeModal, setShowConfusionGazeModal,
-    confusionGazeMode, setConfusionGazeMode,
-    confusionGazePending, setConfusionGazePending,
+    showConfusionGazeModal,
+    setShowConfusionGazeModal,
+    confusionGazeMode,
+    setConfusionGazeMode,
+    confusionGazePending,
+    setConfusionGazePending,
     clearConfusionGazeState,
     // Slam
-    slamMode, setSlamMode,
-    slamPending, setSlamPending,
-    slamValidTiles, setSlamValidTiles,
-    showSlamModal, setShowSlamModal,
-    showSlamConfirmModal, setShowSlamConfirmModal,
-    slamSelectedTile, setSlamSelectedTile,
+    slamMode,
+    setSlamMode,
+    slamPending,
+    setSlamPending,
+    slamValidTiles,
+    setSlamValidTiles,
+    showSlamModal,
+    setShowSlamModal,
+    showSlamConfirmModal,
+    setShowSlamConfirmModal,
+    slamSelectedTile,
+    setSlamSelectedTile,
     clearSlamState,
     // Tomb Guardian Splash
-    pendingSplashAttacks, setPendingSplashAttacks,
-    currentSplashIndex, setCurrentSplashIndex,
-    splashResults, setSplashResults,
+    pendingSplashAttacks,
+    setPendingSplashAttacks,
+    currentSplashIndex,
+    setCurrentSplashIndex,
+    splashResults,
+    setSplashResults,
     clearSplashState,
     // Lightning Breath
-    lightningBreathMode, setLightningBreathMode,
-    lightningBreathAttacker, setLightningBreathAttacker,
-    lightningBreathTargets, setLightningBreathTargets,
-    lightningBreathValidTargets, setLightningBreathValidTargets,
-    lightningBreathCurrentAttackIndex, setLightningBreathCurrentAttackIndex,
-    lightningBreathResults, setLightningBreathResults,
-    lightningBreathDamageBoostCard, setLightningBreathDamageBoostCard,
-    lightningBreathDamageBoostBonus, setLightningBreathDamageBoostBonus,
+    lightningBreathMode,
+    setLightningBreathMode,
+    lightningBreathAttacker,
+    setLightningBreathAttacker,
+    lightningBreathTargets,
+    setLightningBreathTargets,
+    lightningBreathValidTargets,
+    setLightningBreathValidTargets,
+    lightningBreathCurrentAttackIndex,
+    setLightningBreathCurrentAttackIndex,
+    lightningBreathResults,
+    setLightningBreathResults,
+    lightningBreathDamageBoostCard,
+    setLightningBreathDamageBoostCard,
+    lightningBreathDamageBoostBonus,
+    setLightningBreathDamageBoostBonus,
     clearLightningBreathState,
     // Disciple of Kyuss
-    showDamageNotification, setShowDamageNotification,
-    damageNotificationData, setDamageNotificationData,
-    pendingPhaseAdvance, setPendingPhaseAdvance,
+    showDamageNotification,
+    setShowDamageNotification,
+    damageNotificationData,
+    setDamageNotificationData,
+    pendingPhaseAdvance,
+    setPendingPhaseAdvance,
     // Insubstantial
-    showInsubstantialModal, setShowInsubstantialModal,
-    insubstantialData, setInsubstantialData,
+    showInsubstantialModal,
+    setShowInsubstantialModal,
+    insubstantialData,
+    setInsubstantialData,
     // Rider
-    showRiderModal, setShowRiderModal,
-    riderData, setRiderData,
-    pendingRiderCallback, setPendingRiderCallback,
-    selectedRiderCreature, setSelectedRiderCreature,
+    showRiderModal,
+    setShowRiderModal,
+    riderData,
+    setRiderData,
+    pendingRiderCallback,
+    setPendingRiderCallback,
+    selectedRiderCreature,
+    setSelectedRiderCreature,
     clearRiderState,
     // Magic Circle Aura
-    showMagicCircleModal, setShowMagicCircleModal,
-    magicCircleModalData, setMagicCircleModalData,
-    pendingMagicCircleNotifications, setPendingMagicCircleNotifications,
+    showMagicCircleModal,
+    setShowMagicCircleModal,
+    magicCircleModalData,
+    setMagicCircleModalData,
+    pendingMagicCircleNotifications,
+    setPendingMagicCircleNotifications,
     // Ranged Splash
-    pendingRangedSplashTargets, setPendingRangedSplashTargets,
-    currentRangedSplashIndex, setCurrentRangedSplashIndex,
-    rangedSplashAttackInfo, setRangedSplashAttackInfo,
-    showRangedSplashDefensePanel, setShowRangedSplashDefensePanel,
+    pendingRangedSplashTargets,
+    setPendingRangedSplashTargets,
+    currentRangedSplashIndex,
+    setCurrentRangedSplashIndex,
+    rangedSplashAttackInfo,
+    setRangedSplashAttackInfo,
+    showRangedSplashDefensePanel,
+    setShowRangedSplashDefensePanel,
     clearRangedSplashState,
     // Healing Touch
-    showHealingTouchModal, setShowHealingTouchModal,
-    healingTouchData, setHealingTouchData,
+    showHealingTouchModal,
+    setShowHealingTouchModal,
+    healingTouchData,
+    setHealingTouchData,
     // Chieftain Call
-    showChieftainCallModal, setShowChieftainCallModal,
-    chieftainCallData, setChieftainCallData,
+    showChieftainCallModal,
+    setShowChieftainCallModal,
+    chieftainCallData,
+    setChieftainCallData,
     // Ogre Deploy Morale
-    showOgreDeployMoraleModal, setShowOgreDeployMoraleModal,
-    ogreDeployMoraleData, setOgreDeployMoraleData,
+    showOgreDeployMoraleModal,
+    setShowOgreDeployMoraleModal,
+    ogreDeployMoraleData,
+    setOgreDeployMoraleData,
     // Cleric Draw Order
-    showClericDrawOrderModal, setShowClericDrawOrderModal,
-    clericDrawOrderData, setClericDrawOrderData,
+    showClericDrawOrderModal,
+    setShowClericDrawOrderModal,
+    clericDrawOrderData,
+    setClericDrawOrderData,
     // Web Removal
-    showWebRemovalModal, setShowWebRemovalModal,
-    webRemovalData, setWebRemovalData,
+    showWebRemovalModal,
+    setShowWebRemovalModal,
+    webRemovalData,
+    setWebRemovalData,
     // Cards Drawn
-    showCardsDrawnModal, setShowCardsDrawnModal,
-    cardsDrawnData, setCardsDrawnData,
-    bonusDrawSources, setBonusDrawSources,
+    showCardsDrawnModal,
+    setShowCardsDrawnModal,
+    cardsDrawnData,
+    setCardsDrawnData,
+    bonusDrawSources,
+    setBonusDrawSources,
     // Recoil Draw (opponent card draw side effect)
-    showRecoilDrawModal, setShowRecoilDrawModal,
-    recoilDrawnCards, setRecoilDrawnCards,
-    recoilSourceCardName, setRecoilSourceCardName,
+    showRecoilDrawModal,
+    setShowRecoilDrawModal,
+    recoilDrawnCards,
+    setRecoilDrawnCards,
+    recoilSourceCardName,
+    setRecoilSourceCardName,
     // Faction Select (Recoil target selection with 3+ factions)
-    showFactionSelectModal, setShowFactionSelectModal,
-    factionSelectConfig, setFactionSelectConfig,
+    showFactionSelectModal,
+    setShowFactionSelectModal,
+    factionSelectConfig,
+    setFactionSelectConfig,
     // Shift After Defense (Cloud of Bats)
-    showShiftDecisionModal, setShowShiftDecisionModal,
-    pendingShiftAfterDefense, setPendingShiftAfterDefense,
-    shiftSelectionMode, setShiftSelectionMode,
-    shiftValidTiles, setShiftValidTiles,
+    showShiftDecisionModal,
+    setShowShiftDecisionModal,
+    pendingShiftAfterDefense,
+    setPendingShiftAfterDefense,
+    shiftSelectionMode,
+    setShiftSelectionMode,
+    shiftValidTiles,
+    setShiftValidTiles,
     // Counter-Attack Target Selection (Seize the Opportunity)
-    showCounterAttackTargetModal, setShowCounterAttackTargetModal,
-    counterAttackPending, setCounterAttackPending,
+    showCounterAttackTargetModal,
+    setShowCounterAttackTargetModal,
+    counterAttackPending,
+    setCounterAttackPending,
     // Patch Up Heal (proactive healing during ACTIVATE)
-    showPatchUpHealModal, setShowPatchUpHealModal,
-    patchUpHealConfig, setPatchUpHealConfig,
+    showPatchUpHealModal,
+    setShowPatchUpHealModal,
+    patchUpHealConfig,
+    setPatchUpHealConfig,
     // Morale Loss Notification (Unexpected Resistance)
-    showMoraleLossModal, setShowMoraleLossModal,
-    moraleLossModalData, setMoraleLossModalData,
+    showMoraleLossModal,
+    setShowMoraleLossModal,
+    moraleLossModalData,
+    setMoraleLossModalData,
     // Savage Demise (self-sacrifice attack)
-    savageDemisePending, setSavageDemisePending,
+    savageDemisePending,
+    setSavageDemisePending,
     clearSavageDemiseState,
     // Tough as Nails (proactive use during ACTIVATE)
-    showToughAsNailsModal, setShowToughAsNailsModal,
-    toughAsNailsConfig, setToughAsNailsConfig,
+    showToughAsNailsModal,
+    setShowToughAsNailsModal,
+    toughAsNailsConfig,
+    setToughAsNailsConfig,
     // Damage Boost Cards (Power Attack, Hacking Frenzy, Killing Strike)
-    showDamageBoostModal, setShowDamageBoostModal,
-    damageBoostConfig, setDamageBoostConfig,
-    pendingDamageBoostAttack, setPendingDamageBoostAttack,
+    showDamageBoostModal,
+    setShowDamageBoostModal,
+    damageBoostConfig,
+    setDamageBoostConfig,
+    pendingDamageBoostAttack,
+    setPendingDamageBoostAttack,
     clearDamageBoostState,
     // Shift + Attack Cards (Nimble Strike, Spring Attack, Shadowy Ambush)
-    showShiftAttackModal, setShowShiftAttackModal,
-    shiftAttackConfig, setShiftAttackConfig,
-    pendingShiftAttack, setPendingShiftAttack,
-    shiftAttackMode, setShiftAttackMode,
-    shiftAttackValidTiles, setShiftAttackValidTiles,
+    showShiftAttackModal,
+    setShowShiftAttackModal,
+    shiftAttackConfig,
+    setShiftAttackConfig,
+    pendingShiftAttack,
+    setPendingShiftAttack,
+    shiftAttackMode,
+    setShiftAttackMode,
+    shiftAttackValidTiles,
+    setShiftAttackValidTiles,
     clearShiftAttackState,
     // Charge Cards (move + melee attack with bonus damage)
-    showChargeModal, setShowChargeModal,
-    chargeConfig, setChargeConfig,
-    pendingChargeAttack, setPendingChargeAttack,
-    chargeMode, setChargeMode,
-    chargeValidTiles, setChargeValidTiles,
+    showChargeModal,
+    setShowChargeModal,
+    chargeConfig,
+    setChargeConfig,
+    pendingChargeAttack,
+    setPendingChargeAttack,
+    chargeMode,
+    setChargeMode,
+    chargeValidTiles,
+    setChargeValidTiles,
     clearChargeState,
     // Harmful Attachments Notification (Deep Wound, Web, Mortal Wound, Shattered Weapon)
-    showHarmfulAttachmentsModal, setShowHarmfulAttachmentsModal,
-    harmfulAttachmentsData, setHarmfulAttachmentsData,
+    showHarmfulAttachmentsModal,
+    setShowHarmfulAttachmentsModal,
+    harmfulAttachmentsData,
+    setHarmfulAttachmentsData,
     // Clear all
-    clearAllAbilityModalState
+    clearAllAbilityModalState,
   } = useAbilityModals()
 
   // AI Turn state hook - handles AI thinking, death queue, and notifications
   const {
-    isAIThinking, setIsAIThinking,
-    startAiThinking, endAiThinking,
-    aiDeathQueue, setAiDeathQueue,
-    showAiDeathModal, setShowAiDeathModal,
-    currentAiDeath, setCurrentAiDeath,
-    queueAiDeath, showNextAiDeath,
-    acknowledgeAiDeath, clearAiDeathQueue,
+    isAIThinking,
+    setIsAIThinking,
+    startAiThinking,
+    endAiThinking,
+    aiDeathQueue,
+    setAiDeathQueue,
+    showAiDeathModal,
+    setShowAiDeathModal,
+    currentAiDeath,
+    setCurrentAiDeath,
+    queueAiDeath,
+    showNextAiDeath,
+    acknowledgeAiDeath,
+    clearAiDeathQueue,
     hasQueuedDeaths,
-    aiCurrentAction, setAiCurrentAction,
-    clearAllAiTurnState
+    aiCurrentAction,
+    setAiCurrentAction,
+    clearAllAiTurnState,
   } = useAITurn()
 
   // Deployment state hook - handles deploy confirmation and graveyard deployment
   const {
-    showDeployConfirm, setShowDeployConfirm,
-    pendingDeployment, setPendingDeployment,
-    startDeployConfirmation, cancelDeployConfirmation, clearDeployConfirmation,
-    selectedGraveyardCreature, setSelectedGraveyardCreature,
-    selectedGraveyardIndex, setSelectedGraveyardIndex,
-    draggingFromGraveyard, setDraggingFromGraveyard,
-    selectGraveyardCreature, clearGraveyardSelection,
-    startGraveyardDrag, endGraveyardDrag,
-    showHordeModal, setShowHordeModal,
-    hordeRefreshExecuted, setHordeRefreshExecuted,
-    clearHordeState, clearAllDeploymentState
+    showDeployConfirm,
+    setShowDeployConfirm,
+    pendingDeployment,
+    setPendingDeployment,
+    startDeployConfirmation,
+    cancelDeployConfirmation,
+    clearDeployConfirmation,
+    selectedGraveyardCreature,
+    setSelectedGraveyardCreature,
+    selectedGraveyardIndex,
+    setSelectedGraveyardIndex,
+    draggingFromGraveyard,
+    setDraggingFromGraveyard,
+    selectGraveyardCreature,
+    clearGraveyardSelection,
+    startGraveyardDrag,
+    endGraveyardDrag,
+    showHordeModal,
+    setShowHordeModal,
+    hordeRefreshExecuted,
+    setHordeRefreshExecuted,
+    clearHordeState,
+    clearAllDeploymentState,
   } = useDeployment()
 
   // Alias healingTouchData fields to match existing variable names
@@ -313,6 +449,7 @@ function GameBoard({ onTurnInfoChange }) {
   const setOgreDeployMoraleResult = setOgreDeployMoraleData
   // Alias clericDrawOrderData to match existing variable name
   const clericDrawOrderResult = clericDrawOrderData
+  const setClericDrawOrderResult = setClericDrawOrderData
   // Alias webRemovalData to match existing variable name
   const webRemovalCreature = webRemovalData
   const setWebRemovalCreature = setWebRemovalData
@@ -350,11 +487,11 @@ function GameBoard({ onTurnInfoChange }) {
    * Faction color mapping from faction IDs to hex colors
    */
   const factionColors = {
-    [Factions.STING_OF_LOLTH]: '#8b008b',      // Purple
-    [Factions.HEART_OF_CORMYR]: '#0066cc',     // Blue
-    [Factions.TYRANNY_OF_GOBLINS]: '#cc0000',  // Red
-    [Factions.CURSE_OF_UNDEATH]: '#00bcd4',    // Cyan
-    [Factions.BLOOD_OF_GRUUMSH]: '#8b4513'     // Brown
+    [Factions.STING_OF_LOLTH]: '#8b008b', // Purple
+    [Factions.HEART_OF_CORMYR]: '#0066cc', // Blue
+    [Factions.TYRANNY_OF_GOBLINS]: '#cc0000', // Red
+    [Factions.CURSE_OF_UNDEATH]: '#00bcd4', // Cyan
+    [Factions.BLOOD_OF_GRUUMSH]: '#8b4513', // Brown
   }
 
   /**
@@ -365,7 +502,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (!gameConfig || !gameState) return {}
 
     const colorMap = {}
-    gameState.activePlayers.forEach(playerId => {
+    gameState.activePlayers.forEach((playerId) => {
       const playerNum = playerId.replace('PLAYER', '')
       const playerKey = `player${playerNum}`
       const faction = gameConfig[playerKey]?.faction
@@ -385,7 +522,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (!gameConfig || !gameState) return {}
 
     const factionMap = {}
-    gameState.activePlayers.forEach(playerId => {
+    gameState.activePlayers.forEach((playerId) => {
       const playerNum = playerId.replace('PLAYER', '')
       const playerKey = `player${playerNum}`
       const faction = gameConfig[playerKey]?.faction
@@ -438,7 +575,7 @@ function GameBoard({ onTurnInfoChange }) {
         playerId,
         factionName: player.faction,
         commanderImage: player.commander?.imageUrl,
-        commanderName: player.commander?.name
+        commanderName: player.commander?.name,
       }))
   }
 
@@ -449,13 +586,13 @@ function GameBoard({ onTurnInfoChange }) {
    * @returns {string} Selected player ID
    */
   const selectAIRecoilTarget = (eligibleFactions, attackerPlayerId) => {
-    const nonAttackerFactions = eligibleFactions.filter(f => f.playerId !== attackerPlayerId)
+    const nonAttackerFactions = eligibleFactions.filter((f) => f.playerId !== attackerPlayerId)
     if (nonAttackerFactions.length > 0 && Math.random() < 0.75) {
       // Pick random non-attacker (75% chance)
       return nonAttackerFactions[Math.floor(Math.random() * nonAttackerFactions.length)].playerId
     }
     // Give to attacker (25% chance, or if no non-attackers available)
-    const attackerFaction = eligibleFactions.find(f => f.playerId === attackerPlayerId)
+    const attackerFaction = eligibleFactions.find((f) => f.playerId === attackerPlayerId)
     return attackerFaction?.playerId || eligibleFactions[0].playerId
   }
 
@@ -495,7 +632,7 @@ function GameBoard({ onTurnInfoChange }) {
           executeRecoilDraw(targetPlayerId, cardName, defenderPlayerId, attackerPlayerId)
           setShowFactionSelectModal(false)
         },
-        pendingDrawInfo: { cardCount, sourceName: cardName, defenderPlayerId, attackerPlayerId }
+        pendingDrawInfo: { cardCount, sourceName: cardName, defenderPlayerId, attackerPlayerId },
       })
       setShowFactionSelectModal(true)
     } else {
@@ -519,9 +656,13 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Toast for all players
     if (drawnCards.length > 0) {
-      addToast(`${defenderPlayer.commander?.name || 'Player'} chose to give ${targetPlayer.commander?.name || 'opponent'} 1 card from ${cardName}`)
+      addToast(
+        `${defenderPlayer.commander?.name || 'Player'} chose to give ${targetPlayer.commander?.name || 'opponent'} 1 card from ${cardName}`
+      )
     } else {
-      addToast(`${targetPlayer.commander?.name || 'Opponent'}'s deck is empty - no cards to draw from ${cardName}`)
+      addToast(
+        `${targetPlayer.commander?.name || 'Opponent'}'s deck is empty - no cards to draw from ${cardName}`
+      )
     }
 
     if (drawnCards.length > 0) {
@@ -548,7 +689,13 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {string} attackerPlayerId - Player ID of the attacker
    * @param {number} moraleLoss - Amount of morale to lose (default 1)
    */
-  const handleMoraleLossEffect = (moraleTarget, cardName, defenderPlayerId, attackerPlayerId, moraleLoss = 1) => {
+  const handleMoraleLossEffect = (
+    moraleTarget,
+    cardName,
+    defenderPlayerId,
+    attackerPlayerId,
+    moraleLoss = 1
+  ) => {
     if (!moraleTarget || !moraleTarget.creature || !moraleTarget.owner) return
 
     const targetPlayerId = moraleTarget.owner
@@ -562,7 +709,9 @@ function GameBoard({ onTurnInfoChange }) {
     const targetCreatureName = moraleTarget.creature.creature?.name || moraleTarget.creature.name
     const defenderName = defenderPlayer.commander?.name || 'Player'
     const targetPlayerName = targetPlayer.commander?.name || 'Player'
-    addToast(`${defenderName} used ${cardName} - ${targetPlayerName} loses ${moraleLoss} morale (${targetCreatureName} was adjacent)`)
+    addToast(
+      `${defenderName} used ${cardName} - ${targetPlayerName} loses ${moraleLoss} morale (${targetCreatureName} was adjacent)`
+    )
 
     // Show notification modal
     const isAttacker = targetPlayerId === attackerPlayerId
@@ -575,7 +724,7 @@ function GameBoard({ onTurnInfoChange }) {
         targetCreatureName,
         moraleLost: moraleLoss,
         currentMorale: targetPlayer.morale,
-        wasDefeated
+        wasDefeated,
       })
       setShowMoraleLossModal(true)
     } else if (!isAttacker && !targetPlayer.isAI) {
@@ -588,7 +737,7 @@ function GameBoard({ onTurnInfoChange }) {
         defenderName,
         targetCreatureName,
         moraleLost: moraleLoss,
-        source: defenderPlayerId
+        source: defenderPlayerId,
       })
     }
     // AI recipients don't need modal
@@ -625,7 +774,7 @@ function GameBoard({ onTurnInfoChange }) {
         deactivated: left,
         sorcererName: sorcerer.creature.name,
         sorcererOwner: owner,
-        reason: entered ? 'entered' : 'left'
+        reason: entered ? 'entered' : 'left',
       })
       setShowMagicCircleModal(true)
 
@@ -640,7 +789,7 @@ function GameBoard({ onTurnInfoChange }) {
             sorcererOwner: owner,
             reason: entered ? 'human_entered' : 'human_left',
             acknowledged: false,
-            timestamp: timestamp
+            timestamp: timestamp,
           }
         }
       }
@@ -657,7 +806,7 @@ function GameBoard({ onTurnInfoChange }) {
             sorcererOwner: owner,
             reason: entered ? 'ai_entered' : 'ai_left',
             acknowledged: false,
-            timestamp: timestamp
+            timestamp: timestamp,
           }
         }
       }
@@ -687,14 +836,14 @@ function GameBoard({ onTurnInfoChange }) {
         deactivated: notification.deactivated,
         sorcererName: notification.sorcererName,
         sorcererOwner: notification.sorcererOwner,
-        reason: notification.reason
+        reason: notification.reason,
       })
       setShowMagicCircleModal(true)
 
       // Mark as acknowledged so it only shows once
-      setPendingMagicCircleNotifications(prev => ({
+      setPendingMagicCircleNotifications((prev) => ({
         ...prev,
-        [currentPlayer]: { ...prev[currentPlayer], acknowledged: true }
+        [currentPlayer]: { ...prev[currentPlayer], acknowledged: true },
       }))
     }
   }
@@ -717,7 +866,7 @@ function GameBoard({ onTurnInfoChange }) {
             deactivated: true,
             sorcererName: destroyedCreature.creature.name,
             sorcererOwner: destroyedCreature.owner,
-            reason: 'death'
+            reason: 'death',
           })
           setShowMagicCircleModal(true)
           break // Show once
@@ -747,7 +896,7 @@ function GameBoard({ onTurnInfoChange }) {
       targetCreatureName: notification.targetCreatureName,
       moraleLost: notification.moraleLost,
       currentMorale: player.morale,
-      wasDefeated: player.morale <= 0
+      wasDefeated: player.morale <= 0,
     })
     setShowMoraleLossModal(true)
 
@@ -820,7 +969,7 @@ function GameBoard({ onTurnInfoChange }) {
     logger.gameEvent('Game started', {
       numPlayers: config.numPlayers || 2,
       player1: { faction: config.player1?.faction, commander: config.player1?.commander?.name },
-      player2: { faction: config.player2?.faction, commander: config.player2?.commander?.name }
+      player2: { faction: config.player2?.faction, commander: config.player2?.commander?.name },
     })
 
     // Store the final game configuration (with commanders selected)
@@ -828,18 +977,24 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Create 12 unique creature cards (one of each)
     const createCreatureDeck = (faction) => {
-      return sampleCreatures[faction].map(c => new Creature(c))
+      return sampleCreatures[faction].map((c) => new Creature(c))
     }
 
     // Create 36 order cards (one of each unique order card #1-#36)
     const createOrderDeck = (faction) => {
-      const deck = sampleOrderCards[faction].map(o => new OrderCard(o))
+      const deck = sampleOrderCards[faction].map((o) => new OrderCard(o))
       return deck
     }
 
     // Build player setups dynamically based on number of players
     const playerSetups = []
-    const playerIds = [Players.PLAYER1, Players.PLAYER2, Players.PLAYER3, Players.PLAYER4, Players.PLAYER5]
+    const playerIds = [
+      Players.PLAYER1,
+      Players.PLAYER2,
+      Players.PLAYER3,
+      Players.PLAYER4,
+      Players.PLAYER5,
+    ]
 
     const numPlayers = config.numPlayers || 2
     for (let i = 1; i <= numPlayers; i++) {
@@ -851,7 +1006,7 @@ function GameBoard({ onTurnInfoChange }) {
         orders: createOrderDeck(config[playerKey].faction),
         faction: config[playerKey].faction,
         isHuman: config[playerKey].isHuman,
-        aiDifficulty: config[playerKey].aiDifficulty
+        aiDifficulty: config[playerKey].aiDifficulty,
       })
     }
 
@@ -959,13 +1114,14 @@ function GameBoard({ onTurnInfoChange }) {
     setValidMoveTiles(moves)
 
     // Calculate valid attack targets (filter out eliminated players)
-    const targets = gameState.getValidAttackTargets(creatureInstance)
-      .filter(target => gameState.activePlayers.includes(target.creature.owner))
+    const targets = gameState
+      .getValidAttackTargets(creatureInstance)
+      .filter((target) => gameState.activePlayers.includes(target.creature.owner))
     setValidAttackTargets(targets)
 
     // Calculate line-of-sight paths for ranged attacks
     const losPath = []
-    targets.forEach(targetInfo => {
+    targets.forEach((targetInfo) => {
       if (targetInfo.attackType === 'ranged') {
         // Get line tiles for this ranged attack
         const lineTiles = gameState.getLineTiles(
@@ -973,14 +1129,16 @@ function GameBoard({ onTurnInfoChange }) {
           targetInfo.creature.position
         )
         // Add all tiles in the line to the path (for visualization)
-        lineTiles.forEach(pos => {
+        lineTiles.forEach((pos) => {
           // Skip attacker and target positions
-          if ((pos.x === creatureInstance.position.x && pos.y === creatureInstance.position.y) ||
-              (pos.x === targetInfo.creature.position.x && pos.y === targetInfo.creature.position.y)) {
+          if (
+            (pos.x === creatureInstance.position.x && pos.y === creatureInstance.position.y) ||
+            (pos.x === targetInfo.creature.position.x && pos.y === targetInfo.creature.position.y)
+          ) {
             return
           }
           // Add to path if not already there
-          if (!losPath.some(p => p.x === pos.x && p.y === pos.y)) {
+          if (!losPath.some((p) => p.x === pos.x && p.y === pos.y)) {
             losPath.push(pos)
           }
         })
@@ -1001,7 +1159,7 @@ function GameBoard({ onTurnInfoChange }) {
 
     addToast(
       `Selected ${creatureInstance.creature.name}. ` +
-      `Can move to ${moves.length} tiles or attack ${targets.length} enemies.`
+        `Can move to ${moves.length} tiles or attack ${targets.length} enemies.`
     )
   }
 
@@ -1022,7 +1180,7 @@ function GameBoard({ onTurnInfoChange }) {
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
       setValidAttackTargets([])
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
     } else {
       addToast('Invalid move!')
     }
@@ -1065,7 +1223,7 @@ function GameBoard({ onTurnInfoChange }) {
           setDiscoveredTreasure({
             creature: pendingMove.creature,
             treasure: tile.treasure,
-            tile: tile
+            tile: tile,
           })
           setShowTreasureDiscovery(true)
         }
@@ -1082,7 +1240,7 @@ function GameBoard({ onTurnInfoChange }) {
     setSelectedBoardCreature(null)
     setValidMoveTiles([])
     setValidAttackTargets([])
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // Cancel movement from modal
@@ -1114,13 +1272,15 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if defender is protected (deployed this turn)
     if (defenderInstance.deployedThisTurn) {
-      addToast(`${defenderInstance.creature.name} was just deployed and is protected until next turn!`)
+      addToast(
+        `${defenderInstance.creature.name} was just deployed and is protected until next turn!`
+      )
       return
     }
 
     // Check if target is in range
     const targets = gameState.getValidAttackTargets(attackerInstance)
-    const targetInfo = targets.find(t => t.creature.instanceId === defenderInstance.instanceId)
+    const targetInfo = targets.find((t) => t.creature.instanceId === defenderInstance.instanceId)
 
     // Check if this attack has a pending damage boost card
     let damageBoostCard = null
@@ -1130,8 +1290,10 @@ function GameBoard({ onTurnInfoChange }) {
     let hasPostAttackShift = false
     let postAttackShiftDistance = 0
 
-    if (pendingDamageBoostAttack &&
-        pendingDamageBoostAttack.creature?.instanceId === attackerInstance.instanceId) {
+    if (
+      pendingDamageBoostAttack &&
+      pendingDamageBoostAttack.creature?.instanceId === attackerInstance.instanceId
+    ) {
       // Verify the attack type matches the damage boost card type
       const isRangedBoost = pendingDamageBoostAttack.isRanged
       const expectedAttackType = isRangedBoost ? 'ranged' : 'melee'
@@ -1146,9 +1308,11 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     // Check if this is a shift+attack (Nimble Strike, Spring Attack, Shadowy Ambush)
-    if (pendingShiftAttack &&
-        pendingShiftAttack.creature?.instanceId === attackerInstance.instanceId &&
-        pendingShiftAttack.phase === 'attacking') {
+    if (
+      pendingShiftAttack &&
+      pendingShiftAttack.creature?.instanceId === attackerInstance.instanceId &&
+      pendingShiftAttack.phase === 'attacking'
+    ) {
       const card = pendingShiftAttack.card
       damageBoostCard = card
       isShiftAttack = true
@@ -1173,13 +1337,18 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     // Calculate incoming damage for INSUBSTANTIAL check
-    const incomingDamageForCheck = targetInfo.attackType === 'melee'
-      ? attackerInstance.creature.meleeAttack?.damage || 0
-      : attackerInstance.creature.rangedAttack?.damage || 0
+    const incomingDamageForCheck =
+      targetInfo.attackType === 'melee'
+        ? attackerInstance.creature.meleeAttack?.damage || 0
+        : attackerInstance.creature.rangedAttack?.damage || 0
 
     // Check if defender has INSUBSTANTIAL available - triggers before defense panel
     if (gameState.canUseInsubstantial(defenderInstance)) {
-      const blocked = gameState.useInsubstantial(defenderInstance, incomingDamageForCheck, attackerInstance.owner)
+      const blocked = gameState.useInsubstantial(
+        defenderInstance,
+        incomingDamageForCheck,
+        attackerInstance.owner
+      )
       if (blocked) {
         // Check if defender is human - show modal
         const defenderOwner = defenderInstance.owner
@@ -1190,7 +1359,9 @@ function GameBoard({ onTurnInfoChange }) {
           showInsubstantialNotification(defenderInstance, incomingDamageForCheck, attackerInstance)
         } else {
           // AI defender - just toast
-          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${incomingDamageForCheck} damage! Ability used until next Undead Refresh.`)
+          addToast(
+            `👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${incomingDamageForCheck} damage! Ability used until next Undead Refresh.`
+          )
         }
 
         // Attack is blocked - tap attacker if they moved and mark as attacked
@@ -1203,7 +1374,7 @@ function GameBoard({ onTurnInfoChange }) {
         setSelectedBoardCreature(null)
         setValidMoveTiles([])
         setValidAttackTargets([])
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
         return
       }
     }
@@ -1228,13 +1399,13 @@ function GameBoard({ onTurnInfoChange }) {
         // Shift+attack info (for post-attack shift)
         isShiftAttack,
         hasPostAttackShift,
-        postAttackShiftDistance
+        postAttackShiftDistance,
       })
       // Set combat panel to defense mode with creature highlights
       setCombatPanelMode('defense')
       setCombatHighlightCreatures({
         attacker: attackerInstance.instanceId,
-        defender: defenderInstance.instanceId
+        defender: defenderInstance.instanceId,
       })
     } else {
       // Defender is AI - use AI logic to decide on reactions and defensive abilities
@@ -1253,17 +1424,26 @@ function GameBoard({ onTurnInfoChange }) {
         incomingDamage = (attackerInstance.creature.meleeAttack?.damage || 0) + damageBoostBonus
       } else {
         // No damage boost - normal calculation
-        incomingDamage = targetInfo.attackType === 'melee'
-          ? attackerInstance.creature.meleeAttack?.damage || 0
-          : attackerInstance.creature.rangedAttack?.damage || 0
+        incomingDamage =
+          targetInfo.attackType === 'melee'
+            ? attackerInstance.creature.meleeAttack?.damage || 0
+            : attackerInstance.creature.rangedAttack?.damage || 0
       }
 
       // AI decides whether to use defensive abilities (COWER, UNSTOPPABLE HORDES, or IMMEDIATE cards)
-      const defenseDecision = defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
+      const defenseDecision = defenderAI.decideDefense(
+        defenderInstance,
+        incomingDamage,
+        attackerInstance.owner
+      )
       let defenseResult = null
 
       if (defenseDecision.type === 'cower') {
-        defenseResult = gameState.applyCower(defenderInstance, incomingDamage, attackerInstance.owner)
+        defenseResult = gameState.applyCower(
+          defenderInstance,
+          incomingDamage,
+          attackerInstance.owner
+        )
         if (defenseResult.success) {
           defenseResult.type = 'cower'
           defenseResult.damagePrevented = defenseResult.damageAvoided
@@ -1295,12 +1475,15 @@ function GameBoard({ onTurnInfoChange }) {
             type: 'unstoppable_hordes',
             damagePrevented: totalDamagePrevented,
             moraleCost: creaturesUsed.length,
-            creaturesUsed
+            creaturesUsed,
           }
         }
       } else if (defenseDecision.type === 'immediate_card') {
         // Apply IMMEDIATE card defense
-        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        const result = gameState.applyImmediateCardDefense(
+          defenseDecision.card,
+          defenseDecision.creature
+        )
         if (result.success) {
           defenseResult = {
             success: true,
@@ -1310,13 +1493,18 @@ function GameBoard({ onTurnInfoChange }) {
             cardUsed: defenseDecision.card.name,
             creatureTapped: defenseDecision.creature.creature.name,
             moraleGain: result.moraleGain || 0,
-            untapAfterUse: result.untapAfterUse || false
+            untapAfterUse: result.untapAfterUse || false,
           }
 
           // Handle opponent draws (Recoil) - defender chooses which opponent receives card
           if (result.opponentDrawsCards > 0) {
             const cardName = result.cardUsed?.name || defenseDecision.card.name
-            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
+            handleOpponentDrawEffect(
+              result.opponentDrawsCards,
+              cardName,
+              defenderInstance.owner,
+              attackerInstance.owner
+            )
           }
         }
       }
@@ -1328,7 +1516,7 @@ function GameBoard({ onTurnInfoChange }) {
         // Sort by cardIndex descending to prevent array shift issues
         reactionDecision.reactions.sort((a, b) => b.cardIndex - a.cardIndex)
 
-        reactionDecision.reactions.forEach(reaction => {
+        reactionDecision.reactions.forEach((reaction) => {
           // Tap creature
           reaction.creature.isTapped = true
           // Discard card
@@ -1339,7 +1527,7 @@ function GameBoard({ onTurnInfoChange }) {
       // Discard damage boost card from hand before executing attack (card is committed at this point)
       if (damageBoostCard && pendingDamageBoostAttack) {
         const attackerPlayer = gameState.players[attackerInstance.owner]
-        const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+        const cardIndex = attackerPlayer.orderHand.findIndex((c) => c.id === damageBoostCard.id)
         if (cardIndex !== -1) {
           attackerPlayer.orderHand.splice(cardIndex, 1)
         }
@@ -1351,9 +1539,23 @@ function GameBoard({ onTurnInfoChange }) {
       // Pass damage boost info to executeAttack - CombatResolver will handle the bonus
       let result
       if (defenseResult && defenseResult.success) {
-        result = gameState.executeAttackWithDefense(attackerInstance, defenderInstance, targetInfo.attackType, defenseResult.damagePrevented, defenseResult.type, damageBoostBonus, damageBoostFlat)
+        result = gameState.executeAttackWithDefense(
+          attackerInstance,
+          defenderInstance,
+          targetInfo.attackType,
+          defenseResult.damagePrevented,
+          defenseResult.type,
+          damageBoostBonus,
+          damageBoostFlat
+        )
       } else {
-        result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType, damageBoostBonus, damageBoostFlat)
+        result = gameState.executeAttack(
+          attackerInstance,
+          defenderInstance,
+          targetInfo.attackType,
+          damageBoostBonus,
+          damageBoostFlat
+        )
       }
 
       if (result.success) {
@@ -1361,7 +1563,8 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Add damage boost info to message
         if (damageBoostCard) {
-          const damageText = damageBoostFlat !== null ? `${damageBoostFlat} damage` : `+${damageBoostBonus} bonus`
+          const damageText =
+            damageBoostFlat !== null ? `${damageBoostFlat} damage` : `+${damageBoostBonus} bonus`
           message += `⚔️ ${damageBoostCard.name} (${damageText})! `
         }
 
@@ -1373,9 +1576,12 @@ function GameBoard({ onTurnInfoChange }) {
             message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
           } else if (defenseResult.type === 'immediate_card') {
             let extraEffects = ''
-            if (defenseResult.moraleGain > 0) extraEffects += ` +${defenseResult.moraleGain} morale!`
-            if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
-            if (defenseResult.bonusDrawsQueued > 0) extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
+            if (defenseResult.moraleGain > 0)
+              extraEffects += ` +${defenseResult.moraleGain} morale!`
+            if (defenseResult.untapAfterUse)
+              extraEffects += ` ${defenseResult.creatureTapped} untapped!`
+            if (defenseResult.bonusDrawsQueued > 0)
+              extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
             message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented${defenseResult.untapAfterUse ? '' : ` (${defenseResult.creatureTapped} tapped)`}!${extraEffects} `
           }
         }
@@ -1385,13 +1591,15 @@ function GameBoard({ onTurnInfoChange }) {
           message += `⚡ AI used ${reactionDecision.reactions.length} Immediate card${reactionDecision.reactions.length !== 1 ? 's' : ''}! `
         }
 
-        message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
-                   `with ${targetInfo.attackType} for ${result.damage} damage!`
+        message +=
+          `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+          `with ${targetInfo.attackType} for ${result.damage} damage!`
 
         if (result.destroyed) {
           message += ` ${defenderInstance.creature.name} was destroyed! `
-          message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
-                    `Defender ${result.moraleChange.defender}`
+          message +=
+            `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+            `Defender ${result.moraleChange.defender}`
           // BLOODTHIRSTY ability notification
           if (result.bloodthirsty) {
             message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
@@ -1406,7 +1614,9 @@ function GameBoard({ onTurnInfoChange }) {
 
         // UNTAP ON KILL toast notification (separate toast for visibility)
         if (result.untapOnKillTriggered && result.untapOnKillData) {
-          addToast(`⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`)
+          addToast(
+            `⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`
+          )
         }
 
         addToast(message)
@@ -1415,10 +1625,17 @@ function GameBoard({ onTurnInfoChange }) {
         gameState.checkGameOver()
 
         // Check for FLASHING BLADES trigger (human attacker vs AI defender)
-        if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
+        if (
+          checkFlashingBladesTrigger(
+            attackerInstance,
+            defenderInstance,
+            result,
+            targetInfo.attackType
+          )
+        ) {
           // Modal shown - don't clear state yet, wait for modal response
           // BUT we DO need to trigger a re-render to show destroyed creature being removed
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
           return
         }
 
@@ -1431,11 +1648,11 @@ function GameBoard({ onTurnInfoChange }) {
             setSelectedBoardCreature(null)
             setValidMoveTiles([])
             setValidAttackTargets([])
-            setRenderCounter(prev => prev + 1)
+            setRenderCounter((prev) => prev + 1)
           })
           if (hasSplash) {
             // Splash is being processed - don't clear state yet
-            setRenderCounter(prev => prev + 1)
+            setRenderCounter((prev) => prev + 1)
             return
           }
         }
@@ -1446,7 +1663,7 @@ function GameBoard({ onTurnInfoChange }) {
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
       setValidAttackTargets([])
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
     }
   }
 
@@ -1470,7 +1687,8 @@ function GameBoard({ onTurnInfoChange }) {
   const handleDefenseSelected = (defense) => {
     if (!pendingAttack) return
 
-    const { attackerInstance, defenderInstance, targetInfo, isSplashDamage, isLightningBreath } = pendingAttack
+    const { attackerInstance, defenderInstance, targetInfo, isSplashDamage, isLightningBreath } =
+      pendingAttack
 
     // Route RANGED SPLASH defense to dedicated handler (ACID BREATH / EXPLOSIVE BOLTS)
     // IMPORTANT: Check this BEFORE generic splash, since ranged splash also sets isSplashDamage
@@ -1508,9 +1726,10 @@ function GameBoard({ onTurnInfoChange }) {
       originalDamage = damageBoostFlat
     } else {
       // Normal damage calculation + any bonus from damage boost cards
-      const baseDamage = targetInfo.attackType === 'melee'
-        ? attackerInstance.creature.meleeAttack?.damage || 0
-        : attackerInstance.creature.rangedAttack?.damage || 0
+      const baseDamage =
+        targetInfo.attackType === 'melee'
+          ? attackerInstance.creature.meleeAttack?.damage || 0
+          : attackerInstance.creature.rangedAttack?.damage || 0
       const bonus = damageBoostBonus || 0
       originalDamage = baseDamage + bonus
     }
@@ -1521,7 +1740,7 @@ function GameBoard({ onTurnInfoChange }) {
         defender: defenderInstance.creature.name,
         accumulatedReduction,
         isHiddenBlade: pendingAttack?.isHiddenBlade,
-        attackType: targetInfo?.attackType
+        attackType: targetInfo?.attackType,
       })
       closeCombatPanel()
       if (accumulatedReduction > 0) {
@@ -1529,7 +1748,7 @@ function GameBoard({ onTurnInfoChange }) {
           type: 'stacked_defense',
           damageReduction: accumulatedReduction,
           moraleCost: 0,
-          success: true
+          success: true,
         })
       } else {
         executeAttackAfterReactions([])
@@ -1549,7 +1768,7 @@ function GameBoard({ onTurnInfoChange }) {
         defender: defenderInstance.creature.name,
         damageAvoided: cowerResult.damageAvoided,
         moraleCost: cowerResult.moraleCost,
-        extraCost: cowerResult.extraCost
+        extraCost: cowerResult.extraCost,
       })
 
       closeCombatPanel()
@@ -1558,7 +1777,7 @@ function GameBoard({ onTurnInfoChange }) {
         damageReduction: cowerResult.damageAvoided,
         moraleCost: cowerResult.moraleCost,
         extraCost: cowerResult.extraCost,
-        success: cowerResult.success
+        success: cowerResult.success,
       })
     } else if (defense.type === 'unstoppable_hordes') {
       // UNSTOPPABLE HORDES: Apply for each selected Undead creature
@@ -1567,7 +1786,7 @@ function GameBoard({ onTurnInfoChange }) {
       const tappedCreatures = []
 
       // Apply for each selected creature - O(c) where c = creatures selected (max 9)
-      defense.creatures.forEach(creature => {
+      defense.creatures.forEach((creature) => {
         const result = gameState.applyUnstoppableHordes(creature)
         if (result.success) {
           totalDamageReduction += result.damagePrevented
@@ -1580,7 +1799,7 @@ function GameBoard({ onTurnInfoChange }) {
         defender: defenderInstance.creature.name,
         totalDamageReduction,
         totalMoraleCost,
-        tappedCreatures
+        tappedCreatures,
       })
 
       closeCombatPanel()
@@ -1589,7 +1808,7 @@ function GameBoard({ onTurnInfoChange }) {
         damageReduction: totalDamageReduction + accumulatedReduction,
         moraleCost: totalMoraleCost,
         tappedCreatures,
-        success: totalDamageReduction > 0
+        success: totalDamageReduction > 0,
       })
     } else if (defense.type === 'immediate_card') {
       // Check for SAVAGE DEMISE (self-sacrifice attack) FIRST before normal handling
@@ -1603,7 +1822,7 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Discard the Savage Demise card from hand
         const defenderPlayer = gameState.players[defenderInstance.owner]
-        const cardIndex = defenderPlayer.orderHand.findIndex(c => c.id === defense.card.id)
+        const cardIndex = defenderPlayer.orderHand.findIndex((c) => c.id === defense.card.id)
         if (cardIndex !== -1) {
           defenderPlayer.orderHand.splice(cardIndex, 1)
           defenderPlayer.orderDiscard.push(defense.card)
@@ -1617,10 +1836,17 @@ function GameBoard({ onTurnInfoChange }) {
         closeCombatPanel()
 
         // Show toast about Savage Demise being used
-        addToast(`⚔️ SAVAGE DEMISE: ${sacrificeUser.creature.name} sacrifices itself to attack ${sacrificeTarget.creature.name}!`)
+        addToast(
+          `⚔️ SAVAGE DEMISE: ${sacrificeUser.creature.name} sacrifices itself to attack ${sacrificeTarget.creature.name}!`
+        )
 
         // === EXECUTE SAVAGE DEMISE ATTACK (no defense - target is tapped) ===
-        const savageDemiseResult = gameState.applySavageDemiseDamage(sacrificeTarget, sacrificeUser.owner, attackDamage, 0)
+        const savageDemiseResult = gameState.applySavageDemiseDamage(
+          sacrificeTarget,
+          sacrificeUser.owner,
+          attackDamage,
+          0
+        )
 
         // Build damage message
         let damageMsg = `⚔️ ${sacrificeUser.creature.name} attacks ${sacrificeTarget.creature.name} for ${savageDemiseResult.damage} damage!`
@@ -1641,7 +1867,12 @@ function GameBoard({ onTurnInfoChange }) {
         if (hasDeathStrike) {
           // DEATH STRIKE: Additional melee attack against the ORIGINAL ATTACKER (the creature that attacked the Boar/Wereboar)
           const deathStrikeDamage = sacrificeUser.creature.meleeAttack?.damage || 0
-          const deathStrikeResult = gameState.applySavageDemiseDamage(attackerInstance, sacrificeUser.owner, deathStrikeDamage, 0)
+          const deathStrikeResult = gameState.applySavageDemiseDamage(
+            attackerInstance,
+            sacrificeUser.owner,
+            deathStrikeDamage,
+            0
+          )
 
           let deathStrikeMsg = `💀 DEATH STRIKE: ${sacrificeUser.creature.name} strikes ${attackerInstance.creature.name} for ${deathStrikeDamage} damage!`
           if (deathStrikeResult.destroyed) {
@@ -1658,7 +1889,9 @@ function GameBoard({ onTurnInfoChange }) {
         // === SACRIFICE THE CREATURE (guaranteed death) ===
         const sacrificeResult = gameState.sacrificeCreature(sacrificeUser)
 
-        addToast(`☠️ SACRIFICE: ${sacrificeUser.creature.name} dies from Savage Demise! (Morale -${sacrificeResult.moraleLost})`)
+        addToast(
+          `☠️ SACRIFICE: ${sacrificeUser.creature.name} dies from Savage Demise! (Morale -${sacrificeResult.moraleLost})`
+        )
 
         // Check for game over conditions
         gameState.checkGameOver()
@@ -1667,25 +1900,41 @@ function GameBoard({ onTurnInfoChange }) {
         const sacrificeOwner = sacrificeUser.owner
         const eliminationResult = gameState.checkAndEliminatePlayer(sacrificeOwner)
         if (eliminationResult.eliminated) {
-          const reason = eliminationResult.reason === 'morale' ? 'Morale reduced to 0!' : 'All creatures destroyed!'
-          addToast(`🏳️ ${gameState.players[sacrificeOwner].commander.name} has been eliminated! ${reason}`)
+          const reason =
+            eliminationResult.reason === 'morale'
+              ? 'Morale reduced to 0!'
+              : 'All creatures destroyed!'
+          addToast(
+            `🏳️ ${gameState.players[sacrificeOwner].commander.name} has been eliminated! ${reason}`
+          )
         }
 
         // Check for Savage Demise target owner elimination
         const targetOwner = sacrificeTarget.owner
         const targetEliminationResult = gameState.checkAndEliminatePlayer(targetOwner)
         if (targetEliminationResult.eliminated) {
-          const reason = targetEliminationResult.reason === 'morale' ? 'Morale reduced to 0!' : 'All creatures destroyed!'
-          addToast(`🏳️ ${gameState.players[targetOwner].commander.name} has been eliminated! ${reason}`)
+          const reason =
+            targetEliminationResult.reason === 'morale'
+              ? 'Morale reduced to 0!'
+              : 'All creatures destroyed!'
+          addToast(
+            `🏳️ ${gameState.players[targetOwner].commander.name} has been eliminated! ${reason}`
+          )
         }
 
         // Check for original attacker owner elimination (DEATH STRIKE may have killed them)
         const attackerOwner = attackerInstance.owner
-        if (attackerOwner !== targetOwner) { // Don't double-check if same player
+        if (attackerOwner !== targetOwner) {
+          // Don't double-check if same player
           const attackerEliminationResult = gameState.checkAndEliminatePlayer(attackerOwner)
           if (attackerEliminationResult.eliminated) {
-            const reason = attackerEliminationResult.reason === 'morale' ? 'Morale reduced to 0!' : 'All creatures destroyed!'
-            addToast(`🏳️ ${gameState.players[attackerOwner].commander.name} has been eliminated! ${reason}`)
+            const reason =
+              attackerEliminationResult.reason === 'morale'
+                ? 'Morale reduced to 0!'
+                : 'All creatures destroyed!'
+            addToast(
+              `🏳️ ${gameState.players[attackerOwner].commander.name} has been eliminated! ${reason}`
+            )
           }
         }
 
@@ -1702,21 +1951,25 @@ function GameBoard({ onTurnInfoChange }) {
         setPendingAttack(null)
 
         // Force re-render
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
 
         return // Original attack is completely negated
       }
 
       // IMMEDIATE CARD: Prevent damage, discard card, tap creature
       // Pass discardCard if card has discard cost (e.g., Uncanny Dodge)
-      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
+      const result = gameState.applyImmediateCardDefense(
+        defense.card,
+        defense.creature,
+        defense.discardCard
+      )
 
       if (result.success) {
         logger.card(defense.card.name, 'played as IMMEDIATE defense', {
           user: defense.creature.creature.name,
           defender: defenderInstance.creature.name,
           damagePrevented: result.damagePrevented,
-          creatureTapped: defense.creature.creature.name
+          creatureTapped: defense.creature.creature.name,
         })
 
         const newAccumulatedReduction = accumulatedReduction + result.damagePrevented
@@ -1725,13 +1978,24 @@ function GameBoard({ onTurnInfoChange }) {
         // Handle opponent draws (Recoil) - defender chooses which opponent receives card
         if (result.opponentDrawsCards > 0) {
           const cardName = result.cardUsed?.name || defense.card.name
-          handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
+          handleOpponentDrawEffect(
+            result.opponentDrawsCards,
+            cardName,
+            defenderInstance.owner,
+            attackerInstance.owner
+          )
         }
 
         // Handle opponent morale loss (Unexpected Resistance) - defender selected target
         if (defense.moraleTarget && defense.card.opponentMoraleLoss > 0) {
           const cardName = result.cardUsed?.name || defense.card.name
-          handleMoraleLossEffect(defense.moraleTarget, cardName, defenderInstance.owner, attackerInstance.owner, defense.card.opponentMoraleLoss)
+          handleMoraleLossEffect(
+            defense.moraleTarget,
+            cardName,
+            defenderInstance.owner,
+            attackerInstance.owner,
+            defense.card.opponentMoraleLoss
+          )
         }
 
         // Check if card grants a shift after use (Cloud of Bats)
@@ -1751,8 +2015,8 @@ function GameBoard({ onTurnInfoChange }) {
               cardUsed: result.cardUsed?.name || defense.card.name,
               creatureTapped: defense.creature.creature.name,
               moraleGain: result.moraleGain || 0,
-              untapAfterUse: result.untapAfterUse || false
-            }
+              untapAfterUse: result.untapAfterUse || false,
+            },
           })
           closeCombatPanel()
           setShowShiftDecisionModal(true)
@@ -1762,17 +2026,22 @@ function GameBoard({ onTurnInfoChange }) {
         // No shift - continue with normal flow
         // Check if there are more defensive options available
         if (remainingDamage > 0) {
-          const moreOptions = gameState.getDefenseOptions(defenderInstance, remainingDamage, attackerInstance.owner)
-          const hasMoreOptions = moreOptions.cower?.canCower ||
-                                  moreOptions.unstoppableHordes?.canUse ||
-                                  moreOptions.adjacentUndead?.length > 0 ||
-                                  moreOptions.immediateCards?.length > 0
+          const moreOptions = gameState.getDefenseOptions(
+            defenderInstance,
+            remainingDamage,
+            attackerInstance.owner
+          )
+          const hasMoreOptions =
+            moreOptions.cower?.canCower ||
+            moreOptions.unstoppableHordes?.canUse ||
+            moreOptions.adjacentUndead?.length > 0 ||
+            moreOptions.immediateCards?.length > 0
 
           if (hasMoreOptions) {
             // Update pendingAttack with accumulated reduction and re-show panel
             setPendingAttack({
               ...pendingAttack,
-              accumulatedDamageReduction: newAccumulatedReduction
+              accumulatedDamageReduction: newAccumulatedReduction,
             })
             // Panel will automatically show updated damage reduction
             // (no need to toggle like with modal)
@@ -1803,8 +2072,8 @@ function GameBoard({ onTurnInfoChange }) {
                 creatureTapped: defense.creature.creature.name,
                 moraleGain: result.moraleGain || 0,
                 untapAfterUse: result.untapAfterUse || false,
-                success: true
-              }
+                success: true,
+              },
             })
             setShowCounterAttackTargetModal(true)
             return // Wait for target selection
@@ -1815,9 +2084,13 @@ function GameBoard({ onTurnInfoChange }) {
             // Show toast for each target hit
             for (const hit of counterResult.results) {
               if (hit.killed) {
-                addToast(`⚔️ COUNTER-ATTACK: ${defense.creature.creature.name} killed ${hit.targetName} with ${hit.damage} damage!`)
+                addToast(
+                  `⚔️ COUNTER-ATTACK: ${defense.creature.creature.name} killed ${hit.targetName} with ${hit.damage} damage!`
+                )
               } else {
-                addToast(`⚔️ COUNTER-ATTACK: ${defense.creature.creature.name} dealt ${hit.damage} damage to ${hit.targetName} (${hit.remainingHP} HP remaining)`)
+                addToast(
+                  `⚔️ COUNTER-ATTACK: ${defense.creature.creature.name} dealt ${hit.damage} damage to ${hit.targetName} (${hit.remainingHP} HP remaining)`
+                )
               }
             }
           } else if (counterResult.message) {
@@ -1835,7 +2108,7 @@ function GameBoard({ onTurnInfoChange }) {
           moraleGain: result.moraleGain || 0,
           untapAfterUse: result.untapAfterUse || false,
           counterAttackResults: counterAttackResults,
-          success: true
+          success: true,
         })
       } else {
         // Failed to use immediate card - show error or just skip
@@ -1846,7 +2119,7 @@ function GameBoard({ onTurnInfoChange }) {
             type: 'stacked_defense',
             damageReduction: accumulatedReduction,
             moraleCost: 0,
-            success: true
+            success: true,
           })
         } else {
           executeAttackAfterReactions([])
@@ -1864,7 +2137,7 @@ function GameBoard({ onTurnInfoChange }) {
       handleDefenseSelected({
         type: 'unstoppable_hordes',
         damageReduction,
-        creatures: [pendingAttack.defenderInstance]
+        creatures: [pendingAttack.defenderInstance],
       })
     } else {
       // Legacy COWER behavior
@@ -1881,7 +2154,7 @@ function GameBoard({ onTurnInfoChange }) {
         type: 'cower',
         damageReduction: cowerResult.damageAvoided,
         moraleCost: cowerResult.moraleCost,
-        success: cowerResult.success
+        success: cowerResult.success,
       })
     }
   }
@@ -1905,7 +2178,18 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
-    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze, isRangedSplash, damageBoostCard, damageBoostBonus, damageBoostFlat } = pendingAttack
+    const {
+      attackerInstance,
+      defenderInstance,
+      targetInfo,
+      isFlashingBlades,
+      isHiddenBlade,
+      isConfusionGaze,
+      isRangedSplash,
+      damageBoostCard,
+      damageBoostBonus,
+      damageBoostFlat,
+    } = pendingAttack
 
     // Handle RANGED SPLASH damage (ACID BREATH / EXPLOSIVE BOLTS)
     if (isRangedSplash && rangedSplashAttackInfo) {
@@ -1924,14 +2208,14 @@ function GameBoard({ onTurnInfoChange }) {
     // Discard damage boost card from hand before executing attack (card is committed at this point)
     if (damageBoostCard && pendingDamageBoostAttack) {
       const attackerPlayer = gameState.players[attackerInstance.owner]
-      const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+      const cardIndex = attackerPlayer.orderHand.findIndex((c) => c.id === damageBoostCard.id)
       if (cardIndex !== -1) {
         attackerPlayer.orderHand.splice(cardIndex, 1)
         logger.card(damageBoostCard.name, 'played as STANDARD attack boost', {
           user: attackerInstance.creature.name,
           attackType: targetInfo.attackType,
           damageBonus: damageBoostBonus,
-          flatDamage: damageBoostFlat
+          flatDamage: damageBoostFlat,
         })
       }
       // Clear pending damage boost state
@@ -1943,7 +2227,11 @@ function GameBoard({ onTurnInfoChange }) {
       // FLASHING BLADES splash attack - use special handling
       // Apply defense reduction to the 10 splash damage
       const damageReduction = defenseResult.damageReduction || 0
-      result = gameState.applyFlashingBladesWithDefense(defenderInstance, attackerInstance.owner, damageReduction)
+      result = gameState.applyFlashingBladesWithDefense(
+        defenderInstance,
+        attackerInstance.owner,
+        damageReduction
+      )
 
       // Now tap the attacker (deferred from original attack)
       if (attackerInstance.hasMovedThisTurn) {
@@ -1953,7 +2241,11 @@ function GameBoard({ onTurnInfoChange }) {
       // HIDDEN BLADE attack - use special handling
       // Apply defense reduction to the 10 damage
       const damageReduction = defenseResult.damageReduction || 0
-      result = gameState.applyHiddenBladeWithDefense(defenderInstance, attackerInstance.owner, damageReduction)
+      result = gameState.applyHiddenBladeWithDefense(
+        defenderInstance,
+        attackerInstance.owner,
+        damageReduction
+      )
 
       // Now tap the attacker (deferred from original attack)
       if (attackerInstance.hasMovedThisTurn) {
@@ -2026,15 +2318,17 @@ function GameBoard({ onTurnInfoChange }) {
       } else if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
         message += `😵 CONFUSION GAZE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else {
-        message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
-                   `with ${targetInfo.attackType} for ${result.damage} damage!`
+        message +=
+          `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+          `with ${targetInfo.attackType} for ${result.damage} damage!`
       }
 
       if (result.destroyed) {
         message += ` ${defenderInstance.creature.name} was destroyed! `
         if (result.moraleChange) {
-          message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
-                    `Defender ${result.moraleChange.defender}`
+          message +=
+            `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+            `Defender ${result.moraleChange.defender}`
         }
         // BLOODTHIRSTY ability notification
         if (result.bloodthirsty) {
@@ -2054,12 +2348,16 @@ function GameBoard({ onTurnInfoChange }) {
 
       // LIFE DRAIN toast notification
       if (result.lifeDrain?.triggered) {
-        addToast(`🧛 LIFE DRAIN: ${result.lifeDrain.creatureName} healed ${result.lifeDrain.healAmount} HP! (${result.lifeDrain.currentHP}/${result.lifeDrain.maxHP})`)
+        addToast(
+          `🧛 LIFE DRAIN: ${result.lifeDrain.creatureName} healed ${result.lifeDrain.healAmount} HP! (${result.lifeDrain.currentHP}/${result.lifeDrain.maxHP})`
+        )
       }
 
       // UNTAP ON KILL toast notification (separate toast for visibility)
       if (result.untapOnKillTriggered && result.untapOnKillData) {
-        addToast(`⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`)
+        addToast(
+          `⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`
+        )
       }
 
       addToast(message)
@@ -2081,7 +2379,9 @@ function GameBoard({ onTurnInfoChange }) {
         } else {
           // AI attacker - show toast
           if (drawnCards.length > 0) {
-            addToast(`📜 AI drew ${drawnCards.length} card${drawnCards.length > 1 ? 's' : ''} from ${damageBoostCard.name}`)
+            addToast(
+              `📜 AI drew ${drawnCards.length} card${drawnCards.length > 1 ? 's' : ''} from ${damageBoostCard.name}`
+            )
           } else {
             addToast(`📜 AI ${damageBoostCard.name}: No cards to draw - deck is empty!`)
           }
@@ -2101,7 +2401,9 @@ function GameBoard({ onTurnInfoChange }) {
           addToast(`💚 ${attackerInstance.creature.name} heals ${healAmount} damage!`)
         } else if (minDamageRequired > 0) {
           // Only show "not enough damage" message if there was a minimum requirement
-          addToast(`${attackerInstance.creature.name} dealt only ${actualDamageDealt} damage - healing requires ${minDamageRequired}`)
+          addToast(
+            `${attackerInstance.creature.name} dealt only ${actualDamageDealt} damage - healing requires ${minDamageRequired}`
+          )
         }
       }
 
@@ -2114,11 +2416,16 @@ function GameBoard({ onTurnInfoChange }) {
           card: damageBoostCard,
           casterOwner: attackerInstance.owner,
           attachedTurn: gameState.turnNumber,
-          attachOnUse: damageBoostCard.attachOnUse  // Contains damageOnActivation: 10
+          attachOnUse: damageBoostCard.attachOnUse, // Contains damageOnActivation: 10
         })
-        logger.debug('[DEEP WOUND DEBUG] Attached to', defenderInstance.creature.name,
-          'attachedCards:', defenderInstance.attachedCards,
-          'card:', damageBoostCard.name)
+        logger.debug(
+          '[DEEP WOUND DEBUG] Attached to',
+          defenderInstance.creature.name,
+          'attachedCards:',
+          defenderInstance.attachedCards,
+          'card:',
+          damageBoostCard.name
+        )
         addToast(`🩸 ${damageBoostCard.name} attached to ${defenderInstance.creature.name}!`)
       }
 
@@ -2141,17 +2448,25 @@ function GameBoard({ onTurnInfoChange }) {
               faction: faction,
               position: position,
               ownerPlayerId: ownerPlayerId,
-              eligibleCreatures: eligibleCreatures
+              eligibleCreatures: eligibleCreatures,
             })
             setShowRiderModal(true)
             // Store callback to continue combat flow after modal
             setPendingRiderCallback(() => () => {
-              setRenderCounter(prev => prev + 1)
+              setRenderCounter((prev) => prev + 1)
             })
             return // Wait for modal selection
           } else {
             // AI handles RIDER
-            handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, faction, null)
+            handleAIRiderDecision(
+              ownerPlayerId,
+              eligibleCreatures,
+              position,
+              creatureLevel,
+              creatureName,
+              faction,
+              null
+            )
           }
         }
       }
@@ -2159,10 +2474,13 @@ function GameBoard({ onTurnInfoChange }) {
       // Check for immediate elimination of defender
       const eliminationResult = gameState.checkAndEliminatePlayer(defenderInstance.owner)
       if (eliminationResult.eliminated) {
-        const reason = eliminationResult.reason === 'morale'
-          ? 'Morale reduced to 0!'
-          : 'All creatures destroyed!'
-        addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
+        const reason =
+          eliminationResult.reason === 'morale'
+            ? 'Morale reduced to 0!'
+            : 'All creatures destroyed!'
+        addToast(
+          `🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`
+        )
       }
 
       // Check for TOMB GUARDIAN SPLASH (SWIRL) - triggers on melee attacks regardless of result
@@ -2192,11 +2510,11 @@ function GameBoard({ onTurnInfoChange }) {
               defenderInstance: firstSplash.targetInstance,
               targetInfo: { attackType: 'splash', damage: 20 },
               isSplashDamage: true,
-              splashSource: 'Skeletal Tomb Guardian'
+              splashSource: 'Skeletal Tomb Guardian',
             })
-            setCombatPanelMode('defense')  // Show defense panel for splash damage
-            setRenderCounter(prev => prev + 1)
-            return  // Wait for defense resolution
+            setCombatPanelMode('defense') // Show defense panel for splash damage
+            setRenderCounter((prev) => prev + 1)
+            return // Wait for defense resolution
           }
         }
         return
@@ -2220,16 +2538,37 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // Check for FLASHING BLADES trigger after defense (only for normal melee attacks, not splash/ability attacks)
-      logger.debug('[executeAttackAfterDefense] Checking ability triggers - isFlashingBlades:', isFlashingBlades, 'isHiddenBlade:', isHiddenBlade, 'isConfusionGaze:', isConfusionGaze)
+      logger.debug(
+        '[executeAttackAfterDefense] Checking ability triggers - isFlashingBlades:',
+        isFlashingBlades,
+        'isHiddenBlade:',
+        isHiddenBlade,
+        'isConfusionGaze:',
+        isConfusionGaze
+      )
       logger.debug('[executeAttackAfterDefense] targetInfo.attackType:', targetInfo.attackType)
-      if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades' &&
-          !isHiddenBlade && targetInfo.attackType !== 'hidden_blade' &&
-          !isConfusionGaze && targetInfo.attackType !== 'confusion_gaze') {
-        logger.debug('[executeAttackAfterDefense] Passed ability trigger condition check - checking FLASHING BLADES and HIDDEN BLADE')
-        if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
+      if (
+        !isFlashingBlades &&
+        targetInfo.attackType !== 'flashing_blades' &&
+        !isHiddenBlade &&
+        targetInfo.attackType !== 'hidden_blade' &&
+        !isConfusionGaze &&
+        targetInfo.attackType !== 'confusion_gaze'
+      ) {
+        logger.debug(
+          '[executeAttackAfterDefense] Passed ability trigger condition check - checking FLASHING BLADES and HIDDEN BLADE'
+        )
+        if (
+          checkFlashingBladesTrigger(
+            attackerInstance,
+            defenderInstance,
+            result,
+            targetInfo.attackType
+          )
+        ) {
           // Modal shown - don't clear state yet, wait for modal response
           // BUT we DO need to trigger a re-render to show destroyed creature being removed
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
           return
         }
 
@@ -2241,17 +2580,19 @@ function GameBoard({ onTurnInfoChange }) {
         const hasPostShift = pendingAttack?.hasPostAttackShift && pendingShiftAttack
         if (!hasPostShift && checkHiddenBladeTrigger(attackerInstance, result)) {
           // Modal shown - don't clear state yet, wait for modal response
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
           return
         }
 
         // Check for SLAM trigger after defense (Earth Guardian - melee attacks only)
         // SLAM triggers if: damage dealt > 0, target NOT destroyed, attacker has SLAM, melee attack
-        if (targetInfo.attackType === 'melee' &&
-            result.damage > 0 &&
-            !result.destroyed &&
-            defenderInstance.currentHP > 0 &&
-            gameState.hasSlam(attackerInstance)) {
+        if (
+          targetInfo.attackType === 'melee' &&
+          result.damage > 0 &&
+          !result.destroyed &&
+          defenderInstance.currentHP > 0 &&
+          gameState.hasSlam(attackerInstance)
+        ) {
           const validSlamTiles = gameState.getValidSlamTiles(defenderInstance, 3)
 
           if (validSlamTiles.length > 0) {
@@ -2262,7 +2603,7 @@ function GameBoard({ onTurnInfoChange }) {
               setSlamPending({ attackerInstance, targetInstance: defenderInstance })
               setSlamValidTiles(validSlamTiles)
               setShowSlamModal(true)
-              setRenderCounter(prev => prev + 1)
+              setRenderCounter((prev) => prev + 1)
               return // Wait for modal decision
             } else {
               // AI attacker - use 0/50/100 rule
@@ -2272,7 +2613,7 @@ function GameBoard({ onTurnInfoChange }) {
               setValidMoveTiles([])
               setValidAttackTargets([])
               setPendingAttack(null)
-              setRenderCounter(prev => prev + 1)
+              setRenderCounter((prev) => prev + 1)
               setProcessingAIAction(false)
               return
             }
@@ -2290,12 +2631,12 @@ function GameBoard({ onTurnInfoChange }) {
           setValidMoveTiles([])
           setValidAttackTargets([])
           setPendingAttack(null)
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
           setProcessingAIAction(false)
         })
         if (hasSplash) {
           // Splash is being processed - don't clear state yet
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
           return
         }
       }
@@ -2339,7 +2680,7 @@ function GameBoard({ onTurnInfoChange }) {
             // Enter post-shift mode
             setPendingShiftAttack({
               ...pendingShiftAttack,
-              phase: 'post-shift'
+              phase: 'post-shift',
             })
             setShiftAttackValidTiles(validTiles)
             setShiftAttackMode(true)
@@ -2351,7 +2692,7 @@ function GameBoard({ onTurnInfoChange }) {
             setCombatHighlightCreatures({ attacker: null, defender: null })
 
             addToast(`🏃 Spring Attack: Shift 1-${postShiftDistance} squares after attack!`)
-            setRenderCounter(prev => prev + 1)
+            setRenderCounter((prev) => prev + 1)
             return // Wait for post-shift selection
           } else {
             // AI handles post-shift - simple strategy: shift away from enemies
@@ -2372,7 +2713,7 @@ function GameBoard({ onTurnInfoChange }) {
     setValidMoveTiles([])
     setValidAttackTargets([])
     setPendingAttack(null)
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
 
     // Continue processing remaining AI actions
     setProcessingAIAction(false)
@@ -2412,7 +2753,7 @@ function GameBoard({ onTurnInfoChange }) {
       } else if (defenseDecision.type === 'unstoppable_hordes') {
         const creatures = defenseDecision.creatures || []
         let totalPrevented = 0
-        creatures.forEach(c => {
+        creatures.forEach((c) => {
           const result = gameState.applyUnstoppableHordes(c)
           if (result.success) totalPrevented += result.damagePrevented
         })
@@ -2426,18 +2767,22 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // Apply splash damage
-      const splashResult = gameState.combatResolver.executeSplashDamage(attackerInstance, targetInstance, damageAfterDefense)
+      const splashResult = gameState.combatResolver.executeSplashDamage(
+        attackerInstance,
+        targetInstance,
+        damageAfterDefense
+      )
       results.push({
         ...splashResult,
         defenseUsed,
-        damageAfterDefense
+        damageAfterDefense,
       })
     }
 
     // Show combined toast for all splash results
     if (results.length > 0) {
-      const hitNames = results.map(r => r.targetName).join(', ')
-      const destroyedCount = results.filter(r => r.destroyed).length
+      const hitNames = results.map((r) => r.targetName).join(', ')
+      const destroyedCount = results.filter((r) => r.destroyed).length
       let msg = `💀 SWIRL: Skeletal Tomb Guardian dealt splash damage to ${hitNames}!`
       if (destroyedCount > 0) {
         msg += ` (${destroyedCount} destroyed!)`
@@ -2455,8 +2800,8 @@ function GameBoard({ onTurnInfoChange }) {
     setCurrentSplashIndex(0)
     setSplashResults([])
     setPendingAttack(null)
-    setCombatPanelMode(null)  // Clear combat panel after AI splash resolution
-    setRenderCounter(prev => prev + 1)
+    setCombatPanelMode(null) // Clear combat panel after AI splash resolution
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -2481,39 +2826,61 @@ function GameBoard({ onTurnInfoChange }) {
       damageAfterDefense = Math.max(0, 20 - cowerResult.damageAvoided)
     } else if (defense.type === 'unstoppable_hordes') {
       let totalPrevented = 0
-      defense.creatures?.forEach(c => {
+      defense.creatures?.forEach((c) => {
         const result = gameState.applyUnstoppableHordes(c)
         if (result.success) totalPrevented += result.damagePrevented
       })
       damageAfterDefense = Math.max(0, 20 - totalPrevented)
     } else if (defense.type === 'immediate_card') {
-      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
+      const result = gameState.applyImmediateCardDefense(
+        defense.card,
+        defense.creature,
+        defense.discardCard
+      )
       if (result.success) {
         damageAfterDefense = Math.max(0, 20 - result.damagePrevented)
 
         // Handle opponent draws (Recoil) - defender chooses which opponent receives card
         if (result.opponentDrawsCards > 0) {
           const cardName = result.cardUsed?.name || defense.card.name
-          handleOpponentDrawEffect(result.opponentDrawsCards, cardName, targetInstance.owner, attackerInstance.owner)
+          handleOpponentDrawEffect(
+            result.opponentDrawsCards,
+            cardName,
+            targetInstance.owner,
+            attackerInstance.owner
+          )
         }
 
         // Handle opponent morale loss (Unexpected Resistance)
         if (defense.moraleTarget && defense.card.opponentMoraleLoss > 0) {
           const cardName = result.cardUsed?.name || defense.card.name
-          handleMoraleLossEffect(defense.moraleTarget, cardName, targetInstance.owner, attackerInstance.owner, defense.card.opponentMoraleLoss)
+          handleMoraleLossEffect(
+            defense.moraleTarget,
+            cardName,
+            targetInstance.owner,
+            attackerInstance.owner,
+            defense.card.opponentMoraleLoss
+          )
         }
       }
     }
 
     // Apply splash damage
-    const splashResult = gameState.combatResolver.executeSplashDamage(attackerInstance, targetInstance, damageAfterDefense)
+    const splashResult = gameState.combatResolver.executeSplashDamage(
+      attackerInstance,
+      targetInstance,
+      damageAfterDefense
+    )
 
     // Add to accumulated results
-    const newResults = [...splashResults, {
-      ...splashResult,
-      defenseUsed: defense.type !== 'skip' ? defense.type : null,
-      damageAfterDefense
-    }]
+    const newResults = [
+      ...splashResults,
+      {
+        ...splashResult,
+        defenseUsed: defense.type !== 'skip' ? defense.type : null,
+        damageAfterDefense,
+      },
+    ]
     setSplashResults(newResults)
 
     // Check if more splash targets remain
@@ -2539,16 +2906,16 @@ function GameBoard({ onTurnInfoChange }) {
           defenderInstance: nextSplash.targetInstance,
           targetInfo: { attackType: 'splash', damage: 20 },
           isSplashDamage: true,
-          splashSource: 'Skeletal Tomb Guardian'
+          splashSource: 'Skeletal Tomb Guardian',
         })
-        setCombatPanelMode('defense')  // Keep defense panel showing for next target
-        setRenderCounter(prev => prev + 1)
+        setCombatPanelMode('defense') // Keep defense panel showing for next target
+        setRenderCounter((prev) => prev + 1)
       }
     } else {
       // All splash attacks resolved - show combined toast
       if (newResults.length > 0) {
-        const hitNames = newResults.map(r => r.targetName).join(', ')
-        const destroyedCount = newResults.filter(r => r.destroyed).length
+        const hitNames = newResults.map((r) => r.targetName).join(', ')
+        const destroyedCount = newResults.filter((r) => r.destroyed).length
         let msg = `💀 SWIRL: Skeletal Tomb Guardian dealt splash damage to ${hitNames}!`
         if (destroyedCount > 0) {
           msg += ` (${destroyedCount} destroyed!)`
@@ -2566,8 +2933,8 @@ function GameBoard({ onTurnInfoChange }) {
       setCurrentSplashIndex(0)
       setSplashResults([])
       setPendingAttack(null)
-      setCombatPanelMode(null)  // Clear combat panel after splash resolution
-      setRenderCounter(prev => prev + 1)
+      setCombatPanelMode(null) // Clear combat panel after splash resolution
+      setRenderCounter((prev) => prev + 1)
     }
   }
 
@@ -2580,13 +2947,28 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
-    const { attackerInstance, defenderInstance, targetInfo, isFlashingBlades, isHiddenBlade, isConfusionGaze, damageBoostCard, damageBoostBonus, damageBoostFlat } = pendingAttack
-    logger.debug('[executeAttackAfterReactions] isHiddenBlade:', isHiddenBlade, 'targetInfo.attackType:', targetInfo?.attackType)
+    const {
+      attackerInstance,
+      defenderInstance,
+      targetInfo,
+      isFlashingBlades,
+      isHiddenBlade,
+      isConfusionGaze,
+      damageBoostCard,
+      damageBoostBonus,
+      damageBoostFlat,
+    } = pendingAttack
+    logger.debug(
+      '[executeAttackAfterReactions] isHiddenBlade:',
+      isHiddenBlade,
+      'targetInfo.attackType:',
+      targetInfo?.attackType
+    )
 
     // Discard damage boost card from hand before executing attack (card is committed at this point)
     if (damageBoostCard && pendingDamageBoostAttack) {
       const attackerPlayer = gameState.players[attackerInstance.owner]
-      const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+      const cardIndex = attackerPlayer.orderHand.findIndex((c) => c.id === damageBoostCard.id)
       if (cardIndex !== -1) {
         attackerPlayer.orderHand.splice(cardIndex, 1)
       }
@@ -2605,10 +2987,18 @@ function GameBoard({ onTurnInfoChange }) {
     } else if (isHiddenBlade || targetInfo.attackType === 'hidden_blade') {
       // HIDDEN BLADE attack - use special handling
       logger.debug('[executeAttackAfterReactions] Executing HIDDEN BLADE attack')
-      logger.debug('[executeAttackAfterReactions] defenderInstance:', defenderInstance?.creature?.name, 'HP before:', defenderInstance?.currentHP)
+      logger.debug(
+        '[executeAttackAfterReactions] defenderInstance:',
+        defenderInstance?.creature?.name,
+        'HP before:',
+        defenderInstance?.currentHP
+      )
       result = gameState.applyHiddenBlade(defenderInstance, attackerInstance.owner)
       logger.debug('[executeAttackAfterReactions] HIDDEN BLADE result:', result)
-      logger.debug('[executeAttackAfterReactions] defenderInstance HP after:', defenderInstance?.currentHP)
+      logger.debug(
+        '[executeAttackAfterReactions] defenderInstance HP after:',
+        defenderInstance?.currentHP
+      )
       // Now tap the attacker (deferred from original attack)
       if (attackerInstance.hasMovedThisTurn) {
         attackerInstance.tap()
@@ -2623,7 +3013,13 @@ function GameBoard({ onTurnInfoChange }) {
       }
     } else {
       // Execute normal attack with damage boost info (Power Attack, Hacking Frenzy, Killing Strike)
-      result = gameState.executeAttack(attackerInstance, defenderInstance, targetInfo.attackType, damageBoostBonus || 0, damageBoostFlat !== undefined ? damageBoostFlat : null)
+      result = gameState.executeAttack(
+        attackerInstance,
+        defenderInstance,
+        targetInfo.attackType,
+        damageBoostBonus || 0,
+        damageBoostFlat !== undefined ? damageBoostFlat : null
+      )
     }
 
     if (result.success) {
@@ -2641,15 +3037,17 @@ function GameBoard({ onTurnInfoChange }) {
       } else if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
         message += `😵 CONFUSION GAZE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else {
-        message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
-                   `with ${targetInfo.attackType} for ${result.damage} damage!`
+        message +=
+          `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+          `with ${targetInfo.attackType} for ${result.damage} damage!`
       }
 
       if (result.destroyed) {
         message += ` ${defenderInstance.creature.name} was destroyed! `
         if (result.moraleChange) {
-          message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
-                    `Defender ${result.moraleChange.defender}`
+          message +=
+            `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+            `Defender ${result.moraleChange.defender}`
         }
         // BLOODTHIRSTY ability notification
         if (result.bloodthirsty) {
@@ -2669,12 +3067,16 @@ function GameBoard({ onTurnInfoChange }) {
 
       // LIFE DRAIN toast notification
       if (result.lifeDrain?.triggered) {
-        addToast(`🧛 LIFE DRAIN: ${result.lifeDrain.creatureName} healed ${result.lifeDrain.healAmount} HP! (${result.lifeDrain.currentHP}/${result.lifeDrain.maxHP})`)
+        addToast(
+          `🧛 LIFE DRAIN: ${result.lifeDrain.creatureName} healed ${result.lifeDrain.healAmount} HP! (${result.lifeDrain.currentHP}/${result.lifeDrain.maxHP})`
+        )
       }
 
       // UNTAP ON KILL toast notification (separate toast for visibility)
       if (result.untapOnKillTriggered && result.untapOnKillData) {
-        addToast(`⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`)
+        addToast(
+          `⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`
+        )
       }
 
       addToast(message)
@@ -2698,7 +3100,9 @@ function GameBoard({ onTurnInfoChange }) {
         } else {
           // AI attacker - show toast
           if (drawnCards.length > 0) {
-            addToast(`📜 AI drew ${drawnCards.length} card${drawnCards.length > 1 ? 's' : ''} from ${damageBoostCard.name}`)
+            addToast(
+              `📜 AI drew ${drawnCards.length} card${drawnCards.length > 1 ? 's' : ''} from ${damageBoostCard.name}`
+            )
           } else {
             addToast(`📜 AI ${damageBoostCard.name}: No cards to draw - deck is empty!`)
           }
@@ -2718,7 +3122,9 @@ function GameBoard({ onTurnInfoChange }) {
           addToast(`💚 ${attackerInstance.creature.name} heals ${healAmount} damage!`)
         } else if (minDamageRequired > 0) {
           // Only show "not enough damage" message if there was a minimum requirement
-          addToast(`${attackerInstance.creature.name} dealt only ${actualDamageDealt} damage - healing requires ${minDamageRequired}`)
+          addToast(
+            `${attackerInstance.creature.name} dealt only ${actualDamageDealt} damage - healing requires ${minDamageRequired}`
+          )
         }
       }
 
@@ -2731,11 +3137,16 @@ function GameBoard({ onTurnInfoChange }) {
           card: damageBoostCard,
           casterOwner: attackerInstance.owner,
           attachedTurn: gameState.turnNumber,
-          attachOnUse: damageBoostCard.attachOnUse  // Contains damageOnActivation: 10
+          attachOnUse: damageBoostCard.attachOnUse, // Contains damageOnActivation: 10
         })
-        logger.debug('[DEEP WOUND DEBUG] Attached to', defenderInstance.creature.name,
-          'attachedCards:', defenderInstance.attachedCards,
-          'card:', damageBoostCard.name)
+        logger.debug(
+          '[DEEP WOUND DEBUG] Attached to',
+          defenderInstance.creature.name,
+          'attachedCards:',
+          defenderInstance.attachedCards,
+          'card:',
+          damageBoostCard.name
+        )
         addToast(`🩸 ${damageBoostCard.name} attached to ${defenderInstance.creature.name}!`)
       }
 
@@ -2758,17 +3169,25 @@ function GameBoard({ onTurnInfoChange }) {
               faction: faction,
               position: position,
               ownerPlayerId: ownerPlayerId,
-              eligibleCreatures: eligibleCreatures
+              eligibleCreatures: eligibleCreatures,
             })
             setShowRiderModal(true)
             // Store callback to continue combat flow after modal
             setPendingRiderCallback(() => () => {
-              setRenderCounter(prev => prev + 1)
+              setRenderCounter((prev) => prev + 1)
             })
             return // Wait for modal selection
           } else {
             // AI handles RIDER
-            handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, faction, null)
+            handleAIRiderDecision(
+              ownerPlayerId,
+              eligibleCreatures,
+              position,
+              creatureLevel,
+              creatureName,
+              faction,
+              null
+            )
           }
         }
       }
@@ -2776,10 +3195,13 @@ function GameBoard({ onTurnInfoChange }) {
       // Check for immediate elimination of defender
       const eliminationResult = gameState.checkAndEliminatePlayer(defenderInstance.owner)
       if (eliminationResult.eliminated) {
-        const reason = eliminationResult.reason === 'morale'
-          ? 'Morale reduced to 0!'
-          : 'All creatures destroyed!'
-        addToast(`🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`)
+        const reason =
+          eliminationResult.reason === 'morale'
+            ? 'Morale reduced to 0!'
+            : 'All creatures destroyed!'
+        addToast(
+          `🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`
+        )
       }
 
       // Check for TOMB GUARDIAN SPLASH (SWIRL) - triggers on melee attacks regardless of result
@@ -2809,41 +3231,55 @@ function GameBoard({ onTurnInfoChange }) {
               defenderInstance: firstSplash.targetInstance,
               targetInfo: { attackType: 'splash', damage: 20 },
               isSplashDamage: true,
-              splashSource: 'Skeletal Tomb Guardian'
+              splashSource: 'Skeletal Tomb Guardian',
             })
-            setCombatPanelMode('defense')  // Show defense panel for splash damage
-            setRenderCounter(prev => prev + 1)
-            return  // Wait for defense resolution
+            setCombatPanelMode('defense') // Show defense panel for splash damage
+            setRenderCounter((prev) => prev + 1)
+            return // Wait for defense resolution
           }
         }
         return
       }
 
       // Check for FLASHING BLADES trigger after reactions (only for normal attacks, not splash/ability attacks)
-      if (!isFlashingBlades && targetInfo.attackType !== 'flashing_blades' &&
-          !isHiddenBlade && targetInfo.attackType !== 'hidden_blade' &&
-          !isConfusionGaze && targetInfo.attackType !== 'confusion_gaze') {
-        if (checkFlashingBladesTrigger(attackerInstance, defenderInstance, result, targetInfo.attackType)) {
+      if (
+        !isFlashingBlades &&
+        targetInfo.attackType !== 'flashing_blades' &&
+        !isHiddenBlade &&
+        targetInfo.attackType !== 'hidden_blade' &&
+        !isConfusionGaze &&
+        targetInfo.attackType !== 'confusion_gaze'
+      ) {
+        if (
+          checkFlashingBladesTrigger(
+            attackerInstance,
+            defenderInstance,
+            result,
+            targetInfo.attackType
+          )
+        ) {
           // Modal shown - don't clear state yet, wait for modal response
           // BUT we DO need to trigger a re-render to show destroyed creature being removed
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
           return
         }
 
         // Check for HIDDEN BLADE trigger after reactions (for any attack type - melee OR ranged)
         if (checkHiddenBladeTrigger(attackerInstance, result)) {
           // Modal shown - don't clear state yet, wait for modal response
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
           return
         }
 
         // Check for SLAM trigger after reactions (Earth Guardian - melee attacks only)
         // SLAM triggers if: damage dealt > 0, target NOT destroyed, attacker has SLAM, melee attack
-        if (targetInfo.attackType === 'melee' &&
-            result.damage > 0 &&
-            !result.destroyed &&
-            defenderInstance.currentHP > 0 &&
-            gameState.hasSlam(attackerInstance)) {
+        if (
+          targetInfo.attackType === 'melee' &&
+          result.damage > 0 &&
+          !result.destroyed &&
+          defenderInstance.currentHP > 0 &&
+          gameState.hasSlam(attackerInstance)
+        ) {
           const validSlamTiles = gameState.getValidSlamTiles(defenderInstance, 3)
 
           if (validSlamTiles.length > 0) {
@@ -2854,7 +3290,7 @@ function GameBoard({ onTurnInfoChange }) {
               setSlamPending({ attackerInstance, targetInstance: defenderInstance })
               setSlamValidTiles(validSlamTiles)
               setShowSlamModal(true)
-              setRenderCounter(prev => prev + 1)
+              setRenderCounter((prev) => prev + 1)
               return // Wait for modal decision
             } else {
               // AI attacker - use 0/50/100 rule
@@ -2864,7 +3300,7 @@ function GameBoard({ onTurnInfoChange }) {
               setValidMoveTiles([])
               setValidAttackTargets([])
               setPendingAttack(null)
-              setRenderCounter(prev => prev + 1)
+              setRenderCounter((prev) => prev + 1)
               setProcessingAIAction(false)
               return
             }
@@ -2882,12 +3318,12 @@ function GameBoard({ onTurnInfoChange }) {
           setValidMoveTiles([])
           setValidAttackTargets([])
           setPendingAttack(null)
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
           setProcessingAIAction(false)
         })
         if (hasSplash) {
           // Splash is being processed - don't clear state yet
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
           return
         }
       }
@@ -2931,7 +3367,7 @@ function GameBoard({ onTurnInfoChange }) {
             // Enter post-shift mode
             setPendingShiftAttack({
               ...pendingShiftAttack,
-              phase: 'post-shift'
+              phase: 'post-shift',
             })
             setShiftAttackValidTiles(validTiles)
             setShiftAttackMode(true)
@@ -2943,7 +3379,7 @@ function GameBoard({ onTurnInfoChange }) {
             setCombatHighlightCreatures({ attacker: null, defender: null })
 
             addToast(`🏃 Spring Attack: Shift 1-${postShiftDistance} squares after attack!`)
-            setRenderCounter(prev => prev + 1)
+            setRenderCounter((prev) => prev + 1)
             return // Wait for post-shift selection
           } else {
             // AI handles post-shift - select best escape tile (farthest from enemies)
@@ -2957,7 +3393,9 @@ function GameBoard({ onTurnInfoChange }) {
                 if (playerId === creature.owner) continue
                 for (const enemyCreature of player.creaturesInPlay) {
                   if (!enemyCreature.position) continue
-                  const dist = Math.abs(tile.x - enemyCreature.position.x) + Math.abs(tile.y - enemyCreature.position.y)
+                  const dist =
+                    Math.abs(tile.x - enemyCreature.position.x) +
+                    Math.abs(tile.y - enemyCreature.position.y)
                   minEnemyDist = Math.min(minEnemyDist, dist)
                 }
               }
@@ -2975,7 +3413,9 @@ function GameBoard({ onTurnInfoChange }) {
               creature.position = { x: bestTile.x, y: bestTile.y }
               if (newTile) newTile.occupant = creature
 
-              addToast(`🏃 AI Spring Attack: ${creature.creature.name} shifts to (${bestTile.x},${bestTile.y})`)
+              addToast(
+                `🏃 AI Spring Attack: ${creature.creature.name} shifts to (${bestTile.x},${bestTile.y})`
+              )
             }
           }
         }
@@ -2991,7 +3431,7 @@ function GameBoard({ onTurnInfoChange }) {
     setValidMoveTiles([])
     setValidAttackTargets([])
     setPendingAttack(null)
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
 
     // Continue processing remaining AI actions
     setProcessingAIAction(false)
@@ -3013,11 +3453,14 @@ function GameBoard({ onTurnInfoChange }) {
     if (targetType === 'attacker') {
       // Riposte: Target must be the attacker, must be adjacent
       if (requiresAdjacent && !gameState.isAttackerAdjacent(defenderInstance, attackerInstance)) {
-        return { executed: false, reason: 'attacker_not_adjacent', message: 'Attacker is not adjacent - counter-attack skipped' }
+        return {
+          executed: false,
+          reason: 'attacker_not_adjacent',
+          message: 'Attacker is not adjacent - counter-attack skipped',
+        }
       }
       targets.push(attackerInstance)
-    }
-    else if (targetType === 'adjacent_tapped') {
+    } else if (targetType === 'adjacent_tapped') {
       // Seize the Opportunity: Can target ANY adjacent tapped enemy
       if (selectedTarget) {
         // Target already selected by human player
@@ -3028,18 +3471,26 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Also check if attacker will be tapped after this attack resolves
         // Attacker must be adjacent AND have moved this turn (attacking completes the tap)
-        if (attackerInstance &&
-            gameState.isAttackerAdjacent(defenderInstance, attackerInstance) &&
-            attackerInstance.hasMovedThisTurn) {
+        if (
+          attackerInstance &&
+          gameState.isAttackerAdjacent(defenderInstance, attackerInstance) &&
+          attackerInstance.hasMovedThisTurn
+        ) {
           // Attacker will be tapped - add to valid targets if not already included
-          const alreadyIncluded = adjacentTapped.some(c => c.instanceId === attackerInstance.instanceId)
+          const alreadyIncluded = adjacentTapped.some(
+            (c) => c.instanceId === attackerInstance.instanceId
+          )
           if (!alreadyIncluded) {
             adjacentTapped.push(attackerInstance)
           }
         }
 
         if (adjacentTapped.length === 0) {
-          return { executed: false, reason: 'no_valid_targets', message: 'No adjacent tapped enemies - counter-attack skipped' }
+          return {
+            executed: false,
+            reason: 'no_valid_targets',
+            message: 'No adjacent tapped enemies - counter-attack skipped',
+          }
         }
         if (adjacentTapped.length === 1) {
           // Only one target - auto-select
@@ -3049,12 +3500,15 @@ function GameBoard({ onTurnInfoChange }) {
           return { needsTargetSelection: true, validTargets: adjacentTapped, damage }
         }
       }
-    }
-    else if (targetType === 'all_adjacent_tapped') {
+    } else if (targetType === 'all_adjacent_tapped') {
       // Corrosive Blood: Hit ALL adjacent tapped enemies
       const adjacentTapped = gameState.getAdjacentTappedEnemies(defenderInstance)
       if (adjacentTapped.length === 0) {
-        return { executed: false, reason: 'no_valid_targets', message: 'No adjacent tapped enemies - counter-attack skipped' }
+        return {
+          executed: false,
+          reason: 'no_valid_targets',
+          message: 'No adjacent tapped enemies - counter-attack skipped',
+        }
       }
       targets.push(...adjacentTapped)
     }
@@ -3079,7 +3533,9 @@ function GameBoard({ onTurnInfoChange }) {
         targetPlayer.morale -= target.creature.level
 
         // Remove from play
-        const index = targetPlayer.creaturesInPlay.findIndex(c => c.instanceId === target.instanceId)
+        const index = targetPlayer.creaturesInPlay.findIndex(
+          (c) => c.instanceId === target.instanceId
+        )
         if (index !== -1) {
           targetPlayer.creaturesInPlay.splice(index, 1)
         }
@@ -3097,7 +3553,7 @@ function GameBoard({ onTurnInfoChange }) {
         damage,
         prevHP,
         remainingHP: Math.max(0, target.currentHP),
-        killed
+        killed,
       })
     }
 
@@ -3112,7 +3568,8 @@ function GameBoard({ onTurnInfoChange }) {
   const handleCounterAttackTargetSelected = (selectedTarget) => {
     if (!counterAttackPending) return
 
-    const { damage, defenderInstance, attackerInstance, pendingDefenseResult } = counterAttackPending
+    const { damage, defenderInstance, attackerInstance, pendingDefenseResult } =
+      counterAttackPending
 
     // Execute counter-attack with selected target
     const counterResult = executeCounterAttack(
@@ -3129,9 +3586,13 @@ function GameBoard({ onTurnInfoChange }) {
       // Show toast for the hit
       for (const hit of counterResult.results) {
         if (hit.killed) {
-          addToast(`⚔️ COUNTER-ATTACK: ${defenderInstance.creature.name} killed ${hit.targetName} with ${hit.damage} damage!`)
+          addToast(
+            `⚔️ COUNTER-ATTACK: ${defenderInstance.creature.name} killed ${hit.targetName} with ${hit.damage} damage!`
+          )
         } else {
-          addToast(`⚔️ COUNTER-ATTACK: ${defenderInstance.creature.name} dealt ${hit.damage} damage to ${hit.targetName} (${hit.remainingHP} HP remaining)`)
+          addToast(
+            `⚔️ COUNTER-ATTACK: ${defenderInstance.creature.name} dealt ${hit.damage} damage to ${hit.targetName} (${hit.remainingHP} HP remaining)`
+          )
         }
       }
     }
@@ -3139,7 +3600,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Continue with attack execution
     executeAttackAfterDefense({
       ...pendingDefenseResult,
-      counterAttackResults: counterResult.executed ? counterResult.results : null
+      counterAttackResults: counterResult.executed ? counterResult.results : null,
     })
   }
 
@@ -3187,7 +3648,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Proactive heal only consumes the action, not the movement
 
     // Discard the card from hand
-    const handCardIndex = player.orderHand.findIndex(c => c.id === card.id)
+    const handCardIndex = player.orderHand.findIndex((c) => c.id === card.id)
     if (handCardIndex !== -1) {
       player.orderHand.splice(handCardIndex, 1)
     }
@@ -3200,7 +3661,7 @@ function GameBoard({ onTurnInfoChange }) {
     setPatchUpHealConfig({ card: null, creature: null, healAmount: 0 })
 
     // Force re-render
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -3228,7 +3689,7 @@ function GameBoard({ onTurnInfoChange }) {
     logger.debug('[TOUGH AS NAILS] Player:', player?.id, 'Hand size:', player?.orderHand?.length)
 
     // Find and remove card from hand
-    const handCardIndex = player.orderHand.findIndex(c => c.id === card.id)
+    const handCardIndex = player.orderHand.findIndex((c) => c.id === card.id)
     logger.debug('[TOUGH AS NAILS] Card index in hand:', handCardIndex)
     if (handCardIndex === -1) {
       addToast(`Card not found in hand`)
@@ -3242,9 +3703,15 @@ function GameBoard({ onTurnInfoChange }) {
     logger.debug('[TOUGH AS NAILS] Card removed, new hand size:', player.orderHand.length)
 
     // Apply attachment (cleanse + attach)
-    logger.debug('[TOUGH AS NAILS] Before attachment, creature.attachedCards:', creature.attachedCards)
+    logger.debug(
+      '[TOUGH AS NAILS] Before attachment, creature.attachedCards:',
+      creature.attachedCards
+    )
     const removedCards = gameState.applyImmediateCardAttachment(creature, card, creature.owner)
-    logger.debug('[TOUGH AS NAILS] After attachment, creature.attachedCards:', creature.attachedCards)
+    logger.debug(
+      '[TOUGH AS NAILS] After attachment, creature.attachedCards:',
+      creature.attachedCards
+    )
     logger.debug('[TOUGH AS NAILS] Removed cards:', removedCards)
 
     // Mark creature as having acted
@@ -3256,7 +3723,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Show toast
     let message = `🛡️ TOUGH AS NAILS: ${creature.creature.name} gains Block 10!`
     if (removedCards.length > 0) {
-      const cardNames = removedCards.map(att => att.card?.name || 'Unknown').join(', ')
+      const cardNames = removedCards.map((att) => att.card?.name || 'Unknown').join(', ')
       message = `🛡️ TOUGH AS NAILS: ${creature.creature.name} removes ${cardNames} and gains Block 10!`
     }
     logger.debug('[TOUGH AS NAILS] Toast message:', message)
@@ -3267,7 +3734,7 @@ function GameBoard({ onTurnInfoChange }) {
     setToughAsNailsConfig({ card: null, cardIndex: null, creature: null })
 
     // Force re-render
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -3286,7 +3753,10 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
-    const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
+    const tile = gameState.getTile(
+      selectedBoardCreature.position.x,
+      selectedBoardCreature.position.y
+    )
     if (!tile?.treasure) {
       addToast('No treasure at this location')
       return
@@ -3296,7 +3766,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (gameState.shouldTriggerSellsword(selectedBoardCreature)) {
       setSellswordPending({
         creature: selectedBoardCreature,
-        treasure: tile.treasure
+        treasure: tile.treasure,
       })
       setShowSellswordModal(true)
       return
@@ -3305,7 +3775,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Show normal confirmation modal for human players
     setPendingCollection({
       creature: selectedBoardCreature,
-      treasure: tile.treasure
+      treasure: tile.treasure,
     })
     setShowCollectConfirm(true)
   }
@@ -3326,7 +3796,7 @@ function GameBoard({ onTurnInfoChange }) {
     setSelectedBoardCreature(null)
     setValidMoveTiles([])
     setValidAttackTargets([])
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // SELLSWORD ability - choose card draw
@@ -3337,7 +3807,10 @@ function GameBoard({ onTurnInfoChange }) {
     const drawnCards = player.drawOrderCards(1)
 
     // Mark treasure as collected (reduce morale count) but don't give morale
-    const tile = gameState.getTile(sellswordPending.creature.position.x, sellswordPending.creature.position.y)
+    const tile = gameState.getTile(
+      sellswordPending.creature.position.x,
+      sellswordPending.creature.position.y
+    )
     if (tile?.treasure) {
       tile.treasure.remainingMorale = Math.max(0, tile.treasure.remainingMorale - 1)
     }
@@ -3346,7 +3819,9 @@ function GameBoard({ onTurnInfoChange }) {
     sellswordPending.creature.isTapped = true
 
     if (drawnCards.length > 0) {
-      addToast(`SELLSWORD: ${sellswordPending.creature.creature.name} drew an Order card instead of morale!`)
+      addToast(
+        `SELLSWORD: ${sellswordPending.creature.creature.name} drew an Order card instead of morale!`
+      )
     } else {
       addToast(`SELLSWORD: No Order cards left to draw!`)
     }
@@ -3356,7 +3831,7 @@ function GameBoard({ onTurnInfoChange }) {
     setSelectedBoardCreature(null)
     setValidMoveTiles([])
     setValidAttackTargets([])
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // ============================================
@@ -3398,7 +3873,7 @@ function GameBoard({ onTurnInfoChange }) {
     setSelectedBoardCreature(null)
     setValidMoveTiles([])
     setValidAttackTargets([])
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // User right-clicked on a valid FLASHING BLADES target - initiate attack
@@ -3412,7 +3887,7 @@ function GameBoard({ onTurnInfoChange }) {
     const targetInfo = {
       creature: targetInstance,
       attackType: 'flashing_blades',
-      damage: 10
+      damage: 10,
     }
 
     // Store the pending attack and show the attack panel
@@ -3420,7 +3895,7 @@ function GameBoard({ onTurnInfoChange }) {
       attackerInstance,
       defenderInstance: targetInstance,
       targetInfo,
-      isFlashingBlades: true
+      isFlashingBlades: true,
     })
 
     // Exit target selection mode
@@ -3430,7 +3905,7 @@ function GameBoard({ onTurnInfoChange }) {
     setCombatPanelMode('attack')
     setCombatHighlightCreatures({
       attacker: attackerInstance.instanceId,
-      defender: targetInstance.instanceId
+      defender: targetInstance.instanceId,
     })
   }
 
@@ -3443,7 +3918,11 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if defender has INSUBSTANTIAL available - triggers before defense panel
     if (gameState.canUseInsubstantial(defenderInstance)) {
-      const blocked = gameState.useInsubstantial(defenderInstance, flashingBladesDamage, attackerInstance.owner)
+      const blocked = gameState.useInsubstantial(
+        defenderInstance,
+        flashingBladesDamage,
+        attackerInstance.owner
+      )
       if (blocked) {
         // Check if defender is human - show modal
         const defenderOwner = defenderInstance.owner
@@ -3454,7 +3933,9 @@ function GameBoard({ onTurnInfoChange }) {
           showInsubstantialNotification(defenderInstance, flashingBladesDamage, attackerInstance)
         } else {
           // AI defender - just toast
-          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${flashingBladesDamage} FLASHING BLADES damage! Ability used until next Undead Refresh.`)
+          addToast(
+            `👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${flashingBladesDamage} FLASHING BLADES damage! Ability used until next Undead Refresh.`
+          )
         }
 
         // Tap attacker if they moved
@@ -3467,7 +3948,7 @@ function GameBoard({ onTurnInfoChange }) {
         closeCombatPanel()
         setFlashingBladesPending(null)
         setFlashingBladesTargetMode(false)
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
         return
       }
     }
@@ -3497,20 +3978,28 @@ function GameBoard({ onTurnInfoChange }) {
           defenseResult.damageReduction = defenseResult.damageAvoided
         }
       } else if (defenseDecision.type === 'immediate_card') {
-        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        const result = gameState.applyImmediateCardDefense(
+          defenseDecision.card,
+          defenseDecision.creature
+        )
         if (result.success) {
           defenseResult = {
             success: true,
             type: 'immediate_card',
             damagePrevented: result.damagePrevented,
             damageReduction: result.damagePrevented,
-            cardUsed: defenseDecision.card.name
+            cardUsed: defenseDecision.card.name,
           }
 
           // Handle opponent draws (Recoil) - defender chooses which opponent receives card
           if (result.opponentDrawsCards > 0) {
             const cardName = result.cardUsed?.name || defenseDecision.card.name
-            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderPlayerId, attackerInstance.owner)
+            handleOpponentDrawEffect(
+              result.opponentDrawsCards,
+              cardName,
+              defenderPlayerId,
+              attackerInstance.owner
+            )
           }
         }
       }
@@ -3520,7 +4009,7 @@ function GameBoard({ onTurnInfoChange }) {
       executeAttackAfterDefense({
         type: defenseResult?.type || 'none',
         damageReduction: defenseResult?.damageReduction || 0,
-        success: !!defenseResult?.success
+        success: !!defenseResult?.success,
       })
     }
   }
@@ -3582,11 +4071,11 @@ function GameBoard({ onTurnInfoChange }) {
         creatureTapped: pendingAttackInfo.creatureTapped,
         moraleGain: pendingAttackInfo.moraleGain || 0,
         untapAfterUse: pendingAttackInfo.untapAfterUse || false,
-        success: true
+        success: true,
       })
     }
 
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -3596,7 +4085,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (!pendingShiftAfterDefense || !shiftSelectionMode) return
 
     // Verify tile is valid
-    const isValid = shiftValidTiles.some(t => t.x === tile.x && t.y === tile.y)
+    const isValid = shiftValidTiles.some((t) => t.x === tile.x && t.y === tile.y)
     if (!isValid) return
 
     // Show move confirmation modal
@@ -3605,7 +4094,7 @@ function GameBoard({ onTurnInfoChange }) {
       creature: pendingShiftAfterDefense.creature,
       destination: tile,
       cost: 0, // Shift is free
-      isShiftAfterDefense: true
+      isShiftAfterDefense: true,
     })
     setShowMoveConfirm(true)
   }
@@ -3652,11 +4141,11 @@ function GameBoard({ onTurnInfoChange }) {
         creatureTapped: pendingAttackInfo.creatureTapped,
         moraleGain: pendingAttackInfo.moraleGain || 0,
         untapAfterUse: pendingAttackInfo.untapAfterUse || false,
-        success: true
+        success: true,
       })
     }
 
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -3676,8 +4165,19 @@ function GameBoard({ onTurnInfoChange }) {
   const handleDeployConfirm = () => {
     if (!pendingDeployment) return
 
-    const { creature, tile, creatureIndex, isFromGraveyard, source,
-            isOrcScoutDeploy, isShadowStalkerDeploy, isSummonSpiderDeploy, isLichNecromancerDeploy, isOrcDruidDeploy, isInStartingZone } = pendingDeployment
+    const {
+      creature,
+      tile,
+      creatureIndex,
+      isFromGraveyard,
+      source,
+      isOrcScoutDeploy,
+      isShadowStalkerDeploy,
+      isSummonSpiderDeploy,
+      isLichNecromancerDeploy,
+      isOrcDruidDeploy,
+      isInStartingZone,
+    } = pendingDeployment
 
     const currentPlayer = gameState.getCurrentPlayerState()
 
@@ -3714,9 +4214,17 @@ function GameBoard({ onTurnInfoChange }) {
       position: { x: tile.x, y: tile.y },
       level: creature.level,
       fromGraveyard: isFromGraveyard,
-      source: isOrcScoutDeploy ? 'ORC SCOUT' : isShadowStalkerDeploy ? 'SHADOW STALKER' :
-              isSummonSpiderDeploy ? 'SUMMON SPIDER' : isLichNecromancerDeploy ? 'LICH NECROMANCER' :
-              isOrcDruidDeploy ? 'ORC DRUID' : 'standard'
+      source: isOrcScoutDeploy
+        ? 'ORC SCOUT'
+        : isShadowStalkerDeploy
+          ? 'SHADOW STALKER'
+          : isSummonSpiderDeploy
+            ? 'SUMMON SPIDER'
+            : isLichNecromancerDeploy
+              ? 'LICH NECROMANCER'
+              : isOrcDruidDeploy
+                ? 'ORC DRUID'
+                : 'standard',
     })
 
     // Remove from source (hand or graveyard)
@@ -3730,19 +4238,33 @@ function GameBoard({ onTurnInfoChange }) {
     // Mark ORC SCOUT as used if deployed to treasure
     if (isOrcScoutDeploy) {
       gameState.markOrcScoutUsed(gameState.currentPlayer)
-      addToast(`ORC SCOUT: Deployed ${creature.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+      addToast(
+        `ORC SCOUT: Deployed ${creature.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`
+      )
     } else if (isShadowStalkerDeploy && !isInStartingZone) {
-      addToast(`SHADOW STALKER: ${creature.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+      addToast(
+        `SHADOW STALKER: ${creature.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`
+      )
     } else if (isSummonSpiderDeploy && !isInStartingZone) {
-      addToast(`SUMMON SPIDER: ${creature.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+      addToast(
+        `SUMMON SPIDER: ${creature.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`
+      )
     } else if (isLichNecromancerDeploy && !isInStartingZone) {
-      addToast(`LICH NECROMANCER: ${creature.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+      addToast(
+        `LICH NECROMANCER: ${creature.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`
+      )
     } else if (isOrcDruidDeploy && !isInStartingZone) {
-      addToast(`ORC DRUID: ${creature.name} deployed adjacent to Orc Druid at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+      addToast(
+        `ORC DRUID: ${creature.name} deployed adjacent to Orc Druid at (${tile.x}, ${tile.y})! Protected until your next turn!`
+      )
     } else if (isFromGraveyard) {
-      addToast(`GRAVEYARD DEPLOY: ${creature.name} resurrected at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+      addToast(
+        `GRAVEYARD DEPLOY: ${creature.name} resurrected at (${tile.x}, ${tile.y})! Protected until your next turn!`
+      )
     } else {
-      addToast(`Deployed ${creature.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+      addToast(
+        `Deployed ${creature.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`
+      )
     }
 
     // Clear selection based on source
@@ -3768,7 +4290,7 @@ function GameBoard({ onTurnInfoChange }) {
       setChieftainCallPending({
         chieftainInstance: creatureInstance,
         eligibleOrcs,
-        playerId: gameState.currentPlayer
+        playerId: gameState.currentPlayer,
       })
       setShowChieftainCallModal(true)
     }
@@ -3780,14 +4302,17 @@ function GameBoard({ onTurnInfoChange }) {
       player.gainMorale(1)
 
       // Show toast notification (logged)
-      addToast(`${creatureInstance.creature.name} deployed! Gained 1 MORALE (${oldMorale} → ${player.morale})`, 'success')
+      addToast(
+        `${creatureInstance.creature.name} deployed! Gained 1 MORALE (${oldMorale} → ${player.morale})`,
+        'success'
+      )
 
       // Show informational modal for human player
       setOgreDeployMoraleResult({
         creatureInstance,
         oldMorale,
         newMorale: player.morale,
-        playerId: gameState.currentPlayer
+        playerId: gameState.currentPlayer,
       })
       setShowOgreDeployMoraleModal(true)
     }
@@ -3808,7 +4333,7 @@ function GameBoard({ onTurnInfoChange }) {
         setClericDrawOrderResult({
           creatureInstance,
           drawnCard,
-          playerId: gameState.currentPlayer
+          playerId: gameState.currentPlayer,
         })
         setShowClericDrawOrderModal(true)
       }
@@ -3817,7 +4342,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Force re-render to show newly deployed creature on board
     // Use setTimeout to ensure state updates are processed before forcing render
     setTimeout(() => {
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
     }, 0)
   }
 
@@ -3847,8 +4372,8 @@ function GameBoard({ onTurnInfoChange }) {
     // startingZoneTiles is array of {x, y} coords - need to look up actual tiles
     const startingZoneCoords = gameState.players[playerId].startingZoneTiles
     const validTiles = startingZoneCoords
-      .map(coord => gameState.getTile(coord.x, coord.y))
-      .filter(tile => tile && !tile.occupant)
+      .map((coord) => gameState.getTile(coord.x, coord.y))
+      .filter((tile) => tile && !tile.occupant)
 
     if (validTiles.length === 0) {
       addToast('No valid deployment squares available!')
@@ -3865,7 +4390,9 @@ function GameBoard({ onTurnInfoChange }) {
     const result = gameState.executeChieftainCall(playerId, selectedCreature, deployPosition)
 
     if (result.success) {
-      addToast(`CHIEFTAIN CALL: Gained ${result.leadershipGained} Leadership and deployed ${selectedCreature.name} to (${deployPosition.x}, ${deployPosition.y})!`)
+      addToast(
+        `CHIEFTAIN CALL: Gained ${result.leadershipGained} Leadership and deployed ${selectedCreature.name} to (${deployPosition.x}, ${deployPosition.y})!`
+      )
     } else {
       addToast(`CHIEFTAIN CALL failed: ${result.message}`)
     }
@@ -3875,7 +4402,7 @@ function GameBoard({ onTurnInfoChange }) {
     setChieftainCallPending(null)
 
     // Force re-render
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -3929,7 +4456,12 @@ function GameBoard({ onTurnInfoChange }) {
    * Called after attack resolves and damage is dealt
    * @returns {boolean} True if FLASHING BLADES was triggered (modal shown)
    */
-  const checkFlashingBladesTrigger = (attackerInstance, defenderInstance, attackResult, attackType) => {
+  const checkFlashingBladesTrigger = (
+    attackerInstance,
+    defenderInstance,
+    attackResult,
+    attackType
+  ) => {
     // Only trigger on melee attacks that dealt damage
     if (attackType !== 'melee') return false
     if (!attackResult.success || attackResult.damage <= 0) return false
@@ -3948,7 +4480,7 @@ function GameBoard({ onTurnInfoChange }) {
     setFlashingBladesPending({
       attacker: attackerInstance,
       originalTarget: defenderInstance,
-      validTargets
+      validTargets,
     })
     setShowFlashingBladesModal(true)
 
@@ -3992,7 +4524,7 @@ function GameBoard({ onTurnInfoChange }) {
     setSelectedBoardCreature(null)
     setValidMoveTiles([])
     setValidAttackTargets([])
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // User right-clicked on a valid HIDDEN BLADE target - initiate attack
@@ -4008,7 +4540,7 @@ function GameBoard({ onTurnInfoChange }) {
     const targetInfo = {
       creature: targetInstance,
       attackType: 'hidden_blade',
-      damage: 10
+      damage: 10,
     }
 
     // Store the pending attack and show the attack panel
@@ -4016,7 +4548,7 @@ function GameBoard({ onTurnInfoChange }) {
       attackerInstance,
       defenderInstance: targetInstance,
       targetInfo,
-      isHiddenBlade: true
+      isHiddenBlade: true,
     })
 
     // Exit target selection mode
@@ -4026,7 +4558,7 @@ function GameBoard({ onTurnInfoChange }) {
     setCombatPanelMode('attack')
     setCombatHighlightCreatures({
       attacker: attackerInstance.instanceId,
-      defender: targetInstance.instanceId
+      defender: targetInstance.instanceId,
     })
   }
 
@@ -4041,7 +4573,11 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if defender has INSUBSTANTIAL available - triggers before defense panel
     if (gameState.canUseInsubstantial(defenderInstance)) {
-      const blocked = gameState.useInsubstantial(defenderInstance, hiddenBladeDamage, attackerInstance.owner)
+      const blocked = gameState.useInsubstantial(
+        defenderInstance,
+        hiddenBladeDamage,
+        attackerInstance.owner
+      )
       if (blocked) {
         // Check if defender is human - show modal
         const defenderOwner = defenderInstance.owner
@@ -4052,7 +4588,9 @@ function GameBoard({ onTurnInfoChange }) {
           showInsubstantialNotification(defenderInstance, hiddenBladeDamage, attackerInstance)
         } else {
           // AI defender - just toast
-          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${hiddenBladeDamage} HIDDEN BLADE damage! Ability used until next Undead Refresh.`)
+          addToast(
+            `👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${hiddenBladeDamage} HIDDEN BLADE damage! Ability used until next Undead Refresh.`
+          )
         }
 
         // Clear pending attack and combat panel
@@ -4060,7 +4598,7 @@ function GameBoard({ onTurnInfoChange }) {
         closeCombatPanel()
         setHiddenBladePending(null)
         setHiddenBladeTargetMode(false)
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
         return
       }
     }
@@ -4090,20 +4628,28 @@ function GameBoard({ onTurnInfoChange }) {
           defenseResult.damageReduction = defenseResult.damageAvoided
         }
       } else if (defenseDecision.type === 'immediate_card') {
-        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        const result = gameState.applyImmediateCardDefense(
+          defenseDecision.card,
+          defenseDecision.creature
+        )
         if (result.success) {
           defenseResult = {
             success: true,
             type: 'immediate_card',
             damagePrevented: result.damagePrevented,
             damageReduction: result.damagePrevented,
-            cardUsed: defenseDecision.card.name
+            cardUsed: defenseDecision.card.name,
           }
 
           // Handle opponent draws (Recoil) - defender chooses which opponent receives card
           if (result.opponentDrawsCards > 0) {
             const cardName = result.cardUsed?.name || defenseDecision.card.name
-            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderPlayerId, attackerInstance.owner)
+            handleOpponentDrawEffect(
+              result.opponentDrawsCards,
+              cardName,
+              defenderPlayerId,
+              attackerInstance.owner
+            )
           }
         }
       }
@@ -4113,7 +4659,7 @@ function GameBoard({ onTurnInfoChange }) {
       executeAttackAfterDefense({
         type: defenseResult?.type || 'none',
         damageReduction: defenseResult?.damageReduction || 0,
-        success: !!defenseResult?.success
+        success: !!defenseResult?.success,
       })
     }
   }
@@ -4154,7 +4700,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Set up the pending ability and show modal
     setHiddenBladePending({
       attacker: attackerInstance,
-      validTargets
+      validTargets,
     })
     setShowHiddenBladeModal(true)
 
@@ -4182,7 +4728,7 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if target is valid for CONFUSION GAZE (within 5 with LOS)
     const validTargets = gameState.getConfusionGazeTargets(selectedCreature)
-    const isValidTarget = validTargets.some(t => t.instanceId === targetCreature.instanceId)
+    const isValidTarget = validTargets.some((t) => t.instanceId === targetCreature.instanceId)
 
     if (isValidTarget) {
       // Show modal asking if player wants to use CONFUSION GAZE
@@ -4191,7 +4737,7 @@ function GameBoard({ onTurnInfoChange }) {
         target: targetCreature,
         validSlideTiles: [],
         slideDestination: null,
-        attackTargets: []
+        attackTargets: [],
       })
       setShowConfusionGazeModal(true)
       return true // Handled - don't show normal attack
@@ -4216,9 +4762,9 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     setConfusionGazeMode('slide')
-    setConfusionGazePending(prev => ({
+    setConfusionGazePending((prev) => ({
       ...prev,
-      validSlideTiles
+      validSlideTiles,
     }))
 
     // Clear other selection states
@@ -4241,25 +4787,26 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if the target is in melee or ranged range for a normal attack
     const validAttackTargets = gameState.getValidAttackTargets(attacker)
-    const targetInfo = validAttackTargets.find(t => t.creature.instanceId === target.instanceId)
+    const targetInfo = validAttackTargets.find((t) => t.creature.instanceId === target.instanceId)
 
     if (targetInfo) {
       // Valid normal attack - show attack confirmation panel using pendingRightClickAttack (same as normal right-click attack)
       const attackInfo = {
         attackType: targetInfo.attackType,
-        damage: targetInfo.attackType === 'melee'
-          ? attacker.creature.meleeAttack?.damage || 0
-          : attacker.creature.rangedAttack?.damage || 0
+        damage:
+          targetInfo.attackType === 'melee'
+            ? attacker.creature.meleeAttack?.damage || 0
+            : attacker.creature.rangedAttack?.damage || 0,
       }
       setPendingRightClickAttack({
         attacker: attacker,
         target: target,
-        attackInfo: attackInfo
+        attackInfo: attackInfo,
       })
       setCombatPanelMode('attack')
       setCombatHighlightCreatures({
         attacker: attacker.instanceId,
-        defender: target.instanceId
+        defender: target.instanceId,
       })
     } else {
       // Target is not adjacent - show error modal and let player try again
@@ -4268,7 +4815,7 @@ function GameBoard({ onTurnInfoChange }) {
         show: true,
         attacker: attacker,
         target: target,
-        hasDamageBoost: !!pendingDamageBoostAttack
+        hasDamageBoost: !!pendingDamageBoostAttack,
       })
     }
   }
@@ -4278,7 +4825,7 @@ function GameBoard({ onTurnInfoChange }) {
     show: false,
     attacker: null,
     target: null,
-    hasDamageBoost: false
+    hasDamageBoost: false,
   })
 
   // Handler to dismiss not adjacent error and let player try again
@@ -4293,22 +4840,23 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Rebuild target list (same logic as confirmDamageBoost)
       const allTargets = gameState.getValidAttackTargets(attacker)
-      let filteredTargets = allTargets.filter(t => t.attackType === 'melee')
+      let filteredTargets = allTargets.filter((t) => t.attackType === 'melee')
 
       // Add Confusion Gaze targets
       if (gameState.hasConfusionGaze && gameState.hasConfusionGaze(attacker)) {
         const gazeTargets = gameState.getConfusionGazeTargets(attacker)
         for (const gazeTarget of gazeTargets) {
-          const alreadyInList = filteredTargets.some(t =>
-            t.creature?.instanceId === gazeTarget.instanceId ||
-            t.instanceId === gazeTarget.instanceId
+          const alreadyInList = filteredTargets.some(
+            (t) =>
+              t.creature?.instanceId === gazeTarget.instanceId ||
+              t.instanceId === gazeTarget.instanceId
           )
           if (!alreadyInList) {
             filteredTargets.push({
               creature: gazeTarget,
               instanceId: gazeTarget.instanceId,
               attackType: 'confusion_gaze',
-              position: gazeTarget.position
+              position: gazeTarget.position,
             })
           }
         }
@@ -4326,15 +4874,17 @@ function GameBoard({ onTurnInfoChange }) {
     const { attacker, target, validSlideTiles } = confusionGazePending
 
     // Check if this tile is a valid slide destination
-    const isValidSlide = validSlideTiles.some(t => t.x === tile.x && t.y === tile.y)
+    const isValidSlide = validSlideTiles.some((t) => t.x === tile.x && t.y === tile.y)
     if (!isValidSlide) return
 
     // Execute the slide
     const slideResult = gameState.executeConfusionGazeSlide(target, { x: tile.x, y: tile.y })
-    addToast(`😵 Slid ${target.creature.name} from (${slideResult.oldPos.x}, ${slideResult.oldPos.y}) to (${slideResult.newPos.x}, ${slideResult.newPos.y})`)
+    addToast(
+      `😵 Slid ${target.creature.name} from (${slideResult.oldPos.x}, ${slideResult.oldPos.y}) to (${slideResult.newPos.x}, ${slideResult.newPos.y})`
+    )
 
     // IMPORTANT: Force re-render to show the slid creature in new position
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
 
     // Determine attack targets
     const attackTargets = gameState.getConfusionGazeAttackTargets(attacker, target)
@@ -4346,10 +4896,10 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     // Update state with slide destination and attack targets
-    setConfusionGazePending(prev => ({
+    setConfusionGazePending((prev) => ({
       ...prev,
       slideDestination: { x: tile.x, y: tile.y },
-      attackTargets
+      attackTargets,
     }))
 
     // If only one target, auto-select it (with small delay to allow render)
@@ -4379,9 +4929,11 @@ function GameBoard({ onTurnInfoChange }) {
     let damageBoostBonus = 0
     let damageBoostFlat = null
 
-    if (pendingDamageBoostAttack &&
-        pendingDamageBoostAttack.creature?.instanceId === attacker.instanceId &&
-        !pendingDamageBoostAttack.isRanged) {
+    if (
+      pendingDamageBoostAttack &&
+      pendingDamageBoostAttack.creature?.instanceId === attacker.instanceId &&
+      !pendingDamageBoostAttack.isRanged
+    ) {
       // Melee damage boost applies to Confusion Gaze
       damageBoostCard = pendingDamageBoostAttack.card
       damageBoostBonus = pendingDamageBoostAttack.damageBonus || 0
@@ -4399,7 +4951,7 @@ function GameBoard({ onTurnInfoChange }) {
       isConfusionGaze: true,
       damageBoostCard,
       damageBoostBonus,
-      damageBoostFlat
+      damageBoostFlat,
     })
 
     // Keep confusionGazePending so we can access attacker info later for tap logic
@@ -4410,7 +4962,7 @@ function GameBoard({ onTurnInfoChange }) {
     setCombatPanelMode('attack')
     setCombatHighlightCreatures({
       attacker: attacker.instanceId,
-      defender: attackTarget.instanceId
+      defender: attackTarget.instanceId,
     })
   }
 
@@ -4418,7 +4970,14 @@ function GameBoard({ onTurnInfoChange }) {
   const handleConfusionGazeConfirmAttack = () => {
     if (!pendingAttack || !pendingAttack.isConfusionGaze) return
 
-    const { attackerInstance, defenderInstance, targetInfo, damageBoostCard, damageBoostBonus, damageBoostFlat } = pendingAttack
+    const {
+      attackerInstance,
+      defenderInstance,
+      targetInfo,
+      damageBoostCard,
+      damageBoostBonus,
+      damageBoostFlat,
+    } = pendingAttack
     // Use damage from targetInfo which already includes any damage boost
     const damage = targetInfo?.damage || attackerInstance.creature.meleeAttack?.damage || 30
 
@@ -4435,7 +4994,9 @@ function GameBoard({ onTurnInfoChange }) {
           showInsubstantialNotification(defenderInstance, damage, attackerInstance)
         } else {
           // AI defender - just toast
-          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${damage} CONFUSION GAZE damage! Ability used until next Undead Refresh.`)
+          addToast(
+            `👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${damage} CONFUSION GAZE damage! Ability used until next Undead Refresh.`
+          )
         }
 
         // Mark attacker as attacked and tap if moved
@@ -4449,7 +5010,7 @@ function GameBoard({ onTurnInfoChange }) {
         closeCombatPanel()
         setConfusionGazeMode(null)
         setConfusionGazePending(null)
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
         return
       }
     }
@@ -4468,7 +5029,11 @@ function GameBoard({ onTurnInfoChange }) {
       const defenderAI = new SimpleAI(gameState, defenderPlayerId, null, difficulty)
 
       // AI decides whether to use defensive abilities
-      const defenseDecision = defenderAI.decideDefense(defenderInstance, damage, attackerInstance.owner)
+      const defenseDecision = defenderAI.decideDefense(
+        defenderInstance,
+        damage,
+        attackerInstance.owner
+      )
       let defenseResult = null
 
       if (defenseDecision.type === 'cower') {
@@ -4479,20 +5044,28 @@ function GameBoard({ onTurnInfoChange }) {
           defenseResult.damageReduction = defenseResult.damageAvoided
         }
       } else if (defenseDecision.type === 'immediate_card') {
-        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        const result = gameState.applyImmediateCardDefense(
+          defenseDecision.card,
+          defenseDecision.creature
+        )
         if (result.success) {
           defenseResult = {
             success: true,
             type: 'immediate_card',
             damagePrevented: result.damagePrevented,
             damageReduction: result.damagePrevented,
-            cardUsed: defenseDecision.card.name
+            cardUsed: defenseDecision.card.name,
           }
 
           // Handle opponent draws (Recoil) - defender chooses which opponent receives card
           if (result.opponentDrawsCards > 0) {
             const cardName = result.cardUsed?.name || defenseDecision.card.name
-            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderPlayerId, attackerInstance.owner)
+            handleOpponentDrawEffect(
+              result.opponentDrawsCards,
+              cardName,
+              defenderPlayerId,
+              attackerInstance.owner
+            )
           }
         }
       }
@@ -4502,7 +5075,7 @@ function GameBoard({ onTurnInfoChange }) {
       executeAttackAfterDefense({
         type: defenseResult?.type || 'none',
         damageReduction: defenseResult?.damageReduction || 0,
-        success: !!defenseResult?.success
+        success: !!defenseResult?.success,
       })
     }
   }
@@ -4524,7 +5097,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Clear all confusion gaze state
     setConfusionGazeMode(null)
     setConfusionGazePending(null)
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // Cancel CONFUSION GAZE during slide selection
@@ -4532,7 +5105,7 @@ function GameBoard({ onTurnInfoChange }) {
     setConfusionGazeMode(null)
     setConfusionGazePending(null)
     setShowConfusionGazeModal(false)
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // ============================================================================
@@ -4552,7 +5125,7 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Tap the attacker (consume action)
     attackerInstance.tap()
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
     addToast(`${attackerInstance.creature.name} chose not to slam.`)
   }
 
@@ -4563,7 +5136,7 @@ function GameBoard({ onTurnInfoChange }) {
     setShowSlamModal(false)
     setSlamMode(true)
     addToast(`Right-click a highlighted tile to slam ${slamPending.targetInstance.creature.name}`)
-    setRenderCounter(prev => prev + 1) // Force re-render to show tile highlights
+    setRenderCounter((prev) => prev + 1) // Force re-render to show tile highlights
   }
 
   // Right-click on valid SLAM tile - show confirmation
@@ -4571,7 +5144,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (!slamMode || !slamPending) return
 
     // Verify tile is valid
-    const isValid = slamValidTiles.some(t => t.x === x && t.y === y)
+    const isValid = slamValidTiles.some((t) => t.x === x && t.y === y)
     if (!isValid) return
 
     setSlamSelectedTile({ x, y })
@@ -4604,8 +5177,10 @@ function GameBoard({ onTurnInfoChange }) {
     // Tap the attacker (consume action)
     attackerInstance.tap()
 
-    addToast(`SLAM: ${targetInstance.creature.name} was slammed to (${slamSelectedTile.x}, ${slamSelectedTile.y})!`)
-    setRenderCounter(prev => prev + 1)
+    addToast(
+      `SLAM: ${targetInstance.creature.name} was slammed to (${slamSelectedTile.x}, ${slamSelectedTile.y})!`
+    )
+    setRenderCounter((prev) => prev + 1)
   }
 
   // AI decides whether to use SLAM (0/50/100 rule)
@@ -4626,7 +5201,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (!willSlam) {
       // AI declines - tap attacker
       attackerInstance.tap()
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
       return
     }
 
@@ -4643,14 +5218,17 @@ function GameBoard({ onTurnInfoChange }) {
     addToast(`SLAM: ${attackerInstance.creature.name} slammed ${targetInstance.creature.name}!`)
 
     // Queue AI action modal
-    setAiDeathQueue(prev => [...prev, {
-      title: 'SLAM!',
-      message: `${attackerInstance.creature.name} used SLAM to push ${targetInstance.creature.name} to a new position!`,
-      creatureName: attackerInstance.creature.name,
-      isSlam: true
-    }])
+    setAiDeathQueue((prev) => [
+      ...prev,
+      {
+        title: 'SLAM!',
+        message: `${attackerInstance.creature.name} used SLAM to push ${targetInstance.creature.name} to a new position!`,
+        creatureName: attackerInstance.creature.name,
+        isSlam: true,
+      },
+    ])
 
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // SCROLLBOOK ability - discard selected order card to draw a new one
@@ -4660,9 +5238,11 @@ function GameBoard({ onTurnInfoChange }) {
     const result = gameState.useScrollbook(gameState.currentPlayer, cardIndex)
 
     if (result.success) {
-      addToast(`SCROLLBOOK: Discarded ${result.discardedCard.name}, drew ${result.drawnCard ? result.drawnCard.name : 'nothing (deck empty)'}`)
+      addToast(
+        `SCROLLBOOK: Discarded ${result.discardedCard.name}, drew ${result.drawnCard ? result.drawnCard.name : 'nothing (deck empty)'}`
+      )
       setSelectedOrderIndex(null) // Clear selection
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
     } else {
       addToast(result.message)
     }
@@ -4698,7 +5278,7 @@ function GameBoard({ onTurnInfoChange }) {
       actionType: card?.actionType,
       creatureName: orderCardFilterCreature?.creature?.name,
       phase: gameState?.currentPhase,
-      allCardProps: card
+      allCardProps: card,
     })
 
     if (!gameState) {
@@ -4731,12 +5311,18 @@ function GameBoard({ onTurnInfoChange }) {
       if (!canUse) {
         // Check specific failure reason for better toast message
         if (card.level > orderCardFilterCreature.creature.level) {
-          addToast(`${orderCardFilterCreature.creature.name} (Level ${orderCardFilterCreature.creature.level}) cannot use Level ${card.level} cards`)
+          addToast(
+            `${orderCardFilterCreature.creature.name} (Level ${orderCardFilterCreature.creature.level}) cannot use Level ${card.level} cards`
+          )
         } else {
           // Check if spider type (has SPIDER AFFINITY)
-          const isSpider = (orderCardFilterCreature.creature.type || []).some(t => t.toLowerCase() === 'spider')
+          const isSpider = (orderCardFilterCreature.creature.type || []).some(
+            (t) => t.toLowerCase() === 'spider'
+          )
           if (!isSpider) {
-            addToast(`${orderCardFilterCreature.creature.name} needs INT ability or be a Spider to use Web`)
+            addToast(
+              `${orderCardFilterCreature.creature.name} needs INT ability or be a Spider to use Web`
+            )
           } else {
             addToast(`${orderCardFilterCreature.creature.name} cannot use Web`)
           }
@@ -4748,7 +5334,9 @@ function GameBoard({ onTurnInfoChange }) {
       const validTargets = gameState.getWebValidTargets(orderCardFilterCreature, card)
 
       if (validTargets.length === 0) {
-        addToast('No valid targets in range for Web (10 squares, LOS required, not through forests)')
+        addToast(
+          'No valid targets in range for Web (10 squares, LOS required, not through forests)'
+        )
         return
       }
 
@@ -4756,7 +5344,9 @@ function GameBoard({ onTurnInfoChange }) {
       setSelectedOrderCard({ card, cardIndex })
       setOrderCardTargetingMode(true)
       setOrderCardValidTargets(validTargets)
-      addToast(`🕸️ WEB targeting: Right-click on a highlighted enemy (${validTargets.length} targets)`)
+      addToast(
+        `🕸️ WEB targeting: Right-click on a highlighted enemy (${validTargets.length} targets)`
+      )
       return
     }
 
@@ -4771,18 +5361,24 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Check level requirement
       if (card.level > creature.creature.level) {
-        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+        addToast(
+          `${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`
+        )
         return
       }
 
       // Check ability requirement
       if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-        const hasRequiredAbility = abilities.some(ability =>
-          creature.creature.abilities?.[ability] === true
+        const abilities = Array.isArray(card.abilityRequired)
+          ? card.abilityRequired
+          : [card.abilityRequired]
+        const hasRequiredAbility = abilities.some(
+          (ability) => creature.creature.abilities?.[ability] === true
         )
         if (!hasRequiredAbility) {
-          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+          addToast(
+            `${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`
+          )
           return
         }
       }
@@ -4798,7 +5394,7 @@ function GameBoard({ onTurnInfoChange }) {
         card,
         cardIndex,
         creature,
-        healAmount: card.healAmount
+        healAmount: card.healAmount,
       })
       setShowPatchUpHealModal(true)
       return
@@ -4808,22 +5404,31 @@ function GameBoard({ onTurnInfoChange }) {
     // Show confirmation modal before applying
     if (card.canUseProactively && card.attachOnUse) {
       const creature = orderCardFilterCreature
-      logger.debug('[TOUGH AS NAILS] Checking eligibility', { card: card.name, creature: creature.creature.name })
+      logger.debug('[TOUGH AS NAILS] Checking eligibility', {
+        card: card.name,
+        creature: creature.creature.name,
+      })
 
       // Check level requirement
       if (card.level > creature.creature.level) {
-        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+        addToast(
+          `${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`
+        )
         return
       }
 
       // Check ability requirement
       if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-        const hasRequiredAbility = abilities.some(ability =>
-          creature.creature.abilities?.[ability] === true
+        const abilities = Array.isArray(card.abilityRequired)
+          ? card.abilityRequired
+          : [card.abilityRequired]
+        const hasRequiredAbility = abilities.some(
+          (ability) => creature.creature.abilities?.[ability] === true
         )
         if (!hasRequiredAbility) {
-          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+          addToast(
+            `${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`
+          )
           return
         }
       }
@@ -4839,7 +5444,7 @@ function GameBoard({ onTurnInfoChange }) {
       setToughAsNailsConfig({
         card,
         cardIndex,
-        creature
+        creature,
       })
       setShowToughAsNailsModal(true)
       return
@@ -4848,8 +5453,12 @@ function GameBoard({ onTurnInfoChange }) {
     // SHIFT + ATTACK STANDARD CARDS: Nimble Strike, Spring Attack, Shadowy Ambush
     // These cards shift first, then attack with damage bonus
     // Must check BEFORE damage boost cards since shift+attack also have damage bonus properties
-    const isShiftAttackCard = card.shiftBeforeAttack > 0 &&
-      (card.meleeDamageBonus > 0 || card.rangedDamageBonus > 0 || card.flatMeleeDamage !== null || card.shiftAfterAttack > 0)
+    const isShiftAttackCard =
+      card.shiftBeforeAttack > 0 &&
+      (card.meleeDamageBonus > 0 ||
+        card.rangedDamageBonus > 0 ||
+        card.flatMeleeDamage !== null ||
+        card.shiftAfterAttack > 0)
     if (card.actionType === 'STANDARD' && isShiftAttackCard) {
       const creature = orderCardFilterCreature
 
@@ -4857,11 +5466,13 @@ function GameBoard({ onTurnInfoChange }) {
       // Creature MUST have matching type, level/ability requirements are bypassed
       if (card.affinityRequired && card.affinityOverridesRequirements) {
         const creatureTypes = creature.creature.type || []
-        const hasAffinity = creatureTypes.some(t =>
-          t.toUpperCase() === card.affinityRequired.toUpperCase()
+        const hasAffinity = creatureTypes.some(
+          (t) => t.toUpperCase() === card.affinityRequired.toUpperCase()
         )
         if (!hasAffinity) {
-          addToast(`${creature.creature.name} requires ${card.affinityRequired} affinity to use ${card.name}`)
+          addToast(
+            `${creature.creature.name} requires ${card.affinityRequired} affinity to use ${card.name}`
+          )
           return
         }
         // Has affinity - skip level/ability checks below, proceed to other validations
@@ -4869,18 +5480,24 @@ function GameBoard({ onTurnInfoChange }) {
         // Normal requirement checks (no affinity override)
         // Check level requirement
         if (card.level > creature.creature.level) {
-          addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+          addToast(
+            `${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`
+          )
           return
         }
 
         // Check ability requirement
         if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-          const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-          const hasRequiredAbility = abilities.some(ability =>
-            creature.creature.abilities?.[ability] === true
+          const abilities = Array.isArray(card.abilityRequired)
+            ? card.abilityRequired
+            : [card.abilityRequired]
+          const hasRequiredAbility = abilities.some(
+            (ability) => creature.creature.abilities?.[ability] === true
           )
           if (!hasRequiredAbility) {
-            addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+            addToast(
+              `${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`
+            )
             return
           }
         }
@@ -4908,7 +5525,7 @@ function GameBoard({ onTurnInfoChange }) {
       setShiftAttackConfig({
         card,
         cardIndex,
-        creature
+        creature,
       })
       setShowShiftAttackModal(true)
       return
@@ -4921,18 +5538,24 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Check level requirement
       if (card.level > creature.creature.level) {
-        addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+        addToast(
+          `${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`
+        )
         return
       }
 
       // Check ability requirement
       if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-        const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-        const hasRequiredAbility = abilities.some(ability =>
-          creature.creature.abilities?.[ability] === true
+        const abilities = Array.isArray(card.abilityRequired)
+          ? card.abilityRequired
+          : [card.abilityRequired]
+        const hasRequiredAbility = abilities.some(
+          (ability) => creature.creature.abilities?.[ability] === true
         )
         if (!hasRequiredAbility) {
-          addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+          addToast(
+            `${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`
+          )
           return
         }
       }
@@ -4965,7 +5588,7 @@ function GameBoard({ onTurnInfoChange }) {
       setChargeConfig({
         card,
         cardIndex,
-        creature
+        creature,
       })
       setShowChargeModal(true)
       return
@@ -4991,21 +5614,32 @@ function GameBoard({ onTurnInfoChange }) {
       isRangedDamageBoost,
       isChargeType,
       isShiftAttackType,
-      willEnterDamageBoostBlock: card.actionType === 'STANDARD' && (isMeleeDamageBoost || isRangedDamageBoost) && !isChargeType && !isShiftAttackType
+      willEnterDamageBoostBlock:
+        card.actionType === 'STANDARD' &&
+        (isMeleeDamageBoost || isRangedDamageBoost) &&
+        !isChargeType &&
+        !isShiftAttackType,
     })
 
-    if (card.actionType === 'STANDARD' && (isMeleeDamageBoost || isRangedDamageBoost) && !isChargeType && !isShiftAttackType) {
+    if (
+      card.actionType === 'STANDARD' &&
+      (isMeleeDamageBoost || isRangedDamageBoost) &&
+      !isChargeType &&
+      !isShiftAttackType
+    ) {
       const creature = orderCardFilterCreature
 
       // AFFINITY CHECK: Cards with affinityRequired + affinityOverridesRequirements
       // Creature MUST have matching type, level/ability requirements are bypassed
       if (card.affinityRequired && card.affinityOverridesRequirements) {
         const creatureTypes = creature.creature.type || []
-        const hasAffinity = creatureTypes.some(t =>
-          t.toUpperCase() === card.affinityRequired.toUpperCase()
+        const hasAffinity = creatureTypes.some(
+          (t) => t.toUpperCase() === card.affinityRequired.toUpperCase()
         )
         if (!hasAffinity) {
-          addToast(`${creature.creature.name} requires ${card.affinityRequired} affinity to use ${card.name}`)
+          addToast(
+            `${creature.creature.name} requires ${card.affinityRequired} affinity to use ${card.name}`
+          )
           return
         }
         // Has affinity - skip level/ability checks below, proceed to other validations
@@ -5013,18 +5647,24 @@ function GameBoard({ onTurnInfoChange }) {
         // Normal requirement checks (no affinity override)
         // Check level requirement
         if (card.level > creature.creature.level) {
-          addToast(`${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`)
+          addToast(
+            `${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`
+          )
           return
         }
 
         // Check ability requirement
         if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-          const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-          const hasRequiredAbility = abilities.some(ability =>
-            creature.creature.abilities?.[ability] === true
+          const abilities = Array.isArray(card.abilityRequired)
+            ? card.abilityRequired
+            : [card.abilityRequired]
+          const hasRequiredAbility = abilities.some(
+            (ability) => creature.creature.abilities?.[ability] === true
           )
           if (!hasRequiredAbility) {
-            addToast(`${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+            addToast(
+              `${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`
+            )
             return
           }
         }
@@ -5058,12 +5698,12 @@ function GameBoard({ onTurnInfoChange }) {
       logger.debug('[STD-ORDER DEBUG] SHOWING DamageBoostModal', {
         cardName: card.name,
         creatureName: creature.creature.name,
-        config: { card, cardIndex, creature: creature.creature.name }
+        config: { card, cardIndex, creature: creature.creature.name },
       })
       setDamageBoostConfig({
         card,
         cardIndex,
-        creature
+        creature,
       })
       setShowDamageBoostModal(true)
       return
@@ -5073,24 +5713,30 @@ function GameBoard({ onTurnInfoChange }) {
     logger.debug('[STD-ORDER DEBUG] FALLTHROUGH to generic targeting mode', {
       cardName: card.name,
       actionType: card.actionType,
-      reason: 'Did not match any specialized handler (DamageBoost, Charge, ShiftAttack, etc.)'
+      reason: 'Did not match any specialized handler (DamageBoost, Charge, ShiftAttack, etc.)',
     })
 
     // GENERIC ORDER CARDS: Standard validation
     // Check level requirement: card level <= creature level
     if (card.level > orderCardFilterCreature.creature.level) {
-      addToast(`${orderCardFilterCreature.creature.name} (Level ${orderCardFilterCreature.creature.level}) cannot use Level ${card.level} cards`)
+      addToast(
+        `${orderCardFilterCreature.creature.name} (Level ${orderCardFilterCreature.creature.level}) cannot use Level ${card.level} cards`
+      )
       return
     }
 
     // Check ability requirement
     if (card.abilityRequired && card.abilityRequired !== 'ANY') {
-      const abilities = Array.isArray(card.abilityRequired) ? card.abilityRequired : [card.abilityRequired]
-      const hasRequiredAbility = abilities.some(ability =>
-        orderCardFilterCreature.creature.abilities?.[ability] === true
+      const abilities = Array.isArray(card.abilityRequired)
+        ? card.abilityRequired
+        : [card.abilityRequired]
+      const hasRequiredAbility = abilities.some(
+        (ability) => orderCardFilterCreature.creature.abilities?.[ability] === true
       )
       if (!hasRequiredAbility) {
-        addToast(`${orderCardFilterCreature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`)
+        addToast(
+          `${orderCardFilterCreature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`
+        )
         return
       }
     }
@@ -5138,7 +5784,7 @@ function GameBoard({ onTurnInfoChange }) {
     logger.debug('[STD-ORDER DEBUG] confirmDamageBoost called', {
       hasConfig: !!damageBoostConfig,
       cardName: damageBoostConfig?.card?.name,
-      creatureName: damageBoostConfig?.creature?.creature?.name
+      creatureName: damageBoostConfig?.creature?.creature?.name,
     })
 
     if (!damageBoostConfig?.card || !damageBoostConfig?.creature || !gameState) {
@@ -5157,9 +5803,9 @@ function GameBoard({ onTurnInfoChange }) {
       card,
       cardIndex,
       creature,
-      damageBonus: isRangedBoost ? card.rangedDamageBonus : (card.meleeDamageBonus || 0),
+      damageBonus: isRangedBoost ? card.rangedDamageBonus : card.meleeDamageBonus || 0,
       flatDamage: card.flatMeleeDamage,
-      isRanged: isRangedBoost
+      isRanged: isRangedBoost,
     })
 
     // Close modal
@@ -5172,8 +5818,8 @@ function GameBoard({ onTurnInfoChange }) {
     // Get valid targets based on attack type (melee or ranged)
     const allTargets = gameState.getValidAttackTargets(creature)
     let filteredTargets = isRangedBoost
-      ? allTargets.filter(t => t.attackType === 'ranged')
-      : allTargets.filter(t => t.attackType === 'melee')
+      ? allTargets.filter((t) => t.attackType === 'ranged')
+      : allTargets.filter((t) => t.attackType === 'melee')
 
     // CONFUSION GAZE SUPPORT: For melee damage boosts, also include Confusion Gaze targets
     // Umbra Hulk (and creatures with Confusion Gaze) can attack enemies within 5 tiles using the gaze
@@ -5182,9 +5828,10 @@ function GameBoard({ onTurnInfoChange }) {
       const gazeTargets = gameState.getConfusionGazeTargets(creature)
       // Add gaze targets that aren't already in the list (as melee targets)
       for (const gazeTarget of gazeTargets) {
-        const alreadyInList = filteredTargets.some(t =>
-          t.creature?.instanceId === gazeTarget.instanceId ||
-          t.instanceId === gazeTarget.instanceId
+        const alreadyInList = filteredTargets.some(
+          (t) =>
+            t.creature?.instanceId === gazeTarget.instanceId ||
+            t.instanceId === gazeTarget.instanceId
         )
         if (!alreadyInList) {
           // Add as a special "confusion_gaze" attack type target
@@ -5192,7 +5839,7 @@ function GameBoard({ onTurnInfoChange }) {
             creature: gazeTarget,
             instanceId: gazeTarget.instanceId,
             attackType: 'confusion_gaze',
-            position: gazeTarget.position
+            position: gazeTarget.position,
           })
         }
       }
@@ -5210,14 +5857,18 @@ function GameBoard({ onTurnInfoChange }) {
     setValidAttackTargets(filteredTargets)
 
     // Toast instruction
-    const damageText = card.flatMeleeDamage !== null
-      ? `${card.flatMeleeDamage} damage`
-      : `+${isRangedBoost ? card.rangedDamageBonus : card.meleeDamageBonus} bonus damage`
+    const damageText =
+      card.flatMeleeDamage !== null
+        ? `${card.flatMeleeDamage} damage`
+        : `+${isRangedBoost ? card.rangedDamageBonus : card.meleeDamageBonus} bonus damage`
 
     // Mention Confusion Gaze if available
-    const hasConfusionGaze = !isRangedBoost && gameState.hasConfusionGaze && gameState.hasConfusionGaze(creature)
+    const hasConfusionGaze =
+      !isRangedBoost && gameState.hasConfusionGaze && gameState.hasConfusionGaze(creature)
     const gazeNote = hasConfusionGaze ? ' (includes Confusion Gaze targets)' : ''
-    addToast(`${card.name} active (${damageText}): Right-click an enemy to ${attackTypeText} attack${gazeNote}`)
+    addToast(
+      `${card.name} active (${damageText}): Right-click an enemy to ${attackTypeText} attack${gazeNote}`
+    )
   }
 
   /**
@@ -5256,7 +5907,7 @@ function GameBoard({ onTurnInfoChange }) {
       cardIndex,
       creature,
       phase: 'pre-shift',
-      originalPosition
+      originalPosition,
     })
 
     // Calculate valid shift tiles (1 to maxShift distance, excluding current tile)
@@ -5278,7 +5929,9 @@ function GameBoard({ onTurnInfoChange }) {
     setSelectedBoardCreature(creature)
 
     // Toast instruction
-    addToast(`🏃 ${card.name}: Right-click a purple tile to shift 1-${card.shiftBeforeAttack} squares`)
+    addToast(
+      `🏃 ${card.name}: Right-click a purple tile to shift 1-${card.shiftBeforeAttack} squares`
+    )
   }
 
   /**
@@ -5329,9 +5982,7 @@ function GameBoard({ onTurnInfoChange }) {
     const { card, cardIndex, creature, originalPosition } = pendingShiftAttack
 
     // Check if this is a valid shift tile
-    const isValidShiftTile = shiftAttackValidTiles.some(
-      t => t.x === tile.x && t.y === tile.y
-    )
+    const isValidShiftTile = shiftAttackValidTiles.some((t) => t.x === tile.x && t.y === tile.y)
 
     if (!isValidShiftTile) {
       addToast('Invalid shift destination - select a highlighted purple tile')
@@ -5364,7 +6015,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Update to attacking phase
     setPendingShiftAttack({
       ...pendingShiftAttack,
-      phase: 'attacking'
+      phase: 'attacking',
     })
 
     // Calculate valid attack targets from new position
@@ -5383,7 +6034,7 @@ function GameBoard({ onTurnInfoChange }) {
       validTargets = allTargets
     } else {
       // Shadowy Ambush - melee only (flat melee damage)
-      validTargets = allTargets.filter(t => t.attackType === 'melee')
+      validTargets = allTargets.filter((t) => t.attackType === 'melee')
     }
 
     if (validTargets.length === 0) {
@@ -5394,7 +6045,7 @@ function GameBoard({ onTurnInfoChange }) {
       creature.hasAttackedThisTurn = true
       clearShiftAttackState()
       setSelectedBoardCreature(null)
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
       return
     }
 
@@ -5402,10 +6053,10 @@ function GameBoard({ onTurnInfoChange }) {
     setValidAttackTargets(validTargets)
 
     // Toast instruction
-    const attackTypeText = (hasRangedBonus || allowsAnyAttack) ? 'melee or ranged' : 'melee'
+    const attackTypeText = hasRangedBonus || allowsAnyAttack ? 'melee or ranged' : 'melee'
     addToast(`⚔️ ${card.name}: Right-click an enemy to ${attackTypeText} attack`)
 
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -5426,7 +6077,7 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if target is in validAttackTargets
     // Note: validAttackTargets uses 'creature' property, not 'target'
-    const targetInfo = validAttackTargets.find(t => t.creature.instanceId === target.instanceId)
+    const targetInfo = validAttackTargets.find((t) => t.creature.instanceId === target.instanceId)
     if (!targetInfo) {
       addToast('Invalid target - select a highlighted enemy')
       return
@@ -5434,7 +6085,9 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Determine attack type and damage
     const attackType = targetInfo.attackType
-    let baseDamage, bonusDamage, damageBoostFlat = null
+    let baseDamage,
+      bonusDamage,
+      damageBoostFlat = null
 
     if (attackType === 'melee') {
       baseDamage = creature.creature.meleeAttack?.damage || 0
@@ -5461,7 +6114,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Set up attack info using pendingRightClickAttack pattern
     const attackInfo = {
       attackType: attackType,
-      damage: baseDamage
+      damage: baseDamage,
     }
 
     setPendingRightClickAttack({
@@ -5474,14 +6127,14 @@ function GameBoard({ onTurnInfoChange }) {
       // Shift attack specific properties
       isShiftAttack: true,
       hasPostAttackShift: card.shiftAfterAttack > 0,
-      postAttackShiftDistance: card.shiftAfterAttack
+      postAttackShiftDistance: card.shiftAfterAttack,
     })
 
     // Show attack confirmation panel
     setCombatPanelMode('attack')
     setCombatHighlightCreatures({
       attacker: creature.instanceId,
-      defender: target.instanceId
+      defender: target.instanceId,
     })
   }
 
@@ -5495,9 +6148,7 @@ function GameBoard({ onTurnInfoChange }) {
     const { card, creature } = pendingShiftAttack
 
     // Check if this is a valid shift tile
-    const isValidShiftTile = shiftAttackValidTiles.some(
-      t => t.x === tile.x && t.y === tile.y
-    )
+    const isValidShiftTile = shiftAttackValidTiles.some((t) => t.x === tile.x && t.y === tile.y)
 
     if (!isValidShiftTile) {
       addToast('Invalid shift destination - select a highlighted purple tile')
@@ -5533,7 +6184,7 @@ function GameBoard({ onTurnInfoChange }) {
         // Clear shift state but DON'T tap yet - Hidden Blade handlers will tap
         clearShiftAttackState()
         setSelectedBoardCreature(null)
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
         return // Wait for Hidden Blade decision
       }
     }
@@ -5547,7 +6198,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Clear all state - action complete
     clearShiftAttackState()
     setSelectedBoardCreature(null)
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // ============================================
@@ -5582,7 +6233,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Filter to only tiles that:
     // 1. Have at least one adjacent enemy (can attack after moving there)
     // 2. Are not the current position (must move at least 1 tile)
-    const validChargeDestinations = allMoveTiles.filter(moveInfo => {
+    const validChargeDestinations = allMoveTiles.filter((moveInfo) => {
       const { tile } = moveInfo
       // Exclude current position
       if (tile.x === creature.position.x && tile.y === creature.position.y) {
@@ -5590,13 +6241,15 @@ function GameBoard({ onTurnInfoChange }) {
       }
       // Check if there's at least one adjacent enemy at this destination
       const adjacentEnemies = gameState.getAdjacentCreatures
-        ? gameState.getAdjacentCreatures(tile.x, tile.y).filter(c => c.owner !== creature.owner)
+        ? gameState.getAdjacentCreatures(tile.x, tile.y).filter((c) => c.owner !== creature.owner)
         : []
       return adjacentEnemies.length > 0
     })
 
     if (validChargeDestinations.length === 0) {
-      addToast(`No valid charge destinations - ${card.name} cancelled. Must move to a tile adjacent to an enemy.`)
+      addToast(
+        `No valid charge destinations - ${card.name} cancelled. Must move to a tile adjacent to an enemy.`
+      )
       clearChargeState()
       return
     }
@@ -5607,13 +6260,13 @@ function GameBoard({ onTurnInfoChange }) {
       cardIndex,
       creature,
       phase: 'moving',
-      originalPosition
+      originalPosition,
     }
     setPendingChargeAttack(pendingInfo)
 
     // Enter movement tile selection mode
     // Convert to simple {x, y} format for highlighting
-    const chargePositions = validChargeDestinations.map(m => ({ x: m.tile.x, y: m.tile.y }))
+    const chargePositions = validChargeDestinations.map((m) => ({ x: m.tile.x, y: m.tile.y }))
     setChargeValidTiles(chargePositions)
     setChargeMode(true)
 
@@ -5668,9 +6321,7 @@ function GameBoard({ onTurnInfoChange }) {
     const { card, cardIndex, creature } = pendingChargeAttack
 
     // Check if this is a valid charge tile
-    const isValidChargeTile = chargeValidTiles.some(
-      t => t.x === tile.x && t.y === tile.y
-    )
+    const isValidChargeTile = chargeValidTiles.some((t) => t.x === tile.x && t.y === tile.y)
 
     if (!isValidChargeTile) {
       addToast('Invalid charge destination - select a highlighted green tile')
@@ -5701,12 +6352,12 @@ function GameBoard({ onTurnInfoChange }) {
     // Update to attacking phase
     setPendingChargeAttack({
       ...pendingChargeAttack,
-      phase: 'attacking'
+      phase: 'attacking',
     })
 
     // Calculate valid melee attack targets from new position
     const allTargets = gameState.getValidAttackTargets(creature)
-    const validTargets = allTargets.filter(t => t.attackType === 'melee')
+    const validTargets = allTargets.filter((t) => t.attackType === 'melee')
 
     if (validTargets.length === 0) {
       // This shouldn't happen since we filtered destinations, but handle it
@@ -5715,7 +6366,7 @@ function GameBoard({ onTurnInfoChange }) {
       creature.hasAttackedThisTurn = true
       clearChargeState()
       setSelectedBoardCreature(null)
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
       return
     }
 
@@ -5726,9 +6377,11 @@ function GameBoard({ onTurnInfoChange }) {
     setChargeMode(false)
 
     // Toast instruction
-    addToast(`⚔️ ${card.name}: Right-click an enemy to melee attack with +${card.meleeDamageBonus} damage`)
+    addToast(
+      `⚔️ ${card.name}: Right-click an enemy to melee attack with +${card.meleeDamageBonus} damage`
+    )
 
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -5748,7 +6401,7 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     // Check if target is in validAttackTargets
-    const targetInfo = validAttackTargets.find(t => t.creature.instanceId === target.instanceId)
+    const targetInfo = validAttackTargets.find((t) => t.creature.instanceId === target.instanceId)
     if (!targetInfo) {
       addToast('Invalid target - select a highlighted enemy')
       return
@@ -5768,7 +6421,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Set up attack info using pendingRightClickAttack pattern
     const attackInfo = {
       attackType: 'melee',
-      damage: baseDamage
+      damage: baseDamage,
     }
 
     setPendingRightClickAttack({
@@ -5779,7 +6432,7 @@ function GameBoard({ onTurnInfoChange }) {
       damageBoostBonus: bonusDamage,
       damageBoostFlat: null,
       // Charge-specific properties
-      isChargeAttack: true
+      isChargeAttack: true,
     })
 
     // Show attack confirmation panel
@@ -5790,13 +6443,13 @@ function GameBoard({ onTurnInfoChange }) {
       damageBoostCard: card,
       damageBoostBonus: bonusDamage,
       damageBoostFlat: null,
-      isChargeAttack: true
+      isChargeAttack: true,
     })
 
     setCombatPanelMode('attack')
     setCombatHighlightCreatures({
       attacker: creature.instanceId,
-      defender: target.instanceId
+      defender: target.instanceId,
     })
 
     // Clear charge state - attack will complete through normal flow
@@ -5830,7 +6483,9 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Check if creature has already used its standard action (attacked)
     if (webRemovalCreature.hasAttackedThisTurn) {
-      addToast(`${webRemovalCreature.creature.name} has already used its action and cannot remove the attachment!`)
+      addToast(
+        `${webRemovalCreature.creature.name} has already used its action and cannot remove the attachment!`
+      )
       setShowWebRemovalModal(false)
       setWebRemovalCreature(null)
       return
@@ -5859,7 +6514,9 @@ function GameBoard({ onTurnInfoChange }) {
       // Consume standard action (but creature can still move!)
       webRemovalCreature.hasAttackedThisTurn = true
       const icon = isWeb ? '🕸️' : '🦘'
-      addToast(`${icon} ${attachmentName} removed from ${webRemovalCreature.creature.name} (action used, can still move)`)
+      addToast(
+        `${icon} ${attachmentName} removed from ${webRemovalCreature.creature.name} (action used, can still move)`
+      )
       // Clear selection so player can re-select to move
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
@@ -5892,12 +6549,14 @@ function GameBoard({ onTurnInfoChange }) {
 
     if (result.success) {
       const isSelf = healingTouchHealer.instanceId === healingTouchTarget.instanceId
-      addToast(`💚 HEALING TOUCH: ${healingTouchHealer.creature.name} healed ${isSelf ? 'itself' : healingTouchTarget.creature.name}! ${result.message}`)
+      addToast(
+        `💚 HEALING TOUCH: ${healingTouchHealer.creature.name} healed ${isSelf ? 'itself' : healingTouchTarget.creature.name}! ${result.message}`
+      )
       // Clear selection so player can see the updated state
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
       setValidAttackTargets([])
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
     } else {
       addToast(`Healing Touch failed: ${result.message}`)
     }
@@ -5918,16 +6577,23 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
-    const result = gameState.executeHealingTouch(healingTouchHealer, healingTouchTarget, 'removeCard', cardIndex)
+    const result = gameState.executeHealingTouch(
+      healingTouchHealer,
+      healingTouchTarget,
+      'removeCard',
+      cardIndex
+    )
 
     if (result.success) {
       const isSelf = healingTouchHealer.instanceId === healingTouchTarget.instanceId
-      addToast(`💚 HEALING TOUCH: ${healingTouchHealer.creature.name} removed ${result.removedCard?.name || 'card'} from ${isSelf ? 'itself' : healingTouchTarget.creature.name}!`)
+      addToast(
+        `💚 HEALING TOUCH: ${healingTouchHealer.creature.name} removed ${result.removedCard?.name || 'card'} from ${isSelf ? 'itself' : healingTouchTarget.creature.name}!`
+      )
       // Clear selection so player can see the updated state
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
       setValidAttackTargets([])
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
     } else {
       addToast(`Healing Touch failed: ${result.message}`)
     }
@@ -5956,7 +6622,7 @@ function GameBoard({ onTurnInfoChange }) {
       setSelectedBoardCreature(null)
       setValidMoveTiles([])
       setValidAttackTargets([])
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
     } else {
       addToast(result.message)
     }
@@ -5973,7 +6639,16 @@ function GameBoard({ onTurnInfoChange }) {
 
   // Process AI attack intention - check if defender is human and show modal if needed
   const processAIAttackIntention = (action) => {
-    const { attackerInstance, defenderInstance, targetInfo, damageBoostCard, damageBoostBonus, damageBoostFlat, isShiftAttack, shiftAfterAttack } = action
+    const {
+      attackerInstance,
+      defenderInstance,
+      targetInfo,
+      damageBoostCard,
+      damageBoostBonus,
+      damageBoostFlat,
+      isShiftAttack,
+      shiftAfterAttack,
+    } = action
 
     // VALIDATION: Skip attack if defender's owner is already eliminated
     if (!gameState.activePlayers.includes(defenderInstance.owner)) {
@@ -6001,8 +6676,9 @@ function GameBoard({ onTurnInfoChange }) {
     // ============================================================================
     const currentValidTargets = gameState.getValidAttackTargets(attackerInstance)
     const isStillValidTarget = currentValidTargets.some(
-      t => t.creature.instanceId === defenderInstance.instanceId &&
-           t.attackType === targetInfo.attackType
+      (t) =>
+        t.creature.instanceId === defenderInstance.instanceId &&
+        t.attackType === targetInfo.attackType
     )
 
     if (!isStillValidTarget) {
@@ -6014,13 +6690,18 @@ function GameBoard({ onTurnInfoChange }) {
     // ============================================================================
 
     // Calculate incoming damage for INSUBSTANTIAL check
-    const incomingDamageForCheck = targetInfo.attackType === 'melee'
-      ? attackerInstance.creature.meleeAttack?.damage || 0
-      : attackerInstance.creature.rangedAttack?.damage || 0
+    const incomingDamageForCheck =
+      targetInfo.attackType === 'melee'
+        ? attackerInstance.creature.meleeAttack?.damage || 0
+        : attackerInstance.creature.rangedAttack?.damage || 0
 
     // Check if defender has INSUBSTANTIAL available - triggers before defense panel
     if (gameState.canUseInsubstantial(defenderInstance)) {
-      const blocked = gameState.useInsubstantial(defenderInstance, incomingDamageForCheck, attackerInstance.owner)
+      const blocked = gameState.useInsubstantial(
+        defenderInstance,
+        incomingDamageForCheck,
+        attackerInstance.owner
+      )
       if (blocked) {
         // Check if defender is human - show modal
         const defenderOwner = defenderInstance.owner
@@ -6031,7 +6712,9 @@ function GameBoard({ onTurnInfoChange }) {
           showInsubstantialNotification(defenderInstance, incomingDamageForCheck, attackerInstance)
         } else {
           // AI defender - just toast
-          addToast(`👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${incomingDamageForCheck} damage! Ability used until next Undead Refresh.`)
+          addToast(
+            `👻 INSUBSTANTIAL: ${defenderInstance.creature.name} blocked ${incomingDamageForCheck} damage! Ability used until next Undead Refresh.`
+          )
         }
 
         // Attack is blocked - tap attacker if they moved and mark as attacked
@@ -6042,7 +6725,7 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Clear AI processing state
         setProcessingAIAction(false)
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
         return
       }
     }
@@ -6061,7 +6744,7 @@ function GameBoard({ onTurnInfoChange }) {
       // If AI used a damage boost card, discard it now and toast
       if (damageBoostCard) {
         const attackerPlayer = gameState.players[attackerInstance.owner]
-        const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+        const cardIndex = attackerPlayer.orderHand.findIndex((c) => c.id === damageBoostCard.id)
         if (cardIndex !== -1) {
           attackerPlayer.orderHand.splice(cardIndex, 1)
           attackerPlayer.orderDiscard.push(damageBoostCard)
@@ -6079,13 +6762,13 @@ function GameBoard({ onTurnInfoChange }) {
         // Shift+Attack fields (Phase STD-4)
         isShiftAttack: isShiftAttack || false,
         hasPostAttackShift: (shiftAfterAttack || 0) > 0,
-        postAttackShiftDistance: shiftAfterAttack || 0
+        postAttackShiftDistance: shiftAfterAttack || 0,
       })
       // Set combat panel to defense mode with creature highlights
       setCombatPanelMode('defense')
       setCombatHighlightCreatures({
         attacker: attackerInstance.instanceId,
-        defender: defenderInstance.instanceId
+        defender: defenderInstance.instanceId,
       })
       // Panel handlers will call executeAttackAfterReactions which continues processing
     } else {
@@ -6098,7 +6781,7 @@ function GameBoard({ onTurnInfoChange }) {
       // If AI attacker used a damage boost card, discard it now and toast
       if (damageBoostCard) {
         const attackerPlayer = gameState.players[attackerInstance.owner]
-        const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === damageBoostCard.id)
+        const cardIndex = attackerPlayer.orderHand.findIndex((c) => c.id === damageBoostCard.id)
         if (cardIndex !== -1) {
           attackerPlayer.orderHand.splice(cardIndex, 1)
           attackerPlayer.orderDiscard.push(damageBoostCard)
@@ -6112,18 +6795,27 @@ function GameBoard({ onTurnInfoChange }) {
         // Flat damage replaces base damage
         incomingDamage = damageBoostFlat
       } else {
-        const baseDamage = targetInfo.attackType === 'melee'
-          ? attackerInstance.creature.meleeAttack?.damage || 0
-          : attackerInstance.creature.rangedAttack?.damage || 0
+        const baseDamage =
+          targetInfo.attackType === 'melee'
+            ? attackerInstance.creature.meleeAttack?.damage || 0
+            : attackerInstance.creature.rangedAttack?.damage || 0
         incomingDamage = baseDamage + (damageBoostBonus || 0)
       }
 
       // AI decides whether to use defensive abilities (COWER, UNSTOPPABLE HORDES, or IMMEDIATE cards)
-      const defenseDecision = defenderAI.decideDefense(defenderInstance, incomingDamage, attackerInstance.owner)
+      const defenseDecision = defenderAI.decideDefense(
+        defenderInstance,
+        incomingDamage,
+        attackerInstance.owner
+      )
       let defenseResult = null
 
       if (defenseDecision.type === 'cower') {
-        defenseResult = gameState.applyCower(defenderInstance, incomingDamage, attackerInstance.owner)
+        defenseResult = gameState.applyCower(
+          defenderInstance,
+          incomingDamage,
+          attackerInstance.owner
+        )
         if (defenseResult.success) {
           defenseResult.type = 'cower'
           defenseResult.damagePrevented = defenseResult.damageAvoided
@@ -6155,12 +6847,15 @@ function GameBoard({ onTurnInfoChange }) {
             type: 'unstoppable_hordes',
             damagePrevented: totalDamagePrevented,
             moraleCost: creaturesUsed.length,
-            creaturesUsed
+            creaturesUsed,
           }
         }
       } else if (defenseDecision.type === 'immediate_card') {
         // Apply IMMEDIATE card defense
-        const result = gameState.applyImmediateCardDefense(defenseDecision.card, defenseDecision.creature)
+        const result = gameState.applyImmediateCardDefense(
+          defenseDecision.card,
+          defenseDecision.creature
+        )
         if (result.success) {
           defenseResult = {
             success: true,
@@ -6170,13 +6865,18 @@ function GameBoard({ onTurnInfoChange }) {
             cardUsed: defenseDecision.card.name,
             creatureTapped: defenseDecision.creature.creature.name,
             moraleGain: result.moraleGain || 0,
-            untapAfterUse: result.untapAfterUse || false
+            untapAfterUse: result.untapAfterUse || false,
           }
 
           // Handle opponent draws (Recoil) - defender chooses which opponent receives card
           if (result.opponentDrawsCards > 0) {
             const cardName = result.cardUsed?.name || defenseDecision.card.name
-            handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
+            handleOpponentDrawEffect(
+              result.opponentDrawsCards,
+              cardName,
+              defenderInstance.owner,
+              attackerInstance.owner
+            )
           }
         }
       }
@@ -6188,7 +6888,7 @@ function GameBoard({ onTurnInfoChange }) {
         // Sort by cardIndex descending to prevent array shift issues
         reactionDecision.reactions.sort((a, b) => b.cardIndex - a.cardIndex)
 
-        reactionDecision.reactions.forEach(reaction => {
+        reactionDecision.reactions.forEach((reaction) => {
           // Tap creature
           reaction.creature.isTapped = true
           // Discard card
@@ -6201,14 +6901,21 @@ function GameBoard({ onTurnInfoChange }) {
       let result
       if (defenseResult && defenseResult.success) {
         result = gameState.executeAttackWithDefense(
-          attackerInstance, defenderInstance, targetInfo.attackType,
-          defenseResult.damagePrevented, defenseResult.type,
-          damageBoostBonus || 0, damageBoostFlat !== undefined ? damageBoostFlat : null
+          attackerInstance,
+          defenderInstance,
+          targetInfo.attackType,
+          defenseResult.damagePrevented,
+          defenseResult.type,
+          damageBoostBonus || 0,
+          damageBoostFlat !== undefined ? damageBoostFlat : null
         )
       } else {
         result = gameState.executeAttack(
-          attackerInstance, defenderInstance, targetInfo.attackType,
-          damageBoostBonus || 0, damageBoostFlat !== undefined ? damageBoostFlat : null
+          attackerInstance,
+          defenderInstance,
+          targetInfo.attackType,
+          damageBoostBonus || 0,
+          damageBoostFlat !== undefined ? damageBoostFlat : null
         )
       }
 
@@ -6223,9 +6930,12 @@ function GameBoard({ onTurnInfoChange }) {
             message += `💀 AI used UNSTOPPABLE HORDES: ${defenseResult.damagePrevented} damage prevented (${defenseResult.creaturesUsed.length} Undead, cost ${defenseResult.moraleCost} morale)! `
           } else if (defenseResult.type === 'immediate_card') {
             let extraEffects = ''
-            if (defenseResult.moraleGain > 0) extraEffects += ` +${defenseResult.moraleGain} morale!`
-            if (defenseResult.untapAfterUse) extraEffects += ` ${defenseResult.creatureTapped} untapped!`
-            if (defenseResult.bonusDrawsQueued > 0) extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
+            if (defenseResult.moraleGain > 0)
+              extraEffects += ` +${defenseResult.moraleGain} morale!`
+            if (defenseResult.untapAfterUse)
+              extraEffects += ` ${defenseResult.creatureTapped} untapped!`
+            if (defenseResult.bonusDrawsQueued > 0)
+              extraEffects += ` Drew ${defenseResult.bonusDrawsQueued} card${defenseResult.bonusDrawsQueued > 1 ? 's' : ''}.`
             message += `⚡ AI used ${defenseResult.cardUsed}: ${defenseResult.damagePrevented} damage prevented${defenseResult.untapAfterUse ? '' : ` (${defenseResult.creatureTapped} tapped)`}!${extraEffects} `
           }
         }
@@ -6235,13 +6945,15 @@ function GameBoard({ onTurnInfoChange }) {
           message += `⚡ AI used ${reactionDecision.reactions.length} Immediate card${reactionDecision.reactions.length !== 1 ? 's' : ''}! `
         }
 
-        message += `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
-                   `with ${targetInfo.attackType} for ${result.damage} damage!`
+        message +=
+          `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
+          `with ${targetInfo.attackType} for ${result.damage} damage!`
 
         if (result.destroyed) {
           message += ` ${defenderInstance.creature.name} was destroyed! `
-          message += `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
-                    `Defender ${result.moraleChange.defender}`
+          message +=
+            `Morale changes: Attacker +${result.moraleChange.attacker}, ` +
+            `Defender ${result.moraleChange.defender}`
           // BLOODTHIRSTY ability notification
           if (result.bloodthirsty) {
             message += ` 🩸 BLOODTHIRSTY: +${result.bloodthirsty.leadershipGained} Leadership!`
@@ -6254,10 +6966,14 @@ function GameBoard({ onTurnInfoChange }) {
           // Queue AI death modal for visibility
           const abilitiesTriggered = []
           if (result.lifeDrain) {
-            abilitiesTriggered.push(`Life Drain: ${attackerInstance.creature.name} heals ${result.lifeDrain.healAmount} HP`)
+            abilitiesTriggered.push(
+              `Life Drain: ${attackerInstance.creature.name} heals ${result.lifeDrain.healAmount} HP`
+            )
           }
           if (result.bloodthirsty) {
-            abilitiesTriggered.push(`Bloodthirsty: +${result.bloodthirsty.leadershipGained} Leadership`)
+            abilitiesTriggered.push(
+              `Bloodthirsty: +${result.bloodthirsty.leadershipGained} Leadership`
+            )
           }
           if (result.untapOnKillTriggered && result.untapOnKillData) {
             abilitiesTriggered.push(`Untap on Kill: ${result.untapOnKillData.bugbearName} untaps`)
@@ -6269,7 +6985,7 @@ function GameBoard({ onTurnInfoChange }) {
             damageDealt: result.damage,
             attackType: targetInfo.attackType,
             abilitiesTriggered,
-            moraleChanges: result.moraleChange
+            moraleChanges: result.moraleChange,
           })
         } else {
           message += ` ${defenderInstance.creature.name} has ${defenderInstance.currentHP} HP remaining.`
@@ -6277,7 +6993,9 @@ function GameBoard({ onTurnInfoChange }) {
 
         // UNTAP ON KILL toast notification (separate toast for visibility)
         if (result.untapOnKillTriggered && result.untapOnKillData) {
-          addToast(`⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`)
+          addToast(
+            `⚔️ UNTAP ON KILL: ${result.untapOnKillData.bugbearName} untaps and can act again!`
+          )
         }
 
         addToast(message)
@@ -6304,16 +7022,24 @@ function GameBoard({ onTurnInfoChange }) {
                 faction: faction,
                 position: position,
                 ownerPlayerId: ownerPlayerId,
-                eligibleCreatures: eligibleCreatures
+                eligibleCreatures: eligibleCreatures,
               })
               setShowRiderModal(true)
               setProcessingAIAction(false)
               return // Wait for modal selection before continuing
             } else {
               // AI's RIDER creature killed - AI decides on RIDER
-              handleAIRiderDecision(ownerPlayerId, eligibleCreatures, position, creatureLevel, creatureName, faction, () => {
-                setProcessingAIAction(false)
-              })
+              handleAIRiderDecision(
+                ownerPlayerId,
+                eligibleCreatures,
+                position,
+                creatureLevel,
+                creatureName,
+                faction,
+                () => {
+                  setProcessingAIAction(false)
+                }
+              )
               return
             }
           }
@@ -6321,8 +7047,15 @@ function GameBoard({ onTurnInfoChange }) {
 
         // AI FLASHING BLADES check - after melee attack deals damage
         // Note: The creature's tapping is deferred if it has FLASHING BLADES
-        if (targetInfo.attackType === 'melee' && result.damage > 0 && gameState.hasFlashingBlades(attackerInstance)) {
-          const flashingTargets = gameState.getFlashingBladesTargets(attackerInstance, defenderInstance)
+        if (
+          targetInfo.attackType === 'melee' &&
+          result.damage > 0 &&
+          gameState.hasFlashingBlades(attackerInstance)
+        ) {
+          const flashingTargets = gameState.getFlashingBladesTargets(
+            attackerInstance,
+            defenderInstance
+          )
           if (flashingTargets.length > 0) {
             // Get AI difficulty to determine if ability should be used
             const playerNum = attackerInstance.owner.replace('PLAYER', '')
@@ -6361,7 +7094,7 @@ function GameBoard({ onTurnInfoChange }) {
                   damageDealt: 10,
                   attackType: 'melee',
                   abilitiesTriggered: ['Flashing Blades: 10 splash damage to adjacent enemy'],
-                  moraleChanges: flashResult.moraleChange
+                  moraleChanges: flashResult.moraleChange,
                 })
               } else {
                 flashMessage += ` ${bestTarget.creature.name} has ${flashResult.remainingHP} HP remaining.`
@@ -6422,7 +7155,7 @@ function GameBoard({ onTurnInfoChange }) {
                   damageDealt: 10,
                   attackType: 'melee',
                   abilitiesTriggered: ['Hidden Blade: 10 damage to adjacent tapped enemy'],
-                  moraleChanges: hiddenResult.moraleChange
+                  moraleChanges: hiddenResult.moraleChange,
                 })
               } else {
                 hiddenMessage += ` ${bestTarget.creature.name} has ${hiddenResult.remainingHP} HP remaining.`
@@ -6439,7 +7172,7 @@ function GameBoard({ onTurnInfoChange }) {
         addToast(result.message || 'Attack failed!')
       }
 
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
 
       // Continue processing remaining AI actions
       setProcessingAIAction(false)
@@ -6462,25 +7195,30 @@ function GameBoard({ onTurnInfoChange }) {
     if (draggingCreatureIndex !== null && canDeployInCurrentPhase()) {
       const currentPlayer = gameState.getCurrentPlayerState()
       const creatureCard = currentPlayer.creatureHand[draggingCreatureIndex]
-      const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                               tile.startingZoneOwner === gameState.currentPlayer
+      const isInStartingZone =
+        tile.terrain === 'STARTING_ZONE' && tile.startingZoneOwner === gameState.currentPlayer
 
       // ORC SCOUT: Allow dragging Orc to treasure tiles
-      const isOrcScoutValid = tile.treasure && !tile.occupant &&
-                              gameState.canUseOrcScout(gameState.currentPlayer) &&
-                              (creatureCard?.type || []).includes('Orc')
+      const isOrcScoutValid =
+        tile.treasure &&
+        !tile.occupant &&
+        gameState.canUseOrcScout(gameState.currentPlayer) &&
+        (creatureCard?.type || []).includes('Orc')
 
       // SHADOW STALKER: Allow dragging Shadow Mastiff to mountain-adjacent tiles
-      const isShadowStalkerValid = gameState.hasShadowStalker(creatureCard) &&
-                                   !tile.occupant &&
-                                   tile.terrain !== 'MOUNTAIN' &&
-                                   gameState.board.isAdjacentToMountain(tile.x, tile.y)
+      const isShadowStalkerValid =
+        gameState.hasShadowStalker(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN' &&
+        gameState.board.isAdjacentToMountain(tile.x, tile.y)
 
       // SUMMON SPIDER: Allow dragging Spider creatures within 5 squares of Drow Priestess
       let isSummonSpiderValid = false
-      if (gameState.isSpiderCreature(creatureCard) &&
-          !tile.occupant &&
-          tile.terrain !== 'MOUNTAIN') {
+      if (
+        gameState.isSpiderCreature(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN'
+      ) {
         const priestess = gameState.hasSummonSpider(gameState.currentPlayer)
         if (priestess?.position) {
           const dx = Math.abs(tile.x - priestess.position.x)
@@ -6490,17 +7228,23 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // ARCANE PORTAL: Allow dragging War Wizard to any unoccupied Magic Circle tile
-      const isArcanePortalValid = gameState.hasArcanePortal &&
-                                  gameState.hasArcanePortal(creatureCard) &&
-                                  !tile.occupant &&
-                                  tile.terrain === 'MAGIC_CIRCLE'
+      const isArcanePortalValid =
+        gameState.hasArcanePortal &&
+        gameState.hasArcanePortal(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain === 'MAGIC_CIRCLE'
 
       // LICH NECROMANCER: Allow dragging Undead creatures to tiles adjacent to Lich Necromancer
       let isLichNecromancerValid = false
-      if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) &&
-          !tile.occupant &&
-          tile.terrain !== 'MOUNTAIN') {
-        const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+      if (
+        gameState.isUndeadCreature &&
+        gameState.isUndeadCreature(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN'
+      ) {
+        const lich =
+          gameState.hasLichNecromancerDeploy &&
+          gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
         if (lich?.position) {
           const dx = Math.abs(tile.x - lich.position.x)
           const dy = Math.abs(tile.y - lich.position.y)
@@ -6510,10 +7254,14 @@ function GameBoard({ onTurnInfoChange }) {
 
       // ORC DRUID: Allow dragging Beast/Elemental creatures to tiles adjacent to Orc Druid
       let isOrcDruidValid = false
-      if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) &&
-          !tile.occupant &&
-          tile.terrain !== 'MOUNTAIN') {
-        const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+      if (
+        gameState.isBeastOrElementalCreature &&
+        gameState.isBeastOrElementalCreature(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN'
+      ) {
+        const druid =
+          gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
         if (druid?.position) {
           const dx = Math.abs(tile.x - druid.position.x)
           const dy = Math.abs(tile.y - druid.position.y)
@@ -6521,7 +7269,16 @@ function GameBoard({ onTurnInfoChange }) {
         }
       }
 
-      if ((isInStartingZone || isOrcScoutValid || isShadowStalkerValid || isSummonSpiderValid || isLichNecromancerValid || isOrcDruidValid || isArcanePortalValid) && !tile.occupant) {
+      if (
+        (isInStartingZone ||
+          isOrcScoutValid ||
+          isShadowStalkerValid ||
+          isSummonSpiderValid ||
+          isLichNecromancerValid ||
+          isOrcDruidValid ||
+          isArcanePortalValid) &&
+        !tile.occupant
+      ) {
         setDragOverTile(tile)
       } else {
         setDragOverTile(null)
@@ -6539,8 +7296,8 @@ function GameBoard({ onTurnInfoChange }) {
       // Handle graveyard creature deployment
       if (draggingFromGraveyard && selectedGraveyardCreature && canDeployInCurrentPhase()) {
         // Graveyard deploy only allowed in starting zone
-        const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                                 tile.startingZoneOwner === gameState.currentPlayer
+        const isInStartingZone =
+          tile.terrain === 'STARTING_ZONE' && tile.startingZoneOwner === gameState.currentPlayer
 
         if (!isInStartingZone) {
           addToast('Graveyard creatures can only be deployed in your starting zone!')
@@ -6574,7 +7331,7 @@ function GameBoard({ onTurnInfoChange }) {
           isOrcScoutDeploy: false,
           isShadowStalkerDeploy: false,
           isSummonSpiderDeploy: false,
-          isInStartingZone: true
+          isInStartingZone: true,
         })
         setShowDeployConfirm(true)
         setDraggingFromGraveyard(false)
@@ -6592,25 +7349,30 @@ function GameBoard({ onTurnInfoChange }) {
       const creatureCard = currentPlayer.creatureHand[draggingCreatureIndex]
 
       // Check if tile is in player's starting zone
-      const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                               tile.startingZoneOwner === gameState.currentPlayer
+      const isInStartingZone =
+        tile.terrain === 'STARTING_ZONE' && tile.startingZoneOwner === gameState.currentPlayer
 
       // ORC SCOUT: Check if deploying Orc to treasure tile
-      const isOrcScoutDeploy = tile.treasure && !tile.occupant &&
-                               gameState.canUseOrcScout(gameState.currentPlayer) &&
-                               (creatureCard.type || []).includes('Orc')
+      const isOrcScoutDeploy =
+        tile.treasure &&
+        !tile.occupant &&
+        gameState.canUseOrcScout(gameState.currentPlayer) &&
+        (creatureCard.type || []).includes('Orc')
 
       // SHADOW STALKER: Check if deploying Shadow Mastiff to mountain-adjacent tile
-      const isShadowStalkerDeploy = gameState.hasShadowStalker(creatureCard) &&
-                                    !tile.occupant &&
-                                    tile.terrain !== 'MOUNTAIN' &&
-                                    gameState.board.isAdjacentToMountain(tile.x, tile.y)
+      const isShadowStalkerDeploy =
+        gameState.hasShadowStalker(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN' &&
+        gameState.board.isAdjacentToMountain(tile.x, tile.y)
 
       // SUMMON SPIDER: Check if deploying Spider creature within 5 squares of Drow Priestess
       let isSummonSpiderDeploy = false
-      if (gameState.isSpiderCreature(creatureCard) &&
-          !tile.occupant &&
-          tile.terrain !== 'MOUNTAIN') {
+      if (
+        gameState.isSpiderCreature(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN'
+      ) {
         const priestess = gameState.hasSummonSpider(gameState.currentPlayer)
         if (priestess?.position) {
           const dx = Math.abs(tile.x - priestess.position.x)
@@ -6621,10 +7383,15 @@ function GameBoard({ onTurnInfoChange }) {
 
       // LICH NECROMANCER: Check if deploying Undead creature adjacent to Lich Necromancer
       let isLichNecromancerDeploy = false
-      if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) &&
-          !tile.occupant &&
-          tile.terrain !== 'MOUNTAIN') {
-        const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+      if (
+        gameState.isUndeadCreature &&
+        gameState.isUndeadCreature(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN'
+      ) {
+        const lich =
+          gameState.hasLichNecromancerDeploy &&
+          gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
         if (lich?.position) {
           const dx = Math.abs(tile.x - lich.position.x)
           const dy = Math.abs(tile.y - lich.position.y)
@@ -6634,10 +7401,14 @@ function GameBoard({ onTurnInfoChange }) {
 
       // ORC DRUID: Check if deploying Beast/Elemental creature adjacent to Orc Druid
       let isOrcDruidDeploy = false
-      if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) &&
-          !tile.occupant &&
-          tile.terrain !== 'MOUNTAIN') {
-        const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+      if (
+        gameState.isBeastOrElementalCreature &&
+        gameState.isBeastOrElementalCreature(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN'
+      ) {
+        const druid =
+          gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
         if (druid?.position) {
           const dx = Math.abs(tile.x - druid.position.x)
           const dy = Math.abs(tile.y - druid.position.y)
@@ -6646,24 +7417,50 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // ARCANE PORTAL: Check if deploying War Wizard to any unoccupied Magic Circle tile
-      const isArcanePortalDeploy = gameState.hasArcanePortal &&
-                                   gameState.hasArcanePortal(creatureCard) &&
-                                   !tile.occupant &&
-                                   tile.terrain === 'MAGIC_CIRCLE'
+      const isArcanePortalDeploy =
+        gameState.hasArcanePortal &&
+        gameState.hasArcanePortal(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain === 'MAGIC_CIRCLE'
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy && !isOrcDruidDeploy && !isArcanePortalDeploy) {
+      if (
+        !isInStartingZone &&
+        !isOrcScoutDeploy &&
+        !isShadowStalkerDeploy &&
+        !isSummonSpiderDeploy &&
+        !isLichNecromancerDeploy &&
+        !isOrcDruidDeploy &&
+        !isArcanePortalDeploy
+      ) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
-        } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
+        } else if (
+          gameState.isSpiderCreature(creatureCard) &&
+          gameState.hasSummonSpider(gameState.currentPlayer)
+        ) {
           addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
-        } else if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) && gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)) {
-          addToast('LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!')
-        } else if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) && gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)) {
+        } else if (
+          gameState.isUndeadCreature &&
+          gameState.isUndeadCreature(creatureCard) &&
+          gameState.hasLichNecromancerDeploy &&
+          gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+        ) {
+          addToast(
+            'LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!'
+          )
+        } else if (
+          gameState.isBeastOrElementalCreature &&
+          gameState.isBeastOrElementalCreature(creatureCard) &&
+          gameState.hasOrcDruidDeploy &&
+          gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+        ) {
           addToast('ORC DRUID: Deploy Beast/Elemental to starting zone or adjacent to Orc Druid!')
         } else if (gameState.hasArcanePortal && gameState.hasArcanePortal(creatureCard)) {
           addToast('ARCANE PORTAL: Deploy to starting zone or any unoccupied Magic Circle tile!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
-          addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
+          addToast(
+            'Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!'
+          )
         } else {
           addToast('You can only deploy creatures in your starting zone!')
         }
@@ -6696,7 +7493,7 @@ function GameBoard({ onTurnInfoChange }) {
           isLichNecromancerDeploy,
           isOrcDruidDeploy,
           isArcanePortalDeploy,
-          isInStartingZone
+          isInStartingZone,
         })
         setShowDeployConfirm(true)
         setDraggingCreatureIndex(null)
@@ -6719,21 +7516,35 @@ function GameBoard({ onTurnInfoChange }) {
         // Mark ORC SCOUT as used if deployed to treasure
         if (isOrcScoutDeploy) {
           gameState.markOrcScoutUsed(gameState.currentPlayer)
-          addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isShadowStalkerDeploy && !isInStartingZone) {
-          addToast(`SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isSummonSpiderDeploy && !isInStartingZone) {
-          addToast(`SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isLichNecromancerDeploy && !isInStartingZone) {
-          addToast(`LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isOrcDruidDeploy && !isInStartingZone) {
-          addToast(`ORC DRUID: ${creatureCard.name} deployed adjacent to Orc Druid at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `ORC DRUID: ${creatureCard.name} deployed adjacent to Orc Druid at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isArcanePortalDeploy && !isInStartingZone) {
-          addToast(`ARCANE PORTAL: ${creatureCard.name} deployed to Magic Circle at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `ARCANE PORTAL: ${creatureCard.name} deployed to Magic Circle at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else {
-          addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+          addToast(
+            `Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`
+          )
         }
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
       } else {
         addToast('Not enough leadership to deploy this creature!')
       }
@@ -6746,7 +7557,7 @@ function GameBoard({ onTurnInfoChange }) {
       addToast(`Error deploying creature: ${error.message}`)
       setDraggingCreatureIndex(null)
       setDragOverTile(null)
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
     }
   }
 
@@ -6793,7 +7604,7 @@ function GameBoard({ onTurnInfoChange }) {
     // ============================================
     if (orderCardTargetingMode && selectedOrderCard && orderCardFilterCreature) {
       const target = tile.occupant
-      if (target && orderCardValidTargets.some(t => t.instanceId === target.instanceId)) {
+      if (target && orderCardValidTargets.some((t) => t.instanceId === target.instanceId)) {
         // Valid target - apply the order card
         const card = selectedOrderCard.card
         const caster = orderCardFilterCreature
@@ -6803,7 +7614,9 @@ function GameBoard({ onTurnInfoChange }) {
           // Apply Web using gameState method
           const result = gameState.applyWeb(caster, target, card)
           if (result.success) {
-            addToast(`🕸️ WEB: ${caster.creature.name} webbed ${target.creature.name}! Target cannot move.`)
+            addToast(
+              `🕸️ WEB: ${caster.creature.name} webbed ${target.creature.name}! Target cannot move.`
+            )
             // Web is a MINOR action - caster doesn't get tapped
             // (MINOR actions don't consume the standard action)
           } else {
@@ -6818,7 +7631,7 @@ function GameBoard({ onTurnInfoChange }) {
         setSelectedOrderCard(null)
         setOrderCardTargetingMode(false)
         setOrderCardValidTargets([])
-        setRenderCounter(prev => prev + 1) // Force re-render to show web icon
+        setRenderCounter((prev) => prev + 1) // Force re-render to show web icon
       } else if (target) {
         addToast('Invalid target for this order card')
       } else {
@@ -6847,25 +7660,30 @@ function GameBoard({ onTurnInfoChange }) {
       const creatureCard = currentPlayer.creatureHand[selectedCreatureIndex]
 
       // Check if tile is in player's starting zone
-      const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                               tile.startingZoneOwner === gameState.currentPlayer
+      const isInStartingZone =
+        tile.terrain === 'STARTING_ZONE' && tile.startingZoneOwner === gameState.currentPlayer
 
       // ORC SCOUT: Check if deploying Orc to treasure tile
-      const isOrcScoutDeploy = tile.treasure && !tile.occupant &&
-                               gameState.canUseOrcScout(gameState.currentPlayer) &&
-                               (creatureCard.type || []).includes('Orc')
+      const isOrcScoutDeploy =
+        tile.treasure &&
+        !tile.occupant &&
+        gameState.canUseOrcScout(gameState.currentPlayer) &&
+        (creatureCard.type || []).includes('Orc')
 
       // SHADOW STALKER: Check if deploying Shadow Mastiff to mountain-adjacent tile
-      const isShadowStalkerDeploy = gameState.hasShadowStalker(creatureCard) &&
-                                    !tile.occupant &&
-                                    tile.terrain !== 'MOUNTAIN' &&
-                                    gameState.board.isAdjacentToMountain(tile.x, tile.y)
+      const isShadowStalkerDeploy =
+        gameState.hasShadowStalker(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN' &&
+        gameState.board.isAdjacentToMountain(tile.x, tile.y)
 
       // SUMMON SPIDER: Check if deploying Spider creature within 5 squares of Drow Priestess
       let isSummonSpiderDeploy = false
-      if (gameState.isSpiderCreature(creatureCard) &&
-          !tile.occupant &&
-          tile.terrain !== 'MOUNTAIN') {
+      if (
+        gameState.isSpiderCreature(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN'
+      ) {
         const priestess = gameState.hasSummonSpider(gameState.currentPlayer)
         if (priestess?.position) {
           const dx = Math.abs(tile.x - priestess.position.x)
@@ -6876,10 +7694,15 @@ function GameBoard({ onTurnInfoChange }) {
 
       // LICH NECROMANCER: Check if deploying Undead creature adjacent to Lich Necromancer
       let isLichNecromancerDeploy = false
-      if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) &&
-          !tile.occupant &&
-          tile.terrain !== 'MOUNTAIN') {
-        const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+      if (
+        gameState.isUndeadCreature &&
+        gameState.isUndeadCreature(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN'
+      ) {
+        const lich =
+          gameState.hasLichNecromancerDeploy &&
+          gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
         if (lich?.position) {
           const dx = Math.abs(tile.x - lich.position.x)
           const dy = Math.abs(tile.y - lich.position.y)
@@ -6889,10 +7712,14 @@ function GameBoard({ onTurnInfoChange }) {
 
       // ORC DRUID: Check if deploying Beast/Elemental creature adjacent to Orc Druid
       let isOrcDruidDeploy = false
-      if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) &&
-          !tile.occupant &&
-          tile.terrain !== 'MOUNTAIN') {
-        const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+      if (
+        gameState.isBeastOrElementalCreature &&
+        gameState.isBeastOrElementalCreature(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain !== 'MOUNTAIN'
+      ) {
+        const druid =
+          gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
         if (druid?.position) {
           const dx = Math.abs(tile.x - druid.position.x)
           const dy = Math.abs(tile.y - druid.position.y)
@@ -6901,26 +7728,52 @@ function GameBoard({ onTurnInfoChange }) {
       }
 
       // ARCANE PORTAL: Check if deploying War Wizard to any unoccupied Magic Circle tile
-      const isArcanePortalDeploy = gameState.hasArcanePortal &&
-                                   gameState.hasArcanePortal(creatureCard) &&
-                                   !tile.occupant &&
-                                   tile.terrain === 'MAGIC_CIRCLE'
+      const isArcanePortalDeploy =
+        gameState.hasArcanePortal &&
+        gameState.hasArcanePortal(creatureCard) &&
+        !tile.occupant &&
+        tile.terrain === 'MAGIC_CIRCLE'
 
-      if (!isInStartingZone && !isOrcScoutDeploy && !isShadowStalkerDeploy && !isSummonSpiderDeploy && !isLichNecromancerDeploy && !isOrcDruidDeploy && !isArcanePortalDeploy) {
+      if (
+        !isInStartingZone &&
+        !isOrcScoutDeploy &&
+        !isShadowStalkerDeploy &&
+        !isSummonSpiderDeploy &&
+        !isLichNecromancerDeploy &&
+        !isOrcDruidDeploy &&
+        !isArcanePortalDeploy
+      ) {
         if (gameState.hasShadowStalker(creatureCard)) {
           addToast('SHADOW STALKER: Deploy to starting zone or any tile adjacent to a mountain!')
-        } else if (gameState.isSpiderCreature(creatureCard) && gameState.hasSummonSpider(gameState.currentPlayer)) {
+        } else if (
+          gameState.isSpiderCreature(creatureCard) &&
+          gameState.hasSummonSpider(gameState.currentPlayer)
+        ) {
           addToast('SUMMON SPIDER: Deploy to starting zone or within 5 squares of Drow Priestess!')
-        } else if (gameState.isUndeadCreature && gameState.isUndeadCreature(creatureCard) && gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)) {
-          addToast('LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!')
-        } else if (gameState.isBeastOrElementalCreature && gameState.isBeastOrElementalCreature(creatureCard) && gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)) {
+        } else if (
+          gameState.isUndeadCreature &&
+          gameState.isUndeadCreature(creatureCard) &&
+          gameState.hasLichNecromancerDeploy &&
+          gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+        ) {
+          addToast(
+            'LICH NECROMANCER: Deploy Undead to starting zone or adjacent to Lich Necromancer!'
+          )
+        } else if (
+          gameState.isBeastOrElementalCreature &&
+          gameState.isBeastOrElementalCreature(creatureCard) &&
+          gameState.hasOrcDruidDeploy &&
+          gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+        ) {
           addToast('ORC DRUID: Deploy Beast/Elemental to starting zone or adjacent to Orc Druid!')
         } else if (gameState.hasArcanePortal && gameState.hasArcanePortal(creatureCard)) {
           addToast('ARCANE PORTAL: Deploy to starting zone or any unoccupied Magic Circle tile!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer) && tile.treasure) {
           addToast('ORC SCOUT: Only Orc creatures can be deployed to treasure tiles!')
         } else if (gameState.canUseOrcScout(gameState.currentPlayer)) {
-          addToast('Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!')
+          addToast(
+            'Deploy to your starting zone, or use ORC SCOUT to deploy an Orc to any treasure tile!'
+          )
         } else {
           addToast('You can only deploy creatures in your starting zone (highlighted area)!')
         }
@@ -6949,7 +7802,7 @@ function GameBoard({ onTurnInfoChange }) {
           isLichNecromancerDeploy,
           isOrcDruidDeploy,
           isArcanePortalDeploy,
-          isInStartingZone
+          isInStartingZone,
         })
         setShowDeployConfirm(true)
         return
@@ -6972,27 +7825,41 @@ function GameBoard({ onTurnInfoChange }) {
         if (isOrcScoutDeploy) {
           gameState.markOrcScoutUsed(gameState.currentPlayer)
           setSelectedCreatureIndex(null)
-          addToast(`ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `ORC SCOUT: Deployed ${creatureCard.name} to treasure at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isShadowStalkerDeploy && !isInStartingZone) {
           setSelectedCreatureIndex(null)
-          addToast(`SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `SHADOW STALKER: ${creatureCard.name} deployed near mountain at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isSummonSpiderDeploy && !isInStartingZone) {
           setSelectedCreatureIndex(null)
-          addToast(`SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `SUMMON SPIDER: ${creatureCard.name} summoned near Drow Priestess at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isLichNecromancerDeploy && !isInStartingZone) {
           setSelectedCreatureIndex(null)
-          addToast(`LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `LICH NECROMANCER: ${creatureCard.name} deployed adjacent to Lich at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isOrcDruidDeploy && !isInStartingZone) {
           setSelectedCreatureIndex(null)
-          addToast(`ORC DRUID: ${creatureCard.name} deployed adjacent to Orc Druid at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `ORC DRUID: ${creatureCard.name} deployed adjacent to Orc Druid at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else if (isArcanePortalDeploy && !isInStartingZone) {
           setSelectedCreatureIndex(null)
-          addToast(`ARCANE PORTAL: ${creatureCard.name} deployed to Magic Circle at (${tile.x}, ${tile.y})! Protected until your next turn!`)
+          addToast(
+            `ARCANE PORTAL: ${creatureCard.name} deployed to Magic Circle at (${tile.x}, ${tile.y})! Protected until your next turn!`
+          )
         } else {
           setSelectedCreatureIndex(null)
-          addToast(`Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`)
+          addToast(
+            `Deployed ${creatureCard.name} to (${tile.x}, ${tile.y}). Protected until your next turn!`
+          )
         }
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
       } else {
         addToast('Not enough leadership to deploy this creature!')
       }
@@ -7004,7 +7871,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Handle FLASHING BLADES target selection
     if (flashingBladesTargetMode && flashingBladesPending) {
       const targetCreature = flashingBladesPending.validTargets.find(
-        t => t.position?.x === tile.x && t.position?.y === tile.y
+        (t) => t.position?.x === tile.x && t.position?.y === tile.y
       )
       if (targetCreature) {
         handleFlashingBladesTargetSelected(targetCreature)
@@ -7015,7 +7882,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Handle HIDDEN BLADE target selection
     if (hiddenBladeTargetMode && hiddenBladePending) {
       const targetCreature = hiddenBladePending.validTargets.find(
-        t => t.position?.x === tile.x && t.position?.y === tile.y
+        (t) => t.position?.x === tile.x && t.position?.y === tile.y
       )
       if (targetCreature) {
         handleHiddenBladeTargetSelected(targetCreature)
@@ -7032,7 +7899,7 @@ function GameBoard({ onTurnInfoChange }) {
     // Handle CONFUSION GAZE attack selection (right-click on valid attack target)
     if (confusionGazeMode === 'attack' && confusionGazePending) {
       const attackOption = confusionGazePending.attackTargets.find(
-        t => t.target.position?.x === tile.x && t.target.position?.y === tile.y
+        (t) => t.target.position?.x === tile.x && t.target.position?.y === tile.y
       )
       if (attackOption) {
         handleConfusionGazeAttackSelected(attackOption.target)
@@ -7042,7 +7909,7 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Handle SLAM tile selection (right-click on valid slam destination)
     if (slamMode && slamValidTiles.length > 0) {
-      const isValidSlamTile = slamValidTiles.some(t => t.x === tile.x && t.y === tile.y)
+      const isValidSlamTile = slamValidTiles.some((t) => t.x === tile.x && t.y === tile.y)
       if (isValidSlamTile) {
         handleSlamTileSelect(tile.x, tile.y)
         return
@@ -7053,14 +7920,14 @@ function GameBoard({ onTurnInfoChange }) {
     if (!selectedBoardCreature) return
 
     // CASE 1: Creature selected - check for movement
-    const validMove = validMoveTiles.find(vm => vm.tile.x === tile.x && vm.tile.y === tile.y)
+    const validMove = validMoveTiles.find((vm) => vm.tile.x === tile.x && vm.tile.y === tile.y)
     if (validMove && !tile.occupant) {
       // Show movement confirmation modal
       setPendingMove({
         creature: selectedBoardCreature,
         destination: tile,
         path: validMove.path,
-        cost: validMove.cost
+        cost: validMove.cost,
       })
       setShowMoveConfirm(true)
       return
@@ -7070,16 +7937,18 @@ function GameBoard({ onTurnInfoChange }) {
     // HEALING TOUCH CHECK: Before attack, check if Dwarf Cleric can use HEALING TOUCH
     // This triggers when right-clicking self or an adjacent ally
     // ============================================
-    if (tile.occupant &&
-        tile.occupant.owner === selectedBoardCreature.owner && // Same owner (self or ally)
-        gameState.hasHealingTouch(selectedBoardCreature) &&
-        !selectedBoardCreature.hasAttackedThisTurn) {
+    if (
+      tile.occupant &&
+      tile.occupant.owner === selectedBoardCreature.owner && // Same owner (self or ally)
+      gameState.hasHealingTouch(selectedBoardCreature) &&
+      !selectedBoardCreature.hasAttackedThisTurn
+    ) {
       // Check if target is valid for HEALING TOUCH
       if (gameState.isValidHealingTouchTarget(selectedBoardCreature, tile.occupant)) {
         // Show Healing Touch modal
         setHealingTouchData({
           healer: selectedBoardCreature,
-          target: tile.occupant
+          target: tile.occupant,
         })
         setShowHealingTouchModal(true)
         return
@@ -7092,13 +7961,15 @@ function GameBoard({ onTurnInfoChange }) {
       // CONFUSION GAZE CHECK: Before normal attack, check if Umber Hulk can use CONFUSION GAZE
       // This triggers when right-clicking an enemy within 5 tiles with LOS
       // ============================================
-      if (gameState.hasConfusionGaze(selectedBoardCreature) &&
-          !selectedBoardCreature.hasAttackedThisTurn &&
-          !selectedBoardCreature.isTapped) {
+      if (
+        gameState.hasConfusionGaze(selectedBoardCreature) &&
+        !selectedBoardCreature.hasAttackedThisTurn &&
+        !selectedBoardCreature.isTapped
+      ) {
         // Check if target is valid for CONFUSION GAZE (within 5 tiles with LOS)
         const validGazeTargets = gameState.getConfusionGazeTargets(selectedBoardCreature)
         const isValidGazeTarget = validGazeTargets.some(
-          t => t.instanceId === tile.occupant.instanceId
+          (t) => t.instanceId === tile.occupant.instanceId
         )
 
         if (isValidGazeTarget) {
@@ -7108,7 +7979,7 @@ function GameBoard({ onTurnInfoChange }) {
             target: tile.occupant,
             validSlideTiles: [],
             slideDestination: null,
-            attackTargets: []
+            attackTargets: [],
           })
           setShowConfusionGazeModal(true)
           return // Don't proceed to normal attack - let modal handle it
@@ -7117,7 +7988,7 @@ function GameBoard({ onTurnInfoChange }) {
 
       // Normal attack flow
       const attackInfo = validAttackTargets.find(
-        target => target.creature.instanceId === tile.occupant.instanceId
+        (target) => target.creature.instanceId === tile.occupant.instanceId
       )
       if (attackInfo) {
         // ============================================
@@ -7128,8 +7999,10 @@ function GameBoard({ onTurnInfoChange }) {
         let damageBoostBonus = 0
         let damageBoostFlat = null
 
-        if (pendingDamageBoostAttack &&
-            pendingDamageBoostAttack.creature?.instanceId === selectedBoardCreature.instanceId) {
+        if (
+          pendingDamageBoostAttack &&
+          pendingDamageBoostAttack.creature?.instanceId === selectedBoardCreature.instanceId
+        ) {
           // Verify the attack type matches the damage boost card type
           const isRangedBoost = pendingDamageBoostAttack.isRanged
           const expectedAttackType = isRangedBoost ? 'ranged' : 'melee'
@@ -7150,7 +8023,7 @@ function GameBoard({ onTurnInfoChange }) {
           attackInfo: attackInfo,
           damageBoostCard,
           damageBoostBonus,
-          damageBoostFlat
+          damageBoostFlat,
         })
         // ============================================
         // COMBAT PANEL: Use panel instead of modal - O(1) state updates
@@ -7159,7 +8032,7 @@ function GameBoard({ onTurnInfoChange }) {
         setCombatPanelMode('attack')
         setCombatHighlightCreatures({
           attacker: selectedBoardCreature.instanceId,
-          defender: tile.occupant.instanceId
+          defender: tile.occupant.instanceId,
         })
       }
     }
@@ -7227,7 +8100,12 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {Object} attacker - The Dracolich creature instance
    * @param {Object} firstTarget - The initially right-clicked target (pre-selected)
    */
-  const handleLightningBreathStart = (attacker, firstTarget, damageBoostCard = null, damageBoostBonus = 0) => {
+  const handleLightningBreathStart = (
+    attacker,
+    firstTarget,
+    damageBoostCard = null,
+    damageBoostBonus = 0
+  ) => {
     // Get all valid targets
     const validTargets = gameState.getLightningBreathTargets(attacker)
 
@@ -7249,7 +8127,9 @@ function GameBoard({ onTurnInfoChange }) {
 
     const totalDamage = gameState.getLightningBreathDamage(attacker) + damageBoostBonus
     if (damageBoostCard) {
-      addToast(`⚡ LIGHTNING BREATH + ${damageBoostCard.name}: Select up to 2 more targets (1/3 selected, ${totalDamage} dmg each)`)
+      addToast(
+        `⚡ LIGHTNING BREATH + ${damageBoostCard.name}: Select up to 2 more targets (1/3 selected, ${totalDamage} dmg each)`
+      )
     } else {
       addToast(`⚡ LIGHTNING BREATH: Select up to 2 more targets (1/3 selected)`)
     }
@@ -7264,15 +8144,15 @@ function GameBoard({ onTurnInfoChange }) {
     if (!lightningBreathMode || !lightningBreathAttacker) return
 
     // Check if target is already selected - if so, deselect it (toggle behavior)
-    if (lightningBreathTargets.some(t => t.instanceId === target.instanceId)) {
-      const newTargets = lightningBreathTargets.filter(t => t.instanceId !== target.instanceId)
+    if (lightningBreathTargets.some((t) => t.instanceId === target.instanceId)) {
+      const newTargets = lightningBreathTargets.filter((t) => t.instanceId !== target.instanceId)
       setLightningBreathTargets(newTargets)
       addToast(`Removed ${target.creature.name} from targets (${newTargets.length}/3)`)
       return
     }
 
     // Check if target is valid
-    if (!lightningBreathValidTargets.some(t => t.instanceId === target.instanceId)) {
+    if (!lightningBreathValidTargets.some((t) => t.instanceId === target.instanceId)) {
       addToast(`${target.creature.name} is not a valid target!`)
       return
     }
@@ -7299,7 +8179,9 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
-    addToast(`⚡ ${lightningBreathAttacker.creature.name} unleashes LIGHTNING BREATH on ${lightningBreathTargets.length} targets!`)
+    addToast(
+      `⚡ ${lightningBreathAttacker.creature.name} unleashes LIGHTNING BREATH on ${lightningBreathTargets.length} targets!`
+    )
 
     // Exit target selection mode (but keep targets/attacker for sequential resolution)
     setLightningBreathMode(false)
@@ -7322,7 +8204,9 @@ function GameBoard({ onTurnInfoChange }) {
         if (defenderIsHuman) {
           showInsubstantialNotification(firstTarget, damage, lightningBreathAttacker)
         } else {
-          addToast(`👻 INSUBSTANTIAL: ${firstTarget.creature.name} blocked ${damage} LIGHTNING BREATH damage!`)
+          addToast(
+            `👻 INSUBSTANTIAL: ${firstTarget.creature.name} blocked ${damage} LIGHTNING BREATH damage!`
+          )
         }
 
         // Create result for this blocked attack
@@ -7332,7 +8216,7 @@ function GameBoard({ onTurnInfoChange }) {
           moraleChange: { attacker: 0, defender: 0 },
           targetName: firstTarget.creature.name,
           defenseResult: { type: 'insubstantial', success: true, damageBlocked: damage },
-          insubstantialUsed: true
+          insubstantialUsed: true,
         }
 
         // Move to next target or complete
@@ -7355,16 +8239,18 @@ function GameBoard({ onTurnInfoChange }) {
         lightningBreathTotal: lightningBreathTargets.length,
         // Include damage boost card info so DefenseOptionsPanel can display it
         damageBoostCard: lightningBreathDamageBoostCard,
-        damageBoostBonus: lightningBreathDamageBoostBonus
+        damageBoostBonus: lightningBreathDamageBoostBonus,
       })
 
       setCombatPanelMode('defense')
       setCombatHighlightCreatures({
         attacker: lightningBreathAttacker.instanceId,
-        defender: firstTarget.instanceId
+        defender: firstTarget.instanceId,
       })
 
-      addToast(`⚡ Lightning Breath Attack 1/${lightningBreathTargets.length}: ${firstTarget.creature.name}`)
+      addToast(
+        `⚡ Lightning Breath Attack 1/${lightningBreathTargets.length}: ${firstTarget.creature.name}`
+      )
     } else {
       // AI defender - auto-select defense
       const defenderPlayer = gameState.players[firstTarget.owner]
@@ -7372,7 +8258,11 @@ function GameBoard({ onTurnInfoChange }) {
       const defenderAI = new SimpleAI(gameState, firstTarget.owner, null, difficulty)
 
       // AI decides defense (COWER, UNSTOPPABLE HORDES, IMMEDIATE cards, or take damage)
-      const defenseDecision = defenderAI.decideDefense(firstTarget, damage, lightningBreathAttacker.owner)
+      const defenseDecision = defenderAI.decideDefense(
+        firstTarget,
+        damage,
+        lightningBreathAttacker.owner
+      )
 
       // Build defense object to pass to handleLightningBreathDefenseSelected
       let defense = { type: 'skip' }
@@ -7391,9 +8281,11 @@ function GameBoard({ onTurnInfoChange }) {
           type: 'immediate_card',
           card: defenseDecision.card,
           creature: defenseDecision.creature,
-          discardCard: defenseDecision.discardCard || null
+          discardCard: defenseDecision.discardCard || null,
         }
-        addToast(`⚡ AI uses ${defenseDecision.card.name} with ${defenseDecision.creature.creature.name}!`)
+        addToast(
+          `⚡ AI uses ${defenseDecision.card.name} with ${defenseDecision.creature.creature.name}!`
+        )
       }
 
       // Create attack info object to pass directly (not via state - state updates are async)
@@ -7403,10 +8295,12 @@ function GameBoard({ onTurnInfoChange }) {
         targetInfo: { attackType: 'lightning_breath', damage },
         isLightningBreath: true,
         lightningBreathIndex: 0,
-        lightningBreathTotal: lightningBreathTargets.length
+        lightningBreathTotal: lightningBreathTargets.length,
       }
 
-      addToast(`⚡ Lightning Breath Attack 1/${lightningBreathTargets.length}: ${firstTarget.creature.name}`)
+      addToast(
+        `⚡ Lightning Breath Attack 1/${lightningBreathTargets.length}: ${firstTarget.creature.name}`
+      )
 
       // Process AI's defense choice - pass attack info directly to avoid async state timing issue
       handleLightningBreathDefenseSelected(defense, attackInfoForAI)
@@ -7477,7 +8371,9 @@ function GameBoard({ onTurnInfoChange }) {
           if (defenderIsHuman) {
             showInsubstantialNotification(nextTarget, damage, attacker)
           } else {
-            addToast(`👻 INSUBSTANTIAL: ${nextTarget.creature.name} blocked ${damage} LIGHTNING BREATH damage!`)
+            addToast(
+              `👻 INSUBSTANTIAL: ${nextTarget.creature.name} blocked ${damage} LIGHTNING BREATH damage!`
+            )
           }
 
           // Create result for this blocked attack and recursively continue
@@ -7487,7 +8383,7 @@ function GameBoard({ onTurnInfoChange }) {
             moraleChange: { attacker: 0, defender: 0 },
             targetName: nextTarget.creature.name,
             defenseResult: { type: 'insubstantial', success: true, damageBlocked: damage },
-            insubstantialUsed: true
+            insubstantialUsed: true,
           }
 
           // Store result and continue to next
@@ -7522,16 +8418,18 @@ function GameBoard({ onTurnInfoChange }) {
           lightningBreathTotal: targets.length,
           // Include damage boost card info so DefenseOptionsPanel can display it
           damageBoostCard: lightningBreathDamageBoostCard,
-          damageBoostBonus: lightningBreathDamageBoostBonus
+          damageBoostBonus: lightningBreathDamageBoostBonus,
         })
 
         setCombatPanelMode('defense')
         setCombatHighlightCreatures({
           attacker: attacker.instanceId,
-          defender: nextTarget.instanceId
+          defender: nextTarget.instanceId,
         })
 
-        addToast(`⚡ Lightning Breath Attack ${nextIndex + 1}/${targets.length}: ${nextTarget.creature.name}`)
+        addToast(
+          `⚡ Lightning Breath Attack ${nextIndex + 1}/${targets.length}: ${nextTarget.creature.name}`
+        )
       } else {
         // AI defender - auto-select defense
         const defenderPlayer = gameState.players[nextTarget.owner]
@@ -7558,9 +8456,11 @@ function GameBoard({ onTurnInfoChange }) {
             type: 'immediate_card',
             card: defenseDecision.card,
             creature: defenseDecision.creature,
-            discardCard: defenseDecision.discardCard || null
+            discardCard: defenseDecision.discardCard || null,
           }
-          addToast(`⚡ AI uses ${defenseDecision.card.name} with ${defenseDecision.creature.creature.name}!`)
+          addToast(
+            `⚡ AI uses ${defenseDecision.card.name} with ${defenseDecision.creature.creature.name}!`
+          )
         }
 
         // Create attack info object to pass directly (not via state - state updates are async)
@@ -7570,10 +8470,12 @@ function GameBoard({ onTurnInfoChange }) {
           targetInfo: { attackType: 'lightning_breath', damage },
           isLightningBreath: true,
           lightningBreathIndex: nextIndex,
-          lightningBreathTotal: targets.length
+          lightningBreathTotal: targets.length,
         }
 
-        addToast(`⚡ Lightning Breath Attack ${nextIndex + 1}/${targets.length}: ${nextTarget.creature.name}`)
+        addToast(
+          `⚡ Lightning Breath Attack ${nextIndex + 1}/${targets.length}: ${nextTarget.creature.name}`
+        )
 
         // Process AI's defense choice - pass attack info directly to avoid async state timing issue
         handleLightningBreathDefenseSelected(defense, attackInfoForAI)
@@ -7595,7 +8497,7 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Calculate totals for summary
     const totalDamage = results.reduce((sum, r) => sum + (r.damage || 0), 0)
-    const kills = results.filter(r => r.destroyed).length
+    const kills = results.filter((r) => r.destroyed).length
 
     // Summary toast
     let summaryMsg = `⚡ LIGHTNING BREATH complete! Hit ${targets.length} targets for ${totalDamage} total damage`
@@ -7616,7 +8518,9 @@ function GameBoard({ onTurnInfoChange }) {
     // Discard damage boost card if one was used (e.g., Gout of Fire)
     if (lightningBreathDamageBoostCard && attacker) {
       const attackerPlayer = gameState.players[attacker.owner]
-      const cardIndex = attackerPlayer.orderHand.findIndex(c => c.id === lightningBreathDamageBoostCard.id)
+      const cardIndex = attackerPlayer.orderHand.findIndex(
+        (c) => c.id === lightningBreathDamageBoostCard.id
+      )
       if (cardIndex !== -1) {
         attackerPlayer.orderHand.splice(cardIndex, 1)
         addToast(`📜 ${lightningBreathDamageBoostCard.name} was discarded`)
@@ -7669,7 +8573,7 @@ function GameBoard({ onTurnInfoChange }) {
     } else if (defense.type === 'unstoppable_hordes') {
       // UNSTOPPABLE HORDES: Prevent 10 damage per creature
       let totalReduction = 0
-      defense.creatures.forEach(creature => {
+      defense.creatures.forEach((creature) => {
         const result = gameState.applyUnstoppableHordes(creature)
         if (result.success) {
           totalReduction += result.damagePrevented
@@ -7679,14 +8583,23 @@ function GameBoard({ onTurnInfoChange }) {
       defenseResult = { type: 'unstoppable_hordes', damagePrevented: totalReduction, success: true }
     } else if (defense.type === 'immediate_card') {
       // IMMEDIATE CARD: Prevent damage, optionally discard card as cost (Uncanny Dodge)
-      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
+      const result = gameState.applyImmediateCardDefense(
+        defense.card,
+        defense.creature,
+        defense.discardCard
+      )
       damageAfterDefense = result.success ? Math.max(0, damage - result.damagePrevented) : damage
       defenseResult = { ...result, type: 'immediate_card' }
 
       // Handle opponent draws (Recoil) - defender chooses which opponent receives card
       if (result.success && result.opponentDrawsCards > 0) {
         const cardName = result.cardUsed?.name || defense.card.name
-        handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
+        handleOpponentDrawEffect(
+          result.opponentDrawsCards,
+          cardName,
+          defenderInstance.owner,
+          attackerInstance.owner
+        )
       }
     }
 
@@ -7707,7 +8620,9 @@ function GameBoard({ onTurnInfoChange }) {
       // Remove from battlefield
       const defenderOwner = defenderInstance.owner
       const defenderPlayer = gameState.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === defenderInstance.instanceId)
+      const index = defenderPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === defenderInstance.instanceId
+      )
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
@@ -7722,7 +8637,7 @@ function GameBoard({ onTurnInfoChange }) {
 
       moraleChange = {
         attacker: 1,
-        defender: -defenderInstance.creature.level
+        defender: -defenderInstance.creature.level,
       }
 
       addToast(`⚡ ${defenderInstance.creature.name} was destroyed by Lightning Breath!`)
@@ -7734,7 +8649,7 @@ function GameBoard({ onTurnInfoChange }) {
       destroyed,
       moraleChange,
       targetName: defenderInstance.creature.name,
-      defenseResult
+      defenseResult,
     }
 
     // Move to next target or complete
@@ -7762,21 +8677,23 @@ function GameBoard({ onTurnInfoChange }) {
       if (advanceResult?.waterDamageResults?.length > 0) {
         for (const waterResult of advanceResult.waterDamageResults) {
           if (waterResult.destroyed) {
-            addToast(`🌊 WATER DAMAGE: ${waterResult.creature} was destroyed by drowning! (10 damage)`)
+            addToast(
+              `🌊 WATER DAMAGE: ${waterResult.creature} was destroyed by drowning! (10 damage)`
+            )
           } else {
             addToast(`🌊 WATER DAMAGE: ${waterResult.creature} takes 10 damage from water!`)
           }
         }
 
         // Check for game over after water deaths
-        const hasDeaths = advanceResult.waterDamageResults.some(r => r.destroyed)
+        const hasDeaths = advanceResult.waterDamageResults.some((r) => r.destroyed)
         if (hasDeaths) {
           gameState.checkGameOver()
         }
       }
     }
 
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -7790,12 +8707,12 @@ function GameBoard({ onTurnInfoChange }) {
     // Check if there are more deaths in the queue
     if (aiDeathQueue.length > 0) {
       const nextDeath = aiDeathQueue[0]
-      setAiDeathQueue(prev => prev.slice(1))
+      setAiDeathQueue((prev) => prev.slice(1))
       setCurrentAiDeath(nextDeath)
       setShowAiDeathModal(true)
     }
 
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -7809,7 +8726,7 @@ function GameBoard({ onTurnInfoChange }) {
       setShowAiDeathModal(true)
     } else {
       // Queue for later
-      setAiDeathQueue(prev => [...prev, deathData])
+      setAiDeathQueue((prev) => [...prev, deathData])
     }
   }
 
@@ -7823,7 +8740,7 @@ function GameBoard({ onTurnInfoChange }) {
     setInsubstantialData({
       defenderInstance,
       damageBlocked,
-      attackerInstance
+      attackerInstance,
     })
     setShowInsubstantialModal(true)
   }
@@ -7846,7 +8763,7 @@ function GameBoard({ onTurnInfoChange }) {
     setValidMoveTiles([])
     setValidAttackTargets([])
 
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // ============================================================================
@@ -7869,7 +8786,7 @@ function GameBoard({ onTurnInfoChange }) {
     const moraleCost = creatureLevel - selectedCreature.level
 
     // Remove creature from hand
-    const creatureIndex = player.creatureHand.findIndex(c => c.id === selectedCreature.id)
+    const creatureIndex = player.creatureHand.findIndex((c) => c.id === selectedCreature.id)
     if (creatureIndex !== -1) {
       player.creatureHand.splice(creatureIndex, 1)
     }
@@ -7897,7 +8814,7 @@ function GameBoard({ onTurnInfoChange }) {
         deployedCreature: selectedCreature.name,
         deployedLevel: selectedCreature.level,
         moraleCost: moraleCost,
-        moraleSaved: selectedCreature.level
+        moraleSaved: selectedCreature.level,
       })
     }
 
@@ -7912,8 +8829,11 @@ function GameBoard({ onTurnInfoChange }) {
       callback()
     }
 
-    addToast(`RIDER: Deployed ${selectedCreature.name} (Level ${selectedCreature.level}). Lost ${moraleCost} morale.`, 'info')
-    setRenderCounter(prev => prev + 1)
+    addToast(
+      `RIDER: Deployed ${selectedCreature.name} (Level ${selectedCreature.level}). Lost ${moraleCost} morale.`,
+      'info'
+    )
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -7930,7 +8850,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (window.trackAbility) {
       window.trackAbility('rider', 'declined', player?.aiDifficulty || 'human', {
         destroyedCreature: destroyedCreature,
-        moraleLost: creatureLevel
+        moraleLost: creatureLevel,
       })
     }
 
@@ -7945,8 +8865,11 @@ function GameBoard({ onTurnInfoChange }) {
       callback()
     }
 
-    addToast(`RIDER declined: ${destroyedCreature} destroyed. Lost ${creatureLevel} morale.`, 'warning')
-    setRenderCounter(prev => prev + 1)
+    addToast(
+      `RIDER declined: ${destroyedCreature} destroyed. Lost ${creatureLevel} morale.`,
+      'warning'
+    )
+    setRenderCounter((prev) => prev + 1)
   }
 
   /**
@@ -7961,7 +8884,15 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {string} faction - Faction of destroyed creature (for tracking)
    * @param {Function} callback - Callback to execute after RIDER resolution
    */
-  const handleAIRiderDecision = (playerId, eligibleCreatures, position, creatureLevel, destroyedCreature, faction, callback) => {
+  const handleAIRiderDecision = (
+    playerId,
+    eligibleCreatures,
+    position,
+    creatureLevel,
+    destroyedCreature,
+    faction,
+    callback
+  ) => {
     const player = gameState.players[playerId]
     if (!player) {
       if (callback) callback()
@@ -7978,7 +8909,7 @@ function GameBoard({ onTurnInfoChange }) {
       window.trackAbility(statsKey, 'offered', aiDifficulty, {
         destroyedCreature: destroyedCreature,
         faction: faction,
-        eligibleCount: eligibleCreatures.length
+        eligibleCount: eligibleCreatures.length,
       })
     }
 
@@ -7986,13 +8917,13 @@ function GameBoard({ onTurnInfoChange }) {
     let shouldDeploy = false
     switch (aiDifficulty) {
       case 'easy':
-        shouldDeploy = false  // Easy: Never use RIDER (0%)
+        shouldDeploy = false // Easy: Never use RIDER (0%)
         break
       case 'medium':
-        shouldDeploy = Math.random() < 0.5  // Medium: 50% chance
+        shouldDeploy = Math.random() < 0.5 // Medium: 50% chance
         break
       case 'hard':
-        shouldDeploy = true  // Hard: Always use RIDER (100%)
+        shouldDeploy = true // Hard: Always use RIDER (100%)
         break
       default:
         shouldDeploy = Math.random() < 0.5
@@ -8003,7 +8934,7 @@ function GameBoard({ onTurnInfoChange }) {
         window.trackAbility(statsKey, 'declined', aiDifficulty, {
           destroyedCreature: destroyedCreature,
           faction: faction,
-          moraleLost: creatureLevel
+          moraleLost: creatureLevel,
         })
       }
       if (callback) callback()
@@ -8018,7 +8949,7 @@ function GameBoard({ onTurnInfoChange }) {
     const moraleCost = creatureLevel - selectedCreature.level
 
     // Remove from hand
-    const creatureIndex = player.creatureHand.findIndex(c => c.id === selectedCreature.id)
+    const creatureIndex = player.creatureHand.findIndex((c) => c.id === selectedCreature.id)
     if (creatureIndex !== -1) {
       player.creatureHand.splice(creatureIndex, 1)
     }
@@ -8047,14 +8978,14 @@ function GameBoard({ onTurnInfoChange }) {
         deployedLevel: selectedCreature.level,
         faction: faction,
         moraleCost: moraleCost,
-        moraleSaved: selectedCreature.level
+        moraleSaved: selectedCreature.level,
       })
     }
 
     addToast(`AI RIDER: Deployed ${selectedCreature.name}. Lost ${moraleCost} morale.`, 'info')
 
     if (callback) callback()
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // ============================================================================
@@ -8071,13 +9002,20 @@ function GameBoard({ onTurnInfoChange }) {
    * @param {string} abilityName - 'ACID BREATH' or 'EXPLOSIVE BOLTS'
    * @param {Function} onComplete - Callback when all splash damage is resolved
    */
-  const processNextRangedSplashTarget = (targets, index, attackerInstance, splashDamage, abilityName, onComplete) => {
+  const processNextRangedSplashTarget = (
+    targets,
+    index,
+    attackerInstance,
+    splashDamage,
+    abilityName,
+    onComplete
+  ) => {
     if (index >= targets.length) {
       // All splash targets processed - now tap the attacker and complete
       // Find the actual creature in the CURRENT gameState (not stale closure)
       const attackerOwner = attackerInstance.owner
       const actualAttacker = gameState.players[attackerOwner]?.creaturesInPlay.find(
-        c => c.instanceId === attackerInstance.instanceId
+        (c) => c.instanceId === attackerInstance.instanceId
       )
 
       if (actualAttacker) {
@@ -8090,10 +9028,10 @@ function GameBoard({ onTurnInfoChange }) {
       setCurrentRangedSplashIndex(0)
       setRangedSplashAttackInfo(null)
       setShowRangedSplashDefensePanel(false)
-      setCombatPanelMode(null)  // Clear combat panel after splash resolution
+      setCombatPanelMode(null) // Clear combat panel after splash resolution
 
       // Force re-render to show tapped state
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
 
       if (onComplete) onComplete()
       return
@@ -8114,7 +9052,7 @@ function GameBoard({ onTurnInfoChange }) {
         currentTarget: target,
         targetIndex: index,
         totalTargets: targets.length,
-        onComplete
+        onComplete,
       })
       // Use existing combat panel system for defense
       setPendingAttack({
@@ -8123,22 +9061,47 @@ function GameBoard({ onTurnInfoChange }) {
         targetInfo: { attackType: 'ranged_splash', damage: splashDamage, abilityName: abilityName },
         isSplashDamage: true,
         isRangedSplash: true,
-        splashSource: abilityName
+        splashSource: abilityName,
       })
       setCombatPanelMode('defense')
       setShowRangedSplashDefensePanel(true)
-      setRenderCounter(prev => prev + 1)
+      setRenderCounter((prev) => prev + 1)
     } else if (!isTargetHuman && !isTargetTapped) {
       // AI defender - use 0/50/100 rule
-      handleAIRangedSplashDefense(targets, index, attackerInstance, splashDamage, abilityName, target, onComplete)
+      handleAIRangedSplashDefense(
+        targets,
+        index,
+        attackerInstance,
+        splashDamage,
+        abilityName,
+        target,
+        onComplete
+      )
     } else {
       // Tapped creature - apply damage directly
-      const result = gameState.applyRangedSplashDamage(target, attackerInstance.owner, splashDamage, 0)
-      const moraleMsg = result.destroyed && result.moraleChange ? ` Morale changes: Attacker +${result.moraleChange.attacker}, Defender ${result.moraleChange.defender}` : ''
-      addToast(`${abilityName}: ${target.creature.name} takes ${result.damage} splash damage!${result.destroyed ? ' DESTROYED!' : ''}${moraleMsg}`)
+      const result = gameState.applyRangedSplashDamage(
+        target,
+        attackerInstance.owner,
+        splashDamage,
+        0
+      )
+      const moraleMsg =
+        result.destroyed && result.moraleChange
+          ? ` Morale changes: Attacker +${result.moraleChange.attacker}, Defender ${result.moraleChange.defender}`
+          : ''
+      addToast(
+        `${abilityName}: ${target.creature.name} takes ${result.damage} splash damage!${result.destroyed ? ' DESTROYED!' : ''}${moraleMsg}`
+      )
 
       // Process next target
-      processNextRangedSplashTarget(targets, index + 1, attackerInstance, splashDamage, abilityName, onComplete)
+      processNextRangedSplashTarget(
+        targets,
+        index + 1,
+        attackerInstance,
+        splashDamage,
+        abilityName,
+        onComplete
+      )
     }
   }
 
@@ -8177,7 +9140,7 @@ function GameBoard({ onTurnInfoChange }) {
     if (defense.type === 'unstoppable_hordes') {
       // UNSTOPPABLE HORDES: Each Undead prevents 20 damage
       let totalPrevented = 0
-      defense.creatures?.forEach(creature => {
+      defense.creatures?.forEach((creature) => {
         const result = gameState.applyUnstoppableHordes(creature)
         if (result.success) {
           totalPrevented += result.damagePrevented
@@ -8190,16 +9153,27 @@ function GameBoard({ onTurnInfoChange }) {
 
     if (defense.type === 'immediate_card') {
       // IMMEDIATE card: Prevent damage equal to card value, optionally discard card as cost
-      const result = gameState.applyImmediateCardDefense(defense.card, defense.creature, defense.discardCard)
+      const result = gameState.applyImmediateCardDefense(
+        defense.card,
+        defense.creature,
+        defense.discardCard
+      )
 
       // Handle opponent draws (Recoil) - defender chooses which opponent receives card
       if (result.success && result.opponentDrawsCards > 0) {
         const cardName = result.cardUsed?.name || defense.card.name
-        handleOpponentDrawEffect(result.opponentDrawsCards, cardName, defenderInstance.owner, attackerInstance.owner)
+        handleOpponentDrawEffect(
+          result.opponentDrawsCards,
+          cardName,
+          defenderInstance.owner,
+          attackerInstance.owner
+        )
       }
 
       closeCombatPanel()
-      handleRangedSplashDefenseComplete({ damageReduction: result.success ? result.damagePrevented : 0 })
+      handleRangedSplashDefenseComplete({
+        damageReduction: result.success ? result.damagePrevented : 0,
+      })
       return
     }
 
@@ -8228,7 +9202,12 @@ function GameBoard({ onTurnInfoChange }) {
     logger.debug('[handleSavageDemiseResolution] pendingAttack:', pendingAttack)
 
     if (!savageDemisePending || !pendingAttack) {
-      logger.debug('[handleSavageDemiseResolution] Missing state - savageDemisePending:', !!savageDemisePending, 'pendingAttack:', !!pendingAttack)
+      logger.debug(
+        '[handleSavageDemiseResolution] Missing state - savageDemisePending:',
+        !!savageDemisePending,
+        'pendingAttack:',
+        !!pendingAttack
+      )
       return
     }
 
@@ -8242,7 +9221,12 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Apply Savage Demise damage to target using the dedicated method
     logger.debug('[handleSavageDemiseResolution] Calling applySavageDemiseDamage...')
-    const savageDemiseResult = gameState.applySavageDemiseDamage(target, attacker.owner, damage, damageReduction)
+    const savageDemiseResult = gameState.applySavageDemiseDamage(
+      target,
+      attacker.owner,
+      damage,
+      damageReduction
+    )
     logger.debug('[handleSavageDemiseResolution] savageDemiseResult:', savageDemiseResult)
     const finalDamage = savageDemiseResult.damage
 
@@ -8272,7 +9256,12 @@ function GameBoard({ onTurnInfoChange }) {
 
       if (targetStillAlive) {
         const deathStrikeDamage = attacker.creature.meleeAttack?.damage || 0
-        const deathStrikeResult = gameState.applySavageDemiseDamage(target, attacker.owner, deathStrikeDamage, 0)
+        const deathStrikeResult = gameState.applySavageDemiseDamage(
+          target,
+          attacker.owner,
+          deathStrikeDamage,
+          0
+        )
 
         let deathStrikeMsg = `💀 DEATH STRIKE: ${attacker.creature.name} strikes ${target.creature.name} for ${deathStrikeDamage} damage!`
         if (deathStrikeResult.destroyed) {
@@ -8286,7 +9275,9 @@ function GameBoard({ onTurnInfoChange }) {
         addToast(deathStrikeMsg)
       } else {
         // Target already dead from Savage Demise, Death Strike doesn't trigger damage
-        addToast(`💀 DEATH STRIKE: ${attacker.creature.name}'s death strike cannot trigger - target already destroyed.`)
+        addToast(
+          `💀 DEATH STRIKE: ${attacker.creature.name}'s death strike cannot trigger - target already destroyed.`
+        )
       }
     }
 
@@ -8302,7 +9293,9 @@ function GameBoard({ onTurnInfoChange }) {
 
     logger.debug('[handleSavageDemiseResolution] sacrificeDeathResult:', sacrificeDeathResult)
 
-    addToast(`☠️ SACRIFICE: ${sacrificer.creature.name} dies from Savage Demise! (Morale -${sacrificeDeathResult.moraleLost})`)
+    addToast(
+      `☠️ SACRIFICE: ${sacrificer.creature.name} dies from Savage Demise! (Morale -${sacrificeDeathResult.moraleLost})`
+    )
 
     // Check for game over conditions
     gameState.checkGameOver()
@@ -8310,18 +9303,22 @@ function GameBoard({ onTurnInfoChange }) {
     // Check for immediate elimination
     const eliminationResult = gameState.checkAndEliminatePlayer(sacrificerOwner)
     if (eliminationResult.eliminated) {
-      const reason = eliminationResult.reason === 'morale'
-        ? 'Morale reduced to 0!'
-        : 'All creatures destroyed!'
-      addToast(`🏳️ ${gameState.players[sacrificerOwner].commander.name} has been eliminated! ${reason}`)
+      const reason =
+        eliminationResult.reason === 'morale' ? 'Morale reduced to 0!' : 'All creatures destroyed!'
+      addToast(
+        `🏳️ ${gameState.players[sacrificerOwner].commander.name} has been eliminated! ${reason}`
+      )
     }
 
     const targetEliminationResult = gameState.checkAndEliminatePlayer(target.owner)
     if (targetEliminationResult.eliminated) {
-      const reason = targetEliminationResult.reason === 'morale'
-        ? 'Morale reduced to 0!'
-        : 'All creatures destroyed!'
-      addToast(`🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`)
+      const reason =
+        targetEliminationResult.reason === 'morale'
+          ? 'Morale reduced to 0!'
+          : 'All creatures destroyed!'
+      addToast(
+        `🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`
+      )
     }
 
     // Clear Savage Demise state
@@ -8330,7 +9327,7 @@ function GameBoard({ onTurnInfoChange }) {
     setPendingAttack(null)
 
     // Force re-render to update UI
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
     logger.debug('[handleSavageDemiseResolution] === COMPLETE ===')
   }
 
@@ -8340,7 +9337,8 @@ function GameBoard({ onTurnInfoChange }) {
    */
   const handleRangedSplashDefenseComplete = (defenseResult) => {
     const { damageReduction } = defenseResult
-    const { currentTarget, splashDamage, attackerInstance, abilityName, onComplete } = rangedSplashAttackInfo
+    const { currentTarget, splashDamage, attackerInstance, abilityName, onComplete } =
+      rangedSplashAttackInfo
 
     const result = gameState.applyRangedSplashDamage(
       currentTarget,
@@ -8353,8 +9351,13 @@ function GameBoard({ onTurnInfoChange }) {
       addToast(`${abilityName}: ${currentTarget.creature.name} blocked with INSUBSTANTIAL!`)
     } else {
       const defended = damageReduction > 0 ? ` (defended ${damageReduction})` : ''
-      const moraleMsg = result.destroyed && result.moraleChange ? ` Morale changes: Attacker +${result.moraleChange.attacker}, Defender ${result.moraleChange.defender}` : ''
-      addToast(`${abilityName}: ${currentTarget.creature.name} takes ${result.damage} splash damage${defended}!${result.destroyed ? ' DESTROYED!' : ''}${moraleMsg}`)
+      const moraleMsg =
+        result.destroyed && result.moraleChange
+          ? ` Morale changes: Attacker +${result.moraleChange.attacker}, Defender ${result.moraleChange.defender}`
+          : ''
+      addToast(
+        `${abilityName}: ${currentTarget.creature.name} takes ${result.damage} splash damage${defended}!${result.destroyed ? ' DESTROYED!' : ''}${moraleMsg}`
+      )
     }
 
     setShowRangedSplashDefensePanel(false)
@@ -8373,7 +9376,15 @@ function GameBoard({ onTurnInfoChange }) {
   /**
    * Handle AI defense against splash damage using 0/50/100 rule
    */
-  const handleAIRangedSplashDefense = (targets, index, attackerInstance, splashDamage, abilityName, target, onComplete) => {
+  const handleAIRangedSplashDefense = (
+    targets,
+    index,
+    attackerInstance,
+    splashDamage,
+    abilityName,
+    target,
+    onComplete
+  ) => {
     // AI 0/50/100 rule for defense - get difficulty from gameConfig like other AI handlers
     const defenderPlayerId = target.owner
     const playerNum = defenderPlayerId.replace('PLAYER', '')
@@ -8389,15 +9400,16 @@ function GameBoard({ onTurnInfoChange }) {
     const player = gameState.players[target.owner]
     if (willDefend) {
       // AI attempts to find defense card
-      const defenseCards = player?.orderHand?.filter(card =>
-        card.actionType === 'IMMEDIATE' && card.damagePrevented > 0
-      ) || []
+      const defenseCards =
+        player?.orderHand?.filter(
+          (card) => card.actionType === 'IMMEDIATE' && card.damagePrevented > 0
+        ) || []
 
       if (defenseCards.length > 0) {
         const bestCard = defenseCards[0] // Simple: use first available
         damageReduction = bestCard.damagePrevented || 0
         // Discard the card
-        const cardIndex = player.orderHand.findIndex(c => c.id === bestCard.id)
+        const cardIndex = player.orderHand.findIndex((c) => c.id === bestCard.id)
         if (cardIndex !== -1) {
           player.orderHand.splice(cardIndex, 1)
           player.orderDiscard.push(bestCard)
@@ -8405,19 +9417,36 @@ function GameBoard({ onTurnInfoChange }) {
       }
     }
 
-    const result = gameState.applyRangedSplashDamage(target, attackerInstance.owner, splashDamage, damageReduction)
+    const result = gameState.applyRangedSplashDamage(
+      target,
+      attackerInstance.owner,
+      splashDamage,
+      damageReduction
+    )
 
     if (result.insubstantialBlocked) {
       addToast(`${abilityName}: ${target.creature.name} (AI) blocked with INSUBSTANTIAL!`)
     } else {
       const defended = damageReduction > 0 ? ` (defended ${damageReduction})` : ''
-      const moraleMsg = result.destroyed && result.moraleChange ? ` Morale changes: Attacker +${result.moraleChange.attacker}, Defender ${result.moraleChange.defender}` : ''
-      addToast(`${abilityName}: ${target.creature.name} (AI) takes ${result.damage} splash damage${defended}!${result.destroyed ? ' DESTROYED!' : ''}${moraleMsg}`)
+      const moraleMsg =
+        result.destroyed && result.moraleChange
+          ? ` Morale changes: Attacker +${result.moraleChange.attacker}, Defender ${result.moraleChange.defender}`
+          : ''
+      addToast(
+        `${abilityName}: ${target.creature.name} (AI) takes ${result.damage} splash damage${defended}!${result.destroyed ? ' DESTROYED!' : ''}${moraleMsg}`
+      )
     }
 
     // Process next target with brief delay for readability
     setTimeout(() => {
-      processNextRangedSplashTarget(targets, index + 1, attackerInstance, splashDamage, abilityName, onComplete)
+      processNextRangedSplashTarget(
+        targets,
+        index + 1,
+        attackerInstance,
+        splashDamage,
+        abilityName,
+        onComplete
+      )
     }, 300)
   }
 
@@ -8448,9 +9477,9 @@ function GameBoard({ onTurnInfoChange }) {
 
       let useSplash = false
       if (difficulty === 'hard') {
-        useSplash = true  // Hard AI always uses splash (100%)
+        useSplash = true // Hard AI always uses splash (100%)
       } else if (difficulty === 'medium') {
-        useSplash = Math.random() < 0.5  // Medium AI uses 50%
+        useSplash = Math.random() < 0.5 // Medium AI uses 50%
       }
       // Easy AI never uses splash (0%)
 
@@ -8472,7 +9501,14 @@ function GameBoard({ onTurnInfoChange }) {
     setCurrentRangedSplashIndex(0)
 
     // Start processing first splash target
-    processNextRangedSplashTarget(splashTargets, 0, attackerInstance, splashDamage, abilityName, onComplete)
+    processNextRangedSplashTarget(
+      splashTargets,
+      0,
+      attackerInstance,
+      splashDamage,
+      abilityName,
+      onComplete
+    )
     return true // Splash is being processed
   }
 
@@ -8484,9 +9520,10 @@ function GameBoard({ onTurnInfoChange }) {
     // User must resolve attack confirmation or defense selection first
     // ============================================
     if (combatPanelMode) {
-      const message = combatPanelMode === 'attack'
-        ? 'You must confirm or cancel your attack before advancing the phase.'
-        : 'You must select a defense option or take damage before advancing the phase.'
+      const message =
+        combatPanelMode === 'attack'
+          ? 'You must confirm or cancel your attack before advancing the phase.'
+          : 'You must select a defense option or take damage before advancing the phase.'
       addToast(`⚠️ ${message}`)
       return
     }
@@ -8526,9 +9563,10 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
     if (confusionGazeMode) {
-      const modeMsg = confusionGazeMode === 'slide'
-        ? 'You must select a slide destination for CONFUSION GAZE before advancing the phase.'
-        : 'You must select an attack target to complete CONFUSION GAZE before advancing the phase.'
+      const modeMsg =
+        confusionGazeMode === 'slide'
+          ? 'You must select a slide destination for CONFUSION GAZE before advancing the phase.'
+          : 'You must select an attack target to complete CONFUSION GAZE before advancing the phase.'
       addToast(`⚠️ ${modeMsg}`)
       return
     }
@@ -8538,7 +9576,9 @@ function GameBoard({ onTurnInfoChange }) {
     // User must complete target selection or cancel
     // ============================================
     if (lightningBreathMode) {
-      addToast('⚠️ You must complete LIGHTNING BREATH target selection or cancel before advancing the phase.')
+      addToast(
+        '⚠️ You must complete LIGHTNING BREATH target selection or cancel before advancing the phase.'
+      )
       return
     }
 
@@ -8557,7 +9597,7 @@ function GameBoard({ onTurnInfoChange }) {
         if (hordeRefreshExecuted) {
           // Clear deployment protection for creatures deployed during this refresh
           const player = gameState.getCurrentPlayerState()
-          player.creaturesInPlay.forEach(creature => {
+          player.creaturesInPlay.forEach((creature) => {
             if (creature.deployedThisTurn && creature.turnDeployed === gameState.turnNumber) {
               creature.clearDeploymentProtection()
             }
@@ -8569,15 +9609,19 @@ function GameBoard({ onTurnInfoChange }) {
           if (hordeAdvanceResult?.activatePhaseDamageResults?.length > 0) {
             for (const damageResult of hordeAdvanceResult.activatePhaseDamageResults) {
               if (damageResult.destroyed) {
-                addToast(`🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source} and was destroyed!`)
+                addToast(
+                  `🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source} and was destroyed!`
+                )
               } else {
-                addToast(`🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source}!`)
+                addToast(
+                  `🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source}!`
+                )
               }
             }
             // Clear pending damage
             gameState.pendingActivatePhaseDamage = []
             // Check for game over after deaths
-            const hasDeaths = hordeAdvanceResult.activatePhaseDamageResults.some(r => r.destroyed)
+            const hasDeaths = hordeAdvanceResult.activatePhaseDamageResults.some((r) => r.destroyed)
             if (hasDeaths) {
               gameState.checkGameOver()
             }
@@ -8597,15 +9641,19 @@ function GameBoard({ onTurnInfoChange }) {
           if (refreshResult?.activatePhaseDamageResults?.length > 0) {
             for (const damageResult of refreshResult.activatePhaseDamageResults) {
               if (damageResult.destroyed) {
-                addToast(`🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source} and was destroyed!`)
+                addToast(
+                  `🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source} and was destroyed!`
+                )
               } else {
-                addToast(`🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source}!`)
+                addToast(
+                  `🩸 DEEP WOUND: ${damageResult.creatureName} took ${damageResult.damage} damage from ${damageResult.source}!`
+                )
               }
             }
             // Clear pending damage
             gameState.pendingActivatePhaseDamage = []
             // Check for game over after deaths
-            const hasDeaths = refreshResult.activatePhaseDamageResults.some(r => r.destroyed)
+            const hasDeaths = refreshResult.activatePhaseDamageResults.some((r) => r.destroyed)
             if (hasDeaths) {
               gameState.checkGameOver()
             }
@@ -8623,7 +9671,7 @@ function GameBoard({ onTurnInfoChange }) {
               mode: 'ability',
               abilityName: 'Disciple of Kyuss',
               sourceCreature: kyussResult.sourceCreature,
-              damageEvents: kyussResult.damageEvents
+              damageEvents: kyussResult.damageEvents,
             })
             setShowDamageNotification(true)
             setPendingPhaseAdvance(true)
@@ -8640,14 +9688,16 @@ function GameBoard({ onTurnInfoChange }) {
             if (advanceResult?.waterDamageResults?.length > 0) {
               for (const waterResult of advanceResult.waterDamageResults) {
                 if (waterResult.destroyed) {
-                  addToast(`🌊 WATER DAMAGE: ${waterResult.creature} was destroyed by drowning! (10 damage)`)
+                  addToast(
+                    `🌊 WATER DAMAGE: ${waterResult.creature} was destroyed by drowning! (10 damage)`
+                  )
                 } else {
                   addToast(`🌊 WATER DAMAGE: ${waterResult.creature} takes 10 damage from water!`)
                 }
               }
 
               // Check for game over after water deaths
-              const hasDeaths = advanceResult.waterDamageResults.some(r => r.destroyed)
+              const hasDeaths = advanceResult.waterDamageResults.some((r) => r.destroyed)
               if (hasDeaths) {
                 gameState.checkGameOver()
               }
@@ -8660,7 +9710,9 @@ function GameBoard({ onTurnInfoChange }) {
                 gameState.discardAttachedCards(creature)
                 // Process creature death (similar to sacrifice - no attacker morale gain)
                 const deathResult = gameState.sacrificeCreature(creature)
-                addToast(`☠️ MORTAL WOUND: ${creature.creature.name} succumbs to their mortal wound! (-${deathResult.moraleLost} morale)`)
+                addToast(
+                  `☠️ MORTAL WOUND: ${creature.creature.name} succumbs to their mortal wound! (-${deathResult.moraleLost} morale)`
+                )
               }
               // Clear the pending destructions
               gameState.pendingMortalWoundDestructions = []
@@ -8696,7 +9748,7 @@ function GameBoard({ onTurnInfoChange }) {
         break
     }
 
-    setRenderCounter(prev => prev + 1)
+    setRenderCounter((prev) => prev + 1)
   }
 
   // Report turn info to parent (App.jsx) for navbar display
@@ -8714,17 +9766,28 @@ function GameBoard({ onTurnInfoChange }) {
 
     // Determine if collect morale is available
     let canCollectMorale = false
-    if (gameState.currentPhase === GamePhases.ACTIVATE && !isCurrentPlayerAI && selectedBoardCreature) {
-      const tile = gameState.getTile(selectedBoardCreature.position.x, selectedBoardCreature.position.y)
-      canCollectMorale = tile?.treasure &&
-                         tile.treasure.remainingMorale > 0 &&
-                         !selectedBoardCreature.isTapped &&
-                         selectedBoardCreature.owner === gameState.currentPlayer
+    if (
+      gameState.currentPhase === GamePhases.ACTIVATE &&
+      !isCurrentPlayerAI &&
+      selectedBoardCreature
+    ) {
+      const tile = gameState.getTile(
+        selectedBoardCreature.position.x,
+        selectedBoardCreature.position.y
+      )
+      canCollectMorale =
+        tile?.treasure &&
+        tile.treasure.remainingMorale > 0 &&
+        !selectedBoardCreature.isTapped &&
+        selectedBoardCreature.owner === gameState.currentPlayer
     }
 
     // Determine auto-executing state
-    const isAutoExecuting = ((gameState.currentPhase === GamePhases.REFRESH && !gameState.canDeployDuringRefresh(gameState.currentPlayer)) ||
-                             gameState.currentPhase === GamePhases.CLEANUP) && !isCurrentPlayerAI
+    const isAutoExecuting =
+      ((gameState.currentPhase === GamePhases.REFRESH &&
+        !gameState.canDeployDuringRefresh(gameState.currentPlayer)) ||
+        gameState.currentPhase === GamePhases.CLEANUP) &&
+      !isCurrentPlayerAI
 
     // ============================================
     // COMBAT LOCK: Disable phase button when combat is pending - O(1)
@@ -8732,7 +9795,11 @@ function GameBoard({ onTurnInfoChange }) {
     // ============================================
     const isFlashingBladesActive = showFlashingBladesModal || flashingBladesTargetMode
     const isHiddenBladeActive = showHiddenBladeModal || hiddenBladeTargetMode
-    const canAdvancePhaseValue = !combatPanelMode && !isFlashingBladesActive && !isHiddenBladeActive && (gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase())
+    const canAdvancePhaseValue =
+      !combatPanelMode &&
+      !isFlashingBladesActive &&
+      !isHiddenBladeActive &&
+      (gameState.currentPhase === GamePhases.ACTIVATE || canDeployInCurrentPhase())
 
     onTurnInfoChange({
       turnNumber: gameState.turnNumber,
@@ -8748,9 +9815,12 @@ function GameBoard({ onTurnInfoChange }) {
       handleCollectMorale: handleCollectMorale,
       leadership: currentPlayerState?.leadership || 0,
       leadershipUsage: currentPlayerState?.getCurrentLeadershipUsage?.() || 0,
-      morale: (typeof currentPlayerState?.morale === 'number' && !isNaN(currentPlayerState?.morale)) ? currentPlayerState.morale : 0,
+      morale:
+        typeof currentPlayerState?.morale === 'number' && !isNaN(currentPlayerState?.morale)
+          ? currentPlayerState.morale
+          : 0,
       startingMorale: currentPlayerState?.commander?.startingMorale || 1,
-      combatPending: !!combatPanelMode,  // Let UI know combat is pending
+      combatPending: !!combatPanelMode, // Let UI know combat is pending
       // Order card targeting mode state
       orderCardTargetingMode: orderCardTargetingMode,
       selectedOrderCard: selectedOrderCard,
@@ -8764,11 +9834,21 @@ function GameBoard({ onTurnInfoChange }) {
         const currentPlayer = gameState.getCurrentPlayerState()
         if (currentPlayer) {
           currentPlayer.fillAllCards()
-          setRenderCounter(prev => prev + 1) // Force re-render
+          setRenderCounter((prev) => prev + 1) // Force re-render
         }
-      }
+      },
     })
-  }, [gameState, gameConfig, isAIThinking, selectedBoardCreature, renderCounter, onTurnInfoChange, combatPanelMode, turnLog, isLogExpanded])
+  }, [
+    gameState,
+    gameConfig,
+    isAIThinking,
+    selectedBoardCreature,
+    renderCounter,
+    onTurnInfoChange,
+    combatPanelMode,
+    turnLog,
+    isLogExpanded,
+  ])
 
   // Process pending AI actions queue (for attacks that need defender modals)
   useEffect(() => {
@@ -8796,7 +9876,7 @@ function GameBoard({ onTurnInfoChange }) {
     const nextAction = pendingAIActions[0]
 
     // Remove the action from queue
-    setPendingAIActions(prev => prev.slice(1))
+    setPendingAIActions((prev) => prev.slice(1))
 
     // Process the attack intention
     processAIAttackIntention(nextAction)
@@ -8818,15 +9898,15 @@ function GameBoard({ onTurnInfoChange }) {
       setIsAIThinking(true)
 
       // Small delay so player can see what's happening
-      await new Promise(resolve => setTimeout(resolve, 800))
+      await new Promise((resolve) => setTimeout(resolve, 800))
 
       const ai = new SimpleAI(gameState, currentPlayerId)
       const result = ai.executeTurn()
 
       // Check if there are attack intentions or confusion gaze actions in the result
       const actions = result.actions || []
-      const attackIntentions = actions.filter(action => action.type === 'attack_intention')
-      const confusionGazeActions = actions.filter(action => action.type === 'confusion_gaze')
+      const attackIntentions = actions.filter((action) => action.type === 'attack_intention')
+      const confusionGazeActions = actions.filter((action) => action.type === 'confusion_gaze')
 
       // ============================================
       // CONFUSION GAZE AI EXECUTION
@@ -8837,7 +9917,9 @@ function GameBoard({ onTurnInfoChange }) {
 
         // Execute the slide
         const slideResult = gameState.executeConfusionGazeSlide(target, slideDestination)
-        addToast(`😵 AI: ${attackerInstance.creature.name} uses CONFUSION GAZE! Slides ${target.creature.name} to (${slideResult.newPos.x}, ${slideResult.newPos.y})`)
+        addToast(
+          `😵 AI: ${attackerInstance.creature.name} uses CONFUSION GAZE! Slides ${target.creature.name} to (${slideResult.newPos.x}, ${slideResult.newPos.y})`
+        )
 
         // Execute the attack using the dedicated method
         const attackResult = gameState.applyConfusionGaze(attackerInstance, target)
@@ -8863,10 +9945,13 @@ function GameBoard({ onTurnInfoChange }) {
         gameState.checkGameOver()
         const eliminationResult = gameState.checkAndEliminatePlayer(target.owner)
         if (eliminationResult.eliminated) {
-          const reason = eliminationResult.reason === 'morale'
-            ? 'Morale reduced to 0!'
-            : 'All creatures destroyed!'
-          addToast(`🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`)
+          const reason =
+            eliminationResult.reason === 'morale'
+              ? 'Morale reduced to 0!'
+              : 'All creatures destroyed!'
+          addToast(
+            `🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`
+          )
         }
       }
 
@@ -8874,7 +9959,7 @@ function GameBoard({ onTurnInfoChange }) {
       // LIGHTNING BREATH AI EXECUTION
       // Process lightning breath actions immediately (multi-target ranged attack)
       // ============================================
-      const lightningBreathActions = actions.filter(action => action.type === 'lightning_breath')
+      const lightningBreathActions = actions.filter((action) => action.type === 'lightning_breath')
       for (const lbAction of lightningBreathActions) {
         const { attackerInstance, targets, damage } = lbAction
 
@@ -8903,7 +9988,9 @@ function GameBoard({ onTurnInfoChange }) {
             // Remove from battlefield
             const defenderOwner = target.owner
             const defenderPlayer = gameState.players[defenderOwner]
-            const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === target.instanceId)
+            const index = defenderPlayer.creaturesInPlay.findIndex(
+              (c) => c.instanceId === target.instanceId
+            )
             if (index !== -1) {
               defenderPlayer.creaturesInPlay.splice(index, 1)
             }
@@ -8940,10 +10027,13 @@ function GameBoard({ onTurnInfoChange }) {
           gameState.checkGameOver()
           const eliminationResult = gameState.checkAndEliminatePlayer(target.owner)
           if (eliminationResult.eliminated) {
-            const reason = eliminationResult.reason === 'morale'
-              ? 'Morale reduced to 0!'
-              : 'All creatures destroyed!'
-            addToast(`🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`)
+            const reason =
+              eliminationResult.reason === 'morale'
+                ? 'Morale reduced to 0!'
+                : 'All creatures destroyed!'
+            addToast(
+              `🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`
+            )
           }
         }
       }
@@ -8952,19 +10042,21 @@ function GameBoard({ onTurnInfoChange }) {
       // WEB CARD AI EXECUTION
       // Process web actions - show notification to human player
       // ============================================
-      const webActions = actions.filter(action => action.type === 'web')
+      const webActions = actions.filter((action) => action.type === 'web')
       for (const webAction of webActions) {
         const { casterInstance, targetInstance, webCard } = webAction
 
         // Web was already applied in simpleAI.js, just show notification
-        addToast(`🕸️ AI: ${casterInstance.creature.name} cast WEB on ${targetInstance.creature.name}! (Cannot move)`)
+        addToast(
+          `🕸️ AI: ${casterInstance.creature.name} cast WEB on ${targetInstance.creature.name}! (Cannot move)`
+        )
       }
 
       // ============================================
       // WEB REMOVAL AI EXECUTION
       // Process web removal actions
       // ============================================
-      const webRemovalActions = actions.filter(action => action.type === 'web_removal')
+      const webRemovalActions = actions.filter((action) => action.type === 'web_removal')
       for (const removalAction of webRemovalActions) {
         const { creatureInstance, reason } = removalAction
 
@@ -8977,9 +10069,18 @@ function GameBoard({ onTurnInfoChange }) {
       // Phase STD-4: Nimble Strike, Spring Attack, Shadowy Ambush
       // Process shift+attack actions - shift creature, discard card, then queue attack
       // ============================================
-      const shiftAttackActions = actions.filter(action => action.type === 'shift_attack')
+      const shiftAttackActions = actions.filter((action) => action.type === 'shift_attack')
       for (const shiftAction of shiftAttackActions) {
-        const { attackerInstance, defenderInstance, shiftTo, attackType, card, cardIndex, damage, shiftAfterAttack } = shiftAction
+        const {
+          attackerInstance,
+          defenderInstance,
+          shiftTo,
+          attackType,
+          card,
+          cardIndex,
+          damage,
+          shiftAfterAttack,
+        } = shiftAction
 
         // 1. Move creature to shift destination
         const originalPos = { ...attackerInstance.position }
@@ -8996,7 +10097,9 @@ function GameBoard({ onTurnInfoChange }) {
           aiPlayer.orderHand.splice(cardIndex, 1)
         }
 
-        addToast(`🏃 AI: ${attackerInstance.creature.name} uses ${card.name} - shifts to (${shiftTo.x},${shiftTo.y})`)
+        addToast(
+          `🏃 AI: ${attackerInstance.creature.name} uses ${card.name} - shifts to (${shiftTo.x},${shiftTo.y})`
+        )
 
         // 3. Queue this as an attack intention for the pending actions system
         // This allows defense options to be offered to human defenders
@@ -9007,14 +10110,15 @@ function GameBoard({ onTurnInfoChange }) {
           targetInfo: {
             creature: defenderInstance,
             attackType: attackType,
-            position: defenderInstance.position
+            position: defenderInstance.position,
           },
           damageBoostCard: card,
-          damageBoostBonus: attackType === 'melee' ? (card.meleeDamageBonus || 0) : (card.rangedDamageBonus || 0),
+          damageBoostBonus:
+            attackType === 'melee' ? card.meleeDamageBonus || 0 : card.rangedDamageBonus || 0,
           damageBoostFlat: card.flatMeleeDamage !== undefined ? card.flatMeleeDamage : null,
           // Store shift+attack specific info for post-attack shift
           isShiftAttack: true,
-          shiftAfterAttack: shiftAfterAttack
+          shiftAfterAttack: shiftAfterAttack,
         }
 
         // Add to attack intentions to be processed
@@ -9026,7 +10130,7 @@ function GameBoard({ onTurnInfoChange }) {
       // Phase STD-5: Charge (Blood of Gruumsh)
       // Process charge actions - move creature full speed, discard card, then queue attack
       // ============================================
-      const chargeActions = actions.filter(action => action.type === 'charge_attack')
+      const chargeActions = actions.filter((action) => action.type === 'charge_attack')
       for (const chargeAction of chargeActions) {
         const { attackerInstance, defenderInstance, moveTo, card, cardIndex, damage } = chargeAction
 
@@ -9048,7 +10152,9 @@ function GameBoard({ onTurnInfoChange }) {
           aiPlayer.orderHand.splice(cardIndex, 1)
         }
 
-        addToast(`🏃 AI: ${attackerInstance.creature.name} uses ${card.name} - charges to (${moveTo.x},${moveTo.y})`)
+        addToast(
+          `🏃 AI: ${attackerInstance.creature.name} uses ${card.name} - charges to (${moveTo.x},${moveTo.y})`
+        )
 
         // 3. Queue this as an attack intention for the pending actions system
         const chargeAttackIntention = {
@@ -9058,12 +10164,12 @@ function GameBoard({ onTurnInfoChange }) {
           targetInfo: {
             creature: defenderInstance,
             attackType: 'melee',
-            position: defenderInstance.position
+            position: defenderInstance.position,
           },
           damageBoostCard: card,
           damageBoostBonus: card.meleeDamageBonus || 0,
           damageBoostFlat: null,
-          isChargeAttack: true
+          isChargeAttack: true,
         }
 
         // Add to attack intentions to be processed
@@ -9076,13 +10182,14 @@ function GameBoard({ onTurnInfoChange }) {
       // deployed this turn. This mirrors the human HORDE logic at lines 1612-1615.
       // Without this, AI HORDE creatures would keep protection indefinitely.
       // ============================================
-      const usedHorde = gameState.currentPhase === GamePhases.REFRESH &&
-                        gameState.canDeployDuringRefresh(currentPlayerId) &&
-                        actions.some(a => a.isHordeDeploy)
+      const usedHorde =
+        gameState.currentPhase === GamePhases.REFRESH &&
+        gameState.canDeployDuringRefresh(currentPlayerId) &&
+        actions.some((a) => a.isHordeDeploy)
 
       if (usedHorde) {
         const player = gameState.getCurrentPlayerState()
-        player.creaturesInPlay.forEach(creature => {
+        player.creaturesInPlay.forEach((creature) => {
           if (creature.deployedThisTurn && creature.turnDeployed === gameState.turnNumber) {
             creature.clearDeploymentProtection()
           }
@@ -9093,16 +10200,16 @@ function GameBoard({ onTurnInfoChange }) {
         // Queue the attack intentions for processing
         setPendingAIActions(attackIntentions)
         addToast(`AI: ${result.message}`)
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
         setIsAIThinking(false)
         // Don't advance phase yet - will advance after all actions are processed
       } else {
         // No attack intentions, proceed normally
         addToast(`AI: ${result.message}`)
-        setRenderCounter(prev => prev + 1)
+        setRenderCounter((prev) => prev + 1)
 
         // Small delay before advancing phase
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 500))
 
         // Auto-advance phase for AI
         advancePhase()
@@ -9132,7 +10239,7 @@ function GameBoard({ onTurnInfoChange }) {
       if (gameState.canDeployDuringRefresh(gameState.currentPlayer)) {
         // HORDE ability - execute refresh actions then show deployment modal
         const executeHordeRefresh = async () => {
-          await new Promise(resolve => setTimeout(resolve, 500))
+          await new Promise((resolve) => setTimeout(resolve, 500))
 
           // Execute refresh actions (matching PhaseManager.executeRefreshPhase logic)
           const player = gameState.getCurrentPlayerState()
@@ -9155,7 +10262,7 @@ function GameBoard({ onTurnInfoChange }) {
 
           // Merge pending card reveals (from opponent effects like Recoil) into the drawn cards display
           if (player.pendingCardReveals && player.pendingCardReveals.length > 0) {
-            player.pendingCardReveals.forEach(reveal => {
+            player.pendingCardReveals.forEach((reveal) => {
               player.cardsDrawnThisTurn.push(reveal.card)
               if (!player.bonusDrawSourcesThisTurn) player.bonusDrawSourcesThisTurn = []
               player.bonusDrawSourcesThisTurn.push(`Received from ${reveal.source}`)
@@ -9164,10 +10271,10 @@ function GameBoard({ onTurnInfoChange }) {
           }
 
           // Untap all creatures
-          player.creaturesInPlay.forEach(creature => creature.untap())
+          player.creaturesInPlay.forEach((creature) => creature.untap())
 
           // Clear deployment protection from previous turns
-          player.creaturesInPlay.forEach(creature => {
+          player.creaturesInPlay.forEach((creature) => {
             if (creature.deployedThisTurn && creature.turnDeployed !== gameState.turnNumber) {
               creature.clearDeploymentProtection()
             }
@@ -9176,7 +10283,7 @@ function GameBoard({ onTurnInfoChange }) {
           // Mark refresh as executed and show HORDE deployment modal
           setHordeRefreshExecuted(true)
           setShowHordeModal(true)
-          setRenderCounter(prev => prev + 1)
+          setRenderCounter((prev) => prev + 1)
         }
 
         if (!hordeRefreshExecuted && !showHordeModal) {
@@ -9185,19 +10292,26 @@ function GameBoard({ onTurnInfoChange }) {
       } else {
         // Normal refresh - auto-execute
         const executePhase = async () => {
-          await new Promise(resolve => setTimeout(resolve, 800))
+          await new Promise((resolve) => setTimeout(resolve, 800))
           advancePhase()
         }
         executePhase()
       }
     } else if (gameState.currentPhase === GamePhases.CLEANUP) {
       const executePhase = async () => {
-        await new Promise(resolve => setTimeout(resolve, 800))
+        await new Promise((resolve) => setTimeout(resolve, 800))
         advancePhase()
       }
       executePhase()
     }
-  }, [gameState?.currentPhase, gameState?.currentPlayer, gameState?.turnNumber, isAIThinking, hordeRefreshExecuted, showHordeModal])
+  }, [
+    gameState?.currentPhase,
+    gameState?.currentPlayer,
+    gameState?.turnNumber,
+    isAIThinking,
+    hordeRefreshExecuted,
+    showHordeModal,
+  ])
 
   // MAGIC CIRCLE AURA: Show pending notifications at start of each human player's ACTIVATE phase
   // This ensures other human players see the modal when the aura was activated by a different player
@@ -9278,7 +10392,7 @@ function GameBoard({ onTurnInfoChange }) {
     const map = new Map()
     for (const playerId of gameState.activePlayers) {
       const player = gameState.players[playerId]
-      player.creaturesInPlay.forEach(creature => {
+      player.creaturesInPlay.forEach((creature) => {
         if (creature.position) {
           const key = `${creature.position.x},${creature.position.y}`
           map.set(key, creature)
@@ -9310,7 +10424,10 @@ function GameBoard({ onTurnInfoChange }) {
   const isCurrentPlayerAI = !isPlayerHuman(currentPlayerId)
 
   return (
-    <div className="game-board-container" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div
+      className="game-board-container"
+      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+    >
       {/* Game Over Alert - Full Width at Top */}
       {gameState.gameOver && (
         <div style={{ flexShrink: 0, marginBottom: '10px' }}>
@@ -9333,88 +10450,95 @@ function GameBoard({ onTurnInfoChange }) {
                   const creature = getTileCreature(x, y)
 
                   // Check if this tile is a valid move (handle new pathfinding format)
-                  const validMove = validMoveTiles.find(vm => vm.tile.x === x && vm.tile.y === y)
+                  const validMove = validMoveTiles.find((vm) => vm.tile.x === x && vm.tile.y === y)
                   // Only show movement overlay when in movement mode
                   const isValidMove = creatureViewMode === 'movement' && validMove !== undefined
 
                   // Check if this creature is a valid attack target and get attack type
                   const attackTargetInfo = validAttackTargets.find(
-                    t => t.creature.position?.x === x && t.creature.position?.y === y
+                    (t) => t.creature.position?.x === x && t.creature.position?.y === y
                   )
                   const isAttackTarget = attackTargetInfo !== undefined
                   const attackType = attackTargetInfo?.attackType
 
                   // Check if this creature is a FLASHING BLADES target
-                  const isFlashingBladesTarget = flashingBladesTargetMode &&
+                  const isFlashingBladesTarget =
+                    flashingBladesTargetMode &&
                     flashingBladesPending?.validTargets.some(
-                      t => t.position?.x === x && t.position?.y === y
+                      (t) => t.position?.x === x && t.position?.y === y
                     )
 
                   // Check if this creature is a HIDDEN BLADE target
-                  const isHiddenBladeTarget = hiddenBladeTargetMode &&
+                  const isHiddenBladeTarget =
+                    hiddenBladeTargetMode &&
                     hiddenBladePending?.validTargets.some(
-                      t => t.position?.x === x && t.position?.y === y
+                      (t) => t.position?.x === x && t.position?.y === y
                     )
 
                   // ============================================
                   // CONFUSION GAZE HIGHLIGHTS: Show valid slide destinations or attack targets
                   // ============================================
-                  const isConfusionGazeSlide = confusionGazeMode === 'slide' &&
-                    confusionGazePending?.validSlideTiles?.some(
-                      t => t.x === x && t.y === y
-                    )
+                  const isConfusionGazeSlide =
+                    confusionGazeMode === 'slide' &&
+                    confusionGazePending?.validSlideTiles?.some((t) => t.x === x && t.y === y)
 
-                  const isConfusionGazeAttack = confusionGazeMode === 'attack' &&
+                  const isConfusionGazeAttack =
+                    confusionGazeMode === 'attack' &&
                     confusionGazePending?.attackTargets?.some(
-                      t => t.target.position?.x === x && t.target.position?.y === y
+                      (t) => t.target.position?.x === x && t.target.position?.y === y
                     )
 
                   // ============================================
                   // SLAM HIGHLIGHTS: Show valid slam destinations (uses movement color)
                   // ============================================
-                  const isSlamTile = slamMode &&
-                    slamValidTiles.some(t => t.x === x && t.y === y)
+                  const isSlamTile = slamMode && slamValidTiles.some((t) => t.x === x && t.y === y)
 
                   // ============================================
                   // CLOUD OF BATS SHIFT HIGHLIGHTS: Show valid shift destinations
                   // ============================================
-                  const isShiftTile = shiftSelectionMode &&
-                    shiftValidTiles.some(t => t.x === x && t.y === y)
+                  const isShiftTile =
+                    shiftSelectionMode && shiftValidTiles.some((t) => t.x === x && t.y === y)
 
                   // ============================================
                   // SHIFT+ATTACK HIGHLIGHTS: Show valid shift destinations (pre-shift or post-shift phase)
                   // ============================================
-                  const isShiftAttackTile = shiftAttackMode &&
-                    (pendingShiftAttack?.phase === 'pre-shift' || pendingShiftAttack?.phase === 'post-shift') &&
-                    shiftAttackValidTiles.some(t => t.x === x && t.y === y)
+                  const isShiftAttackTile =
+                    shiftAttackMode &&
+                    (pendingShiftAttack?.phase === 'pre-shift' ||
+                      pendingShiftAttack?.phase === 'post-shift') &&
+                    shiftAttackValidTiles.some((t) => t.x === x && t.y === y)
 
                   // ============================================
                   // CHARGE HIGHLIGHTS: Show valid movement destinations (green)
                   // ============================================
-                  const isChargeTile = chargeMode &&
+                  const isChargeTile =
+                    chargeMode &&
                     pendingChargeAttack?.phase === 'moving' &&
-                    chargeValidTiles.some(t => t.x === x && t.y === y)
+                    chargeValidTiles.some((t) => t.x === x && t.y === y)
 
                   // ============================================
                   // LIGHTNING BREATH HIGHLIGHTS: Show valid targets and selected targets
                   // ============================================
-                  const isLightningBreathValidTarget = lightningBreathMode &&
+                  const isLightningBreathValidTarget =
+                    lightningBreathMode &&
                     lightningBreathValidTargets.some(
-                      t => t.position?.x === x && t.position?.y === y
+                      (t) => t.position?.x === x && t.position?.y === y
                     )
-                  const isLightningBreathSelected = lightningBreathMode &&
-                    lightningBreathTargets.some(
-                      t => t.position?.x === x && t.position?.y === y
-                    )
+                  const isLightningBreathSelected =
+                    lightningBreathMode &&
+                    lightningBreathTargets.some((t) => t.position?.x === x && t.position?.y === y)
                   const lightningBreathTargetIndex = lightningBreathMode
-                    ? lightningBreathTargets.findIndex(t => t.position?.x === x && t.position?.y === y)
+                    ? lightningBreathTargets.findIndex(
+                        (t) => t.position?.x === x && t.position?.y === y
+                      )
                     : -1
 
                   // ============================================
                   // HEALING TOUCH HIGHLIGHTS: Show valid targets (self + adjacent allies)
                   // when Dwarf Cleric is selected and hasn't used action
                   // ============================================
-                  const isHealingTouchTarget = selectedBoardCreature &&
+                  const isHealingTouchTarget =
+                    selectedBoardCreature &&
                     gameState.hasHealingTouch(selectedBoardCreature) &&
                     !selectedBoardCreature.hasAttackedThisTurn &&
                     creature &&
@@ -9422,15 +10546,17 @@ function GameBoard({ onTurnInfoChange }) {
                     gameState.isValidHealingTouchTarget(selectedBoardCreature, creature)
 
                   // Check if this is the selected creature
-                  const isSelectedCreature = selectedBoardCreature?.position?.x === x &&
-                                              selectedBoardCreature?.position?.y === y
+                  const isSelectedCreature =
+                    selectedBoardCreature?.position?.x === x &&
+                    selectedBoardCreature?.position?.y === y
 
                   // Check if this tile is in the line-of-sight path (original behavior)
                   // OR if we're in ranged view mode, show ranged range tiles with LOS
-                  const rangedRangeInfo = rangedRangeTiles.find(r => r.x === x && r.y === y)
-                  const isLineOfSight = creatureViewMode === 'movement'
-                    ? lineOfSightPath.some(pos => pos.x === x && pos.y === y)
-                    : (rangedRangeInfo?.hasLOS === true)
+                  const rangedRangeInfo = rangedRangeTiles.find((r) => r.x === x && r.y === y)
+                  const isLineOfSight =
+                    creatureViewMode === 'movement'
+                      ? lineOfSightPath.some((pos) => pos.x === x && pos.y === y)
+                      : rangedRangeInfo?.hasLOS === true
 
                   // ============================================
                   // COMBAT HIGHLIGHT: Determine if creature should be highlighted
@@ -9439,7 +10565,10 @@ function GameBoard({ onTurnInfoChange }) {
                   let combatHighlight = null
                   if (creature && combatHighlightCreatures.attacker === creature.instanceId) {
                     combatHighlight = 'attacker'
-                  } else if (creature && combatHighlightCreatures.defender === creature.instanceId) {
+                  } else if (
+                    creature &&
+                    combatHighlightCreatures.defender === creature.instanceId
+                  ) {
                     combatHighlight = 'defender'
                   }
 
@@ -9448,10 +10577,12 @@ function GameBoard({ onTurnInfoChange }) {
                   // when creature with SHADOW STALKER is selected from hand
                   // ============================================
                   const currentPlayerState = gameState.getCurrentPlayerState()
-                  const selectedCreatureCard = selectedCreatureIndex !== null
-                    ? currentPlayerState?.creatureHand?.[selectedCreatureIndex]
-                    : null
-                  const isShadowStalkerHighlight = canDeployInCurrentPhase() &&
+                  const selectedCreatureCard =
+                    selectedCreatureIndex !== null
+                      ? currentPlayerState?.creatureHand?.[selectedCreatureIndex]
+                      : null
+                  const isShadowStalkerHighlight =
+                    canDeployInCurrentPhase() &&
                     selectedCreatureCard &&
                     gameState.hasShadowStalker(selectedCreatureCard) &&
                     !tile.occupant &&
@@ -9467,9 +10598,7 @@ function GameBoard({ onTurnInfoChange }) {
                   let isSummonSpiderHighlight = false
                   let summonSpiderFactionColor = null
 
-                  if (canDeployInCurrentPhase() &&
-                      !tile.occupant &&
-                      tile.terrain !== 'MOUNTAIN') {
+                  if (canDeployInCurrentPhase() && !tile.occupant && tile.terrain !== 'MOUNTAIN') {
                     const priestess = gameState.hasSummonSpider(gameState.currentPlayer)
                     if (priestess?.position) {
                       // Check if tile is within 5 squares of Priestess (Chebyshev distance)
@@ -9477,8 +10606,9 @@ function GameBoard({ onTurnInfoChange }) {
                       const dy = Math.abs(y - priestess.position.y)
                       if (Math.max(dx, dy) <= 5) {
                         // Don't highlight if already in starting zone (it already has the highlight)
-                        const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                                                 tile.startingZoneOwner === gameState.currentPlayer
+                        const isInStartingZone =
+                          tile.terrain === 'STARTING_ZONE' &&
+                          tile.startingZoneOwner === gameState.currentPlayer
                         if (!isInStartingZone) {
                           isSummonSpiderHighlight = true
                           summonSpiderFactionColor = playerFactionColors?.[gameState.currentPlayer]
@@ -9496,21 +10626,23 @@ function GameBoard({ onTurnInfoChange }) {
                   let isLichNecromancerHighlight = false
                   let lichNecromancerFactionColor = null
 
-                  if (canDeployInCurrentPhase() &&
-                      !tile.occupant &&
-                      tile.terrain !== 'MOUNTAIN') {
-                    const lich = gameState.hasLichNecromancerDeploy && gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
+                  if (canDeployInCurrentPhase() && !tile.occupant && tile.terrain !== 'MOUNTAIN') {
+                    const lich =
+                      gameState.hasLichNecromancerDeploy &&
+                      gameState.hasLichNecromancerDeploy(gameState.currentPlayer)
                     if (lich?.position) {
                       // Check if tile is adjacent to Lich (range 1, 8-directional)
                       const dx = Math.abs(x - lich.position.x)
                       const dy = Math.abs(y - lich.position.y)
                       if (Math.max(dx, dy) === 1) {
                         // Don't highlight if already in starting zone (it already has the highlight)
-                        const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                                                 tile.startingZoneOwner === gameState.currentPlayer
+                        const isInStartingZone =
+                          tile.terrain === 'STARTING_ZONE' &&
+                          tile.startingZoneOwner === gameState.currentPlayer
                         if (!isInStartingZone) {
                           isLichNecromancerHighlight = true
-                          lichNecromancerFactionColor = playerFactionColors?.[gameState.currentPlayer]
+                          lichNecromancerFactionColor =
+                            playerFactionColors?.[gameState.currentPlayer]
                         }
                       }
                     }
@@ -9525,18 +10657,19 @@ function GameBoard({ onTurnInfoChange }) {
                   let isOrcDruidHighlight = false
                   let orcDruidFactionColor = null
 
-                  if (canDeployInCurrentPhase() &&
-                      !tile.occupant &&
-                      tile.terrain !== 'MOUNTAIN') {
-                    const druid = gameState.hasOrcDruidDeploy && gameState.hasOrcDruidDeploy(gameState.currentPlayer)
+                  if (canDeployInCurrentPhase() && !tile.occupant && tile.terrain !== 'MOUNTAIN') {
+                    const druid =
+                      gameState.hasOrcDruidDeploy &&
+                      gameState.hasOrcDruidDeploy(gameState.currentPlayer)
                     if (druid?.position) {
                       // Check if tile is adjacent to Orc Druid (range 1, 8-directional)
                       const dx = Math.abs(x - druid.position.x)
                       const dy = Math.abs(y - druid.position.y)
                       if (Math.max(dx, dy) === 1) {
                         // Don't highlight if already in starting zone (it already has the highlight)
-                        const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                                                 tile.startingZoneOwner === gameState.currentPlayer
+                        const isInStartingZone =
+                          tile.terrain === 'STARTING_ZONE' &&
+                          tile.startingZoneOwner === gameState.currentPlayer
                         if (!isInStartingZone) {
                           isOrcDruidHighlight = true
                           orcDruidFactionColor = playerFactionColors?.[gameState.currentPlayer]
@@ -9553,15 +10686,18 @@ function GameBoard({ onTurnInfoChange }) {
                   let isArcanePortalHighlight = false
                   let arcanePortalFactionColor = null
 
-                  if (canDeployInCurrentPhase() &&
-                      selectedCreatureCard &&
-                      gameState.hasArcanePortal &&
-                      gameState.hasArcanePortal(selectedCreatureCard) &&
-                      !tile.occupant &&
-                      tile.terrain === 'MAGIC_CIRCLE') {
+                  if (
+                    canDeployInCurrentPhase() &&
+                    selectedCreatureCard &&
+                    gameState.hasArcanePortal &&
+                    gameState.hasArcanePortal(selectedCreatureCard) &&
+                    !tile.occupant &&
+                    tile.terrain === 'MAGIC_CIRCLE'
+                  ) {
                     // Don't highlight if already in starting zone (it already has the highlight)
-                    const isInStartingZone = tile.terrain === 'STARTING_ZONE' &&
-                                             tile.startingZoneOwner === gameState.currentPlayer
+                    const isInStartingZone =
+                      tile.terrain === 'STARTING_ZONE' &&
+                      tile.startingZoneOwner === gameState.currentPlayer
                     if (!isInStartingZone) {
                       isArcanePortalHighlight = true
                       arcanePortalFactionColor = playerFactionColors?.[gameState.currentPlayer]
@@ -9586,7 +10722,7 @@ function GameBoard({ onTurnInfoChange }) {
                       isSelectedCreatureRangedLOS = rangedRangeInfo?.hasLOS === true
                     } else {
                       // NO CREATURE SELECTED: Show ALL ranged LOS with faction colors
-                      const allRangedLOSInfo = allRangedLOSTiles.find(t => t.x === x && t.y === y)
+                      const allRangedLOSInfo = allRangedLOSTiles.find((t) => t.x === x && t.y === y)
                       if (allRangedLOSInfo?.hasLOS) {
                         isAllRangedLOS = true
                         allRangedLOSCount = allRangedLOSInfo.creatureCount || 0
@@ -9598,9 +10734,10 @@ function GameBoard({ onTurnInfoChange }) {
                   // ============================================
                   // ORDER CARD TARGET HIGHLIGHT: Show valid targets for order card targeting mode
                   // ============================================
-                  const isOrderCardTarget = orderCardTargetingMode &&
+                  const isOrderCardTarget =
+                    orderCardTargetingMode &&
                     creature &&
-                    orderCardValidTargets.some(t => t.instanceId === creature.instanceId)
+                    orderCardValidTargets.some((t) => t.instanceId === creature.instanceId)
 
                   return (
                     <BoardTile
@@ -9610,7 +10747,9 @@ function GameBoard({ onTurnInfoChange }) {
                       isSelected={isSelectedCreature}
                       isValidMove={isValidMove}
                       movementInfo={validMove} // Pass movement info for cost display
-                      isAttackTarget={isAttackTarget || isFlashingBladesTarget || isHiddenBladeTarget}
+                      isAttackTarget={
+                        isAttackTarget || isFlashingBladesTarget || isHiddenBladeTarget
+                      }
                       attackType={attackType}
                       isLineOfSight={isLineOfSight}
                       isAllRangedLOS={isAllRangedLOS}
@@ -9646,7 +10785,9 @@ function GameBoard({ onTurnInfoChange }) {
                       lightningBreathTargetIndex={lightningBreathTargetIndex}
                       isOrderCardTarget={isOrderCardTarget}
                       isWebbed={creature && gameState?.hasMovementBlockingAttachment?.(creature)}
-                      hasDeepWound={creature && gameState?.hasDamageOnActivationAttachment?.(creature)}
+                      hasDeepWound={
+                        creature && gameState?.hasDamageOnActivationAttachment?.(creature)
+                      }
                       isHealingTouchTarget={isHealingTouchTarget}
                       isShiftTile={isShiftTile || isShiftAttackTile}
                       isChargeTile={isChargeTile}
@@ -9659,14 +10800,16 @@ function GameBoard({ onTurnInfoChange }) {
         </div>
 
         {/* Right Panel - Player Panel with collapse toggle */}
-        <div style={{
-          width: isPanelCollapsed ? '5px' : '500px',
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          position: 'relative'
-        }}>
+        <div
+          style={{
+            width: isPanelCollapsed ? '5px' : '500px',
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            position: 'relative',
+          }}
+        >
           {/* Toggle button - always visible on left edge */}
           <button
             className={`panel-toggle-btn ${isPanelCollapsed ? 'collapsed' : ''}`}
@@ -9698,40 +10841,63 @@ function GameBoard({ onTurnInfoChange }) {
                 combatMode={combatPanelMode}
                 attackerCreature={
                   combatPanelMode === 'attack'
-                    ? (pendingRightClickAttack?.attacker || pendingAttack?.attackerInstance)
+                    ? pendingRightClickAttack?.attacker || pendingAttack?.attackerInstance
                     : pendingAttack?.attackerInstance
                 }
                 defenderCreature={
                   combatPanelMode === 'attack'
-                    ? (pendingRightClickAttack?.target || pendingAttack?.defenderInstance)
+                    ? pendingRightClickAttack?.target || pendingAttack?.defenderInstance
                     : pendingAttack?.defenderInstance
                 }
                 attackInfo={
                   combatPanelMode === 'attack'
-                    ? (pendingRightClickAttack?.attackInfo || pendingAttack?.targetInfo)
+                    ? pendingRightClickAttack?.attackInfo || pendingAttack?.targetInfo
                     : pendingAttack?.targetInfo
                 }
                 accumulatedDamageReduction={pendingAttack?.accumulatedDamageReduction || 0}
                 defenderPlayerState={
                   combatPanelMode === 'attack'
-                    ? (pendingRightClickAttack
-                        ? gameState.players[pendingRightClickAttack.target?.owner]
-                        : (pendingAttack ? gameState.players[pendingAttack.defenderInstance?.owner] : null))
-                    : (pendingAttack ? gameState.players[pendingAttack.defenderInstance?.owner] : null)
+                    ? pendingRightClickAttack
+                      ? gameState.players[pendingRightClickAttack.target?.owner]
+                      : pendingAttack
+                        ? gameState.players[pendingAttack.defenderInstance?.owner]
+                        : null
+                    : pendingAttack
+                      ? gameState.players[pendingAttack.defenderInstance?.owner]
+                      : null
                 }
                 gameState={gameState}
-                damageBoostCard={pendingAttack?.damageBoostCard || pendingRightClickAttack?.damageBoostCard || null}
-                damageBoostBonus={pendingAttack?.damageBoostBonus || pendingRightClickAttack?.damageBoostBonus || 0}
-                damageBoostFlat={pendingAttack?.damageBoostFlat !== undefined ? pendingAttack.damageBoostFlat : (pendingRightClickAttack?.damageBoostFlat !== undefined ? pendingRightClickAttack.damageBoostFlat : null)}
+                damageBoostCard={
+                  pendingAttack?.damageBoostCard || pendingRightClickAttack?.damageBoostCard || null
+                }
+                damageBoostBonus={
+                  pendingAttack?.damageBoostBonus || pendingRightClickAttack?.damageBoostBonus || 0
+                }
+                damageBoostFlat={
+                  pendingAttack?.damageBoostFlat !== undefined
+                    ? pendingAttack.damageBoostFlat
+                    : pendingRightClickAttack?.damageBoostFlat !== undefined
+                      ? pendingRightClickAttack.damageBoostFlat
+                      : null
+                }
                 isFlashingBlades={pendingAttack?.isFlashingBlades || false}
                 isHiddenBlade={pendingAttack?.isHiddenBlade || false}
                 onConfirmAttack={
-                  pendingAttack?.isFlashingBlades ? handleFlashingBladesConfirmAttack :
-                  pendingAttack?.isHiddenBlade ? handleHiddenBladeConfirmAttack :
-                  pendingAttack?.isConfusionGaze ? handleConfusionGazeConfirmAttack :
-                  confirmRightClickAttack
+                  pendingAttack?.isFlashingBlades
+                    ? handleFlashingBladesConfirmAttack
+                    : pendingAttack?.isHiddenBlade
+                      ? handleHiddenBladeConfirmAttack
+                      : pendingAttack?.isConfusionGaze
+                        ? handleConfusionGazeConfirmAttack
+                        : confirmRightClickAttack
                 }
-                onCancelAttack={pendingAttack?.isFlashingBlades || pendingAttack?.isHiddenBlade || pendingAttack?.isConfusionGaze ? null : cancelRightClickAttack}
+                onCancelAttack={
+                  pendingAttack?.isFlashingBlades ||
+                  pendingAttack?.isHiddenBlade ||
+                  pendingAttack?.isConfusionGaze
+                    ? null
+                    : cancelRightClickAttack
+                }
                 onLightningBreath={handleLightningBreathStart}
                 onDefenseSelected={handleDefenseSelected}
                 onSkipDefense={handleReactionsSkipped}
@@ -9743,7 +10909,7 @@ function GameBoard({ onTurnInfoChange }) {
                 // VIEW MODE TOGGLE - For switching between movement and ranged preview
                 creatureViewMode={creatureViewMode}
                 onCreatureViewModeToggle={() => {
-                  setCreatureViewMode(mode => mode === 'movement' ? 'ranged' : 'movement')
+                  setCreatureViewMode((mode) => (mode === 'movement' ? 'ranged' : 'movement'))
                 }}
                 selectedBoardCreature={selectedBoardCreature}
                 // GRAVEYARD PROPS - For resurrection
@@ -9774,16 +10940,12 @@ function GameBoard({ onTurnInfoChange }) {
           flexDirection: 'column',
           alignItems: 'flex-end',
           gap: '8px',
-          maxWidth: '400px'
+          maxWidth: '400px',
         }}
       >
         {/* Individual Toasts */}
         {toastMessages.map((toast) => (
-          <ToastNotification
-            key={toast.id}
-            toast={toast}
-            onRemove={removeToast}
-          />
+          <ToastNotification key={toast.id} toast={toast} onRemove={removeToast} />
         ))}
       </div>
 
@@ -9802,47 +10964,57 @@ function GameBoard({ onTurnInfoChange }) {
           {pendingMove && (
             <div>
               <strong>{pendingMove.creature.creature.name}</strong> moves to{' '}
-              <strong>({pendingMove.destination.x}, {pendingMove.destination.y})</strong>
+              <strong>
+                ({pendingMove.destination.x}, {pendingMove.destination.y})
+              </strong>
               <div style={{ marginTop: '0.5rem' }}>
-                Cost: <Badge bg="warning" text="dark">{pendingMove.cost}</Badge> / {pendingMove.creature.creature.speed}
+                Cost:{' '}
+                <Badge bg="warning" text="dark">
+                  {pendingMove.cost}
+                </Badge>{' '}
+                / {pendingMove.creature.creature.speed}
               </div>
-
               {/* Water terrain warning - only show for creatures without flying/phasing immunity */}
-              {pendingMove.destination.terrain === 'WATER' && !gameState.hasFlying(pendingMove.creature) && !gameState.hasPhasing(pendingMove.creature) && (
-                <div
-                  style={{
-                    marginTop: '0.75rem',
-                    padding: '0.5rem',
-                    backgroundColor: '#fff3cd',
-                    border: '2px solid #ff6b6b',
-                    borderRadius: '4px'
-                  }}
-                >
-                  <div style={{ color: '#dc3545', fontWeight: 'bold', marginBottom: '0.25rem' }}>
-                    ⚠️ Water Hazard Warning!
+              {pendingMove.destination.terrain === 'WATER' &&
+                !gameState.hasFlying(pendingMove.creature) &&
+                !gameState.hasPhasing(pendingMove.creature) && (
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      padding: '0.5rem',
+                      backgroundColor: '#fff3cd',
+                      border: '2px solid #ff6b6b',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <div style={{ color: '#dc3545', fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                      ⚠️ Water Hazard Warning!
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#856404' }}>
+                      This creature will take <strong>10 damage</strong> at the end of the ACTIVATE
+                      phase if it remains on water.
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#856404' }}>
-                    This creature will take <strong>10 damage</strong> at the end of the ACTIVATE phase if it remains on water.
-                  </div>
-                </div>
-              )}
-
+                )}
               {/* Flying/Phasing creature on water - no damage */}
-              {pendingMove.destination.terrain === 'WATER' && (gameState.hasFlying(pendingMove.creature) || gameState.hasPhasing(pendingMove.creature)) && (
-                <div
-                  style={{
-                    marginTop: '0.75rem',
-                    padding: '0.5rem',
-                    backgroundColor: '#d1ecf1',
-                    border: '1px solid #bee5eb',
-                    borderRadius: '4px'
-                  }}
-                >
-                  <div style={{ color: '#0c5460', fontSize: '0.85rem' }}>
-                    {gameState.hasFlying(pendingMove.creature) ? '✈️ Flying' : '👻 Phasing'} creature - immune to water damage
+              {pendingMove.destination.terrain === 'WATER' &&
+                (gameState.hasFlying(pendingMove.creature) ||
+                  gameState.hasPhasing(pendingMove.creature)) && (
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      padding: '0.5rem',
+                      backgroundColor: '#d1ecf1',
+                      border: '1px solid #bee5eb',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <div style={{ color: '#0c5460', fontSize: '0.85rem' }}>
+                      {gameState.hasFlying(pendingMove.creature) ? '✈️ Flying' : '👻 Phasing'}{' '}
+                      creature - immune to water damage
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           )}
         </Modal.Body>
@@ -9863,22 +11035,28 @@ function GameBoard({ onTurnInfoChange }) {
         centered
         backdrop="static"
       >
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)', color: '#000' }}>
+        <Modal.Header
+          closeButton
+          style={{ background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)', color: '#000' }}
+        >
           <Modal.Title style={{ fontSize: '1.2rem' }}>💎 Treasure Discovered!</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ color: '#000', fontSize: '0.95rem' }}>
           {discoveredTreasure && (
             <div>
               <p>
-                <strong>{discoveredTreasure.creature.creature.name}</strong> has discovered a treasure!
+                <strong>{discoveredTreasure.creature.creature.name}</strong> has discovered a
+                treasure!
               </p>
-              <div style={{
-                background: 'linear-gradient(135deg, #fff9e6 0%, #ffe6b3 100%)',
-                padding: '1rem',
-                borderRadius: '8px',
-                border: '2px solid #ffd700',
-                textAlign: 'center'
-              }}>
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #fff9e6 0%, #ffe6b3 100%)',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '2px solid #ffd700',
+                  textAlign: 'center',
+                }}
+              >
                 <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💎</div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
                   Morale Available: {discoveredTreasure.treasure.getDisplayString()}
@@ -9894,45 +11072,44 @@ function GameBoard({ onTurnInfoChange }) {
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="primary"
-            onClick={() => setShowTreasureDiscovery(false)}
-          >
+          <Button variant="primary" onClick={() => setShowTreasureDiscovery(false)}>
             OK
           </Button>
         </Modal.Footer>
       </Modal>
 
       {/* Morale Collection Confirmation Modal */}
-      <Modal
-        show={showCollectConfirm}
-        onHide={cancelCollectMorale}
-        centered
-        backdrop="static"
-      >
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)', color: '#000' }}>
+      <Modal show={showCollectConfirm} onHide={cancelCollectMorale} centered backdrop="static">
+        <Modal.Header
+          closeButton
+          style={{ background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 100%)', color: '#000' }}
+        >
           <Modal.Title style={{ fontSize: '1.2rem' }}>💎 Collect Morale?</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ color: '#000', fontSize: '0.95rem' }}>
           {pendingCollection && (
             <div>
               <p>
-                <strong>{pendingCollection.creature.creature.name}</strong> will collect 1 morale from this treasure.
+                <strong>{pendingCollection.creature.creature.name}</strong> will collect 1 morale
+                from this treasure.
               </p>
-              <div style={{
-                background: 'linear-gradient(135deg, #fff9e6 0%, #ffe6b3 100%)',
-                padding: '1rem',
-                borderRadius: '8px',
-                border: '2px solid #ffd700',
-                textAlign: 'center',
-                marginBottom: '1rem'
-              }}>
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #fff9e6 0%, #ffe6b3 100%)',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '2px solid #ffd700',
+                  textAlign: 'center',
+                  marginBottom: '1rem',
+                }}
+              >
                 <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>💎</div>
                 <div style={{ fontSize: '1rem' }}>
                   Current: {pendingCollection.treasure.getDisplayString()}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
-                  After collection: {pendingCollection.treasure.remainingMorale - 1}/{pendingCollection.treasure.moraleValue}
+                  After collection: {pendingCollection.treasure.remainingMorale - 1}/
+                  {pendingCollection.treasure.moraleValue}
                 </div>
               </div>
               <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>
@@ -9975,29 +11152,42 @@ function GameBoard({ onTurnInfoChange }) {
         <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
           {sellswordPending && (
             <div>
-              <p><strong>{sellswordPending.creature.creature.name}</strong> is collecting treasure!</p>
+              <p>
+                <strong>{sellswordPending.creature.creature.name}</strong> is collecting treasure!
+              </p>
               <p style={{ color: '#ffc107' }}>
                 The Drow work for profit above all. Choose your reward:
               </p>
-              <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '15px' }}>
-                <div style={{
-                  padding: '15px',
-                  border: '2px solid #ffc107',
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                  flex: 1
-                }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '20px',
+                  justifyContent: 'center',
+                  marginTop: '15px',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '15px',
+                    border: '2px solid #ffc107',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    flex: 1,
+                  }}
+                >
                   <div style={{ fontSize: '2rem' }}>💰</div>
                   <div style={{ fontWeight: 'bold' }}>+1 Morale</div>
                   <div style={{ fontSize: '0.85rem', color: '#aaa' }}>Standard treasure reward</div>
                 </div>
-                <div style={{
-                  padding: '15px',
-                  border: '2px solid #17a2b8',
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                  flex: 1
-                }}>
+                <div
+                  style={{
+                    padding: '15px',
+                    border: '2px solid #17a2b8',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    flex: 1,
+                  }}
+                >
                   <div style={{ fontSize: '2rem' }}>📜</div>
                   <div style={{ fontWeight: 'bold' }}>Draw 1 Order Card</div>
                   <div style={{ fontSize: '0.85rem', color: '#aaa' }}>More tactical options</div>
@@ -10018,17 +11208,21 @@ function GameBoard({ onTurnInfoChange }) {
 
       {/* DEPLOY CONFIRMATION Panel - Shows leadership cost before deploying creature */}
       {showDeployConfirm && pendingDeployment && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 1050,
-          minWidth: '300px'
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1050,
+            minWidth: '300px',
+          }}
+        >
           <DeployConfirmPanel
             creature={pendingDeployment.creature}
-            currentLeadershipUsage={gameState?.getCurrentPlayerState()?.getCurrentLeadershipUsage() || 0}
+            currentLeadershipUsage={
+              gameState?.getCurrentPlayerState()?.getCurrentLeadershipUsage() || 0
+            }
             maxLeadership={gameState?.getCurrentPlayerState()?.leadership || 0}
             isFromGraveyard={pendingDeployment.isFromGraveyard}
             currentMorale={gameState?.getCurrentPlayerState()?.morale || 0}
@@ -10047,7 +11241,7 @@ function GameBoard({ onTurnInfoChange }) {
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: 1049
+            zIndex: 1049,
           }}
           onClick={handleDeployCancel}
         />
@@ -10055,20 +11249,22 @@ function GameBoard({ onTurnInfoChange }) {
 
       {/* LIGHTNING BREATH Target Selection Panel */}
       {lightningBreathMode && lightningBreathAttacker && (
-        <div style={{
-          position: 'fixed',
-          bottom: '100px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1050,
-          backgroundColor: '#1a1a2e',
-          border: '2px solid #00bcd4',
-          borderRadius: '8px',
-          padding: '15px 25px',
-          boxShadow: '0 0 20px rgba(0, 188, 212, 0.5)',
-          minWidth: '350px',
-          textAlign: 'center'
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '100px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1050,
+            backgroundColor: '#1a1a2e',
+            border: '2px solid #00bcd4',
+            borderRadius: '8px',
+            padding: '15px 25px',
+            boxShadow: '0 0 20px rgba(0, 188, 212, 0.5)',
+            minWidth: '350px',
+            textAlign: 'center',
+          }}
+        >
           <h5 style={{ color: '#00bcd4', marginBottom: '10px' }}>
             ⚡ LIGHTNING BREATH - Target Selection
           </h5>
@@ -10083,7 +11279,9 @@ function GameBoard({ onTurnInfoChange }) {
                 style={{ margin: '2px 4px', fontSize: '0.9rem', cursor: 'pointer' }}
                 onClick={() => {
                   // Remove this target from selection
-                  setLightningBreathTargets(prev => prev.filter(t => t.instanceId !== target.instanceId))
+                  setLightningBreathTargets((prev) =>
+                    prev.filter((t) => t.instanceId !== target.instanceId)
+                  )
                   addToast(`Removed ${target.creature.name} from Lightning Breath targets`)
                 }}
                 title="Click to remove this target"
@@ -10110,11 +11308,7 @@ function GameBoard({ onTurnInfoChange }) {
             >
               ⚡ Confirm Attack ({lightningBreathTargets.length} targets)
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleLightningBreathCancel}
-            >
+            <Button variant="secondary" size="sm" onClick={handleLightningBreathCancel}>
               Cancel
             </Button>
           </div>
@@ -10136,10 +11330,12 @@ function GameBoard({ onTurnInfoChange }) {
             <div>
               <p>
                 <strong>{flashingBladesPending.attacker.creature.name}</strong> can deal{' '}
-                <span style={{ color: '#dc3545', fontWeight: 'bold' }}>10 damage</span> to an adjacent enemy!
+                <span style={{ color: '#dc3545', fontWeight: 'bold' }}>10 damage</span> to an
+                adjacent enemy!
               </p>
               <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
-                Valid targets: {flashingBladesPending.validTargets.map(t => t.creature.name).join(', ')}
+                Valid targets:{' '}
+                {flashingBladesPending.validTargets.map((t) => t.creature.name).join(', ')}
               </p>
               <p style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '10px' }}>
                 Click "Use Ability" then right-click on a highlighted target to attack.
@@ -10158,12 +11354,7 @@ function GameBoard({ onTurnInfoChange }) {
       </Modal>
 
       {/* HIDDEN BLADE Ability Modal - Choose to strike adjacent tapped enemy */}
-      <Modal
-        show={showHiddenBladeModal}
-        onHide={handleHiddenBladeSkip}
-        centered
-        backdrop="static"
-      >
+      <Modal show={showHiddenBladeModal} onHide={handleHiddenBladeSkip} centered backdrop="static">
         <Modal.Header style={{ backgroundColor: '#2d1f3d', color: 'white' }}>
           <Modal.Title>🗡️ HIDDEN BLADE - Strike from the Shadows!</Modal.Title>
         </Modal.Header>
@@ -10172,11 +11363,12 @@ function GameBoard({ onTurnInfoChange }) {
             <div>
               <p>
                 <strong>{hiddenBladePending.attacker.creature.name}</strong> can strike a{' '}
-                <span style={{ color: '#ffc107', fontWeight: 'bold' }}>tapped</span> adjacent enemy for{' '}
-                <span style={{ color: '#dc3545', fontWeight: 'bold' }}>10 damage</span>!
+                <span style={{ color: '#ffc107', fontWeight: 'bold' }}>tapped</span> adjacent enemy
+                for <span style={{ color: '#dc3545', fontWeight: 'bold' }}>10 damage</span>!
               </p>
               <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
-                Valid targets: {hiddenBladePending.validTargets.map(t => t.creature.name).join(', ')}
+                Valid targets:{' '}
+                {hiddenBladePending.validTargets.map((t) => t.creature.name).join(', ')}
               </p>
               <p style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '10px' }}>
                 Click "Use Ability" then right-click on a highlighted target to attack.
@@ -10209,7 +11401,10 @@ function GameBoard({ onTurnInfoChange }) {
             <div>
               <p>
                 Use <strong>CONFUSION GAZE</strong> on{' '}
-                <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>{confusionGazePending.target.creature.name}</span>?
+                <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
+                  {confusionGazePending.target.creature.name}
+                </span>
+                ?
               </p>
               <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
                 Slide the target up to <strong>3 squares</strong>, then make a{' '}
@@ -10255,8 +11450,8 @@ function GameBoard({ onTurnInfoChange }) {
             </p>
             {notAdjacentErrorModal.hasDamageBoost && (
               <p style={{ fontSize: '0.9rem', color: '#ffc107', marginTop: '10px' }}>
-                💡 <strong>Tip:</strong> Use <strong>Confusion Gaze</strong> to attack distant enemies
-                (up to 5 tiles away). The damage boost will still apply!
+                💡 <strong>Tip:</strong> Use <strong>Confusion Gaze</strong> to attack distant
+                enemies (up to 5 tiles away). The damage boost will still apply!
               </p>
             )}
           </div>
@@ -10269,12 +11464,7 @@ function GameBoard({ onTurnInfoChange }) {
       </Modal>
 
       {/* SLAM Decision Modal - Choose to slide the damaged creature */}
-      <Modal
-        show={showSlamModal}
-        onHide={handleSlamSkip}
-        centered
-        backdrop="static"
-      >
+      <Modal show={showSlamModal} onHide={handleSlamSkip} centered backdrop="static">
         <Modal.Header style={{ backgroundColor: '#8B4513', color: 'white' }}>
           <Modal.Title>SLAM!</Modal.Title>
         </Modal.Header>
@@ -10283,11 +11473,14 @@ function GameBoard({ onTurnInfoChange }) {
             <div>
               <p>
                 <strong>{slamPending.attackerInstance.creature.name}</strong> can slam{' '}
-                <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>{slamPending.targetInstance.creature.name}</span>{' '}
+                <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
+                  {slamPending.targetInstance.creature.name}
+                </span>{' '}
                 up to <strong>3 tiles</strong>!
               </p>
               <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
-                Click <strong>Slide</strong> to choose where to slam the creature, or <strong>Skip</strong> to end your attack.
+                Click <strong>Slide</strong> to choose where to slam the creature, or{' '}
+                <strong>Skip</strong> to end your attack.
               </p>
             </div>
           )}
@@ -10316,8 +11509,15 @@ function GameBoard({ onTurnInfoChange }) {
           {slamPending && slamSelectedTile && (
             <div>
               <p>
-                Slam <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>{slamPending.targetInstance.creature.name}</span>{' '}
-                to position <strong>({slamSelectedTile.x}, {slamSelectedTile.y})</strong>?
+                Slam{' '}
+                <span style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
+                  {slamPending.targetInstance.creature.name}
+                </span>{' '}
+                to position{' '}
+                <strong>
+                  ({slamSelectedTile.x}, {slamSelectedTile.y})
+                </strong>
+                ?
               </p>
             </div>
           )}
@@ -10348,82 +11548,112 @@ function GameBoard({ onTurnInfoChange }) {
         <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
           {versatileActionPending && (
             <div>
-              <p><strong>{versatileActionPending.creature.name}</strong> has already moved this turn.</p>
+              <p>
+                <strong>{versatileActionPending.creature.name}</strong> has already moved this turn.
+              </p>
               <p style={{ color: '#5bc0de' }}>
-                Use your <strong>standard action</strong> to move again up to {versatileActionPending.creature.speed} tiles?
+                Use your <strong>standard action</strong> to move again up to{' '}
+                {versatileActionPending.creature.speed} tiles?
               </p>
               <p style={{ fontSize: '0.9rem', color: '#ffc107' }}>
-                Warning: This will consume your action - you will NOT be able to attack after this move!
+                Warning: This will consume your action - you will NOT be able to attack after this
+                move!
               </p>
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <Modal.Footer
+          style={{
+            backgroundColor: '#212529',
+            justifyContent: 'center',
+            gap: '10px',
+            flexWrap: 'wrap',
+          }}
+        >
           {/* ============================================
               NEW BUTTONS: Don't Use Ability, Decide Later, Move as Action
               O(1) Set operations for tracking declined creatures
               ============================================ */}
 
           {/* DON'T USE ABILITY - O(1) Set add, selects creature, won't show modal again this turn */}
-          <Button variant="danger" onClick={() => {
-            if (versatileActionPending) {
-              // O(1) - Add to declined set so modal won't show again for this creature this turn
-              setVersatileDeclinedCreatures(prev => new Set(prev).add(versatileActionPending.id))
-              // Select the creature normally (allows Collect Morale, etc.)
-              setSelectedBoardCreature(versatileActionPending)
-              // Calculate valid moves (even though they've moved, show where they could go)
-              const moves = gameState.getValidMovementTiles(versatileActionPending)
-              setValidMoveTiles(moves)
-              // Calculate valid attack targets
-              const targets = gameState.getValidAttackTargets(versatileActionPending)
-                .filter(target => gameState.activePlayers.includes(target.creature.owner))
-              setValidAttackTargets(targets)
-              addToast(`${versatileActionPending.creature.name} selected - Versatile ability declined for this turn.`)
-            }
-            setShowVersatileActionModal(false)
-            setVersatileActionPending(null)
-          }}>
+          <Button
+            variant="danger"
+            onClick={() => {
+              if (versatileActionPending) {
+                // O(1) - Add to declined set so modal won't show again for this creature this turn
+                setVersatileDeclinedCreatures((prev) =>
+                  new Set(prev).add(versatileActionPending.id)
+                )
+                // Select the creature normally (allows Collect Morale, etc.)
+                setSelectedBoardCreature(versatileActionPending)
+                // Calculate valid moves (even though they've moved, show where they could go)
+                const moves = gameState.getValidMovementTiles(versatileActionPending)
+                setValidMoveTiles(moves)
+                // Calculate valid attack targets
+                const targets = gameState
+                  .getValidAttackTargets(versatileActionPending)
+                  .filter((target) => gameState.activePlayers.includes(target.creature.owner))
+                setValidAttackTargets(targets)
+                addToast(
+                  `${versatileActionPending.creature.name} selected - Versatile ability declined for this turn.`
+                )
+              }
+              setShowVersatileActionModal(false)
+              setVersatileActionPending(null)
+            }}
+          >
             ❌ Don't Use Ability
           </Button>
 
           {/* DECIDE LATER - Selects creature, clicking again will re-show modal */}
-          <Button variant="secondary" onClick={() => {
-            if (versatileActionPending) {
-              // Select the creature normally (allows seeing movement path)
-              setSelectedBoardCreature(versatileActionPending)
-              // Calculate valid moves
-              const moves = gameState.getValidMovementTiles(versatileActionPending)
-              setValidMoveTiles(moves)
-              // Calculate valid attack targets
-              const targets = gameState.getValidAttackTargets(versatileActionPending)
-                .filter(target => gameState.activePlayers.includes(target.creature.owner))
-              setValidAttackTargets(targets)
-              addToast(`${versatileActionPending.creature.name} selected - Click again to use Versatile ability.`)
-            }
-            setShowVersatileActionModal(false)
-            setVersatileActionPending(null)
-          }}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              if (versatileActionPending) {
+                // Select the creature normally (allows seeing movement path)
+                setSelectedBoardCreature(versatileActionPending)
+                // Calculate valid moves
+                const moves = gameState.getValidMovementTiles(versatileActionPending)
+                setValidMoveTiles(moves)
+                // Calculate valid attack targets
+                const targets = gameState
+                  .getValidAttackTargets(versatileActionPending)
+                  .filter((target) => gameState.activePlayers.includes(target.creature.owner))
+                setValidAttackTargets(targets)
+                addToast(
+                  `${versatileActionPending.creature.name} selected - Click again to use Versatile ability.`
+                )
+              }
+              setShowVersatileActionModal(false)
+              setVersatileActionPending(null)
+            }}
+          >
             🕐 Decide Later
           </Button>
 
           {/* MOVE AS ACTION - Original functionality */}
-          <Button variant="primary" onClick={() => {
-            // Enable movement mode for the creature
-            if (versatileActionPending) {
-              // Reset hasMovedThisTurn so they can move again
-              versatileActionPending.hasMovedThisTurn = false
-              // Mark that we're using versatile so completing move taps the creature
-              versatileActionPending.usingVersatileMove = true
-              // Set this creature as selected for movement
-              setSelectedBoardCreature(versatileActionPending)
-              const moves = gameState.getValidMovementTiles(versatileActionPending)
-              setValidMoveTiles(moves)
-              setValidAttackTargets([]) // Clear attack targets since using action to move
-              addToast(`VERSATILE: ${versatileActionPending.creature.name} can move again using their action!`)
-            }
-            setShowVersatileActionModal(false)
-            setVersatileActionPending(null)
-          }}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              // Enable movement mode for the creature
+              if (versatileActionPending) {
+                // Reset hasMovedThisTurn so they can move again
+                versatileActionPending.hasMovedThisTurn = false
+                // Mark that we're using versatile so completing move taps the creature
+                versatileActionPending.usingVersatileMove = true
+                // Set this creature as selected for movement
+                setSelectedBoardCreature(versatileActionPending)
+                const moves = gameState.getValidMovementTiles(versatileActionPending)
+                setValidMoveTiles(moves)
+                setValidAttackTargets([]) // Clear attack targets since using action to move
+                addToast(
+                  `VERSATILE: ${versatileActionPending.creature.name} can move again using their action!`
+                )
+              }
+              setShowVersatileActionModal(false)
+              setVersatileActionPending(null)
+            }}
+          >
             🏃 Move as Action
           </Button>
         </Modal.Footer>
@@ -10439,29 +11669,53 @@ function GameBoard({ onTurnInfoChange }) {
         centered
         backdrop="static"
       >
-        <Modal.Header closeButton style={{ backgroundColor: '#17a2b8', color: 'white', borderBottom: '1px solid #138496' }}>
+        <Modal.Header
+          closeButton
+          style={{ backgroundColor: '#17a2b8', color: 'white', borderBottom: '1px solid #138496' }}
+        >
           <Modal.Title>📜 SCROLLBOOK</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
           {scrollbookCardIndex !== null && currentPlayer && (
             <div>
-              <p>Discard <strong style={{ color: '#17a2b8' }}>{currentPlayer.orderHand[scrollbookCardIndex]?.name}</strong> to draw a new Order card?</p>
-              <p style={{ fontSize: '0.9rem', color: '#adb5bd' }}>This ability can only be used once per turn.</p>
+              <p>
+                Discard{' '}
+                <strong style={{ color: '#17a2b8' }}>
+                  {currentPlayer.orderHand[scrollbookCardIndex]?.name}
+                </strong>{' '}
+                to draw a new Order card?
+              </p>
+              <p style={{ fontSize: '0.9rem', color: '#adb5bd' }}>
+                This ability can only be used once per turn.
+              </p>
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444', justifyContent: 'center', gap: '20px' }}>
-          <Button variant="secondary" onClick={() => {
-            setShowScrollbookModal(false)
-            setScrollbookCardIndex(null)
-          }}>
+        <Modal.Footer
+          style={{
+            backgroundColor: '#212529',
+            borderTop: '1px solid #444',
+            justifyContent: 'center',
+            gap: '20px',
+          }}
+        >
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowScrollbookModal(false)
+              setScrollbookCardIndex(null)
+            }}
+          >
             Cancel
           </Button>
-          <Button variant="info" onClick={() => {
-            handleScrollbookUse(scrollbookCardIndex)
-            setShowScrollbookModal(false)
-            setScrollbookCardIndex(null)
-          }}>
+          <Button
+            variant="info"
+            onClick={() => {
+              handleScrollbookUse(scrollbookCardIndex)
+              setShowScrollbookModal(false)
+              setScrollbookCardIndex(null)
+            }}
+          >
             📜 Use SCROLLBOOK
           </Button>
         </Modal.Footer>
@@ -10481,96 +11735,111 @@ function GameBoard({ onTurnInfoChange }) {
           <Modal.Title>⚔️ HORDE - Deploy During Refresh!</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
-          {gameState && (() => {
-            const player = gameState.getCurrentPlayerState()
-            const availableCreatures = player?.creatureHand || []
-            const currentLeadership = player?.leadership || 0
-            const usedLeadership = player?.creaturesInPlay?.reduce((sum, c) => sum + (c.creature?.level || 0), 0) || 0
-            const availableLeadership = currentLeadership - usedLeadership
+          {gameState &&
+            (() => {
+              const player = gameState.getCurrentPlayerState()
+              const availableCreatures = player?.creatureHand || []
+              const currentLeadership = player?.leadership || 0
+              const usedLeadership =
+                player?.creaturesInPlay?.reduce((sum, c) => sum + (c.creature?.level || 0), 0) || 0
+              const availableLeadership = currentLeadership - usedLeadership
 
-            return (
-              <div>
-                <p style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
-                  Snig the Axe's HORDE ability lets you deploy creatures NOW!
-                </p>
-                <div style={{
-                  backgroundColor: '#1a1d21',
-                  padding: '10px',
-                  borderRadius: '5px',
-                  marginBottom: '15px'
-                }}>
-                  <p style={{ margin: 0 }}>
-                    <strong>Leadership Available:</strong>{' '}
-                    <span style={{ color: '#5bc0de', fontSize: '1.2rem' }}>{availableLeadership}</span>
-                    <span style={{ color: '#888', marginLeft: '10px' }}>
-                      ({usedLeadership} / {currentLeadership} used)
-                    </span>
+              return (
+                <div>
+                  <p style={{ color: '#ff6b6b', fontWeight: 'bold' }}>
+                    Snig the Axe's HORDE ability lets you deploy creatures NOW!
                   </p>
-                </div>
-
-                {availableCreatures.length > 0 ? (
-                  <div>
-                    <p><strong>Creatures in Hand:</strong></p>
-                    <div style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '10px',
-                      maxHeight: '200px',
-                      overflowY: 'auto'
-                    }}>
-                      {availableCreatures.map((creature, idx) => {
-                        const canAfford = creature.level <= availableLeadership
-                        return (
-                          <div
-                            key={idx}
-                            style={{
-                              backgroundColor: canAfford ? '#2d4a3e' : '#4a2d2d',
-                              border: `2px solid ${canAfford ? '#5cb85c' : '#d9534f'}`,
-                              borderRadius: '5px',
-                              padding: '8px',
-                              minWidth: '120px',
-                              textAlign: 'center'
-                            }}
-                          >
-                            <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
-                              {creature.name}
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
-                              Level: {creature.level}
-                            </div>
-                            <div style={{
-                              fontSize: '0.75rem',
-                              color: canAfford ? '#5cb85c' : '#d9534f'
-                            }}>
-                              {canAfford ? '✓ Can Deploy' : '✗ Too Expensive'}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <p style={{ marginTop: '15px', color: '#ffc107', fontSize: '0.9rem' }}>
-                      Close this window to deploy creatures by clicking/dragging them to your starting zone.
+                  <div
+                    style={{
+                      backgroundColor: '#1a1d21',
+                      padding: '10px',
+                      borderRadius: '5px',
+                      marginBottom: '15px',
+                    }}
+                  >
+                    <p style={{ margin: 0 }}>
+                      <strong>Leadership Available:</strong>{' '}
+                      <span style={{ color: '#5bc0de', fontSize: '1.2rem' }}>
+                        {availableLeadership}
+                      </span>
+                      <span style={{ color: '#888', marginLeft: '10px' }}>
+                        ({usedLeadership} / {currentLeadership} used)
+                      </span>
                     </p>
                   </div>
-                ) : (
-                  <p style={{ color: '#888' }}>No creatures in hand to deploy.</p>
-                )}
 
-                <div style={{
-                  marginTop: '15px',
-                  padding: '10px',
-                  backgroundColor: '#3d2b1f',
-                  borderRadius: '5px',
-                  borderLeft: '4px solid #ffc107'
-                }}>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#ffc107' }}>
-                    <strong>Note:</strong> Creatures deployed during REFRESH phase will NOT be protected
-                    from attacks once your ACTIVATE phase begins!
-                  </p>
+                  {availableCreatures.length > 0 ? (
+                    <div>
+                      <p>
+                        <strong>Creatures in Hand:</strong>
+                      </p>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '10px',
+                          maxHeight: '200px',
+                          overflowY: 'auto',
+                        }}
+                      >
+                        {availableCreatures.map((creature, idx) => {
+                          const canAfford = creature.level <= availableLeadership
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                backgroundColor: canAfford ? '#2d4a3e' : '#4a2d2d',
+                                border: `2px solid ${canAfford ? '#5cb85c' : '#d9534f'}`,
+                                borderRadius: '5px',
+                                padding: '8px',
+                                minWidth: '120px',
+                                textAlign: 'center',
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                {creature.name}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                                Level: {creature.level}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '0.75rem',
+                                  color: canAfford ? '#5cb85c' : '#d9534f',
+                                }}
+                              >
+                                {canAfford ? '✓ Can Deploy' : '✗ Too Expensive'}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <p style={{ marginTop: '15px', color: '#ffc107', fontSize: '0.9rem' }}>
+                        Close this window to deploy creatures by clicking/dragging them to your
+                        starting zone.
+                      </p>
+                    </div>
+                  ) : (
+                    <p style={{ color: '#888' }}>No creatures in hand to deploy.</p>
+                  )}
+
+                  <div
+                    style={{
+                      marginTop: '15px',
+                      padding: '10px',
+                      backgroundColor: '#3d2b1f',
+                      borderRadius: '5px',
+                      borderLeft: '4px solid #ffc107',
+                    }}
+                  >
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#ffc107' }}>
+                      <strong>Note:</strong> Creatures deployed during REFRESH phase will NOT be
+                      protected from attacks once your ACTIVATE phase begins!
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )
-          })()}
+              )
+            })()}
         </Modal.Body>
         <Modal.Footer style={{ backgroundColor: '#212529', justifyContent: 'center', gap: '20px' }}>
           <Button
@@ -10587,7 +11856,7 @@ function GameBoard({ onTurnInfoChange }) {
               // Clear any deployment protection for creatures deployed this refresh
               // (they should NOT be protected since it's their own turn)
               const player = gameState.getCurrentPlayerState()
-              player.creaturesInPlay.forEach(creature => {
+              player.creaturesInPlay.forEach((creature) => {
                 if (creature.deployedThisTurn && creature.turnDeployed === gameState.turnNumber) {
                   creature.clearDeploymentProtection()
                 }
@@ -10597,7 +11866,7 @@ function GameBoard({ onTurnInfoChange }) {
               setShowHordeModal(false)
               setHordeRefreshExecuted(false)
               gameState.advancePhase()
-              setRenderCounter(prev => prev + 1)
+              setRenderCounter((prev) => prev + 1)
             }}
           >
             ✓ Done Deploying
@@ -10811,7 +12080,9 @@ function GameBoard({ onTurnInfoChange }) {
         backdrop="static"
         className="damage-notification-modal"
       >
-        <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}>
+        <Modal.Header
+          style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}
+        >
           <Modal.Title>
             <span style={{ color: '#17a2b8' }}>👻</span> INSUBSTANTIAL
           </Modal.Title>
@@ -10832,7 +12103,9 @@ function GameBoard({ onTurnInfoChange }) {
                 )}
                 <div className="mt-2">
                   <strong>{insubstantialData.defenderInstance?.creature?.name}</strong>
-                  <Badge bg="info" className="ms-2">INSUBSTANTIAL</Badge>
+                  <Badge bg="info" className="ms-2">
+                    INSUBSTANTIAL
+                  </Badge>
                 </div>
               </div>
 
@@ -10842,15 +12115,16 @@ function GameBoard({ onTurnInfoChange }) {
                   <strong>💨 {insubstantialData.damageBlocked} damage blocked!</strong>
                 </div>
                 <div className="mt-2">
-                  {insubstantialData.defenderInstance?.creature?.name} became insubstantial,
-                  phasing through the attack from {insubstantialData.attackerInstance?.creature?.name || 'the enemy'}!
+                  {insubstantialData.defenderInstance?.creature?.name} became insubstantial, phasing
+                  through the attack from{' '}
+                  {insubstantialData.attackerInstance?.creature?.name || 'the enemy'}!
                 </div>
               </Alert>
 
               {/* Warning about ability reset */}
               <Alert variant="warning" className="mb-0">
-                <strong>⚠️ Note:</strong> INSUBSTANTIAL will not be available again until the
-                next <strong>Curse of Undeath Refresh Phase</strong>.
+                <strong>⚠️ Note:</strong> INSUBSTANTIAL will not be available again until the next{' '}
+                <strong>Curse of Undeath Refresh Phase</strong>.
               </Alert>
             </>
           )}
@@ -10872,120 +12146,157 @@ function GameBoard({ onTurnInfoChange }) {
         backdrop="static"
         className="damage-notification-modal"
       >
-        <Modal.Header style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #6c757d' }}>
+        <Modal.Header
+          style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #6c757d' }}
+        >
           <Modal.Title>
             <span style={{ color: '#adb5bd' }}>🐴</span> RIDER - Deploy Replacement Creature
           </Modal.Title>
         </Modal.Header>
 
         <Modal.Body style={{ backgroundColor: '#2c2f33', color: 'white' }}>
-          {riderData && (() => {
-            const riderOwner = gameState?.players[riderData.ownerPlayerId]
-            const currentLeadership = riderOwner?.leadership || 0
-            const currentMorale = riderOwner?.morale || 0
-            // Faction-specific creature type text
-            const creatureTypeText = riderData.faction === 'Tyranny of Goblins'
-              ? 'Goblin or Wolf'
-              : 'Skeleton'
-            return (
-            <>
-              {/* Explanation Alert */}
-              <Alert variant="info" style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}>
-                <strong>{riderData.destroyedCreature}</strong> was destroyed!
-                <br />
-                You may deploy a {creatureTypeText} creature (Level 3 or lower) from your hand to tile ({riderData.position?.x}, {riderData.position?.y}).
-              </Alert>
+          {riderData &&
+            (() => {
+              const riderOwner = gameState?.players[riderData.ownerPlayerId]
+              const currentLeadership = riderOwner?.leadership || 0
+              const currentMorale = riderOwner?.morale || 0
+              // Faction-specific creature type text
+              const creatureTypeText =
+                riderData.faction === 'Tyranny of Goblins' ? 'Goblin or Wolf' : 'Skeleton'
+              return (
+                <>
+                  {/* Explanation Alert */}
+                  <Alert
+                    variant="info"
+                    style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}
+                  >
+                    <strong>{riderData.destroyedCreature}</strong> was destroyed!
+                    <br />
+                    You may deploy a {creatureTypeText} creature (Level 3 or lower) from your hand
+                    to tile ({riderData.position?.x}, {riderData.position?.y}).
+                  </Alert>
 
-              {/* Current Player Stats */}
-              <div style={{
-                backgroundColor: '#1a1d21',
-                padding: '12px 15px',
-                borderRadius: '8px',
-                marginBottom: '15px',
-                display: 'flex',
-                justifyContent: 'space-around',
-                alignItems: 'center'
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ color: '#ffc107', fontSize: '1.5rem', fontWeight: 'bold' }}>
-                    {currentLeadership}
-                  </div>
-                  <div style={{ color: '#aaa', fontSize: '0.85rem' }}>Current Leadership</div>
-                </div>
-                <div style={{ borderLeft: '1px solid #444', height: '40px' }}></div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ color: '#dc3545', fontSize: '1.5rem', fontWeight: 'bold' }}>
-                    {currentMorale}
-                  </div>
-                  <div style={{ color: '#aaa', fontSize: '0.85rem' }}>Current Morale</div>
-                </div>
-              </div>
-
-              {/* Creature Selection Cards */}
-              <p className="mb-3"><strong>Select a {creatureTypeText} to deploy:</strong></p>
-              <Row className="g-3 justify-content-center">
-                {riderData.eligibleCreatures.map((creature, index) => {
-                  const moraleCost = riderData.creatureLevel - creature.level
-                  const isSelected = selectedRiderCreature?.id === creature.id
-                  return (
-                    <Col key={index} xs={12} sm={6} md={4}>
-                      <div
-                        onClick={() => setSelectedRiderCreature(creature)}
-                        style={{
-                          cursor: 'pointer',
-                          padding: '15px',
-                          border: isSelected ? '3px solid #28a745' : '2px solid #6c757d',
-                          borderRadius: '10px',
-                          backgroundColor: isSelected ? 'rgba(40, 167, 69, 0.2)' : 'rgba(255,255,255,0.05)',
-                          textAlign: 'center',
-                          transition: 'all 0.2s ease',
-                          boxShadow: isSelected ? '0 0 15px rgba(40, 167, 69, 0.5)' : 'none'
-                        }}
-                      >
-                        {/* Creature Image */}
-                        {creature.imageUrl && (
-                          <img
-                            src={creature.imageUrl}
-                            alt={creature.name}
-                            style={{
-                              maxHeight: '150px',
-                              maxWidth: '100%',
-                              borderRadius: '6px',
-                              marginBottom: '10px',
-                              border: '1px solid #555'
-                            }}
-                          />
-                        )}
-
-                        {/* Creature Name & Level */}
-                        <div><strong>{creature.name}</strong></div>
-                        <Badge bg="secondary" className="mt-1">Level {creature.level}</Badge>
-
-                        {/* Stats Display */}
-                        <div style={{ marginTop: '10px', padding: '8px', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '5px' }}>
-                          <div><small>HP: {creature.hitPoints} | Speed: {creature.speed}</small></div>
-                          <div><small>Melee: {creature.meleeAttack?.damage || 'N/A'}</small></div>
-                          <div style={{ color: '#ffc107', marginTop: '5px', fontWeight: 'bold' }}>
-                            Leadership: {creature.level}
-                          </div>
-                          <div style={{ color: '#dc3545', fontWeight: 'bold' }}>
-                            Morale cost: {moraleCost}
-                          </div>
-                          <div style={{ color: '#28a745', fontSize: '0.85rem' }}>
-                            (Save {riderData.creatureLevel - moraleCost} morale vs full loss)
-                          </div>
-                        </div>
+                  {/* Current Player Stats */}
+                  <div
+                    style={{
+                      backgroundColor: '#1a1d21',
+                      padding: '12px 15px',
+                      borderRadius: '8px',
+                      marginBottom: '15px',
+                      display: 'flex',
+                      justifyContent: 'space-around',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#ffc107', fontSize: '1.5rem', fontWeight: 'bold' }}>
+                        {currentLeadership}
                       </div>
-                    </Col>
-                  )
-                })}
-              </Row>
-            </>
-            )
-          })()}
+                      <div style={{ color: '#aaa', fontSize: '0.85rem' }}>Current Leadership</div>
+                    </div>
+                    <div style={{ borderLeft: '1px solid #444', height: '40px' }}></div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ color: '#dc3545', fontSize: '1.5rem', fontWeight: 'bold' }}>
+                        {currentMorale}
+                      </div>
+                      <div style={{ color: '#aaa', fontSize: '0.85rem' }}>Current Morale</div>
+                    </div>
+                  </div>
+
+                  {/* Creature Selection Cards */}
+                  <p className="mb-3">
+                    <strong>Select a {creatureTypeText} to deploy:</strong>
+                  </p>
+                  <Row className="g-3 justify-content-center">
+                    {riderData.eligibleCreatures.map((creature, index) => {
+                      const moraleCost = riderData.creatureLevel - creature.level
+                      const isSelected = selectedRiderCreature?.id === creature.id
+                      return (
+                        <Col key={index} xs={12} sm={6} md={4}>
+                          <div
+                            onClick={() => setSelectedRiderCreature(creature)}
+                            style={{
+                              cursor: 'pointer',
+                              padding: '15px',
+                              border: isSelected ? '3px solid #28a745' : '2px solid #6c757d',
+                              borderRadius: '10px',
+                              backgroundColor: isSelected
+                                ? 'rgba(40, 167, 69, 0.2)'
+                                : 'rgba(255,255,255,0.05)',
+                              textAlign: 'center',
+                              transition: 'all 0.2s ease',
+                              boxShadow: isSelected ? '0 0 15px rgba(40, 167, 69, 0.5)' : 'none',
+                            }}
+                          >
+                            {/* Creature Image */}
+                            {creature.imageUrl && (
+                              <img
+                                src={creature.imageUrl}
+                                alt={creature.name}
+                                style={{
+                                  maxHeight: '150px',
+                                  maxWidth: '100%',
+                                  borderRadius: '6px',
+                                  marginBottom: '10px',
+                                  border: '1px solid #555',
+                                }}
+                              />
+                            )}
+
+                            {/* Creature Name & Level */}
+                            <div>
+                              <strong>{creature.name}</strong>
+                            </div>
+                            <Badge bg="secondary" className="mt-1">
+                              Level {creature.level}
+                            </Badge>
+
+                            {/* Stats Display */}
+                            <div
+                              style={{
+                                marginTop: '10px',
+                                padding: '8px',
+                                backgroundColor: 'rgba(0,0,0,0.3)',
+                                borderRadius: '5px',
+                              }}
+                            >
+                              <div>
+                                <small>
+                                  HP: {creature.hitPoints} | Speed: {creature.speed}
+                                </small>
+                              </div>
+                              <div>
+                                <small>Melee: {creature.meleeAttack?.damage || 'N/A'}</small>
+                              </div>
+                              <div
+                                style={{ color: '#ffc107', marginTop: '5px', fontWeight: 'bold' }}
+                              >
+                                Leadership: {creature.level}
+                              </div>
+                              <div style={{ color: '#dc3545', fontWeight: 'bold' }}>
+                                Morale cost: {moraleCost}
+                              </div>
+                              <div style={{ color: '#28a745', fontSize: '0.85rem' }}>
+                                (Save {riderData.creatureLevel - moraleCost} morale vs full loss)
+                              </div>
+                            </div>
+                          </div>
+                        </Col>
+                      )
+                    })}
+                  </Row>
+                </>
+              )
+            })()}
         </Modal.Body>
 
-        <Modal.Footer style={{ backgroundColor: '#212529', borderTop: '1px solid #444', justifyContent: 'space-between' }}>
+        <Modal.Footer
+          style={{
+            backgroundColor: '#212529',
+            borderTop: '1px solid #444',
+            justifyContent: 'space-between',
+          }}
+        >
           <div>
             <span style={{ color: '#dc3545', fontSize: '0.9rem' }}>
               Declining = full {riderData?.creatureLevel || 4} morale loss
@@ -11015,11 +12326,14 @@ function GameBoard({ onTurnInfoChange }) {
         backdrop="static"
         className="damage-notification-modal"
       >
-        <Modal.Header closeButton style={{
-          backgroundColor: '#212529',
-          color: 'white',
-          borderBottom: '2px solid #9932cc'
-        }}>
+        <Modal.Header
+          closeButton
+          style={{
+            backgroundColor: '#212529',
+            color: 'white',
+            borderBottom: '2px solid #9932cc',
+          }}
+        >
           <Modal.Title>
             <span style={{ color: '#9932cc' }}>🔮</span> Magic Circle Aura
           </Modal.Title>
@@ -11029,11 +12343,18 @@ function GameBoard({ onTurnInfoChange }) {
           {magicCircleModalData && (
             <>
               {magicCircleModalData.activated && (
-                <Alert variant="success" style={{ backgroundColor: '#1a4a3a', border: 'none', color: 'white' }}>
+                <Alert
+                  variant="success"
+                  style={{ backgroundColor: '#1a4a3a', border: 'none', color: 'white' }}
+                >
                   <strong>{magicCircleModalData.sorcererName}</strong> has entered a Magic Circle!
-                  <br /><br />
+                  <br />
+                  <br />
                   <strong>All Goblins, Hobgoblins, and Bugbears</strong> controlled by{' '}
-                  {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? 'you' : 'the opponent'} now gain:
+                  {magicCircleModalData.sorcererOwner === gameState?.currentPlayer
+                    ? 'you'
+                    : 'the opponent'}{' '}
+                  now gain:
                   <br />
                   <span style={{ color: '#9932cc', fontWeight: 'bold', fontSize: '1.1em' }}>
                     "Prevent 10 damage from 1 source" (once per turn)
@@ -11042,30 +12363,47 @@ function GameBoard({ onTurnInfoChange }) {
               )}
 
               {magicCircleModalData.deactivated && magicCircleModalData.reason === 'left' && (
-                <Alert variant="warning" style={{ backgroundColor: '#4a3a1a', border: 'none', color: 'white' }}>
+                <Alert
+                  variant="warning"
+                  style={{ backgroundColor: '#4a3a1a', border: 'none', color: 'white' }}
+                >
                   <strong>{magicCircleModalData.sorcererName}</strong> has left the Magic Circle!
-                  <br /><br />
+                  <br />
+                  <br />
                   The <strong>Magic Circle Aura</strong> protection has ended for{' '}
-                  {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? 'your' : "the opponent's"}{' '}
+                  {magicCircleModalData.sorcererOwner === gameState?.currentPlayer
+                    ? 'your'
+                    : "the opponent's"}{' '}
                   Goblin faction creatures.
                 </Alert>
               )}
 
               {magicCircleModalData.deactivated && magicCircleModalData.reason === 'death' && (
-                <Alert variant="danger" style={{ backgroundColor: '#4a1a1a', border: 'none', color: 'white' }}>
-                  <strong>{magicCircleModalData.sorcererName}</strong> was destroyed while on the Magic Circle!
-                  <br /><br />
+                <Alert
+                  variant="danger"
+                  style={{ backgroundColor: '#4a1a1a', border: 'none', color: 'white' }}
+                >
+                  <strong>{magicCircleModalData.sorcererName}</strong> was destroyed while on the
+                  Magic Circle!
+                  <br />
+                  <br />
                   The <strong>Magic Circle Aura</strong> protection has ended immediately for{' '}
-                  {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? 'your' : "the opponent's"}{' '}
+                  {magicCircleModalData.sorcererOwner === gameState?.currentPlayer
+                    ? 'your'
+                    : "the opponent's"}{' '}
                   Goblin faction creatures.
                 </Alert>
               )}
 
               {magicCircleModalData.reason?.startsWith('ai_') && (
-                <Alert variant="info" style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}>
+                <Alert
+                  variant="info"
+                  style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}
+                >
                   <strong>Opponent's {magicCircleModalData.sorcererName}</strong>{' '}
                   {magicCircleModalData.activated ? 'entered' : 'left'} a Magic Circle!
-                  <br /><br />
+                  <br />
+                  <br />
                   {magicCircleModalData.activated ? (
                     <>
                       All enemy <strong>Goblins, Hobgoblins, and Bugbears</strong> now have:
@@ -11084,13 +12422,26 @@ function GameBoard({ onTurnInfoChange }) {
 
               {/* Human player moved Sorcerer - notification for OTHER human players */}
               {magicCircleModalData.reason?.startsWith('human_') && (
-                <Alert variant="info" style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}>
-                  <strong>{magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? 'Your' : "Opponent's"} {magicCircleModalData.sorcererName}</strong>{' '}
+                <Alert
+                  variant="info"
+                  style={{ backgroundColor: '#1a4a6e', border: 'none', color: 'white' }}
+                >
+                  <strong>
+                    {magicCircleModalData.sorcererOwner === gameState?.currentPlayer
+                      ? 'Your'
+                      : "Opponent's"}{' '}
+                    {magicCircleModalData.sorcererName}
+                  </strong>{' '}
                   {magicCircleModalData.activated ? 'entered' : 'left'} a Magic Circle!
-                  <br /><br />
+                  <br />
+                  <br />
                   {magicCircleModalData.activated ? (
                     <>
-                      All {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? '' : 'enemy '}<strong>Goblins, Hobgoblins, and Bugbears</strong> now have:
+                      All{' '}
+                      {magicCircleModalData.sorcererOwner === gameState?.currentPlayer
+                        ? ''
+                        : 'enemy '}
+                      <strong>Goblins, Hobgoblins, and Bugbears</strong> now have:
                       <br />
                       <span style={{ color: '#9932cc', fontWeight: 'bold' }}>
                         "Prevent 10 damage from 1 source" (once per turn)
@@ -11098,24 +12449,31 @@ function GameBoard({ onTurnInfoChange }) {
                     </>
                   ) : (
                     <>
-                      The {magicCircleModalData.sorcererOwner === gameState?.currentPlayer ? '' : "enemy's "}<strong>Magic Circle Aura</strong> protection has ended.
+                      The{' '}
+                      {magicCircleModalData.sorcererOwner === gameState?.currentPlayer
+                        ? ''
+                        : "enemy's "}
+                      <strong>Magic Circle Aura</strong> protection has ended.
                     </>
                   )}
                 </Alert>
               )}
 
               {/* Ability Description */}
-              <div style={{
-                backgroundColor: '#1a1d21',
-                padding: '12px 15px',
-                borderRadius: '8px',
-                marginTop: '15px',
-                fontSize: '0.9em',
-                color: '#aaa'
-              }}>
-                <strong style={{ color: '#9932cc' }}>Magic Circle Aura:</strong> While the Hobgoblin Sorcerer is on a Magic Circle,
-                all Goblins, Hobgoblins, and Bugbears controlled by the same player can prevent 10 damage from a single attack once per turn.
-                This shield refreshes at the start of each turn.
+              <div
+                style={{
+                  backgroundColor: '#1a1d21',
+                  padding: '12px 15px',
+                  borderRadius: '8px',
+                  marginTop: '15px',
+                  fontSize: '0.9em',
+                  color: '#aaa',
+                }}
+              >
+                <strong style={{ color: '#9932cc' }}>Magic Circle Aura:</strong> While the Hobgoblin
+                Sorcerer is on a Magic Circle, all Goblins, Hobgoblins, and Bugbears controlled by
+                the same player can prevent 10 damage from a single attack once per turn. This
+                shield refreshes at the start of each turn.
               </div>
             </>
           )}

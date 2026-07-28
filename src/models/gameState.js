@@ -18,7 +18,7 @@ import {
   TREASURE,
   GAME_RULES,
   MAGIC_CIRCLE,
-  ABILITIES
+  ABILITIES,
 } from '../constants/gameConstants.js'
 // Import creature abilities from AbilityManager
 import {
@@ -27,7 +27,7 @@ import {
   Rider,
   Flanking,
   FlashingBlades,
-  UntapOnKill
+  UntapOnKill,
 } from '../abilities/shared/index.js'
 import {
   Insubstantial,
@@ -35,28 +35,18 @@ import {
   LifeDrain,
   TombGuardianSplash,
   LightningBreath,
-  DiscipleOfKyuss
+  DiscipleOfKyuss,
 } from '../abilities/undead/index.js'
-import {
-  HiddenBlade
-} from '../abilities/drow/index.js'
+import { HiddenBlade } from '../abilities/drow/index.js'
 import {
   ShieldBlock,
   HealingTouch,
   Slam,
   AcidBreath,
-  ExplosiveBolts
+  ExplosiveBolts,
 } from '../abilities/cormyr/index.js'
-import {
-  Cutter,
-  MagicCircleAura,
-  TapOnHit,
-  Regenerate,
-  Reach
-} from '../abilities/goblins/index.js'
-import {
-  DeathStrike
-} from '../abilities/orcs/index.js'
+import { Cutter, MagicCircleAura, TapOnHit, Regenerate, Reach } from '../abilities/goblins/index.js'
+import { DeathStrike } from '../abilities/orcs/index.js'
 
 // Re-export GamePhases for backward compatibility
 export { GamePhases }
@@ -67,7 +57,7 @@ export const Players = {
   PLAYER2: 'PLAYER2',
   PLAYER3: 'PLAYER3',
   PLAYER4: 'PLAYER4',
-  PLAYER5: 'PLAYER5'
+  PLAYER5: 'PLAYER5',
 }
 
 // Re-export TerrainTypes for backward compatibility
@@ -123,17 +113,17 @@ export class PlayerState {
     this.creatureGraveyard = []
 
     // Order card draw tracking
-    this.bonusOrderCardsToDraw = 0    // Pending bonus draws from cards like Parry/Defensive Advantage
-    this.bonusDrawSources = []        // Names of cards that caused bonus draws (e.g., ["Parry", "Defensive Advantage"])
-    this.cardsDrawnThisTurn = []      // Cards drawn during REFRESH (for modal display)
-    this.pendingCardReveals = []      // Cards received from opponent effects (e.g., Recoil) to show at next ACTIVATE
+    this.bonusOrderCardsToDraw = 0 // Pending bonus draws from cards like Parry/Defensive Advantage
+    this.bonusDrawSources = [] // Names of cards that caused bonus draws (e.g., ["Parry", "Defensive Advantage"])
+    this.cardsDrawnThisTurn = [] // Cards drawn during REFRESH (for modal display)
+    this.pendingCardReveals = [] // Cards received from opponent effects (e.g., Recoil) to show at next ACTIVATE
     this.pendingMoraleNotifications = [] // Morale loss notifications from opponent effects (e.g., Unexpected Resistance) to show at next ACTIVATE
 
     // Commander ability state tracking
     this.commanderAbilityState = {
-      usedThisTurn: [],      // Track once-per-turn abilities (array of ability IDs)
-      cooldowns: {},         // Track cooldown-based abilities { abilityId: turnsRemaining }
-      orcScoutUsed: false    // Special flag for ORC SCOUT (only usable during initial deployment)
+      usedThisTurn: [], // Track once-per-turn abilities (array of ability IDs)
+      cooldowns: {}, // Track cooldown-based abilities { abilityId: turnsRemaining }
+      orcScoutUsed: false, // Special flag for ORC SCOUT (only usable during initial deployment)
     }
   }
 
@@ -186,7 +176,7 @@ export class PlayerState {
       logger.card(card.name, 'drawn to creature hand', {
         owner: this.id,
         level: card.level,
-        deckRemaining: this.creatureDeck.length
+        deckRemaining: this.creatureDeck.length,
       })
     }
     return drawn
@@ -207,7 +197,7 @@ export class PlayerState {
         owner: this.id,
         level: card.level,
         actionType: card.actionType,
-        deckRemaining: this.orderDeck.length
+        deckRemaining: this.orderDeck.length,
       })
     }
     return drawn
@@ -244,8 +234,8 @@ export class PlayerState {
    */
   shuffleCreatureDeck() {
     for (let i = this.creatureDeck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this.creatureDeck[i], this.creatureDeck[j]] = [this.creatureDeck[j], this.creatureDeck[i]]
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[this.creatureDeck[i], this.creatureDeck[j]] = [this.creatureDeck[j], this.creatureDeck[i]]
     }
   }
 
@@ -254,8 +244,8 @@ export class PlayerState {
    */
   shuffleOrderDeck() {
     for (let i = this.orderDeck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this.orderDeck[i], this.orderDeck[j]] = [this.orderDeck[j], this.orderDeck[i]]
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[this.orderDeck[i], this.orderDeck[j]] = [this.orderDeck[j], this.orderDeck[i]]
     }
   }
 
@@ -274,7 +264,7 @@ export class PlayerState {
    */
   canDeployCreature(creature) {
     const currentUsage = this.getCurrentLeadershipUsage()
-    return (currentUsage + creature.level) <= this.leadership
+    return currentUsage + creature.level <= this.leadership
   }
 
   /**
@@ -284,7 +274,7 @@ export class PlayerState {
    */
   loseMorale(amount) {
     // Guard against NaN/undefined to prevent morale corruption
-    const safeAmount = (typeof amount === 'number' && !isNaN(amount)) ? amount : 0
+    const safeAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 0
     this.morale = Math.max(0, this.morale - safeAmount)
     return this.morale <= 0 // Returns true if defeated
   }
@@ -295,7 +285,7 @@ export class PlayerState {
    */
   gainMorale(amount) {
     // Guard against NaN/undefined to prevent morale corruption
-    const safeAmount = (typeof amount === 'number' && !isNaN(amount)) ? amount : 0
+    const safeAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 0
     this.morale += safeAmount
   }
 
@@ -335,11 +325,11 @@ export class GameState {
     this.players = {}
     this.activePlayers = []
 
-    playerSetups.forEach(setup => {
+    playerSetups.forEach((setup) => {
       // Pass isHuman and aiDifficulty to PlayerState for AI behavior configuration
       // Human players should have aiDifficulty = null (not 'easy')
       const isHuman = setup.isHuman !== false // Default to human if not specified
-      const aiDifficulty = isHuman ? null : (setup.aiDifficulty || 'easy')
+      const aiDifficulty = isHuman ? null : setup.aiDifficulty || 'easy'
 
       this.players[setup.playerId] = new PlayerState(
         setup.commander,
@@ -361,7 +351,7 @@ export class GameState {
     // Board state - Dynamic sizing based on number of players
     // Formula: 12 + (numPlayers * 4) = 2 players: 20×20, 3 players: 24×24, 4 players: 28×28, 5 players: 32×32
     const numPlayers = this.activePlayers.length
-    const baseSize = 12 + (numPlayers * 4)
+    const baseSize = 12 + numPlayers * 4
 
     // Create Board instance for grid operations
     this.board = new Board(baseSize, baseSize)
@@ -399,7 +389,7 @@ export class GameState {
   initializeGame() {
     logger.gameEvent('Initializing game - shuffling decks and drawing starting hands')
     // Shuffle both decks and draw starting hands for all active players
-    this.activePlayers.forEach(playerId => {
+    this.activePlayers.forEach((playerId) => {
       const player = this.players[playerId]
 
       // Shuffle both decks
@@ -410,7 +400,7 @@ export class GameState {
         player: playerId,
         commander: player.commander?.name,
         creatureCards: player.commander.startingCreatureHandSize,
-        orderCards: player.commander.startingOrderHandSize
+        orderCards: player.commander.startingOrderHandSize,
       })
 
       // Draw starting hands from commander stats
@@ -554,6 +544,8 @@ export class GameState {
    */
   useInsubstantial(creatureInstance, incomingDamage, attackerOwner) {
     const defenderPlayer = this.players[creatureInstance?.owner]
+    // Insubstantial.use() is a plain ability-module method, not a React Hook — the "use" naming just collides with the convention.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     return Insubstantial.use(creatureInstance, defenderPlayer)
   }
 
@@ -619,7 +611,7 @@ export class GameState {
     const player = this.players[playerId]
     if (!player) return []
 
-    return player.creatureHand.filter(creature => {
+    return player.creatureHand.filter((creature) => {
       // Must be at or below max level
       const validLevel = creature.level <= maxLevel
       // Must have enough leadership to deploy
@@ -698,7 +690,7 @@ export class GameState {
         destroyed: false,
         moraleChange: { attacker: 0, defender: 0 },
         remainingHP: targetInstance.currentHP,
-        damageReduced: damageReduction
+        damageReduced: damageReduction,
       }
     }
 
@@ -715,7 +707,7 @@ export class GameState {
           damageBlocked: actualDamage,
           insubstantialUsed: true,
           moraleChange: { attacker: 0, defender: 0 },
-          remainingHP: targetInstance.currentHP
+          remainingHP: targetInstance.currentHP,
         }
       }
     }
@@ -736,7 +728,9 @@ export class GameState {
 
       // Remove from battlefield
       const defenderPlayer = this.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      const index = defenderPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === targetInstance.instanceId
+      )
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
@@ -753,7 +747,7 @@ export class GameState {
 
       moraleChange = {
         attacker: +1,
-        defender: -targetInstance.creature.level
+        defender: -targetInstance.creature.level,
       }
 
       // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
@@ -773,7 +767,7 @@ export class GameState {
       destroyed: wasDestroyed,
       moraleChange,
       remainingHP: Math.max(0, targetInstance.currentHP),
-      damageReduced: damageReduction
+      damageReduced: damageReduction,
     }
   }
 
@@ -834,7 +828,7 @@ export class GameState {
         destroyed: false,
         moraleChange: { attacker: 0, defender: 0 },
         remainingHP: targetInstance.currentHP,
-        damageReduced: damageReduction
+        damageReduced: damageReduction,
       }
     }
 
@@ -851,7 +845,7 @@ export class GameState {
           damageBlocked: actualDamage,
           insubstantialUsed: true,
           moraleChange: { attacker: 0, defender: 0 },
-          remainingHP: targetInstance.currentHP
+          remainingHP: targetInstance.currentHP,
         }
       }
     }
@@ -872,7 +866,9 @@ export class GameState {
 
       // Remove from battlefield
       const defenderPlayer = this.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      const index = defenderPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === targetInstance.instanceId
+      )
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
@@ -889,7 +885,7 @@ export class GameState {
 
       moraleChange = {
         attacker: +1,
-        defender: -targetInstance.creature.level
+        defender: -targetInstance.creature.level,
       }
 
       // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
@@ -909,7 +905,7 @@ export class GameState {
       destroyed: wasDestroyed,
       moraleChange,
       remainingHP: Math.max(0, targetInstance.currentHP),
-      damageReduced: damageReduction
+      damageReduced: damageReduction,
     }
   }
 
@@ -952,7 +948,7 @@ export class GameState {
         destroyed: false,
         moraleChange: { attacker: 0, defender: 0 },
         remainingHP: targetInstance.currentHP,
-        damageReduced: damageReduction
+        damageReduced: damageReduction,
       }
     }
 
@@ -974,7 +970,9 @@ export class GameState {
 
       // Remove from battlefield
       const defenderPlayer = this.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      const index = defenderPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === targetInstance.instanceId
+      )
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
@@ -991,7 +989,7 @@ export class GameState {
 
       moraleChange = {
         attacker: +1,
-        defender: -targetInstance.creature.level
+        defender: -targetInstance.creature.level,
       }
     }
 
@@ -1001,7 +999,7 @@ export class GameState {
       destroyed: wasDestroyed,
       moraleChange,
       remainingHP: Math.max(0, targetInstance.currentHP),
-      damageReduced: damageReduction
+      damageReduced: damageReduction,
     }
   }
 
@@ -1029,7 +1027,9 @@ export class GameState {
     }
 
     // Remove from battlefield
-    const index = player.creaturesInPlay.findIndex(c => c.instanceId === creatureInstance.instanceId)
+    const index = player.creaturesInPlay.findIndex(
+      (c) => c.instanceId === creatureInstance.instanceId
+    )
     if (index !== -1) {
       player.creaturesInPlay.splice(index, 1)
     }
@@ -1043,7 +1043,7 @@ export class GameState {
 
     return {
       success: true,
-      moraleLost
+      moraleLost,
     }
   }
 
@@ -1137,7 +1137,12 @@ export class GameState {
    * @param {boolean} wasKilledByBugbear - True if a Bugbear Berserker made the killing blow
    * @returns {Object|null} Untap result data or null if no untap occurred
    */
-  checkUntapOnAdjacentKill(destroyedPosition, destroyedOwner, killerOwner, wasKilledByBugbear = false) {
+  checkUntapOnAdjacentKill(
+    destroyedPosition,
+    destroyedOwner,
+    killerOwner,
+    wasKilledByBugbear = false
+  ) {
     // Only trigger during the current turn player's turn
     const currentTurnPlayer = this.currentPlayer
     if (!currentTurnPlayer) {
@@ -1151,8 +1156,8 @@ export class GameState {
     }
 
     // Get all Bugbear Berserkers in play for the current turn player
-    const bugbears = currentPlayer.creaturesInPlay.filter(creature =>
-      this.hasUntapOnAdjacentKill(creature) && creature.currentHP > 0
+    const bugbears = currentPlayer.creaturesInPlay.filter(
+      (creature) => this.hasUntapOnAdjacentKill(creature) && creature.currentHP > 0
     )
 
     if (bugbears.length === 0) return null
@@ -1207,7 +1212,7 @@ export class GameState {
           bugbearName: bugbear.creature.name,
           destroyedPosition,
           wasKilledByBugbear,
-          difficulty: isHuman ? 'human' : aiDifficulty
+          difficulty: isHuman ? 'human' : aiDifficulty,
         }
       } else {
         return {
@@ -1217,7 +1222,7 @@ export class GameState {
           bugbearName: bugbear.creature.name,
           destroyedPosition,
           wasKilledByBugbear,
-          difficulty: aiDifficulty
+          difficulty: aiDifficulty,
         }
       }
     }
@@ -1239,7 +1244,7 @@ export class GameState {
   hasScuttle(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('SCUTTLE')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('SCUTTLE')
     )
   }
 
@@ -1258,7 +1263,7 @@ export class GameState {
   hasShadowStalker(creatureCard) {
     if (!creatureCard?.specialAbilities) return false
     return creatureCard.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('SHADOW STALKER')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('SHADOW STALKER')
     )
   }
 
@@ -1309,7 +1314,7 @@ export class GameState {
   hasArcanePortal(creatureCard) {
     if (!creatureCard?.specialAbilities) return false
     return creatureCard.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('ARCANE PORTAL')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('ARCANE PORTAL')
     )
   }
 
@@ -1486,7 +1491,7 @@ export class GameState {
       // Track for AbilitiesTest - ability was offered
       if (window.trackAbility) {
         window.trackAbility('magic_circle_aura', 'offered', aiDifficulty, {
-          creature: defenderInstance.creature.name
+          creature: defenderInstance.creature.name,
         })
       }
 
@@ -1494,19 +1499,19 @@ export class GameState {
         // Track declined
         if (window.trackAbility) {
           window.trackAbility('magic_circle_aura', 'declined', aiDifficulty, {
-            creature: defenderInstance.creature.name
+            creature: defenderInstance.creature.name,
           })
         }
-        return 0  // Easy AI never benefits from Magic Circle Aura
+        return 0 // Easy AI never benefits from Magic Circle Aura
       } else if (aiDifficulty === 'medium') {
         if (Math.random() >= 0.5) {
           // Track declined
           if (window.trackAbility) {
             window.trackAbility('magic_circle_aura', 'declined', aiDifficulty, {
-              creature: defenderInstance.creature.name
+              creature: defenderInstance.creature.name,
             })
           }
-          return 0  // Medium AI: 50% chance
+          return 0 // Medium AI: 50% chance
         }
       }
       // Hard AI: always benefits from Magic Circle Aura
@@ -1517,11 +1522,11 @@ export class GameState {
       const difficulty = defenderPlayer?.aiDifficulty || 'human'
       window.trackAbility('magic_circle_aura', 'triggered', difficulty, {
         blocked: 10,
-        creature: defenderInstance.creature.name
+        creature: defenderInstance.creature.name,
       })
     }
 
-    return 10  // Magic Circle Aura prevents 10 damage
+    return 10 // Magic Circle Aura prevents 10 damage
   }
 
   /**
@@ -1559,7 +1564,7 @@ export class GameState {
       if (window.trackAbility) {
         window.trackAbility('magic_circle_aura', 'aura_activated', 'n/a', {
           sorcerer: creatureInstance.creature.name,
-          owner: creatureInstance.owner
+          owner: creatureInstance.owner,
         })
       }
 
@@ -1591,7 +1596,7 @@ export class GameState {
         window.trackAbility('magic_circle_aura', 'aura_deactivated', 'n/a', {
           sorcerer: creatureInstance.creature.name,
           owner: creatureInstance.owner,
-          reason: 'movement'
+          reason: 'movement',
         })
       }
 
@@ -1617,7 +1622,7 @@ export class GameState {
         window.trackAbility('magic_circle_aura', 'aura_deactivated', 'n/a', {
           sorcerer: creatureInstance.creature.name,
           owner: creatureInstance.owner,
-          reason: 'death'
+          reason: 'death',
         })
       }
 
@@ -1696,10 +1701,10 @@ export class GameState {
       const actualHealed = damageBeforeHeal - targetInstance.damageTokens
 
       result.healedAmount = actualHealed
-      result.message = actualHealed > 0
-        ? `${targetInstance.creature.name} healed ${actualHealed} damage (HP: ${targetInstance.currentHP}/${targetInstance.creature.hitPoints})`
-        : `${targetInstance.creature.name} has no damage to heal`
-
+      result.message =
+        actualHealed > 0
+          ? `${targetInstance.creature.name} healed ${actualHealed} damage (HP: ${targetInstance.currentHP}/${targetInstance.creature.hitPoints})`
+          : `${targetInstance.creature.name} has no damage to heal`
     } else if (action === 'removeCard') {
       // Remove attached Order card
       if (!targetInstance.attachedCards || targetInstance.attachedCards.length === 0) {
@@ -1722,7 +1727,6 @@ export class GameState {
 
       result.removedCard = removedCard
       result.message = `Removed ${removedCard.name} from ${targetInstance.creature.name}`
-
     } else {
       return { success: false, message: 'Invalid action - must be "heal" or "removeCard"' }
     }
@@ -1752,7 +1756,7 @@ export class GameState {
   hasConfusionGaze(creatureInstance) {
     if (!creatureInstance?.creature?.specialAbilities) return false
     return creatureInstance.creature.specialAbilities.some(
-      ability => typeof ability === 'string' && ability.toUpperCase().includes('CONFUSION GAZE')
+      (ability) => typeof ability === 'string' && ability.toUpperCase().includes('CONFUSION GAZE')
     )
   }
 
@@ -1819,8 +1823,14 @@ export class GameState {
 
       // Get 8-directional neighbors
       const directions = [
-        { dx: 0, dy: -1 }, { dx: 1, dy: -1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 },
-        { dx: 0, dy: 1 }, { dx: -1, dy: 1 }, { dx: -1, dy: 0 }, { dx: -1, dy: -1 }
+        { dx: 0, dy: -1 },
+        { dx: 1, dy: -1 },
+        { dx: 1, dy: 0 },
+        { dx: 1, dy: 1 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: 1 },
+        { dx: -1, dy: 0 },
+        { dx: -1, dy: -1 },
       ]
 
       for (const dir of directions) {
@@ -1894,18 +1904,23 @@ export class GameState {
     const attackTargets = []
 
     // Get adjacent enemies for melee option
-    const adjacent = this.getAdjacentTiles8Dir(attackerInstance.position.x, attackerInstance.position.y)
+    const adjacent = this.getAdjacentTiles8Dir(
+      attackerInstance.position.x,
+      attackerInstance.position.y
+    )
 
     for (const tile of adjacent) {
-      if (tile.occupant &&
-          tile.occupant.owner !== attackerInstance.owner &&
-          tile.occupant.currentHP > 0) {
+      if (
+        tile.occupant &&
+        tile.occupant.owner !== attackerInstance.owner &&
+        tile.occupant.currentHP > 0
+      ) {
         attackTargets.push({ target: tile.occupant, attackType: 'melee' })
       }
     }
 
     // Check if slid creature is already in the adjacent list
-    const isAdjacent = attackTargets.some(t => t.target.instanceId === slidTarget.instanceId)
+    const isAdjacent = attackTargets.some((t) => t.target.instanceId === slidTarget.instanceId)
 
     // Add slid creature as ranged option (if not already adjacent)
     if (!isAdjacent && slidTarget.currentHP > 0) {
@@ -1941,7 +1956,7 @@ export class GameState {
           damageBlocked: CONFUSION_GAZE_DAMAGE,
           insubstantialUsed: true,
           moraleChange: { attacker: 0, defender: 0 },
-          remainingHP: targetInstance.currentHP
+          remainingHP: targetInstance.currentHP,
         }
       }
     }
@@ -1966,7 +1981,9 @@ export class GameState {
 
       // Remove from battlefield
       const defenderPlayer = this.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      const index = defenderPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === targetInstance.instanceId
+      )
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
@@ -1983,7 +2000,7 @@ export class GameState {
 
       moraleChange = {
         attacker: +1,
-        defender: -targetInstance.creature.level
+        defender: -targetInstance.creature.level,
       }
 
       // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
@@ -2004,7 +2021,7 @@ export class GameState {
       shieldBlockReduction,
       destroyed: wasDestroyed,
       moraleChange,
-      remainingHP: Math.max(0, targetInstance.currentHP)
+      remainingHP: Math.max(0, targetInstance.currentHP),
     }
   }
 
@@ -2017,7 +2034,13 @@ export class GameState {
    * @param {number|null} damageBoostFlat - Flat damage that replaces base (default null)
    * @returns {Object} { success, damage, destroyed, moraleChange, remainingHP }
    */
-  applyConfusionGazeWithDefense(attackerInstance, targetInstance, damageReduction = 0, damageBoostBonus = 0, damageBoostFlat = null) {
+  applyConfusionGazeWithDefense(
+    attackerInstance,
+    targetInstance,
+    damageReduction = 0,
+    damageBoostBonus = 0,
+    damageBoostFlat = null
+  ) {
     // Calculate base damage with optional order card boost
     const baseDamage = attackerInstance.creature.meleeAttack?.damage || 30
     const BASE_DAMAGE = damageBoostFlat !== null ? damageBoostFlat : baseDamage + damageBoostBonus
@@ -2035,7 +2058,7 @@ export class GameState {
         destroyed: false,
         moraleChange: { attacker: 0, defender: 0 },
         remainingHP: targetInstance.currentHP,
-        damageReduced: damageReduction
+        damageReduced: damageReduction,
       }
     }
 
@@ -2053,7 +2076,7 @@ export class GameState {
           damageBlocked: actualDamage,
           insubstantialUsed: true,
           moraleChange: { attacker: 0, defender: 0 },
-          remainingHP: targetInstance.currentHP
+          remainingHP: targetInstance.currentHP,
         }
       }
     }
@@ -2071,7 +2094,7 @@ export class GameState {
         moraleChange: { attacker: 0, defender: 0 },
         remainingHP: targetInstance.currentHP,
         damageReduced: damageReduction,
-        shieldBlockReduction
+        shieldBlockReduction,
       }
     }
 
@@ -2091,7 +2114,9 @@ export class GameState {
 
       // Remove from battlefield
       const defenderPlayer = this.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      const index = defenderPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === targetInstance.instanceId
+      )
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
@@ -2108,7 +2133,7 @@ export class GameState {
 
       moraleChange = {
         attacker: +1,
-        defender: -targetInstance.creature.level
+        defender: -targetInstance.creature.level,
       }
 
       // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
@@ -2130,7 +2155,7 @@ export class GameState {
       moraleChange,
       remainingHP: Math.max(0, targetInstance.currentHP),
       damageReduced: damageReduction,
-      shieldBlockReduction
+      shieldBlockReduction,
     }
   }
 
@@ -2187,7 +2212,7 @@ export class GameState {
    */
   isSpiderCreature(creature) {
     if (!creature?.type) return false
-    return creature.type.some(t => t.toLowerCase() === 'spider')
+    return creature.type.some((t) => t.toLowerCase() === 'spider')
   }
 
   /**
@@ -2204,7 +2229,7 @@ export class GameState {
     for (const creature of player.creaturesInPlay) {
       if (!creature.creature?.specialAbilities) continue
       const hasSummon = creature.creature.specialAbilities.some(
-        ability => typeof ability === 'string' && ability.toUpperCase().includes('SUMMON SPIDER')
+        (ability) => typeof ability === 'string' && ability.toUpperCase().includes('SUMMON SPIDER')
       )
       if (hasSummon) return creature // Return the Priestess instance
     }
@@ -2262,7 +2287,7 @@ export class GameState {
   hasGraveyardDeploy(creature) {
     if (!creature?.specialAbilities) return false
     return creature.specialAbilities.some(
-      a => typeof a === 'string' && a.toUpperCase().includes('GRAVEYARD')
+      (a) => typeof a === 'string' && a.toUpperCase().includes('GRAVEYARD')
     )
   }
 
@@ -2295,7 +2320,7 @@ export class GameState {
   getResurrectableCreatures(playerId) {
     const player = this.players[playerId]
     if (!player) return []
-    return player.creatureGraveyard.filter(c => this.hasGraveyardDeploy(c))
+    return player.creatureGraveyard.filter((c) => this.hasGraveyardDeploy(c))
   }
 
   /**
@@ -2331,7 +2356,7 @@ export class GameState {
     const player = this.players[playerId]
     if (!player) return false
 
-    const index = player.creatureGraveyard.findIndex(c => c.id === creature.id)
+    const index = player.creatureGraveyard.findIndex((c) => c.id === creature.id)
     if (index === -1) return false
 
     player.creatureGraveyard.splice(index, 1)
@@ -2418,8 +2443,8 @@ export class GameState {
    */
   isWebbed(creatureInstance) {
     if (!creatureInstance?.attachedCards) return false
-    return creatureInstance.attachedCards.some(
-      attached => attached.card?.name?.toUpperCase().includes('WEB')
+    return creatureInstance.attachedCards.some((attached) =>
+      attached.card?.name?.toUpperCase().includes('WEB')
     )
   }
 
@@ -2431,9 +2456,11 @@ export class GameState {
    */
   getAttachedWeb(creatureInstance) {
     if (!creatureInstance?.attachedCards) return null
-    return creatureInstance.attachedCards.find(
-      attached => attached.card?.name?.toUpperCase().includes('WEB')
-    ) || null
+    return (
+      creatureInstance.attachedCards.find((attached) =>
+        attached.card?.name?.toUpperCase().includes('WEB')
+      ) || null
+    )
   }
 
   /**
@@ -2461,7 +2488,7 @@ export class GameState {
 
     // SPIDER AFFINITY: Spider-type creatures can use Web without INT
     const creatureTypes = casterInstance.creature.type || []
-    const isSpider = creatureTypes.some(t => t.toLowerCase() === 'spider')
+    const isSpider = creatureTypes.some((t) => t.toLowerCase() === 'spider')
 
     return isSpider
   }
@@ -2535,7 +2562,7 @@ export class GameState {
     }
 
     // Find and remove Web card from hand
-    const cardIndex = casterPlayer.orderHand.findIndex(c => c.id === webCard.id)
+    const cardIndex = casterPlayer.orderHand.findIndex((c) => c.id === webCard.id)
     if (cardIndex === -1) {
       return { success: false, reason: 'Web card not in hand' }
     }
@@ -2547,14 +2574,14 @@ export class GameState {
     targetInstance.attachedCards.push({
       card: removedCard,
       casterOwner: casterInstance.owner,
-      attachedTurn: this.turnNumber
+      attachedTurn: this.turnNumber,
     })
 
     return {
       success: true,
       card: removedCard,
       caster: casterInstance,
-      target: targetInstance
+      target: targetInstance,
     }
   }
 
@@ -2571,8 +2598,8 @@ export class GameState {
     }
 
     // Find Web card
-    const webIndex = creatureInstance.attachedCards.findIndex(
-      attached => attached.card?.name?.toUpperCase().includes('WEB')
+    const webIndex = creatureInstance.attachedCards.findIndex((attached) =>
+      attached.card?.name?.toUpperCase().includes('WEB')
     )
 
     if (webIndex === -1) {
@@ -2592,7 +2619,7 @@ export class GameState {
     return {
       success: true,
       card: card,
-      casterOwner: casterOwner
+      casterOwner: casterOwner,
     }
   }
 
@@ -2628,9 +2655,9 @@ export class GameState {
    */
   hasMovementBlockingAttachment(creatureInstance) {
     if (!creatureInstance?.attachedCards?.length) return false
-    return creatureInstance.attachedCards.some(att =>
-      att.card?.name?.toUpperCase().includes('WEB') ||
-      att.card?.attachOnUse?.preventsMovement
+    return creatureInstance.attachedCards.some(
+      (att) =>
+        att.card?.name?.toUpperCase().includes('WEB') || att.card?.attachOnUse?.preventsMovement
     )
   }
 
@@ -2642,9 +2669,7 @@ export class GameState {
    */
   hasMortalWound(creatureInstance) {
     if (!creatureInstance?.attachedCards?.length) return false
-    return creatureInstance.attachedCards.some(att =>
-      att.card?.attachOnUse?.destroyAtDeploy
-    )
+    return creatureInstance.attachedCards.some((att) => att.card?.attachOnUse?.destroyAtDeploy)
   }
 
   /**
@@ -2656,9 +2681,7 @@ export class GameState {
    */
   hasDamageOnActivationAttachment(creatureInstance) {
     if (!creatureInstance?.attachedCards?.length) return false
-    return creatureInstance.attachedCards.some(att =>
-      att.attachOnUse?.damageOnActivation > 0
-    )
+    return creatureInstance.attachedCards.some((att) => att.attachOnUse?.damageOnActivation > 0)
   }
 
   /**
@@ -2670,8 +2693,9 @@ export class GameState {
    */
   getBlockAmount(creatureInstance) {
     if (!creatureInstance?.attachedCards?.length) return 0
-    return creatureInstance.attachedCards.reduce((total, att) =>
-      total + (att.card?.attachOnUse?.blockAmount || 0), 0
+    return creatureInstance.attachedCards.reduce(
+      (total, att) => total + (att.card?.attachOnUse?.blockAmount || 0),
+      0
     )
   }
 
@@ -2703,7 +2727,7 @@ export class GameState {
     creatureInstance.attachedCards.push({
       card: card,
       casterOwner: casterOwner,
-      attachedTurn: this.turnNumber
+      attachedTurn: this.turnNumber,
     })
 
     return removedCards
@@ -2755,7 +2779,7 @@ export class GameState {
     }
 
     const index = creatureInstance.attachedCards.findIndex(
-      att => att.card?.id === attachmentCard.id
+      (att) => att.card?.id === attachmentCard.id
     )
 
     if (index === -1) {
@@ -2783,10 +2807,12 @@ export class GameState {
   getRemovableAttachments(creatureInstance) {
     if (!creatureInstance?.attachedCards?.length) return []
 
-    return creatureInstance.attachedCards.filter(att => {
-      const isWeb = att.card?.name?.toUpperCase().includes('WEB')
-      return isWeb || att.card?.attachOnUse?.removableAsStandard
-    }).map(att => att.card)
+    return creatureInstance.attachedCards
+      .filter((att) => {
+        const isWeb = att.card?.name?.toUpperCase().includes('WEB')
+        return isWeb || att.card?.attachOnUse?.removableAsStandard
+      })
+      .map((att) => att.card)
   }
 
   /**
@@ -2802,13 +2828,14 @@ export class GameState {
    */
   getHarmfulAttachments(playerId) {
     const player = this.players[playerId]
-    if (!player) return { damageEffects: [], movementBlocked: [], pendingDeath: [], damagePenalty: [] }
+    if (!player)
+      return { damageEffects: [], movementBlocked: [], pendingDeath: [], damagePenalty: [] }
 
     const effects = {
-      damageEffects: [],      // damageOnActivation (Deep Wound)
-      movementBlocked: [],    // preventsMovement (Web, Leap Away)
-      pendingDeath: [],       // destroyAtDeploy (Mortal Wound)
-      damagePenalty: []       // Shattered Weapon (-10 melee)
+      damageEffects: [], // damageOnActivation (Deep Wound)
+      movementBlocked: [], // preventsMovement (Web, Leap Away)
+      pendingDeath: [], // destroyAtDeploy (Mortal Wound)
+      damagePenalty: [], // Shattered Weapon (-10 melee)
     }
 
     for (const creature of player.creaturesInPlay) {
@@ -2827,7 +2854,7 @@ export class GameState {
             destroyed: creature.currentHP <= 0,
             currentHP: creature.currentHP,
             maxHP: creature.creature?.hitPoints || 0,
-            source: card?.name || 'Unknown'
+            source: card?.name || 'Unknown',
           })
         }
 
@@ -2836,7 +2863,7 @@ export class GameState {
           effects.movementBlocked.push({
             creature: creature,
             creatureName: creature.creature?.name || 'Unknown',
-            source: card?.name || 'Unknown'
+            source: card?.name || 'Unknown',
           })
         }
 
@@ -2845,7 +2872,7 @@ export class GameState {
           effects.pendingDeath.push({
             creature: creature,
             creatureName: creature.creature?.name || 'Unknown',
-            source: card?.name || 'Unknown'
+            source: card?.name || 'Unknown',
           })
         }
 
@@ -2855,7 +2882,7 @@ export class GameState {
             creature: creature,
             creatureName: creature.creature?.name || 'Unknown',
             source: card?.name || 'Unknown',
-            penalty: 10
+            penalty: 10,
           })
         }
       }
@@ -2878,14 +2905,12 @@ export class GameState {
     const destroyed = []
 
     // Find creatures with Mortal Wound (destroyAtDeploy)
-    const creaturesWithMortalWound = player.creaturesInPlay.filter(c =>
-      this.hasMortalWound(c)
-    )
+    const creaturesWithMortalWound = player.creaturesInPlay.filter((c) => this.hasMortalWound(c))
 
     for (const creature of creaturesWithMortalWound) {
       destroyed.push({
         creature: creature,
-        reason: 'Mortal Wound'
+        reason: 'Mortal Wound',
       })
     }
 
@@ -2923,7 +2948,7 @@ export class GameState {
             damage: actualDamage,
             destroyed: destroyed,
             source: attachment.card?.name || 'Unknown',
-            sourceCard: attachment.card
+            sourceCard: attachment.card,
           })
 
           // Handle creature death if destroyed
@@ -2967,7 +2992,7 @@ export class GameState {
   isUndeadCreature(creature) {
     if (!creature?.type) return false
     if (creature.faction !== 'Curse of Undeath') return false
-    return creature.type.some(t => t.toLowerCase() === 'undead')
+    return creature.type.some((t) => t.toLowerCase() === 'undead')
   }
 
   /**
@@ -2986,7 +3011,7 @@ export class GameState {
       // Check by name AND ability text to ensure we find the right creature
       if (creature.creature.name !== 'Lich Necromancer') continue
       const hasAbility = creature.creature.specialAbilities.some(
-        a => typeof a === 'string' && a.toUpperCase().includes('ADJACENT')
+        (a) => typeof a === 'string' && a.toUpperCase().includes('ADJACENT')
       )
       if (hasAbility) {
         return creature
@@ -3040,9 +3065,7 @@ export class GameState {
   isBeastOrElementalCreature(creature) {
     if (!creature?.type) return false
     if (creature.faction !== 'Blood of Gruumsh') return false
-    return creature.type.some(t =>
-      t.toLowerCase() === 'beast' || t.toLowerCase() === 'elemental'
-    )
+    return creature.type.some((t) => t.toLowerCase() === 'beast' || t.toLowerCase() === 'elemental')
   }
 
   /**
@@ -3153,7 +3176,9 @@ export class GameState {
 
       // Remove from battlefield
       const defenderPlayer = this.players[defenderOwner]
-      const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+      const index = defenderPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === targetInstance.instanceId
+      )
       if (index !== -1) {
         defenderPlayer.creaturesInPlay.splice(index, 1)
       }
@@ -3170,7 +3195,7 @@ export class GameState {
 
       moraleChange = {
         attacker: +1,
-        defender: -targetInstance.creature.level
+        defender: -targetInstance.creature.level,
       }
 
       // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
@@ -3190,7 +3215,7 @@ export class GameState {
       destroyed: wasDestroyed,
       moraleChange,
       remainingHP: Math.max(0, targetInstance.currentHP),
-      targetName: targetInstance.creature.name
+      targetName: targetInstance.creature.name,
     }
   }
 
@@ -3318,9 +3343,14 @@ export class GameState {
 
     // 8-tile adjacency offsets
     const adjacentOffsets = [
-      { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
-      { dx: -1, dy: 0 },                      { dx: 1, dy: 0 },
-      { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
+      { dx: -1, dy: -1 },
+      { dx: 0, dy: -1 },
+      { dx: 1, dy: -1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+      { dx: -1, dy: 1 },
+      { dx: 0, dy: 1 },
+      { dx: 1, dy: 1 },
     ]
 
     for (const offset of adjacentOffsets) {
@@ -3339,7 +3369,7 @@ export class GameState {
         if (!playerCreatures) continue
 
         const creatureAtPos = playerCreatures.find(
-          c => c.position?.x === checkX && c.position?.y === checkY && c.currentHP > 0
+          (c) => c.position?.x === checkX && c.position?.y === checkY && c.currentHP > 0
         )
 
         if (creatureAtPos && creatureAtPos.owner !== attackerOwner) {
@@ -3375,7 +3405,7 @@ export class GameState {
           destroyed: false,
           insubstantialBlocked: true,
           damageBlocked: actualDamage,
-          moraleChange: { attacker: 0, defender: 0 }
+          moraleChange: { attacker: 0, defender: 0 },
         }
       }
     }
@@ -3398,7 +3428,9 @@ export class GameState {
       // Remove from battlefield
       const defenderPlayer = this.players[targetOwner]
       if (defenderPlayer) {
-        const index = defenderPlayer.creaturesInPlay.findIndex(c => c.instanceId === targetInstance.instanceId)
+        const index = defenderPlayer.creaturesInPlay.findIndex(
+          (c) => c.instanceId === targetInstance.instanceId
+        )
         if (index !== -1) {
           defenderPlayer.creaturesInPlay.splice(index, 1)
         }
@@ -3418,7 +3450,7 @@ export class GameState {
 
       moraleChange = {
         attacker: +1,
-        defender: -targetInstance.creature.level
+        defender: -targetInstance.creature.level,
       }
 
       // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
@@ -3438,7 +3470,7 @@ export class GameState {
       previousHP: previousHP,
       remainingHP: Math.max(0, targetInstance.currentHP),
       insubstantialBlocked: false,
-      moraleChange
+      moraleChange,
     }
   }
 
@@ -3549,7 +3581,7 @@ export class GameState {
               destroyed: false,
               insubstantialUsed: true,
               previousHP,
-              remainingHP: creature.currentHP
+              remainingHP: creature.currentHP,
             }
             damageEvents.push(event)
             continue // Skip to next creature
@@ -3569,7 +3601,7 @@ export class GameState {
           damageSource: `Disciple of Kyuss`,
           destroyed: wasDestroyed,
           previousHP,
-          remainingHP: creature.currentHP
+          remainingHP: creature.currentHP,
         }
 
         if (wasDestroyed) {
@@ -3602,7 +3634,7 @@ export class GameState {
     }
 
     // Remove from battlefield
-    const index = player.creaturesInPlay.findIndex(c => c.instanceId === creature.instanceId)
+    const index = player.creaturesInPlay.findIndex((c) => c.instanceId === creature.instanceId)
     if (index !== -1) {
       player.creaturesInPlay.splice(index, 1)
     }
@@ -3859,9 +3891,17 @@ export class GameState {
    * @param {boolean} phasing - Whether creature has PHASING ability enabled
    * @returns {number} Movement cost (999 = impassable)
    */
-  getTerrainMovementCost(terrain, flying = false, creatureInstance = null, burrowing = false, phasing = false) {
+  getTerrainMovementCost(
+    terrain,
+    flying = false,
+    creatureInstance = null,
+    burrowing = false,
+    phasing = false
+  ) {
     // Check for GRUUMSH COMMANDS IT ability (ignore difficult terrain)
-    const ignoresDifficult = creatureInstance ? this.ignoresDifficultTerrain(creatureInstance) : false
+    const ignoresDifficult = creatureInstance
+      ? this.ignoresDifficultTerrain(creatureInstance)
+      : false
 
     // Delegate to Board with the ability check result
     return this.board.getTerrainMovementCost(terrain, flying, ignoresDifficult, burrowing, phasing)
@@ -3880,7 +3920,7 @@ export class GameState {
     // Base speed + commander speed bonuses (e.g., WALLS OF WEB)
     const baseSpeed = creatureInstance.creature.speed
     const speedBonus = this.getCommanderSpeedBonus(creatureInstance)
-    const speed = overrideSpeed !== null ? overrideSpeed : (baseSpeed + speedBonus)
+    const speed = overrideSpeed !== null ? overrideSpeed : baseSpeed + speedBonus
 
     const startPos = creatureInstance.position
     const flying = this.hasFlying(creatureInstance)
@@ -3906,11 +3946,11 @@ export class GameState {
         const aiDifficulty = player?.aiDifficulty || 'medium'
 
         if (aiDifficulty === 'easy') {
-          burrowEnabled = false  // Easy AI never uses BURROW
+          burrowEnabled = false // Easy AI never uses BURROW
         } else if (aiDifficulty === 'medium') {
-          burrowEnabled = Math.random() < 0.5  // Medium AI uses 50% of the time
+          burrowEnabled = Math.random() < 0.5 // Medium AI uses 50% of the time
         } else {
-          burrowEnabled = true  // Hard AI always uses BURROW
+          burrowEnabled = true // Hard AI always uses BURROW
         }
       }
     }
@@ -3937,11 +3977,11 @@ export class GameState {
         const aiDifficulty = player?.aiDifficulty || 'medium'
 
         if (aiDifficulty === 'easy') {
-          phasingEnabled = false  // Easy AI never uses PHASING
+          phasingEnabled = false // Easy AI never uses PHASING
         } else if (aiDifficulty === 'medium') {
-          phasingEnabled = Math.random() < 0.5  // Medium AI uses 50% of the time
+          phasingEnabled = Math.random() < 0.5 // Medium AI uses 50% of the time
         } else {
-          phasingEnabled = true  // Hard AI always uses PHASING
+          phasingEnabled = true // Hard AI always uses PHASING
         }
       }
     }
@@ -3975,9 +4015,9 @@ export class GameState {
         const aiDifficulty = player?.aiDifficulty || 'medium'
 
         if (aiDifficulty === 'easy') {
-          scuttleEnabled = false  // Easy AI never uses SCUTTLE
+          scuttleEnabled = false // Easy AI never uses SCUTTLE
         } else if (aiDifficulty === 'medium') {
-          scuttleEnabled = Math.random() < 0.5  // Medium AI uses 50% of the time
+          scuttleEnabled = Math.random() < 0.5 // Medium AI uses 50% of the time
         }
         // Hard AI always uses SCUTTLE (scuttleEnabled stays true)
       }
@@ -4013,10 +4053,18 @@ export class GameState {
     const validMovement = pathfindingGetValidMovement(
       startPos,
       speed,
-      (terrain, isFlying) => this.getTerrainMovementCost(terrain, isFlying || phasingEnabled, creatureInstance, burrowEnabled, phasingEnabled),
-      (tile, isFlying) => this.isTerrainPassable(tile, isFlying || phasingEnabled, burrowEnabled, phasingEnabled),
+      (terrain, isFlying) =>
+        this.getTerrainMovementCost(
+          terrain,
+          isFlying || phasingEnabled,
+          creatureInstance,
+          burrowEnabled,
+          phasingEnabled
+        ),
+      (tile, isFlying) =>
+        this.isTerrainPassable(tile, isFlying || phasingEnabled, burrowEnabled, phasingEnabled),
       (x, y) => this.getTile(x, y),
-      flying || phasingEnabled,  // Phasing creatures behave like flying for terrain purposes
+      flying || phasingEnabled, // Phasing creatures behave like flying for terrain purposes
       canPassThrough,
       canStopOn
     )
@@ -4041,7 +4089,7 @@ export class GameState {
 
     const validTiles = this.getValidMovementTiles(creatureInstance)
     // Fix - validTiles contains {tile, path, cost} objects
-    const isValid = validTiles.some(t => t.tile.x === targetTile.x && t.tile.y === targetTile.y)
+    const isValid = validTiles.some((t) => t.tile.x === targetTile.x && t.tile.y === targetTile.y)
 
     if (!isValid) return false
 
@@ -4063,7 +4111,7 @@ export class GameState {
       owner: creatureInstance.owner,
       from: oldPosition,
       to: { x: targetTile.x, y: targetTile.y },
-      versatileMove: creatureInstance.usingVersatileMove || false
+      versatileMove: creatureInstance.usingVersatileMove || false,
     })
 
     // Reveal treasure if creature moves onto it - O(1)
@@ -4071,7 +4119,7 @@ export class GameState {
       targetTile.treasure.reveal()
       logger.gameEvent('Treasure revealed', {
         position: { x: targetTile.x, y: targetTile.y },
-        morale: targetTile.treasure.moraleValue
+        morale: targetTile.treasure.moraleValue,
       })
     }
 
@@ -4095,12 +4143,12 @@ export class GameState {
         left: leftMagicCircle,
         sorcerer: creatureInstance,
         owner: creatureInstance.owner,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
       logger.ability('MAGIC CIRCLE AURA', {
         sorcerer: creatureInstance.creature.name,
         entered: enteredMagicCircle,
-        left: leftMagicCircle
+        left: leftMagicCircle,
       })
     }
 
@@ -4122,8 +4170,16 @@ export class GameState {
     const startY = creature.position.y
 
     // Check all tiles within shift range
-    for (let x = Math.max(0, startX - maxDistance); x <= Math.min(this.boardWidth - 1, startX + maxDistance); x++) {
-      for (let y = Math.max(0, startY - maxDistance); y <= Math.min(this.boardHeight - 1, startY + maxDistance); y++) {
+    for (
+      let x = Math.max(0, startX - maxDistance);
+      x <= Math.min(this.boardWidth - 1, startX + maxDistance);
+      x++
+    ) {
+      for (
+        let y = Math.max(0, startY - maxDistance);
+        y <= Math.min(this.boardHeight - 1, startY + maxDistance);
+        y++
+      ) {
         // Skip current position
         if (x === startX && y === startY) continue
 
@@ -4136,7 +4192,11 @@ export class GameState {
 
         // Check if creature can enter this tile (terrain rules)
         // Mountains block all except flying/phasing
-        if (tile.terrain === 'MOUNTAIN' && !this.hasFlying(creature) && !this.hasPhasing(creature)) {
+        if (
+          tile.terrain === 'MOUNTAIN' &&
+          !this.hasFlying(creature) &&
+          !this.hasPhasing(creature)
+        ) {
           continue
         }
 
@@ -4215,7 +4275,7 @@ export class GameState {
     }
 
     // Get ALL creatures on board (from all players) that have ranged attacks
-    const allRangedCreatures = allCreatures.filter(c => c.creature.rangedAttack)
+    const allRangedCreatures = allCreatures.filter((c) => c.creature.rangedAttack)
 
     // For each ranged creature, get its LOS tiles
     for (const creature of allRangedCreatures) {
@@ -4243,7 +4303,7 @@ export class GameState {
             hasLOS: true,
             creatureCount: 1,
             creatures: [creature.creature.name],
-            owners: [creature.owner]
+            owners: [creature.owner],
           })
         }
       }
@@ -4273,8 +4333,25 @@ export class GameState {
    * @param {string} aiDifficulty - AI difficulty for DEATH STRIKE decision ('easy'|'medium'|'hard')
    * @returns {Object} Attack result
    */
-  executeAttack(attackerInstance, defenderInstance, attackType = 'melee', damageBoostBonus = 0, damageBoostFlat = null, aiDifficulty = 'medium') {
-    return this.combatResolver.executeAttack(attackerInstance, defenderInstance, attackType, aiDifficulty, 0, null, false, damageBoostBonus, damageBoostFlat)
+  executeAttack(
+    attackerInstance,
+    defenderInstance,
+    attackType = 'melee',
+    damageBoostBonus = 0,
+    damageBoostFlat = null,
+    aiDifficulty = 'medium'
+  ) {
+    return this.combatResolver.executeAttack(
+      attackerInstance,
+      defenderInstance,
+      attackType,
+      aiDifficulty,
+      0,
+      null,
+      false,
+      damageBoostBonus,
+      damageBoostFlat
+    )
   }
 
   /**
@@ -4289,16 +4366,46 @@ export class GameState {
    * @param {string} aiDifficulty - AI difficulty for DEATH STRIKE decision ('easy'|'medium'|'hard')
    * @returns {Object} Attack result
    */
-  executeAttackWithDefense(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0, defenseType = null, damageBoostBonus = 0, damageBoostFlat = null, aiDifficulty = 'medium') {
-    return this.combatResolver.executeAttackWithDefense(attackerInstance, defenderInstance, attackType, damageReduction, defenseType, aiDifficulty, false, damageBoostBonus, damageBoostFlat)
+  executeAttackWithDefense(
+    attackerInstance,
+    defenderInstance,
+    attackType = 'melee',
+    damageReduction = 0,
+    defenseType = null,
+    damageBoostBonus = 0,
+    damageBoostFlat = null,
+    aiDifficulty = 'medium'
+  ) {
+    return this.combatResolver.executeAttackWithDefense(
+      attackerInstance,
+      defenderInstance,
+      attackType,
+      damageReduction,
+      defenseType,
+      aiDifficulty,
+      false,
+      damageBoostBonus,
+      damageBoostFlat
+    )
   }
 
   /**
    * Legacy method - kept for backwards compatibility
    * @deprecated Use executeAttackWithDefense instead
    */
-  executeAttackWithCower(attackerInstance, defenderInstance, attackType = 'melee', damageReduction = 0) {
-    return this.executeAttackWithDefense(attackerInstance, defenderInstance, attackType, damageReduction, 'unstoppable_hordes')
+  executeAttackWithCower(
+    attackerInstance,
+    defenderInstance,
+    attackType = 'melee',
+    damageReduction = 0
+  ) {
+    return this.executeAttackWithDefense(
+      attackerInstance,
+      defenderInstance,
+      attackType,
+      damageReduction,
+      'unstoppable_hordes'
+    )
   }
 
   /**
@@ -4328,7 +4435,10 @@ export class GameState {
 
     // Cannot collect if already attacked/acted this turn
     if (creatureInstance.hasAttackedThisTurn) {
-      return { success: false, message: 'Cannot collect morale: creature has already acted this turn' }
+      return {
+        success: false,
+        message: 'Cannot collect morale: creature has already acted this turn',
+      }
     }
 
     // Get tile creature is standing on
@@ -4364,7 +4474,7 @@ export class GameState {
       message: `Collected 1 morale from treasure`,
       moraleCollected: 1,
       treasureDepleted: isDepleted,
-      treasureValue: treasure.getDisplayString()
+      treasureValue: treasure.getDisplayString(),
     }
 
     // Remove treasure immediately if depleted - O(n) where n=treasures (max 6)

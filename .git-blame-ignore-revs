@@ -1,0 +1,6 @@
+# Commits listed here are skipped by `git blame` (run `git config blame.ignoreRevsFile .git-blame-ignore-revs`,
+# or GitHub/most IDEs pick this file up automatically). Use for pure reformatting/mechanical commits only —
+# never for commits that also change behavior.
+
+# style: normalize formatting with Prettier
+8bac647ed01f2eda47eabbb69e8b410c85837a67

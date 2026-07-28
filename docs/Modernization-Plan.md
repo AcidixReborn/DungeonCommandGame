@@ -9,6 +9,7 @@ Master plan for paying down technical debt before resuming Order Card content wo
 ---
 
 ## Phase 0: Persist This Roadmap ✅ COMPLETE
+
 - ✅ Created `docs/Modernization-Plan.md` (this file)
 - ✅ `docs/Order-Card-Implementation-Plan.md` left completely untouched — still the map back to STD-8
 
@@ -16,43 +17,47 @@ Master plan for paying down technical debt before resuming Order Card content wo
 
 ## Phase A: Foundation & Git Hygiene ✅ COMPLETE
 
-| Item | Status |
-|------|--------|
-| Add `dist-electron/`, `.vite/` to `.gitignore` | ✅ |
-| `git rm --cached` the currently-tracked build artifacts | ✅ |
-| Add `LICENSE` file (MIT for code; WotC IP disclaimer in README/ABOUT stays as-is) | ✅ |
-| Flesh out `package.json` metadata (`description`, `repository`, `author`, `keywords`, `license`) | ✅ |
-| Resolve/remove stale `// TODO: Apply card effects` at `GameBoard.jsx:1470` | ✅ — the whole surrounding code path (`handleReactionsPlayed`) was dead, never wired up; removed it along with the orphaned 667-line `ImmediateReactionModal.jsx`/`.css` it belonged to (fully superseded by `DefenseOptionsPanel`, no longer imported anywhere) |
-| Roll out file-based `logger` (`src/utils/logger.js`) to remaining ~95 `console.log` sites | ✅ — also fixed `logger.js` itself, which had drifted to file-only output (Electron IPC only) despite its docstring promising console+file; that would've silently killed all logging under the documented browser `npm run dev` workflow. Added a `logger.debug(...)` variadic passthrough for GameBoard.jsx's dense multi-arg trace logs. Left `src/test/AbilitiesTest.jsx`'s `console.log` calls alone — those are an interactive test-runner's progress output, not gameplay debug noise |
+| Item                                                                                             | Status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add `dist-electron/`, `.vite/` to `.gitignore`                                                   | ✅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `git rm --cached` the currently-tracked build artifacts                                          | ✅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Add `LICENSE` file (MIT for code; WotC IP disclaimer in README/ABOUT stays as-is)                | ✅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Flesh out `package.json` metadata (`description`, `repository`, `author`, `keywords`, `license`) | ✅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Resolve/remove stale `// TODO: Apply card effects` at `GameBoard.jsx:1470`                       | ✅ — the whole surrounding code path (`handleReactionsPlayed`) was dead, never wired up; removed it along with the orphaned 667-line `ImmediateReactionModal.jsx`/`.css` it belonged to (fully superseded by `DefenseOptionsPanel`, no longer imported anywhere)                                                                                                                                                                                                                             |
+| Roll out file-based `logger` (`src/utils/logger.js`) to remaining ~95 `console.log` sites        | ✅ — also fixed `logger.js` itself, which had drifted to file-only output (Electron IPC only) despite its docstring promising console+file; that would've silently killed all logging under the documented browser `npm run dev` workflow. Added a `logger.debug(...)` variadic passthrough for GameBoard.jsx's dense multi-arg trace logs. Left `src/test/AbilitiesTest.jsx`'s `console.log` calls alone — those are an interactive test-runner's progress output, not gameplay debug noise |
 
 **Checkpoint**: `npm install` + `npm run build` succeed cleanly.
 
 ---
 
-## Phase B: Tooling — ESLint + Prettier + TypeScript Setup
+## Phase B: Tooling — ESLint + Prettier + TypeScript Setup ✅ COMPLETE
 
-| Item | Status |
-|------|--------|
-| Add ESLint (flat config) + `eslint-plugin-react-hooks` + `@typescript-eslint` | ⬜ |
-| Add Prettier | ⬜ |
-| Add `typescript`, create `tsconfig.json` with `allowJs: true` for incremental migration | ⬜ |
-| Add `npm run lint` script | ⬜ |
-| Add `npm run typecheck` script | ⬜ |
+| Item                                                                                     | Status                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add ESLint (flat config) + `eslint-plugin-react-hooks` + react/react-refresh plugins        | ✅ — pinned to ESLint 9.x (eslint-plugin-react doesn't support ESLint 10 yet). Deliberately only enabled the two classic, well-understood hook rules (`rules-of-hooks`, `exhaustive-deps`) rather than eslint-plugin-react-hooks v7's full "recommended" bundle, which also pulls in the newer React Compiler rule set (`set-state-in-effect`, `purity`, etc.) — better evaluated once Phase C's characterization tests exist |
+| Add Prettier                                                                                | ✅ — config matches the codebase's existing style (no semicolons, single quotes) to minimize diff noise                                                                                                                                                                                                                     |
+| Add `typescript`, create `tsconfig.json` with `allowJs: true` for incremental migration     | ✅                                                                                                                                                                                                                                                                                                                             |
+| Add `npm run lint` / `lint:fix` / `format` / `format:check` scripts                         | ✅                                                                                                                                                                                                                                                                                                                             |
+| Add `npm run typecheck` script                                                              | ✅ — trivially passes for now (`checkJs: false`, zero `.ts` files yet); becomes meaningful during Phase D                                                                                                                                                                                                                     |
+| Run `npm run lint` once, triage and fix real findings                                       | ✅ — found and fixed **two real bugs**: (1) `GameBoard.jsx` called `setClericDrawOrderResult(...)`, a setter that was never declared (only a read-alias existed) — this would throw a `ReferenceError` and crash the game whenever an Orc Cleric's deploy-draw ability triggered for a human player; (2) `gameState.js`'s `Insubstantial.use(...)` false-flagged as an invalid React Hook call due to its `use*` name colliding with hook-naming convention (added a scoped disable comment, not a rename — it's not a hook). Remaining 142 problems are all warnings (mostly pre-existing unused vars) — left as non-blocking backlog rather than hand-fixed |
+| Run Prettier once across the whole codebase (had never been formatted)                     | ✅ — done as its own isolated commit (`8bac647`) with no logic changes, and added `.git-blame-ignore-revs` listing it so `git blame` skips straight to the real authorship underneath                                                                                                                                       |
+
+**Checkpoint**: `npm run build`, `npm run lint` (0 errors), and `npm run typecheck` all pass clean.
 
 ---
 
 ## Phase C: Testing Infrastructure
 
-| Item | Status |
-|------|--------|
-| Add Vitest + `@testing-library/react` + `jsdom` | ⬜ |
-| Characterization tests: `CombatResolver.js` (combat math, damage prevention) | ⬜ |
-| Characterization tests: `CommanderAbilityManager.js` | ⬜ |
-| Characterization tests: `GameState`/`PlayerState` core flows (`gameState.js`) | ⬜ |
-| Characterization tests: key `simpleAI.js` scoring functions | ⬜ |
-| Add `npm test` script | ⬜ |
+| Item                                                                          | Status |
+| ----------------------------------------------------------------------------- | ------ |
+| Add Vitest + `@testing-library/react` + `jsdom`                               | ⬜     |
+| Characterization tests: `CombatResolver.js` (combat math, damage prevention)  | ⬜     |
+| Characterization tests: `CommanderAbilityManager.js`                          | ⬜     |
+| Characterization tests: `GameState`/`PlayerState` core flows (`gameState.js`) | ⬜     |
+| Characterization tests: key `simpleAI.js` scoring functions                   | ⬜     |
+| Add `npm test` script                                                         | ⬜     |
 
-*Write these tests in JS, before converting the corresponding files to TS in Phase D — they lock in current behavior so the migration can't silently change game rules.*
+_Write these tests in JS, before converting the corresponding files to TS in Phase D — they lock in current behavior so the migration can't silently change game rules._
 
 ---
 
@@ -60,15 +65,15 @@ Master plan for paying down technical debt before resuming Order Card content wo
 
 Convert in dependency order — each step should only depend on already-typed code:
 
-| Step | Files | Status |
-|------|-------|--------|
-| 1 | `constants/gameConstants.js`, `utils/` (PriorityQueue, pathfinding, logger) | ⬜ |
-| 2 | Core models: `creatures.js`, `orders.js`, `commanders.js`, `Board.js`, `treasure.js` (define shared domain types here) | ⬜ |
-| 3 | `CombatResolver.js`, `CommanderAbilityManager.js` | ⬜ |
-| 4 | `gameState.js` (`PlayerState`, `GameState`) | ⬜ |
-| 5 | `simpleAI.js`, `services/AITurnManager.js` | ⬜ |
-| 6 | `hooks/` (`useCombat`, `useSelection`, `useAbilityModals`, `useAITurn`, `useDeployment`, `useNotifications`) | ⬜ |
-| 7 | Components, smallest first, working up to `GameBoard.jsx` last (after Phase E decomposition) | ⬜ |
+| Step | Files                                                                                                                  | Status |
+| ---- | ---------------------------------------------------------------------------------------------------------------------- | ------ |
+| 1    | `constants/gameConstants.js`, `utils/` (PriorityQueue, pathfinding, logger)                                            | ⬜     |
+| 2    | Core models: `creatures.js`, `orders.js`, `commanders.js`, `Board.js`, `treasure.js` (define shared domain types here) | ⬜     |
+| 3    | `CombatResolver.js`, `CommanderAbilityManager.js`                                                                      | ⬜     |
+| 4    | `gameState.js` (`PlayerState`, `GameState`)                                                                            | ⬜     |
+| 5    | `simpleAI.js`, `services/AITurnManager.js`                                                                             | ⬜     |
+| 6    | `hooks/` (`useCombat`, `useSelection`, `useAbilityModals`, `useAITurn`, `useDeployment`, `useNotifications`)           | ⬜     |
+| 7    | Components, smallest first, working up to `GameBoard.jsx` last (after Phase E decomposition)                           | ⬜     |
 
 Turn on stricter compiler flags (`noImplicitAny`, `strictNullChecks`, eventually full `strict`) incrementally as more of the codebase converts.
 
@@ -76,41 +81,41 @@ Turn on stricter compiler flags (`noImplicitAny`, `strictNullChecks`, eventually
 
 ## Phase E: `GameBoard.jsx` Decomposition (Interleaved with Phase D)
 
-| Item | Status |
-|------|--------|
-| Extract remaining inline attack-flow logic (shift/charge/damage-boost) into hooks, following the `useAbilityModals` pattern | ⬜ |
-| Split render tree into sub-components: board/grid area | ⬜ |
-| Split render tree into sub-components: side panels | ⬜ |
-| Split render tree into sub-components: modal-orchestration layer (~20 modals currently wired through one file) | ⬜ |
+| Item                                                                                                                        | Status |
+| --------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Extract remaining inline attack-flow logic (shift/charge/damage-boost) into hooks, following the `useAbilityModals` pattern | ⬜     |
+| Split render tree into sub-components: board/grid area                                                                      | ⬜     |
+| Split render tree into sub-components: side panels                                                                          | ⬜     |
+| Split render tree into sub-components: modal-orchestration layer (~20 modals currently wired through one file)              | ⬜     |
 
 ---
 
 ## Phase F: CI/CD
 
-| Item | Status |
-|------|--------|
-| Add `.github/workflows/ci.yml` running `tsc --noEmit`, ESLint, Vitest, `npm run build` on push/PR | ⬜ |
-| Add CI status badge to `README.md` | ⬜ |
+| Item                                                                                              | Status |
+| ------------------------------------------------------------------------------------------------- | ------ |
+| Add `.github/workflows/ci.yml` running `tsc --noEmit`, ESLint, Vitest, `npm run build` on push/PR | ⬜     |
+| Add CI status badge to `README.md`                                                                | ⬜     |
 
 ---
 
 ## Phase G: Live Web Demo
 
-| Item | Status |
-|------|--------|
-| Confirm Electron-only code paths (logger IPC) are guarded for browser context | ⬜ |
-| Deploy Vite web build (`dist/`) to GitHub Pages / Vercel / Netlify | ⬜ |
-| Add live demo link near top of `README.md` | ⬜ |
+| Item                                                                          | Status |
+| ----------------------------------------------------------------------------- | ------ |
+| Confirm Electron-only code paths (logger IPC) are guarded for browser context | ⬜     |
+| Deploy Vite web build (`dist/`) to GitHub Pages / Vercel / Netlify            | ⬜     |
+| Add live demo link near top of `README.md`                                    | ⬜     |
 
 ---
 
 ## Phase H: Resume Polish
 
-| Item | Status |
-|------|--------|
-| Add `ARCHITECTURE.md` documenting layers and key design decisions | ⬜ |
-| Update `README.md` with live demo link, screenshot/GIF, "Highlights" section | ⬜ |
-| Adopt conventional commit messages going forward (`feat:`, `fix:`, `refactor:`) | ⬜ |
+| Item                                                                            | Status |
+| ------------------------------------------------------------------------------- | ------ |
+| Add `ARCHITECTURE.md` documenting layers and key design decisions               | ⬜     |
+| Update `README.md` with live demo link, screenshot/GIF, "Highlights" section    | ⬜     |
+| Adopt conventional commit messages going forward (`feat:`, `fix:`, `refactor:`) | ⬜     |
 
 ---
 
