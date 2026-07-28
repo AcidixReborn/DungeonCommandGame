@@ -52,14 +52,7 @@ function HealingTouchModal({
   })
 
   return (
-    <Modal
-      show={show}
-      onHide={onCancel}
-      centered
-      size="md"
-      backdrop="static"
-      className="healing-touch-modal"
-    >
+    <Modal show={show} onHide={onCancel} centered backdrop="static" className="healing-touch-modal">
       <Modal.Header
         style={{ backgroundColor: '#1a472a', color: 'white', borderBottom: '2px solid #2d5a3d' }}
       >

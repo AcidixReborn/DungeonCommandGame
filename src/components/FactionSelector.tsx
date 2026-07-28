@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Container, Row, Col, Card, Button, Form, Badge, Alert } from 'react-bootstrap'
 import { Factions } from '../data/factions'
 import { logger } from '../utils/logger'
@@ -119,7 +120,7 @@ function FactionSelector({ onStartGame }) {
     }
 
     // Build config for active players only
-    const config = {}
+    const config: Record<string, any> = {}
     for (let i = 1; i <= numPlayers; i++) {
       const playerKey = `player${i}`
       const isHuman = playerTypes[playerKey] === 'human'
@@ -153,7 +154,7 @@ function FactionSelector({ onStartGame }) {
     const availableFactions = getAvailableFactions(playerKey)
 
     // Calculate column width: 2 players = 50%, 3 players = 33%, 4 players = 25%, 5 players = 20%
-    const getColumnStyle = () => {
+    const getColumnStyle = (): CSSProperties => {
       if (numPlayers === 5) {
         return {
           flex: '0 0 20%',

@@ -1,17 +1,26 @@
+import type React from 'react'
 import { Card, Badge } from 'react-bootstrap'
 import { ActionTypes } from '../models/orders'
 import './OrderCard.css'
 
+interface OrderCardProps {
+  /** Order card data */
+  order: any
+  /** Click handler */
+  onClick?: (e: React.MouseEvent) => void
+  /** Right-click handler for targeting mode */
+  onRightClick?: (e: React.MouseEvent) => void
+  /** Whether card is selected */
+  isSelected?: boolean
+  /** Whether this card is in targeting mode (glowing border) */
+  isTargeting?: boolean
+  /** Use compact display mode */
+  compact?: boolean
+}
+
 /**
  * OrderCard - Displays an order (spell/ability) card
  * Shows level, ability requirements, action type, and effects
- *
- * @param {OrderCard} order - Order card data
- * @param {Function} onClick - Click handler
- * @param {Function} onRightClick - Right-click handler for targeting mode
- * @param {boolean} isSelected - Whether card is selected
- * @param {boolean} isTargeting - Whether this card is in targeting mode (glowing border)
- * @param {boolean} compact - Use compact display mode
  */
 function OrderCard({
   order,
@@ -20,7 +29,7 @@ function OrderCard({
   isSelected,
   isTargeting = false,
   compact = false,
-}) {
+}: OrderCardProps) {
   /**
    * Get badge color for action type
    * @returns {string} Bootstrap variant color

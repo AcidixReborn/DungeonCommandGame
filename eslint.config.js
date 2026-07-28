@@ -79,6 +79,13 @@ export default [
       // Ratcheted up incrementally as more of the codebase converts (Phase D) — an explicit
       // `any` is still far better than no types at all during a large incremental migration.
       '@typescript-eslint/no-explicit-any': 'off',
+      // typescript-eslint's version of this rule disallows `condition && doThing()` as a
+      // statement by default (unlike the base ESLint rule) — this codebase uses that idiom
+      // pervasively and intentionally, not by mistake.
+      '@typescript-eslint/no-unused-expressions': [
+        'error',
+        { allowShortCircuit: true, allowTernary: true },
+      ],
     },
   },
   {

@@ -31,7 +31,7 @@ function CardsDrawnModal({
   const hasBonusSources = bonusSources && bonusSources.length > 0
 
   return (
-    <Modal show={show} onHide={onContinue} centered size="md" backdrop="static">
+    <Modal show={show} onHide={onContinue} centered backdrop="static">
       <Modal.Header
         style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #17a2b8' }}
       >

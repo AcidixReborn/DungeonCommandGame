@@ -125,7 +125,7 @@ function DamageNotificationModal({
                   )}
                   <div>
                     <strong>{event.creatureName}</strong>
-                    <Badge bg="secondary" size="sm" className="ms-2">
+                    <Badge bg="secondary" className="ms-2">
                       {event.creatureOwner}
                     </Badge>
                   </div>

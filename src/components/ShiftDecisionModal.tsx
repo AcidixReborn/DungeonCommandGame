@@ -17,7 +17,7 @@ function ShiftDecisionModal({ show, cardName, shiftDistance, creatureName, onYes
   if (!show) return null
 
   return (
-    <Modal show={show} onHide={onNo} centered size="md" backdrop="static">
+    <Modal show={show} onHide={onNo} centered backdrop="static">
       <Modal.Header
         style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #9b59b6' }}
       >

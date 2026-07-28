@@ -1,4 +1,4 @@
-import { Button, Badge } from 'react-bootstrap'
+import { Badge } from 'react-bootstrap'
 import {
   GiSpiderWeb,
   GiKnightBanner,
@@ -206,12 +206,7 @@ function GraveyardPanel({
                   transition: 'all 0.2s ease',
                 }}
               >
-                <CreatureCard
-                  creature={creature}
-                  compact={true}
-                  isSelected={false}
-                  showHoverPopOut={false}
-                />
+                <CreatureCard creature={creature} compact={true} isSelected={false} />
 
                 {/* Resurrection indicator for Zombies */}
                 {canResurrect && (

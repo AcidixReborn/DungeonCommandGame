@@ -24,3 +24,6 @@ dist-electron
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code local settings (machine/session-specific, not meant to be shared)
+.claude/

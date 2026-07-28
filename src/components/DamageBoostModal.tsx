@@ -74,7 +74,7 @@ function DamageBoostModal({ show, card, creature, onConfirm, onCancel }) {
   const attackTypeText = isRangedBoost ? 'ranged' : 'melee'
 
   return (
-    <Modal show={show} onHide={onCancel} centered size="md" backdrop="static" keyboard={false}>
+    <Modal show={show} onHide={onCancel} centered backdrop="static" keyboard={false}>
       <Modal.Header
         style={{
           backgroundColor: '#212529',

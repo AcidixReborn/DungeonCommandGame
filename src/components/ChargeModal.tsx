@@ -34,7 +34,7 @@ function ChargeModal({ show, card, creature, onConfirm, onCancel }) {
   const accentColor = '#28a745'
 
   return (
-    <Modal show={show} onHide={onCancel} centered size="md" backdrop="static">
+    <Modal show={show} onHide={onCancel} centered backdrop="static">
       <Modal.Header
         style={{
           backgroundColor: '#212529',

@@ -40,14 +40,7 @@ function WebRemovalModal({ show, onKeepWeb, onRemoveWeb, creatureInstance, attac
   const getAttachmentColor = () => (isWeb ? '#6c757d' : isLeapAway ? '#cc0000' : '#17a2b8')
 
   return (
-    <Modal
-      show={show}
-      onHide={onKeepWeb}
-      centered
-      size="md"
-      backdrop="static"
-      className="web-removal-modal"
-    >
+    <Modal show={show} onHide={onKeepWeb} centered backdrop="static" className="web-removal-modal">
       <Modal.Header
         style={{
           backgroundColor: '#212529',

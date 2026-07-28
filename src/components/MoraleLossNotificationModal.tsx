@@ -27,7 +27,7 @@ function MoraleLossNotificationModal({ show, data, onClose }) {
     data
 
   return (
-    <Modal show={show} onHide={onClose} centered size="md" backdrop="static">
+    <Modal show={show} onHide={onClose} centered backdrop="static">
       <Modal.Header
         style={{
           backgroundColor: '#212529',

@@ -19,7 +19,7 @@ function ClericDrawOrderModal({ show, onDismiss, result }) {
   const { creatureInstance, drawnCard } = result
 
   return (
-    <Modal show={show} onHide={onDismiss} centered size="md" backdrop="static">
+    <Modal show={show} onHide={onDismiss} centered backdrop="static">
       <Modal.Header
         style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #8B4513' }}
       >

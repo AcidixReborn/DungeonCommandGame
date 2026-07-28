@@ -628,7 +628,7 @@ function PlayerPanel({
                   <div className="nav-separator" />
 
                   {/* Faction Icons - O(n) where n = active players */}
-                  {Object.entries(allPlayers)
+                  {(Object.entries(allPlayers) as [string, any][])
                     .filter(([factionPlayerId, playerState]) => {
                       // O(1) - Check if faction is still active (not defeated)
                       // isDefeated returns true if morale <= 0 after turn 1

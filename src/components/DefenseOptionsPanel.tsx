@@ -190,7 +190,10 @@ function DefenseOptionsPanel({
         : []
 
       // Check if any adjacent tile has a tapped enemy
-      for (const [playerId, player] of Object.entries(gameState?.players || {})) {
+      for (const [playerId, player] of Object.entries(gameState?.players || {}) as [
+        string,
+        any,
+      ][]) {
         if (playerId === defenderInstance.owner) continue // Skip own creatures
         for (const enemy of player.creaturesInPlay) {
           if (enemy.isTapped) {
@@ -256,7 +259,7 @@ function DefenseOptionsPanel({
     const adjacentTiles = gameState.getAdjacentTiles8Dir(cardUserPosition.x, cardUserPosition.y)
 
     // Check each player's creatures
-    for (const [playerId, player] of Object.entries(gameState.players)) {
+    for (const [playerId, player] of Object.entries(gameState.players) as [string, any][]) {
       // Skip our own creatures (can't target friendly creatures for morale loss)
       if (playerId === defenderOwner) continue
 

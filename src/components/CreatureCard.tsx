@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type React from 'react'
 import { Card, Badge } from 'react-bootstrap'
 import './CreatureCard.css'
 
@@ -14,20 +15,32 @@ const FACTION_COLORS = {
   'Blood of Gruumsh': '#8b4513', // Brown/Orange
 }
 
+interface CreatureCardProps {
+  /** Creature data to display */
+  creature: any
+  /** Optional creature instance with attached cards */
+  creatureInstance?: any
+  /** Click handler */
+  onClick?: (e: React.MouseEvent) => void
+  /** Whether card is selected */
+  isSelected?: boolean
+  /** Use compact display mode */
+  compact?: boolean
+  /** Enable drag and drop */
+  draggable?: boolean
+  /** Drag start handler */
+  onDragStart?: (cardIndex: number) => void
+  /** Drag end handler */
+  onDragEnd?: () => void
+  /** Card index in hand */
+  cardIndex?: number
+  handSize?: number
+}
+
 /**
  * CreatureCard - Displays a creature card with stats and abilities
  * Supports compact and full view modes, drag and drop
  * Now supports carousel view for attached order cards (e.g., Web)
- *
- * @param {Creature} creature - Creature data to display
- * @param {CreatureInstance} creatureInstance - Optional creature instance with attached cards
- * @param {Function} onClick - Click handler
- * @param {boolean} isSelected - Whether card is selected
- * @param {boolean} compact - Use compact display mode
- * @param {boolean} draggable - Enable drag and drop
- * @param {Function} onDragStart - Drag start handler
- * @param {Function} onDragEnd - Drag end handler
- * @param {number} cardIndex - Card index in hand
  */
 function CreatureCard({
   creature,
@@ -39,8 +52,8 @@ function CreatureCard({
   onDragStart,
   onDragEnd,
   cardIndex,
-  handSize,
-}) {
+  handSize: _handSize,
+}: CreatureCardProps) {
   // Carousel state: 0 = creature card, 1+ = attached cards
   const [carouselIndex, setCarouselIndex] = useState(0)
 

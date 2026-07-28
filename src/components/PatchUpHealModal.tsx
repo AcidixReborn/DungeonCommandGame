@@ -24,7 +24,7 @@ function PatchUpHealModal({ show, card, creature, healAmount, onConfirm, onCance
   const maxHP = creature.creature?.hitPoints || creature.maxHP || 0
 
   return (
-    <Modal show={show} onHide={onCancel} centered size="md" backdrop="static">
+    <Modal show={show} onHide={onCancel} centered backdrop="static">
       <Modal.Header
         style={{ backgroundColor: '#212529', color: 'white', borderBottom: '2px solid #28a745' }}
       >
