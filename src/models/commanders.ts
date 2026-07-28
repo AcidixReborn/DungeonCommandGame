@@ -4,7 +4,9 @@
 export const AbilityTypes = {
   PASSIVE: 'PASSIVE', // Automatically applied in background
   ACTIVE: 'ACTIVE', // Requires UI interaction (popup/button)
-}
+} as const
+
+export type AbilityType = (typeof AbilityTypes)[keyof typeof AbilityTypes]
 
 /**
  * Commander Ability Categories
@@ -15,6 +17,31 @@ export const AbilityCategories = {
   DEPLOYMENT: 'DEPLOYMENT', // Affects deployment rules
   COMBAT: 'COMBAT', // Affects combat outcomes
   RESOURCE: 'RESOURCE', // Affects morale, leadership, or cards
+} as const
+
+export type AbilityCategory = (typeof AbilityCategories)[keyof typeof AbilityCategories]
+
+export interface CommanderAbility {
+  id: string
+  name: string
+  type: AbilityType
+  category?: AbilityCategory
+  description?: string
+  [key: string]: unknown
+}
+
+export interface CommanderOptions {
+  id: string
+  name: string
+  faction: string
+  startingCreatureHandSize: number
+  startingOrderHandSize: number
+  startingMorale: number
+  startingLeadership: number
+  specialAbility?: string
+  specialAbilityDescription?: string
+  imageUrl?: string | null
+  abilities?: CommanderAbility[]
 }
 
 /**
@@ -22,19 +49,18 @@ export const AbilityCategories = {
  * Defines initial hand sizes, morale, leadership, and special abilities
  */
 export class Commander {
-  /**
-   * @param {string} id - Unique commander ID
-   * @param {string} name - Commander name
-   * @param {string} faction - Faction affiliation
-   * @param {number} startingCreatureHandSize - Initial creature cards drawn
-   * @param {number} startingOrderHandSize - Initial order cards drawn
-   * @param {number} startingMorale - Starting morale points (defeat condition)
-   * @param {number} startingLeadership - Starting leadership pool
-   * @param {string} specialAbility - Special ability name (deprecated, use abilities array)
-   * @param {string} specialAbilityDescription - Ability description text (deprecated, use abilities array)
-   * @param {string} imageUrl - Commander portrait URL
-   * @param {Array} abilities - Structured ability data array
-   */
+  id: string
+  name: string
+  faction: string
+  startingCreatureHandSize: number
+  startingOrderHandSize: number
+  startingMorale: number
+  startingLeadership: number
+  specialAbility?: string
+  specialAbilityDescription: string
+  imageUrl: string | null
+  abilities: CommanderAbility[]
+
   constructor({
     id,
     name,
@@ -47,7 +73,7 @@ export class Commander {
     specialAbilityDescription = '',
     imageUrl = null,
     abilities = [],
-  }) {
+  }: CommanderOptions) {
     this.id = id
     this.name = name
     this.faction = faction
@@ -63,35 +89,29 @@ export class Commander {
 
   /**
    * Check if commander has a specific ability by ID
-   * @param {string} abilityId - The ability ID to check for
-   * @returns {boolean} True if commander has this ability
    */
-  hasAbility(abilityId) {
+  hasAbility(abilityId: string): boolean {
     return this.abilities.some((ability) => ability.id === abilityId)
   }
 
   /**
    * Get an ability by ID
-   * @param {string} abilityId - The ability ID to get
-   * @returns {Object|null} The ability object or null
    */
-  getAbility(abilityId) {
+  getAbility(abilityId: string): CommanderAbility | null {
     return this.abilities.find((ability) => ability.id === abilityId) || null
   }
 
   /**
    * Get all passive abilities
-   * @returns {Array} Array of passive ability objects
    */
-  getPassiveAbilities() {
+  getPassiveAbilities(): CommanderAbility[] {
     return this.abilities.filter((ability) => ability.type === AbilityTypes.PASSIVE)
   }
 
   /**
    * Get all active abilities
-   * @returns {Array} Array of active ability objects
    */
-  getActiveAbilities() {
+  getActiveAbilities(): CommanderAbility[] {
     return this.abilities.filter((ability) => ability.type === AbilityTypes.ACTIVE)
   }
 }

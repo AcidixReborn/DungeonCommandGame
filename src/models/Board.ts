@@ -10,7 +10,7 @@
  * - Terrain passability and movement costs
  */
 
-import { BOARD, TERRAIN, TREASURE, MAGIC_CIRCLE } from '../constants/gameConstants.js'
+import { TERRAIN, TREASURE, MAGIC_CIRCLE } from '../constants/gameConstants.js'
 import { Treasure, createTokenPool, drawTokens } from './treasure.js'
 
 // Terrain type constants - affects movement and gameplay
@@ -22,18 +22,57 @@ export const TerrainTypes = {
   WATER: 'WATER', // Passable but dangerous, 2 movement cost, 10 damage at end of ACTIVATE phase
   MAGIC_CIRCLE: 'MAGIC_CIRCLE', // Special objective tile
   STARTING_ZONE: 'STARTING_ZONE', // Player deployment area
+} as const
+
+export type TerrainType = (typeof TerrainTypes)[keyof typeof TerrainTypes]
+
+export interface Position {
+  x: number
+  y: number
+}
+
+export interface Tile {
+  x: number
+  y: number
+  terrain: TerrainType | string
+  occupant: unknown | null
+  startingZoneOwner?: string
+  owner?: string
+  treasure?: Treasure
+}
+
+export interface EdgePosition {
+  startX: number
+  startY: number
+  edge:
+    | 'top'
+    | 'bottom'
+    | 'left'
+    | 'right'
+    | 'top-left'
+    | 'bottom-right'
+    | 'top-right'
+    | 'bottom-left'
+    | 'top-center'
+}
+
+// Minimal shape Board needs from PlayerState - avoids a circular import with gameState.ts
+export interface BoardPlayerLike {
+  startingZoneTiles: Position[]
+  magicCirclePosition: Position | null
 }
 
 /**
  * Board class - Manages the game board grid
  */
 export class Board {
-  /**
-   * Create a new Board
-   * @param {number} width - Board width in tiles
-   * @param {number} height - Board height in tiles
-   */
-  constructor(width, height) {
+  boardWidth: number
+  boardHeight: number
+  tiles: Tile[][]
+  treasures: Treasure[]
+  treasurePlacementStats: { relaxedSpacing: number }
+
+  constructor(width: number, height: number) {
     this.boardWidth = width
     this.boardHeight = height
     this.tiles = [] // 2D array [y][x] for O(1) tile lookup
@@ -48,7 +87,7 @@ export class Board {
    * Initialize an empty board with normal terrain
    * O(W*H) where W=width, H=height
    */
-  initializeEmptyBoard() {
+  initializeEmptyBoard(): void {
     this.tiles = []
     for (let y = 0; y < this.boardHeight; y++) {
       this.tiles[y] = []
@@ -69,11 +108,8 @@ export class Board {
 
   /**
    * Get tile at position - O(1) using 2D array
-   * @param {number} x - X coordinate
-   * @param {number} y - Y coordinate
-   * @returns {Object|null} Tile object or null if out of bounds
    */
-  getTile(x, y) {
+  getTile(x: number, y: number): Tile | null {
     if (x < 0 || x >= this.boardWidth || y < 0 || y >= this.boardHeight) {
       return null
     }
@@ -82,10 +118,9 @@ export class Board {
 
   /**
    * Get all tiles as flat array - O(W*H)
-   * @returns {Array} Array of all tiles
    */
-  getAllTiles() {
-    const allTiles = []
+  getAllTiles(): Tile[] {
+    const allTiles: Tile[] = []
     for (let y = 0; y < this.boardHeight; y++) {
       for (let x = 0; x < this.boardWidth; x++) {
         allTiles.push(this.tiles[y][x])
@@ -96,12 +131,9 @@ export class Board {
 
   /**
    * Get adjacent tiles (4-directional) - O(1)
-   * @param {number} x - Center X coordinate
-   * @param {number} y - Center Y coordinate
-   * @returns {Array} Array of adjacent tiles
    */
-  getAdjacentTiles(x, y) {
-    const adjacent = []
+  getAdjacentTiles(x: number, y: number): Tile[] {
+    const adjacent: Tile[] = []
     const directions = [
       { dx: 0, dy: -1 }, // North
       { dx: 1, dy: 0 }, // East
@@ -125,12 +157,9 @@ export class Board {
    * Get all 8-directionally adjacent tiles (including diagonals)
    * Used for abilities like FLASHING BLADES that affect all surrounding tiles
    * Big O: O(8) = O(1) - checks exactly 8 directions
-   * @param {number} x - Center X coordinate
-   * @param {number} y - Center Y coordinate
-   * @returns {Array} Array of all adjacent tiles (up to 8)
    */
-  getAdjacentTiles8Dir(x, y) {
-    const adjacent = []
+  getAdjacentTiles8Dir(x: number, y: number): Tile[] {
+    const adjacent: Tile[] = []
     const directions = [
       { dx: 0, dy: -1 }, // North
       { dx: 1, dy: -1 }, // Northeast
@@ -158,11 +187,8 @@ export class Board {
    * Check if a position is adjacent to any MOUNTAIN tile (8-directional)
    * Used for SHADOW STALKER ability deployment
    * Big O: O(8) = O(1) - checks up to 8 adjacent tiles
-   * @param {number} x - X coordinate
-   * @param {number} y - Y coordinate
-   * @returns {boolean} True if adjacent to at least one mountain
    */
-  isAdjacentToMountain(x, y) {
+  isAdjacentToMountain(x: number, y: number): boolean {
     const adjacentTiles = this.getAdjacentTiles8Dir(x, y)
     return adjacentTiles.some((tile) => tile.terrain === TerrainTypes.MOUNTAIN)
   }
@@ -174,23 +200,17 @@ export class Board {
   /**
    * Calculate distance between two positions using Chebyshev distance
    * Chebyshev distance = max(|dx|, |dy|) - correct for 8-directional movement
-   * @param {Object} pos1 - First position {x, y}
-   * @param {Object} pos2 - Second position {x, y}
-   * @returns {number} Distance
    */
-  getDistance(pos1, pos2) {
+  getDistance(pos1: Position, pos2: Position): number {
     return Math.max(Math.abs(pos1.x - pos2.x), Math.abs(pos1.y - pos2.y))
   }
 
   /**
    * Get all tiles along a line between two points (Bresenham's line algorithm)
    * Used for line of sight calculations
-   * @param {Object} from - Starting position {x, y}
-   * @param {Object} to - Ending position {x, y}
-   * @returns {Array} Array of positions along the line
    */
-  getLineTiles(from, to) {
-    const tiles = []
+  getLineTiles(from: Position, to: Position): Position[] {
+    const tiles: Position[] = []
     let x0 = from.x
     let y0 = from.y
     const x1 = to.x
@@ -227,13 +247,13 @@ export class Board {
 
   /**
    * Check if terrain is passable
-   * @param {Object} tile - Tile to check
-   * @param {boolean} flying - Whether creature is flying
-   * @param {boolean} burrowing - Whether creature has BURROW ability
-   * @param {boolean} phasing - Whether creature has PHASING ability
-   * @returns {boolean} True if passable
    */
-  isTerrainPassable(tile, flying = false, burrowing = false, phasing = false) {
+  isTerrainPassable(
+    tile: Tile | null,
+    flying = false,
+    burrowing = false,
+    phasing = false
+  ): boolean {
     if (!tile) return false
 
     // Mountains block non-flying/non-burrowing/non-phasing creatures entirely
@@ -247,20 +267,15 @@ export class Board {
 
   /**
    * Get movement cost for terrain type
-   * @param {string} terrain - Terrain type
-   * @param {boolean} flying - Whether creature is flying
-   * @param {boolean} ignoresDifficult - Whether creature ignores difficult terrain
-   * @param {boolean} burrowing - Whether creature has BURROW ability
-   * @param {boolean} phasing - Whether creature has PHASING ability
-   * @returns {number} Movement cost (999 = impassable)
+   * @returns Movement cost (999 = impassable)
    */
   getTerrainMovementCost(
-    terrain,
+    terrain: string,
     flying = false,
     ignoresDifficult = false,
     burrowing = false,
     phasing = false
-  ) {
+  ): number {
     // Flying creatures ignore difficult terrain
     // IMPORTANT: Mountains cost 1 to PASS THROUGH, but creatures cannot STOP on them
     // The "cannot stop" logic is handled in pathfinding's final destination filtering (canStopOn callback)
@@ -320,10 +335,8 @@ export class Board {
 
   /**
    * Generate complete board with terrain, starting zones, magic circles, treasures
-   * @param {Array} activePlayers - Array of player IDs
-   * @param {Object} players - Players object for zone assignment
    */
-  generateBoard(activePlayers, players) {
+  generateBoard(activePlayers: string[], players: Record<string, BoardPlayerLike>): void {
     // Re-initialize empty board
     this.initializeEmptyBoard()
 
@@ -354,19 +367,16 @@ export class Board {
 
   /**
    * Generate a terrain region with clustered terrain
-   * @param {number} startX - Starting X coordinate
-   * @param {number} startY - Starting Y coordinate
-   * @param {number} width - Region width
-   * @param {number} height - Region height
    */
-  generateTerrainRegion(startX, startY, width, height) {
-    const regionTiles = []
+  generateTerrainRegion(startX: number, startY: number, width: number, height: number): void {
+    const regionTiles: Tile[] = []
 
     // Get all tiles in this region
     for (let y = startY; y < startY + height; y++) {
       for (let x = startX; x < startX + width; x++) {
         if (x < this.boardWidth && y < this.boardHeight) {
-          regionTiles.push(this.getTile(x, y))
+          const tile = this.getTile(x, y)
+          if (tile) regionTiles.push(tile)
         }
       }
     }
@@ -387,12 +397,13 @@ export class Board {
 
   /**
    * Add terrain in clusters instead of random scatter
-   * @param {Array} regionTiles - Tiles in the region
-   * @param {string} terrainType - Type of terrain to add
-   * @param {number} count - Number of tiles to add
-   * @param {number} clusterSize - Size of clusters
    */
-  addClusteredTerrain(regionTiles, terrainType, count, clusterSize) {
+  addClusteredTerrain(
+    regionTiles: Tile[],
+    terrainType: TerrainType,
+    count: number,
+    clusterSize: number
+  ): void {
     // Filter out starting zones - only place terrain on NORMAL tiles
     const availableTiles = regionTiles.filter((t) => t && t.terrain === TerrainTypes.NORMAL)
     let placed = 0
@@ -436,10 +447,8 @@ export class Board {
 
   /**
    * Add random terrain tiles (legacy method)
-   * @param {string} terrainType - Type of terrain
-   * @param {number} count - Number of tiles
    */
-  addRandomTerrain(terrainType, count) {
+  addRandomTerrain(terrainType: TerrainType, count: number): void {
     const normalTiles = this.getAllTiles().filter((t) => t.terrain === TerrainTypes.NORMAL)
     for (let i = 0; i < count && normalTiles.length > 0; i++) {
       const randomIndex = Math.floor(Math.random() * normalTiles.length)
@@ -455,19 +464,17 @@ export class Board {
 
   /**
    * Create starting zones for each player on the board edges
-   * @param {Array} activePlayers - Array of player IDs
-   * @param {Object} players - Players object for zone assignment
    */
-  addStartingZones(activePlayers, players) {
+  addStartingZones(activePlayers: string[], players: Record<string, BoardPlayerLike>): void {
     const numPlayers = activePlayers.length
     const edgePositions = this.getEdgePositionsForPlayers(numPlayers)
 
     activePlayers.forEach((playerId, index) => {
       const edge = edgePositions[index]
-      const zoneTiles = []
+      const zoneTiles: Position[] = []
 
       // Determine zone dimensions based on edge orientation
-      let zoneWidth, zoneHeight
+      let zoneWidth: number, zoneHeight: number
       if (
         edge.edge === 'top' ||
         edge.edge === 'bottom' ||
@@ -506,37 +513,35 @@ export class Board {
 
   /**
    * Get starting positions on board edges for each player
-   * @param {number} numPlayers - Number of players
-   * @returns {Array} Array of edge positions
    */
-  getEdgePositionsForPlayers(numPlayers) {
-    const positions = []
+  getEdgePositionsForPlayers(numPlayers: number): EdgePosition[] {
+    const positions: EdgePosition[] = []
     const minDistance = 10 // Minimum gap between starting zone EDGES
 
     // Generate all possible edge positions
-    const possiblePositions = []
+    const possiblePositions: EdgePosition[] = []
 
-    // Top edge - 3 wide × 2 deep
+    // Top edge - 3 wide x 2 deep
     for (let x = 0; x <= this.boardWidth - 3; x++) {
       possiblePositions.push({ startX: x, startY: 0, edge: 'top' })
     }
 
-    // Bottom edge - 3 wide × 2 deep
+    // Bottom edge - 3 wide x 2 deep
     for (let x = 0; x <= this.boardWidth - 3; x++) {
       possiblePositions.push({ startX: x, startY: this.boardHeight - 2, edge: 'bottom' })
     }
 
-    // Left edge - 2 wide × 3 deep
+    // Left edge - 2 wide x 3 deep
     for (let y = 2; y < this.boardHeight - 3; y++) {
       possiblePositions.push({ startX: 0, startY: y, edge: 'left' })
     }
 
-    // Right edge - 2 wide × 3 deep
+    // Right edge - 2 wide x 3 deep
     for (let y = 2; y < this.boardHeight - 3; y++) {
       possiblePositions.push({ startX: this.boardWidth - 2, startY: y, edge: 'right' })
     }
 
-    const getZoneDimensions = (edge) => {
+    const getZoneDimensions = (edge: EdgePosition['edge']) => {
       if (edge === 'top' || edge === 'bottom') {
         return { width: 3, height: 2 }
       } else {
@@ -544,7 +549,7 @@ export class Board {
       }
     }
 
-    const getMinGapBetweenZones = (pos1, pos2) => {
+    const getMinGapBetweenZones = (pos1: EdgePosition, pos2: EdgePosition) => {
       const dim1 = getZoneDimensions(pos1.edge)
       const dim2 = getZoneDimensions(pos2.edge)
 
@@ -578,7 +583,7 @@ export class Board {
       return horizGap + vertGap
     }
 
-    const meetsMinDistance = (candidate, existingPositions) => {
+    const meetsMinDistance = (candidate: EdgePosition, existingPositions: EdgePosition[]) => {
       for (const existingPos of existingPositions) {
         if (getMinGapBetweenZones(candidate, existingPos) < minDistance) {
           return false
@@ -587,7 +592,7 @@ export class Board {
       return true
     }
 
-    const getTotalDistance = (candidate, existingPositions) => {
+    const getTotalDistance = (candidate: EdgePosition, existingPositions: EdgePosition[]) => {
       let total = 0
       for (const existingPos of existingPositions) {
         total += getMinGapBetweenZones(candidate, existingPos)
@@ -637,7 +642,7 @@ export class Board {
       )
       positions.length = 0
 
-      const fallbackPositions = [
+      const fallbackPositions: EdgePosition[] = [
         { startX: 0, startY: 0, edge: 'top-left' },
         { startX: this.boardWidth - 3, startY: this.boardHeight - 2, edge: 'bottom-right' },
         { startX: this.boardWidth - 3, startY: 0, edge: 'top-right' },
@@ -660,10 +665,8 @@ export class Board {
   /**
    * Add magic circles as 3-4 tile clusters
    * Only 40% of players receive a magic circle cluster
-   * @param {Array} activePlayers - Array of player IDs
-   * @param {Object} players - Players object for circle assignment
    */
-  addMagicCircles(activePlayers, players) {
+  addMagicCircles(activePlayers: string[], players: Record<string, BoardPlayerLike>): void {
     const availableTiles = this.getAllTiles().filter((t) => t.terrain === TerrainTypes.NORMAL)
 
     const numCircles = Math.max(
@@ -722,17 +725,14 @@ export class Board {
   /**
    * Place treasure tokens on the board
    * Each faction draws 3 random tokens and places them on valid tiles
-   * @param {Array} activePlayers - Array of player IDs
-   * @param {Object} players - Players object for token placement
    */
-  placeTreasures(activePlayers, players) {
-    const tokensPerFaction = TREASURE.TOKENS_PER_PLAYER
+  placeTreasures(activePlayers: string[], players: Record<string, BoardPlayerLike>): void {
     const minDistanceFromStart = TREASURE.MIN_DISTANCE_FROM_START
     const preferredTreasureSpacing = 3
     let treasureIdCounter = 0
 
     // Get all valid tiles for treasure placement
-    const validTiles = []
+    const validTiles: Tile[] = []
     for (let y = 0; y < this.boardHeight; y++) {
       for (let x = 0; x < this.boardWidth; x++) {
         const tile = this.tiles[y][x]

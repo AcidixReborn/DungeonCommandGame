@@ -1,40 +1,86 @@
+export interface AttackProfile {
+  damage: number
+  range: number
+}
+
+export interface AbilityScores {
+  STR?: boolean
+  DEX?: boolean
+  CON?: boolean
+  INT?: boolean
+  WIS?: boolean
+  CHA?: boolean
+}
+
+export interface OrderCardLike {
+  level: number
+  abilityRequired: string | 'ANY'
+}
+
+export interface AttachedCard {
+  card: unknown
+  casterOwner: string
+  attachedTurn: number
+}
+
+export interface CreatureOptions {
+  id: string
+  name: string
+  level: number
+  /** Array of keywords: humanoid, evil, drow, undead, etc. */
+  type?: string[]
+  speed: number
+  hitPoints: number
+  abilities?: AbilityScores
+  meleeAttack?: AttackProfile | null
+  rangedAttack?: AttackProfile | null
+  /** Array of special ability text descriptions */
+  specialAbilities?: string[]
+  /** Sting of Lolth, Heart of Cormyr, etc. */
+  faction?: string
+  imageUrl?: string | null
+  /** REACH: Extended melee attack range (e.g., 2 = can attack 2 tiles away) */
+  reach?: number
+  /** TAP ON HIT: Target is tapped when taking damage from melee attack */
+  tapOnHit?: boolean
+}
+
 /**
  * Creature - Represents a creature card with stats and abilities
  * Base template for creatures that can be deployed in battle
  */
 export class Creature {
-  /**
-   * @param {string} id - Unique creature ID
-   * @param {string} name - Creature name
-   * @param {number} level - Leadership cost (1-6)
-   * @param {Array} type - Creature types (humanoid, evil, drow, undead, etc.)
-   * @param {number} speed - Movement range
-   * @param {number} hitPoints - Max HP
-   * @param {Object} abilities - Ability scores { STR, DEX, INT, WIS, CON, CHA }
-   * @param {Object} meleeAttack - Melee attack { damage, range }
-   * @param {Object} rangedAttack - Ranged attack { damage, range }
-   * @param {Array} specialAbilities - Special ability text descriptions
-   * @param {string} faction - Faction name
-   * @param {string} imageUrl - Creature image URL
-   * @param {number} reach - Extended melee attack range (0 = default, 2 = can melee at range 2)
-   * @param {boolean} tapOnHit - If true, target is tapped when taking any melee damage
-   */
+  id: string
+  name: string
+  level: number
+  type: string[]
+  speed: number
+  hitPoints: number
+  abilities: AbilityScores
+  meleeAttack: AttackProfile | null
+  rangedAttack: AttackProfile | null
+  specialAbilities: string[]
+  faction: string
+  imageUrl: string | null
+  reach: number
+  tapOnHit: boolean
+
   constructor({
     id,
     name,
     level,
-    type = [], // Array of keywords: humanoid, evil, drow, undead, etc.
+    type = [],
     speed,
     hitPoints,
-    abilities = {}, // { STR: true, DEX: true, INT: false, WIS: false, CON: true, CHA: false }
-    meleeAttack = null, // { damage: number, range: 1 }
-    rangedAttack = null, // { damage: number, range: number }
-    specialAbilities = [], // Array of special ability descriptions
-    faction = '', // Sting of Lolth, Heart of Cormyr, etc.
+    abilities = {},
+    meleeAttack = null,
+    rangedAttack = null,
+    specialAbilities = [],
+    faction = '',
     imageUrl = null,
-    reach = 0, // REACH: Extended melee attack range (e.g., 2 = can attack 2 tiles away)
-    tapOnHit = false, // TAP ON HIT: Target is tapped when taking damage from melee attack
-  }) {
+    reach = 0,
+    tapOnHit = false,
+  }: CreatureOptions) {
     this.id = id
     this.name = name
     this.level = level
@@ -53,20 +99,16 @@ export class Creature {
 
   /**
    * Check if creature has a specific ability score
-   * @param {string} ability - Ability name (STR, DEX, etc.)
-   * @returns {boolean} True if creature has this ability
    */
-  hasAbility(ability) {
+  hasAbility(ability: keyof AbilityScores): boolean {
     return this.abilities[ability] === true
   }
 
   /**
    * Check if creature can use an order card
    * Checks level and ability requirements
-   * @param {OrderCard} orderCard - Order card to check
-   * @returns {boolean} True if creature can use this card
    */
-  canUseOrder(orderCard) {
+  canUseOrder(orderCard: OrderCardLike): boolean {
     // Creature level must be >= order card level
     if (this.level < orderCard.level) {
       return false
@@ -77,7 +119,7 @@ export class Creature {
       return true
     }
 
-    return this.hasAbility(orderCard.abilityRequired)
+    return this.hasAbility(orderCard.abilityRequired as keyof AbilityScores)
   }
 }
 
@@ -86,11 +128,25 @@ export class Creature {
  * Tracks HP, position, and state during gameplay
  */
 export class CreatureInstance {
-  /**
-   * @param {Creature} creature - Base creature card
-   * @param {string} owner - Player ID who owns this creature
-   */
-  constructor(creature, owner) {
+  creature: Creature
+  owner: string
+  currentHP: number
+  position: { x: number; y: number } | null
+  isTapped: boolean
+  damageTokens: number
+  instanceId: string
+  deployedThisTurn: boolean
+  turnDeployed: number | null
+  hasMovedThisTurn: boolean
+  hasAttackedThisTurn: boolean
+  insubstantialUsed: boolean
+  magicCircleShieldUsed: boolean
+  attachedCards: AttachedCard[];
+  // Additional runtime flags get attached ad-hoc by various ability modules
+  // (e.g. reachDecision, deployedThisTurn variants) - kept loosely typed for now.
+  [key: string]: unknown
+
+  constructor(creature: Creature, owner: string) {
     this.creature = creature // Reference to base Creature
     this.owner = owner // Player 1 or Player 2
     this.currentHP = creature.hitPoints
@@ -110,9 +166,8 @@ export class CreatureInstance {
 
   /**
    * Mark creature as deployed this turn (protected from attacks until next turn)
-   * @param {number} turnNumber - Turn number when deployed
    */
-  markAsDeployed(turnNumber) {
+  markAsDeployed(turnNumber: number): void {
     this.deployedThisTurn = true
     this.turnDeployed = turnNumber
   }
@@ -120,16 +175,15 @@ export class CreatureInstance {
   /**
    * Clear deployment protection (called at start of deployer's next turn)
    */
-  clearDeploymentProtection() {
+  clearDeploymentProtection(): void {
     this.deployedThisTurn = false
   }
 
   /**
    * Apply damage to creature
-   * @param {number} amount - Damage amount
-   * @returns {boolean} True if creature is destroyed
+   * @returns True if creature is destroyed
    */
-  takeDamage(amount) {
+  takeDamage(amount: number): boolean {
     this.damageTokens += amount
     this.currentHP = Math.max(0, this.creature.hitPoints - this.damageTokens)
     return this.currentHP <= 0 // Returns true if destroyed
@@ -137,9 +191,8 @@ export class CreatureInstance {
 
   /**
    * Heal creature damage
-   * @param {number} amount - Healing amount
    */
-  heal(amount) {
+  heal(amount: number): void {
     this.damageTokens = Math.max(0, this.damageTokens - amount)
     this.currentHP = this.creature.hitPoints - this.damageTokens
   }
@@ -147,14 +200,14 @@ export class CreatureInstance {
   /**
    * Tap creature (cannot move or attack)
    */
-  tap() {
+  tap(): void {
     this.isTapped = true
   }
 
   /**
    * Untap creature and reset movement/attack flags
    */
-  untap() {
+  untap(): void {
     this.isTapped = false
     this.hasMovedThisTurn = false
     this.hasAttackedThisTurn = false
@@ -162,9 +215,8 @@ export class CreatureInstance {
 
   /**
    * Check if creature is destroyed
-   * @returns {boolean} True if HP <= 0
    */
-  isDestroyed() {
+  isDestroyed(): boolean {
     return this.currentHP <= 0
   }
 }
