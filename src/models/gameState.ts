@@ -3,8 +3,15 @@ import { getValidMovementTiles as pathfindingGetValidMovement } from '../utils/p
 import { logger } from '../utils/logger.js'
 // Import Board class for grid operations
 import { Board, TerrainTypes } from './Board.js'
+import type { Tile } from './Board.js'
+import type { Commander } from './commanders.js'
+import type { Creature } from './creatures.js'
+import { CreatureInstance } from './creatures.js'
+import type { OrderCard } from './orders.js'
+import type { Treasure } from './treasure.js'
 // Import CombatResolver for combat operations
 import { CombatResolver } from './CombatResolver.js'
+import type { AttackType } from './CombatResolver.js'
 // Import CommanderAbilityManager for ability operations
 import { CommanderAbilityManager } from './CommanderAbilityManager.js'
 // Import PhaseManager for turn/phase state machine
@@ -68,15 +75,51 @@ export { TerrainTypes }
  * Manages resources, cards, creatures, and gameplay stats
  */
 export class PlayerState {
+  commander: Commander
+  faction: string
+  morale: number
+  leadership: number
+  isHuman: boolean
+  aiDifficulty: string | null
+  creatureDeck: Creature[]
+  orderDeck: OrderCard[]
+  creatureHand: Creature[]
+  orderHand: OrderCard[]
+  creaturesInPlay: CreatureInstance[]
+  orderDiscard: OrderCard[]
+  treasureTokens: number
+  magicCirclePosition: { x: number; y: number } | null
+  startingZoneTiles: { x: number; y: number }[]
+  creatureGraveyard: Creature[]
+  bonusOrderCardsToDraw: number
+  bonusDrawSources: string[]
+  cardsDrawnThisTurn: unknown[]
+  pendingCardReveals: unknown[]
+  pendingMoraleNotifications: unknown[]
+  commanderAbilityState: {
+    usedThisTurn: string[]
+    cooldowns: Record<string, number>
+    orcScoutUsed: boolean
+    scrollbookUsedThisTurn?: boolean
+    [key: string]: unknown
+  }
+
   /**
-   * @param {Object} commander - Commander data
-   * @param {Array} creatures - Creature cards
-   * @param {Array} orders - Order cards
-   * @param {string} faction - Faction name
-   * @param {boolean} isHuman - True if human player, false if AI
-   * @param {string|null} aiDifficulty - AI difficulty ('easy', 'medium', 'hard') or null for humans
+   * @param commander - Commander data
+   * @param creatures - Creature cards
+   * @param orders - Order cards
+   * @param faction - Faction name
+   * @param isHuman - True if human player, false if AI
+   * @param aiDifficulty - AI difficulty ('easy', 'medium', 'hard') or null for humans
    */
-  constructor(commander, creatures, orders, faction, isHuman = true, aiDifficulty = null) {
+  constructor(
+    commander: Commander,
+    creatures: Creature[],
+    orders: OrderCard[],
+    faction: string,
+    isHuman = true,
+    aiDifficulty: string | null = null
+  ) {
     this.commander = commander
     this.faction = faction
     this.morale = commander.startingMorale
@@ -174,7 +217,6 @@ export class PlayerState {
       this.creatureHand.push(card)
       drawn.push(card)
       logger.card(card.name, 'drawn to creature hand', {
-        owner: this.id,
         level: card.level,
         deckRemaining: this.creatureDeck.length,
       })
@@ -194,7 +236,6 @@ export class PlayerState {
       this.orderHand.push(card)
       drawn.push(card)
       logger.card(card.name, 'drawn to order hand', {
-        owner: this.id,
         level: card.level,
         actionType: card.actionType,
         deckRemaining: this.orderDeck.length,
@@ -319,8 +360,41 @@ export class PlayerState {
  * Handles board, players, turns, and game logic
  * @param {Array} playerSetups - Array of { playerId, commander, creatures, orders, faction }
  */
+export interface PlayerSetup {
+  playerId: string
+  commander: Commander
+  creatures: Creature[]
+  orders: OrderCard[]
+  faction: string
+  isHuman?: boolean
+  aiDifficulty?: string
+}
+
 export class GameState {
-  constructor(playerSetups) {
+  players: Record<string, PlayerState>
+  activePlayers: string[]
+  currentPlayer: string
+  currentPhase: string
+  turnNumber: number
+  gameOver: boolean
+  winner: string | null
+  board: Board
+  combatResolver: CombatResolver
+  abilityManager: CommanderAbilityManager
+  phaseManager: PhaseManager
+  boardWidth: number
+  boardHeight: number
+  tiles: Tile[][]
+  treasures: Treasure[]
+  treasurePlacementStats: { relaxedSpacing: number }
+  lastMagicCircleAuraChange: {
+    entered: boolean
+    left: boolean
+    sorcerer: CreatureInstance
+    [key: string]: unknown
+  } | null
+
+  constructor(playerSetups: PlayerSetup[]) {
     // playerSetups is an array of { playerId, commander, creatures, orders, faction }
     this.players = {}
     this.activePlayers = []
@@ -1691,7 +1765,12 @@ export class GameState {
       return { success: false, message: 'Invalid target for HEALING TOUCH' }
     }
 
-    let result = { success: true }
+    const result: {
+      success: boolean
+      healedAmount?: number
+      message?: string
+      removedCard?: unknown
+    } = { success: true }
 
     if (action === 'heal') {
       // Heal 10 damage
@@ -1775,8 +1854,8 @@ export class GameState {
     const attackerOwner = attackerInstance.owner
 
     // Get all enemy creatures
-    for (const player of Object.values(this.players)) {
-      if (player.id === attackerOwner) continue
+    for (const [playerId, player] of Object.entries(this.players)) {
+      if (playerId === attackerOwner) continue
 
       for (const enemy of player.creaturesInPlay) {
         if (!enemy.position) continue
@@ -2969,7 +3048,7 @@ export class GameState {
             player.creatureGraveyard.push(creature.creature)
 
             // Return attached order cards to graveyard
-            this.returnAttachedCardsToGraveyard(creature)
+            this.discardAttachedCards(creature)
           }
         }
       }
@@ -4319,7 +4398,7 @@ export class GameState {
    * @param {string} attackType - 'melee' or 'ranged'
    * @returns {Object} { valid: boolean, error?: string, damage?: number }
    */
-  validateAttack(attackerInstance, defenderInstance, attackType = 'melee') {
+  validateAttack(attackerInstance, defenderInstance, attackType: AttackType = 'melee') {
     return this.combatResolver.validateAttack(attackerInstance, defenderInstance, attackType)
   }
 
@@ -4336,7 +4415,7 @@ export class GameState {
   executeAttack(
     attackerInstance,
     defenderInstance,
-    attackType = 'melee',
+    attackType: AttackType = 'melee',
     damageBoostBonus = 0,
     damageBoostFlat = null,
     aiDifficulty = 'medium'
@@ -4369,7 +4448,7 @@ export class GameState {
   executeAttackWithDefense(
     attackerInstance,
     defenderInstance,
-    attackType = 'melee',
+    attackType: AttackType = 'melee',
     damageReduction = 0,
     defenseType = null,
     damageBoostBonus = 0,
@@ -4396,7 +4475,7 @@ export class GameState {
   executeAttackWithCower(
     attackerInstance,
     defenderInstance,
-    attackType = 'melee',
+    attackType: AttackType = 'melee',
     damageReduction = 0
   ) {
     return this.executeAttackWithDefense(

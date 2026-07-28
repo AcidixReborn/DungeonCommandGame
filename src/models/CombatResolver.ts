@@ -19,6 +19,7 @@ import { COMBAT } from '../constants/gameConstants.js'
 import { TerrainTypes } from './Board.js'
 import { logger } from '../utils/logger.js'
 import type { CreatureInstance } from './creatures.js'
+import type { GameState } from './gameState.js'
 
 export type AttackType = 'melee' | 'ranged'
 
@@ -52,15 +53,15 @@ export interface RangeTile {
  * CombatResolver class
  * Requires a reference to gameState for accessing game data
  *
- * `gameState` is intentionally `any` for now — GameState is converted to TypeScript in
- * the next migration step, and this coupling (CombatResolver reads dozens of ability-check
- * methods off gameState, while GameState's constructor instantiates CombatResolver) is
- * genuinely circular at runtime. Tightened once both sides are typed.
+ * The GameState <-> CombatResolver relationship is genuinely circular at runtime
+ * (GameState's constructor instantiates CombatResolver, which calls back into dozens of
+ * GameState's methods) but only a type-only import is needed here, which TypeScript erases
+ * at compile time - no runtime circularity.
  */
 export class CombatResolver {
-  gameState: any
+  gameState: GameState
 
-  constructor(gameState: any) {
+  constructor(gameState: GameState) {
     this.gameState = gameState
   }
 

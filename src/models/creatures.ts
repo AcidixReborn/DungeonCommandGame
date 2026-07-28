@@ -1,3 +1,5 @@
+import type { OrderCard, AttachOnUseConfig } from './orders.js'
+
 export interface AttackProfile {
   damage: number
   range: number
@@ -18,9 +20,11 @@ export interface OrderCardLike {
 }
 
 export interface AttachedCard {
-  card: unknown
+  card: OrderCard
   casterOwner: string
   attachedTurn: number
+  /** Cached copy of card.attachOnUse for quick access - not always populated */
+  attachOnUse?: AttachOnUseConfig
 }
 
 export interface CreatureOptions {

@@ -28,6 +28,8 @@ export interface AttachOnUseConfig {
   removableAsStandard?: boolean
   destroyAtDeploy?: boolean
   blockAmount?: number
+  /** Deep Wound: damage dealt at start of the attached creature's controller's ACTIVATE phase */
+  damageOnActivation?: number
   [key: string]: unknown
 }
 

@@ -12,6 +12,7 @@
 
 import { TERRAIN, TREASURE, MAGIC_CIRCLE } from '../constants/gameConstants.js'
 import { Treasure, createTokenPool, drawTokens } from './treasure.js'
+import type { CreatureInstance } from './creatures.js'
 
 // Terrain type constants - affects movement and gameplay
 export const TerrainTypes = {
@@ -35,7 +36,7 @@ export interface Tile {
   x: number
   y: number
   terrain: TerrainType | string
-  occupant: unknown | null
+  occupant: CreatureInstance | null
   startingZoneOwner?: string
   owner?: string
   treasure?: Treasure

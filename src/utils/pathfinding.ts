@@ -8,12 +8,13 @@ export interface Position {
   y: number
 }
 
-// Loose shape for now — Board.ts (converted later in the migration) will define the
-// canonical Tile type; pathfinding only needs `terrain` and `occupant` off of it.
+// Structural shape pathfinding needs off a tile - satisfied by Board.ts's real Tile type
+// (kept independent to avoid a dependency from utils/ back to models/).
 export interface PathTile {
+  x: number
+  y: number
   terrain: string
   occupant?: unknown
-  [key: string]: unknown
 }
 
 export type GetTerrainCostFn = (terrain: string, flying: boolean) => number

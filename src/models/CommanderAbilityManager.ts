@@ -20,6 +20,7 @@ import { COMBAT, COMMANDER_ABILITIES } from '../constants/gameConstants.js'
 import { CreatureInstance } from './creatures.js'
 import type { CommanderAbility } from './commanders.js'
 import type { OrderCard } from './orders.js'
+import type { GameState } from './gameState.js'
 
 export interface CowerInfo {
   canCower: boolean
@@ -58,13 +59,13 @@ export interface DefenseOptions {
  * CommanderAbilityManager class
  * Requires a reference to gameState for accessing game data
  *
- * `gameState` is intentionally `any` for now - see CombatResolver.ts for why (circular
- * coupling with GameState, tightened once gameState.ts exists).
+ * See CombatResolver.ts for why a type-only GameState import is safe despite the runtime
+ * circularity between these two classes.
  */
 export class CommanderAbilityManager {
-  gameState: any
+  gameState: GameState
 
-  constructor(gameState: any) {
+  constructor(gameState: GameState) {
     this.gameState = gameState
   }
 
@@ -149,7 +150,7 @@ export class CommanderAbilityManager {
   markOrcScoutUsed(playerId: string): void {
     const player = this.gameState.players[playerId]
     if (!player.commanderAbilityState) {
-      player.commanderAbilityState = {}
+      player.commanderAbilityState = { usedThisTurn: [], cooldowns: {}, orcScoutUsed: false }
     }
     player.commanderAbilityState.orcScoutUsed = true
   }
@@ -537,7 +538,7 @@ export class CommanderAbilityManager {
 
     // Mark ability as used this turn
     if (!player.commanderAbilityState) {
-      player.commanderAbilityState = {}
+      player.commanderAbilityState = { usedThisTurn: [], cooldowns: {}, orcScoutUsed: false }
     }
     player.commanderAbilityState.scrollbookUsedThisTurn = true
 
