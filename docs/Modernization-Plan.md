@@ -86,10 +86,12 @@ Turn on stricter compiler flags (`noImplicitAny`, `strictNullChecks`, eventually
 
 | Item                                                                                                                        | Status |
 | --------------------------------------------------------------------------------------------------------------------------- | ------ |
-| Extract remaining inline attack-flow logic (shift/charge/damage-boost) into hooks, following the `useAbilityModals` pattern | ⬜     |
-| Split render tree into sub-components: board/grid area                                                                      | ⬜     |
-| Split render tree into sub-components: side panels                                                                          | ⬜     |
-| Split render tree into sub-components: modal-orchestration layer (~20 modals currently wired through one file)              | ⬜     |
+| Split render tree into sub-components: board/grid area                                                                      | ✅ Extracted `BoardGridArea.jsx` - the per-tile highlight computation (movement, attack targets, ~15 ability targeting modes, deployment highlights, ranged LOS) and `BoardTile` render loop. Pure extraction (same props, same names). GameBoard.jsx: 12,492 → 12,178 lines. |
+| Split render tree into sub-components: modal-orchestration layer (~20 modals currently wired through one file)              | ✅ Extracted `GameBoardModals.jsx` - all ~20 modal dialogs (movement confirm, treasure, ability prompts, damage/death notifications, etc.). This block had ~140 free variables threaded through dozens of inline handlers, too many to trace reliably by eye, so the prop list was built mechanically: cut the block into the new file first, then ran ESLint's `no-undef` rule against it to get an exhaustive, tool-verified list of every missing reference before wiring props - rather than risk a silently-broken ability path from a missed variable. GameBoard.jsx: 12,178 → 10,784 lines. |
+| Split render tree into sub-components: side panels                                                                          | ✅ Extracted `PlayerPanelSidebar.jsx` - the collapsible right panel (toggle button + `PlayerPanel` wiring). GameBoard.jsx: 10,784 → 10,695 lines. |
+| Extract remaining inline attack-flow logic (shift/charge/damage-boost) into hooks, following the `useAbilityModals` pattern | ⬜ Not started. Qualitatively different from the render-tree splits above: this is ~90 handler functions (SHIFT+ATTACK, CHARGE, LIGHTNING BREATH, CONFUSION GAZE, SLAM, RIDER, damage-boost clusters) that mutate `gameState` and coordinate across multiple hooks (`useCombat`, `useSelection`, `useAbilityModals`, `useNotifications`) - a behavior refactor, not a structural move, with no UI-level test coverage as a safety net. Deliberately paused here for a checkpoint before starting. |
+
+All three render-tree extractions verified at each step: `npm run lint` (0 errors), `npm run build`, `npm test` (52/52 passing). GameBoard.jsx is now 10,695 lines (down from 12,492), still large but reduced to primarily handler logic rather than a mix of handlers + a 2,000+ line render tree.
 
 ---
 
