@@ -29,6 +29,7 @@ import { useRangedSplashDefense } from '../hooks/useRangedSplashDefense'
 import { useFlashingBlades } from '../hooks/useFlashingBlades'
 import { useHiddenBlade } from '../hooks/useHiddenBlade'
 import { useCloudOfBatsShift } from '../hooks/useCloudOfBatsShift'
+import { useHealingTouch } from '../hooks/useHealingTouch'
 import GameBoardModals from './GameBoardModals'
 import { clearDebugLog, logger } from '../utils/logger'
 import './GameBoard.css'
@@ -566,6 +567,21 @@ function GameBoard({ onTurnInfoChange }) {
   // Alias healingTouchData fields to match existing variable names
   const healingTouchHealer = healingTouchData?.healer || null
   const healingTouchTarget = healingTouchData?.target || null
+
+  // HEALING TOUCH modal handlers (Dwarf Cleric's healing ability) - extracted hook
+  const { handleHealingTouchHeal, handleHealingTouchRemoveCard, handleHealingTouchCancel } =
+    useHealingTouch({
+      gameState,
+      addToast,
+      healingTouchHealer,
+      healingTouchTarget,
+      setShowHealingTouchModal,
+      setHealingTouchData,
+      setSelectedBoardCreature,
+      setValidMoveTiles,
+      setValidAttackTargets,
+      setRenderCounter,
+    })
   // Alias chieftainCallData to match existing variable name
   const chieftainCallPending = chieftainCallData
   const setChieftainCallPending = setChieftainCallData
@@ -5033,88 +5049,6 @@ function GameBoard({ onTurnInfoChange }) {
 
     setShowWebRemovalModal(false)
     setWebRemovalCreature(null)
-  }
-
-  // ============================================
-  // HEALING TOUCH MODAL HANDLERS
-  // Handle Dwarf Cleric's healing ability
-  // ============================================
-
-  /**
-   * Handle Healing Touch Modal - Heal
-   * Heals 10 damage to the target creature
-   */
-  const handleHealingTouchHeal = () => {
-    if (!healingTouchHealer || !healingTouchTarget || !gameState) {
-      setShowHealingTouchModal(false)
-      setHealingTouchData(null)
-      return
-    }
-
-    const result = gameState.executeHealingTouch(healingTouchHealer, healingTouchTarget, 'heal')
-
-    if (result.success) {
-      const isSelf = healingTouchHealer.instanceId === healingTouchTarget.instanceId
-      addToast(
-        `💚 HEALING TOUCH: ${healingTouchHealer.creature.name} healed ${isSelf ? 'itself' : healingTouchTarget.creature.name}! ${result.message}`
-      )
-      // Clear selection so player can see the updated state
-      setSelectedBoardCreature(null)
-      setValidMoveTiles([])
-      setValidAttackTargets([])
-      setRenderCounter((prev) => prev + 1)
-    } else {
-      addToast(`Healing Touch failed: ${result.message}`)
-    }
-
-    setShowHealingTouchModal(false)
-    setHealingTouchData(null)
-  }
-
-  /**
-   * Handle Healing Touch Modal - Remove Card
-   * Removes an attached Order card from the target creature
-   * @param {number} cardIndex - Index of the attached card to remove
-   */
-  const handleHealingTouchRemoveCard = (cardIndex) => {
-    if (!healingTouchHealer || !healingTouchTarget || !gameState) {
-      setShowHealingTouchModal(false)
-      setHealingTouchData(null)
-      return
-    }
-
-    const result = gameState.executeHealingTouch(
-      healingTouchHealer,
-      healingTouchTarget,
-      'removeCard',
-      cardIndex
-    )
-
-    if (result.success) {
-      const isSelf = healingTouchHealer.instanceId === healingTouchTarget.instanceId
-      addToast(
-        `💚 HEALING TOUCH: ${healingTouchHealer.creature.name} removed ${result.removedCard?.name || 'card'} from ${isSelf ? 'itself' : healingTouchTarget.creature.name}!`
-      )
-      // Clear selection so player can see the updated state
-      setSelectedBoardCreature(null)
-      setValidMoveTiles([])
-      setValidAttackTargets([])
-      setRenderCounter((prev) => prev + 1)
-    } else {
-      addToast(`Healing Touch failed: ${result.message}`)
-    }
-
-    setShowHealingTouchModal(false)
-    setHealingTouchData(null)
-  }
-
-  /**
-   * Handle Healing Touch Modal - Cancel
-   * Closes the modal without taking action
-   */
-  const handleHealingTouchCancel = () => {
-    setShowHealingTouchModal(false)
-    setHealingTouchData(null)
   }
 
   // Confirm morale collection
