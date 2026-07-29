@@ -93,6 +93,14 @@ Turn on stricter compiler flags (`noImplicitAny`, `strictNullChecks`, eventually
 
 All three render-tree extractions verified at each step: `npm run lint` (0 errors), `npm run build`, `npm test` (52/52 passing). GameBoard.jsx is now 10,695 lines (down from 12,492), still large but reduced to primarily handler logic rather than a mix of handlers + a 2,000+ line render tree.
 
+### Attack-flow hook extraction changelog
+
+Each entry is a pure extraction (same logic, same behavior) of one self-contained handler cluster into its own hook, verified with lint/build/test after every step. Listed here so specific cards/abilities can be targeted for manual testing.
+
+| Hook | Handlers moved | Cards/abilities affected | GameBoard.jsx size |
+| --- | --- | --- | --- |
+| `useChargeAttack.js` | `confirmCharge`, `cancelCharge`, `handleChargeTileClick` (+ internal `handleChargeMoveSelected`/`handleChargeAttackTarget`) | **Charge** (Blood of Gruumsh, STR-required STANDARD card, 2 copies: `bog_ord_4`, `bog_ord_5`) - move full speed then melee attack for +10 damage | 10,695 → 10,465 lines |
+
 ---
 
 ## Phase F: CI/CD
