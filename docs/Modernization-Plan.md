@@ -100,6 +100,7 @@ Each entry is a pure extraction (same logic, same behavior) of one self-containe
 | Hook | Handlers moved | Cards/abilities affected | GameBoard.jsx size |
 | --- | --- | --- | --- |
 | `useChargeAttack.js` | `confirmCharge`, `cancelCharge`, `handleChargeTileClick` (+ internal `handleChargeMoveSelected`/`handleChargeAttackTarget`) | **Charge** (Blood of Gruumsh, STR-required STANDARD card, 2 copies: `bog_ord_4`, `bog_ord_5`) - move full speed then melee attack for +10 damage | 10,695 → 10,465 lines |
+| `useShiftAttack.js` | `confirmShiftAttack`, `cancelShiftAttack`, `handleShiftAttackTileClick` (+ internal pre-shift/target/post-shift handlers) | **Nimble Strike** (Tyranny of Goblins, DEX) - shift up to 3, melee/ranged +10 damage; **Shadowy Ambush** (Sting of Lolth, DEX, 2 copies) - shift up to 2, melee 50 flat damage; **Spring Attack** (Sting of Lolth, DEX, 2 copies) - shift up to 6, attack, shift up to 6 again. Also touches the Hidden Blade trigger check that fires after Spring Attack's post-attack shift. | 10,465 → 10,174 lines |
 
 ---
 
