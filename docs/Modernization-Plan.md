@@ -139,16 +139,18 @@ Each entry is a pure extraction (same logic, same behavior) of one self-containe
 
 ---
 
-## Phase H: Resume Polish
+## Phase H: Resume Polish ✅ COMPLETE
 
 | Item                                                                            | Status |
 | ------------------------------------------------------------------------------- | ------ |
-| Add `ARCHITECTURE.md` documenting layers and key design decisions               | ⬜     |
-| Update `README.md` with live demo link, screenshot/GIF, "Highlights" section    | ⬜     |
-| Adopt conventional commit messages going forward (`feat:`, `fix:`, `refactor:`) | ⬜     |
+| Add `ARCHITECTURE.md` documenting layers and key design decisions               | ✅ Written from a fresh research pass over the actual code (not from memory) - confirms the real algorithms (A* for single-target pathing, Dijkstra for movement range, not "A* for everything"), the exact composition pattern (`PhaseManager`/`CombatResolver`/`CommanderAbilityManager` all take `gameState` in their constructor, instantiated once by `GameState` itself), the real card counts (271 total: 20 commanders, 71 creatures, 180 order cards), and the real test count/breakdown (52 across 4 files). Includes an honest "Known limitations" section (no UI test coverage, `GameBoard.jsx` still ~8k lines, unresponsive UI, single JS bundle, ~155 order cards still unimplemented). |
+| Update `README.md` with live demo link, screenshot/GIF, "Highlights" section    | ✅ Live demo link + F11 tip added earlier in Phase G. Added a "Highlights" section with the real numbers above. Screenshot/GIF **not added** - left a `<!-- TODO -->` marker instead of fabricating one, since capturing gameplay requires actually running the app (no browser-automation tool available in this environment). While in there, also fixed several sections that had gone stale since the project's early days and would have undermined credibility with a technical reader: the "Project Structure" tree still showed pre-migration `.js` paths and a single `factions.js` (reality: 5 faction files under `data/factions/`, `.ts` models, a `hooks/` directory, the 3 extracted board components), and a "Features to Add Images For" / "Contributing Your Card Data" section describing card art and data as incomplete when in fact all 271 cards already have both. |
+| Adopt conventional commit messages going forward (`feat:`, `fix:`, `refactor:`) | ✅ Already in effect since Phase F - every commit from `ci: add GitHub Actions workflow...` onward has used a conventional prefix (`refactor:`, `fix:`, `docs:`, `ci:`). No separate action needed; noting it here for the record. |
+
+**Screenshot/GIF follow-up**: next time you're playing a game locally, grab a screenshot (or a short GIF of a turn/attack) and drop it in where the `<!-- TODO -->` marker is in `README.md` - that's the one piece of this phase that needed a human at the keyboard.
 
 ---
 
 ## Resuming Card Content
 
-Once Phase H is complete, resume at **Phase STD-8** in `docs/Order-Card-Implementation-Plan.md` ("Attack + Slide" — Blast of Force, Hypnotic Gaze), continuing through STD-9–18 and MIN-1–13.
+**Modernization is complete (Phases 0-H).** The next step is resuming at **Phase STD-8** in `docs/Order-Card-Implementation-Plan.md` ("Attack + Slide" — Blast of Force, Hypnotic Gaze), continuing through STD-9–18 and MIN-1–13. That document was left untouched throughout this entire modernization effort and is ready to pick up from exactly where it left off.
