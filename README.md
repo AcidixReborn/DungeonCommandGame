@@ -4,6 +4,8 @@
 
 A digital implementation of the Wizards of the Coast board game "Dungeon Command" for personal use.
 
+**▶️ [Play the live demo](https://acidixreborn.github.io/DungeonCommandGame/)** - runs entirely in your browser, no install needed.
+
 ## 🎮 Current Status: PLAYABLE ALPHA
 
 The game is now in a playable state! You can start a game, see the board with terrain, deploy creatures, and advance through turn phases.

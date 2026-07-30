@@ -127,13 +127,15 @@ Each entry is a pure extraction (same logic, same behavior) of one self-containe
 
 ---
 
-## Phase G: Live Web Demo
+## Phase G: Live Web Demo ✅ COMPLETE
 
 | Item                                                                          | Status |
 | ----------------------------------------------------------------------------- | ------ |
-| Confirm Electron-only code paths (logger IPC) are guarded for browser context | ⬜     |
-| Deploy Vite web build (`dist/`) to GitHub Pages / Vercel / Netlify            | ⬜     |
-| Add live demo link near top of `README.md`                                    | ⬜     |
+| Confirm Electron-only code paths (logger IPC) are guarded for browser context | ✅ All `window.electronAPI` usages already optional-chained or explicitly guarded (`src/utils/logger.ts`, `src/App.jsx`) - no changes needed. |
+| Deploy Vite web build (`dist/`) to GitHub Pages / Vercel / Netlify            | ✅ Chosen: GitHub Pages (free, no separate account needed, repo already on GitHub). Added a `deploy` job to `ci.yml` (`actions/upload-pages-artifact` + `actions/deploy-pages`, gated on `ci` passing, push-to-`main` only). Required one manual one-time step only the repo owner could do: Settings → Pages → Source → "GitHub Actions". Found and fixed a real bug while verifying subpath-safety: `index.html`'s favicon `<link>` was an absolute path (`/vite.svg`) pointing at a file that didn't exist anywhere in the repo (dead since the original Vite scaffold) - would have 404'd under the GitHub Pages subpath even if it existed. Fixed by reusing the existing Electron app icon (`assets/icon.png`) as a proper relative-path favicon via a new `public/` directory. `vite.config.js`'s existing `base: './'` needed no changes - confirmed by inspecting the built `dist/index.html` directly. |
+| Add live demo link near top of `README.md`                                    | ✅ Added directly under the CI badge: `https://acidixreborn.github.io/DungeonCommandGame/` |
+
+**Live demo**: https://acidixreborn.github.io/DungeonCommandGame/
 
 ---
 
