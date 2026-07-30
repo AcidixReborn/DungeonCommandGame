@@ -196,6 +196,22 @@ function DamageBoostModal({ show, card, creature, onConfirm, onCancel }) {
           </Alert>
         )}
 
+        {/* Slide Preview (Phase STD-8: Attack + Slide - Blast of Force) */}
+        {card.slideTargetOnHit > 0 && (
+          <Alert
+            variant="info"
+            style={{
+              backgroundColor: 'rgba(23, 162, 184, 0.2)',
+              border: '1px solid #17a2b8',
+              marginBottom: '10px',
+            }}
+          >
+            <div style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+              🌀 Slide target up to {card.slideTargetOnHit} squares after a successful hit
+            </div>
+          </Alert>
+        )}
+
         {/* Warning about action consumption */}
         <Alert
           variant="warning"

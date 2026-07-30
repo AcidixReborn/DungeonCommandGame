@@ -51,6 +51,7 @@ const factionIcons = {
  * @param {boolean} isShadowStalkerHighlight - Whether tile is valid for SHADOW STALKER deployment
  * @param {boolean} isConfusionGazeSlide - Whether tile is valid slide destination for CONFUSION GAZE
  * @param {boolean} isConfusionGazeAttack - Whether creature on tile is valid attack target for CONFUSION GAZE
+ * @param {boolean} isAttackSlideTile - Whether tile is a valid slide destination for Blast of Force / Hypnotic Gaze
  * @param {boolean} isSummonSpiderHighlight - Whether tile is valid for SUMMON SPIDER deployment
  * @param {string} summonSpiderFactionColor - Faction color to use for SUMMON SPIDER highlight
  * @param {boolean} isLichNecromancerHighlight - Whether tile is valid for LICH NECROMANCER Undead deployment
@@ -92,6 +93,7 @@ function BoardTile({
   isConfusionGazeSlide = false,
   isConfusionGazeAttack = false,
   isSlamTile = false,
+  isAttackSlideTile = false,
   isSummonSpiderHighlight = false,
   summonSpiderFactionColor = null,
   isLichNecromancerHighlight = false,
@@ -625,6 +627,7 @@ function BoardTile({
         ${isConfusionGazeSlide ? 'confusion-gaze-slide' : ''}
         ${isConfusionGazeAttack ? 'confusion-gaze-attack' : ''}
         ${isSlamTile ? 'slam-tile' : ''}
+        ${isAttackSlideTile ? 'slam-tile' : ''}
         ${isShiftTile ? 'shift-tile' : ''}
         ${isChargeTile ? 'charge-tile' : ''}
         ${isAllRangedLOS ? 'all-ranged-los' : ''}

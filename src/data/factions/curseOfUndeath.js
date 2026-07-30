@@ -544,6 +544,9 @@ export const orderCards = [
       'Choose 1 enemy creature within 5 squares. Slide that creature 3 squares. Make a melee attack that deals +20 damage.',
     faction: FACTION_NAME,
     imageUrl: hypnoticGazeOrder18Img,
+    meleeDamageBonus: 20,
+    slideTargetBeforeAttack: 3,
+    slideTargetSelectRange: 5,
   },
   // Card 19: Hypnotic Gaze - Level 3, CHA, STANDARD
   {
@@ -556,6 +559,9 @@ export const orderCards = [
       'Choose 1 enemy creature within 5 squares. Slide that creature 3 squares. Make a melee attack that deals +20 damage.',
     faction: FACTION_NAME,
     imageUrl: hypnoticGazeOrder19Img,
+    meleeDamageBonus: 20,
+    slideTargetBeforeAttack: 3,
+    slideTargetSelectRange: 5,
   },
   // Card 20: Mage Armor - Level 1, INT, MINOR
   {

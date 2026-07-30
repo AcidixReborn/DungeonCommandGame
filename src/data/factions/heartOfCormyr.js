@@ -358,10 +358,11 @@ export const orderCards = [
     level: 2,
     abilityRequired: 'INT',
     actionType: 'STANDARD',
-    effectDescription:
-      'Make a melee attack that deals 30 DAMAGE. Slide the target 8 squares. PLACEHOLDER',
+    effectDescription: 'Make a melee attack that deals 30 DAMAGE. Slide the target 8 squares.',
     faction: FACTION_NAME,
     imageUrl: blastOfForceImg,
+    flatMeleeDamage: 30,
+    slideTargetOnHit: 8,
   },
   // Card #5 - Cleave
   {

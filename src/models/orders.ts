@@ -124,6 +124,12 @@ export interface OrderCardOptions {
   healOnAttack?: number
   /** Minimum damage required to trigger healing (Vampiric Touch=10) */
   healOnAttackMinDamage?: number
+  /** Max slide distance applied to the target AFTER a successful attack (e.g., Blast of Force = 8) */
+  slideTargetOnHit?: number
+  /** Max slide distance applied to the target BEFORE the attack (e.g., Hypnotic Gaze = 3) */
+  slideTargetBeforeAttack?: number
+  /** Range for the initial target-selection step when the card allows choosing a non-adjacent enemy (e.g., Hypnotic Gaze = 5) */
+  slideTargetSelectRange?: number
 }
 
 /**
@@ -177,6 +183,9 @@ export class OrderCard {
   moveBeforeAttack: 'speed' | null
   healOnAttack: number
   healOnAttackMinDamage: number
+  slideTargetOnHit: number
+  slideTargetBeforeAttack: number
+  slideTargetSelectRange: number
 
   constructor({
     id,
@@ -225,6 +234,9 @@ export class OrderCard {
     moveBeforeAttack = null,
     healOnAttack = 0,
     healOnAttackMinDamage = 0,
+    slideTargetOnHit = 0,
+    slideTargetBeforeAttack = 0,
+    slideTargetSelectRange = 0,
   }: OrderCardOptions) {
     this.id = id
     this.name = name
@@ -280,6 +292,10 @@ export class OrderCard {
     // STANDARD attack + heal properties (Phase STD-6)
     this.healOnAttack = healOnAttack // Fixed healing after attack resolves (e.g., Feral Vitality = 10)
     this.healOnAttackMinDamage = healOnAttackMinDamage // Minimum damage required to trigger healing (e.g., Vampiric Touch = 10)
+    // STANDARD attack + slide properties (Phase STD-8)
+    this.slideTargetOnHit = slideTargetOnHit // Max slide distance after a successful hit (e.g., Blast of Force = 8)
+    this.slideTargetBeforeAttack = slideTargetBeforeAttack // Max slide distance before the attack (e.g., Hypnotic Gaze = 3)
+    this.slideTargetSelectRange = slideTargetSelectRange // Range for initial non-adjacent target selection (e.g., Hypnotic Gaze = 5)
   }
 
   /**

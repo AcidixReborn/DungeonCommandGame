@@ -51,6 +51,15 @@ export function useAbilityModals() {
   const [slamSelectedTile, setSlamSelectedTile] = useState(null) // { x, y }
 
   // ============================================
+  // ATTACK + SLIDE order card state (Phase STD-8: Blast of Force, Hypnotic Gaze)
+  // Mandatory slide (distance chosen by player/AI) before or after a melee attack
+  // ============================================
+  const [attackSlideMode, setAttackSlideMode] = useState(false) // true while picking a slide destination tile
+  const [attackSlidePending, setAttackSlidePending] = useState(null)
+  // { phase: 'post-hit' | 'pre-attack', card, cardIndex, attackerInstance, targetInstance, maxDistance }
+  const [attackSlideValidTiles, setAttackSlideValidTiles] = useState([])
+
+  // ============================================
   // TOMB GUARDIAN SWIRL ability state
   // Queue of splash attacks after melee (Skeletal Tomb Guardian)
   // ============================================
@@ -334,6 +343,15 @@ export function useAbilityModals() {
   }, [])
 
   /**
+   * Clear all Attack + Slide state (Blast of Force, Hypnotic Gaze)
+   */
+  const clearAttackSlideState = useCallback(() => {
+    setAttackSlideMode(false)
+    setAttackSlidePending(null)
+    setAttackSlideValidTiles([])
+  }, [])
+
+  /**
    * Clear all Lightning Breath state
    */
   const clearLightningBreathState = useCallback(() => {
@@ -424,6 +442,7 @@ export function useAbilityModals() {
     clearHiddenBladeState()
     clearConfusionGazeState()
     clearSlamState()
+    clearAttackSlideState()
     clearLightningBreathState()
     clearSplashState()
     clearRangedSplashState()
@@ -461,6 +480,7 @@ export function useAbilityModals() {
     clearHiddenBladeState,
     clearConfusionGazeState,
     clearSlamState,
+    clearAttackSlideState,
     clearLightningBreathState,
     clearSplashState,
     clearRangedSplashState,
@@ -513,6 +533,15 @@ export function useAbilityModals() {
     slamSelectedTile,
     setSlamSelectedTile,
     clearSlamState,
+
+    // Attack + Slide (Blast of Force, Hypnotic Gaze)
+    attackSlideMode,
+    setAttackSlideMode,
+    attackSlidePending,
+    setAttackSlidePending,
+    attackSlideValidTiles,
+    setAttackSlideValidTiles,
+    clearAttackSlideState,
 
     // Tomb Guardian Splash
     pendingSplashAttacks,

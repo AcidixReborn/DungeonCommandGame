@@ -24,6 +24,7 @@ import { useShiftAttack } from '../hooks/useShiftAttack'
 import { useLightningBreath } from '../hooks/useLightningBreath'
 import { useConfusionGaze } from '../hooks/useConfusionGaze'
 import { useSlam } from '../hooks/useSlam'
+import { useAttackAndSlide } from '../hooks/useAttackAndSlide'
 import { useRider } from '../hooks/useRider'
 import { useRangedSplashDefense } from '../hooks/useRangedSplashDefense'
 import { useFlashingBlades } from '../hooks/useFlashingBlades'
@@ -200,6 +201,14 @@ function GameBoard({ onTurnInfoChange }) {
     slamSelectedTile,
     setSlamSelectedTile,
     clearSlamState,
+    // Attack + Slide (Blast of Force, Hypnotic Gaze)
+    attackSlideMode,
+    setAttackSlideMode,
+    attackSlidePending,
+    setAttackSlidePending,
+    attackSlideValidTiles,
+    setAttackSlideValidTiles,
+    clearAttackSlideState,
     // Tomb Guardian Splash
     pendingSplashAttacks,
     setPendingSplashAttacks,
@@ -2316,6 +2325,7 @@ function GameBoard({ onTurnInfoChange }) {
       isFlashingBlades,
       isHiddenBlade,
       isConfusionGaze,
+      isHypnoticGaze,
       isRangedSplash,
       damageBoostCard,
       damageBoostBonus,
@@ -2337,7 +2347,9 @@ function GameBoard({ onTurnInfoChange }) {
     }
 
     // Discard damage boost card from hand before executing attack (card is committed at this point)
-    if (damageBoostCard && pendingDamageBoostAttack) {
+    // Hypnotic Gaze is itself the played card (not a boost stacked onto another attack), so it's
+    // discarded here too even though pendingDamageBoostAttack (the DamageBoostModal side-channel) is never set for it.
+    if (damageBoostCard && (pendingDamageBoostAttack || isHypnoticGaze)) {
       const attackerPlayer = gameState.players[attackerInstance.owner]
       const cardIndex = attackerPlayer.orderHand.findIndex((c) => c.id === damageBoostCard.id)
       if (cardIndex !== -1) {
@@ -2398,6 +2410,21 @@ function GameBoard({ onTurnInfoChange }) {
       if (attackerInstance.hasMovedThisTurn) {
         attackerInstance.tap()
       }
+    } else if (isHypnoticGaze || targetInfo.attackType === 'hypnotic_gaze') {
+      // HYPNOTIC GAZE attack - target was already slid before this attack; the melee
+      // attack always resolves regardless of adjacency, so use the dedicated method
+      const damageReduction = defenseResult.damageReduction || 0
+      result = gameState.applyHypnoticGazeWithDefense(
+        attackerInstance,
+        defenderInstance,
+        damageReduction,
+        damageBoostBonus || 0
+      )
+      // Mark attacker as attacked and tap if moved
+      attackerInstance.hasAttackedThisTurn = true
+      if (attackerInstance.hasMovedThisTurn) {
+        attackerInstance.tap()
+      }
     } else {
       // Normal attack - execute with defense damage reduction AND damage boost info
       result = gameState.executeAttackWithDefense(
@@ -2448,6 +2475,8 @@ function GameBoard({ onTurnInfoChange }) {
         message += `🗡️ HIDDEN BLADE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
         message += `😵 CONFUSION GAZE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
+      } else if (isHypnoticGaze || targetInfo.attackType === 'hypnotic_gaze') {
+        message += `👁️ HYPNOTIC GAZE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else {
         message +=
           `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
@@ -2713,6 +2742,59 @@ function GameBoard({ onTurnInfoChange }) {
           // Modal shown - don't clear state yet, wait for modal response
           setRenderCounter((prev) => prev + 1)
           return
+        }
+
+        // Check for BLAST OF FORCE-style post-hit slide (order card driven)
+        // Takes precedence over innate SLAM if a creature somehow has both
+        if (
+          targetInfo.attackType === 'melee' &&
+          result.damage > 0 &&
+          !result.destroyed &&
+          defenderInstance.currentHP > 0 &&
+          damageBoostCard?.slideTargetOnHit > 0
+        ) {
+          const validSlideTiles = gameState.getValidSlideTiles(
+            defenderInstance,
+            damageBoostCard.slideTargetOnHit
+          )
+
+          if (validSlideTiles.length > 0) {
+            const isAttackerHuman = isPlayerHuman(attackerInstance.owner)
+
+            if (isAttackerHuman) {
+              // Human attacker - enter slide tile-picker mode (mandatory, no skip)
+              setAttackSlidePending({
+                phase: 'post-hit',
+                attackerInstance,
+                targetInstance: defenderInstance,
+                maxDistance: damageBoostCard.slideTargetOnHit,
+                cardName: damageBoostCard.name,
+              })
+              setAttackSlideValidTiles(validSlideTiles)
+              setAttackSlideMode(true)
+              setRenderCounter((prev) => prev + 1)
+              addToast(
+                `${damageBoostCard.name}: Right-click a highlighted tile to slide ${defenderInstance.creature.name}`
+              )
+              return // Wait for tile selection
+            } else {
+              // AI attacker - use existing AI attack-slide decision helper
+              handleAIAttackSlideDecision(
+                attackerInstance,
+                defenderInstance,
+                validSlideTiles,
+                damageBoostCard.name
+              )
+              // Clear state and continue
+              setSelectedBoardCreature(null)
+              setValidMoveTiles([])
+              setValidAttackTargets([])
+              setPendingAttack(null)
+              setRenderCounter((prev) => prev + 1)
+              setProcessingAIAction(false)
+              return
+            }
+          }
         }
 
         // Check for SLAM trigger after defense (Earth Guardian - melee attacks only)
@@ -3112,6 +3194,7 @@ function GameBoard({ onTurnInfoChange }) {
       isFlashingBlades,
       isHiddenBlade,
       isConfusionGaze,
+      isHypnoticGaze,
       damageBoostCard,
       damageBoostBonus,
       damageBoostFlat,
@@ -3124,7 +3207,9 @@ function GameBoard({ onTurnInfoChange }) {
     )
 
     // Discard damage boost card from hand before executing attack (card is committed at this point)
-    if (damageBoostCard && pendingDamageBoostAttack) {
+    // Hypnotic Gaze is itself the played card, so it's discarded here too even though
+    // pendingDamageBoostAttack (the DamageBoostModal side-channel) is never set for it.
+    if (damageBoostCard && (pendingDamageBoostAttack || isHypnoticGaze)) {
       const attackerPlayer = gameState.players[attackerInstance.owner]
       const cardIndex = attackerPlayer.orderHand.findIndex((c) => c.id === damageBoostCard.id)
       if (cardIndex !== -1) {
@@ -3169,6 +3254,19 @@ function GameBoard({ onTurnInfoChange }) {
       if (attackerInstance.hasMovedThisTurn) {
         attackerInstance.tap()
       }
+    } else if (isHypnoticGaze || targetInfo.attackType === 'hypnotic_gaze') {
+      // HYPNOTIC GAZE attack - no defense reduction since reactions don't prevent damage
+      result = gameState.applyHypnoticGazeWithDefense(
+        attackerInstance,
+        defenderInstance,
+        0,
+        damageBoostBonus || 0
+      )
+      // Mark attacker as attacked and tap if moved
+      attackerInstance.hasAttackedThisTurn = true
+      if (attackerInstance.hasMovedThisTurn) {
+        attackerInstance.tap()
+      }
     } else {
       // Execute normal attack with damage boost info (Power Attack, Hacking Frenzy, Killing Strike)
       result = gameState.executeAttack(
@@ -3194,6 +3292,8 @@ function GameBoard({ onTurnInfoChange }) {
         message += `🗡️ HIDDEN BLADE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else if (isConfusionGaze || targetInfo.attackType === 'confusion_gaze') {
         message += `😵 CONFUSION GAZE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
+      } else if (isHypnoticGaze || targetInfo.attackType === 'hypnotic_gaze') {
+        message += `👁️ HYPNOTIC GAZE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${result.damage} damage!`
       } else {
         message +=
           `${attackerInstance.creature.name} attacked ${defenderInstance.creature.name} ` +
@@ -4693,6 +4793,74 @@ function GameBoard({ onTurnInfoChange }) {
       return
     }
 
+    // HYPNOTIC GAZE STANDARD CARDS: Choose an enemy within range, slide it, then melee attack with damage bonus
+    // Must be checked BEFORE damage boost cards since Hypnotic Gaze also has meleeDamageBonus
+    const isHypnoticGazeType = card.slideTargetBeforeAttack > 0
+    if (card.actionType === 'STANDARD' && isHypnoticGazeType) {
+      const creature = orderCardFilterCreature
+
+      // Check level requirement
+      if (card.level > creature.creature.level) {
+        addToast(
+          `${creature.creature.name} (Level ${creature.creature.level}) cannot use Level ${card.level} cards`
+        )
+        return
+      }
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const abilities = Array.isArray(card.abilityRequired)
+          ? card.abilityRequired
+          : [card.abilityRequired]
+        const hasRequiredAbility = abilities.some(
+          (ability) => creature.creature.abilities?.[ability] === true
+        )
+        if (!hasRequiredAbility) {
+          addToast(
+            `${creature.creature.name} doesn't have required ability: ${abilities.join(' or ')}`
+          )
+          return
+        }
+      }
+
+      // Check if creature has already acted
+      if (creature.hasAttackedThisTurn) {
+        addToast(`${creature.creature.name} has already acted this turn`)
+        return
+      }
+
+      // Check if creature is tapped
+      if (creature.isTapped) {
+        addToast(`${creature.creature.name} is tapped`)
+        return
+      }
+
+      // Check if creature has melee attack (Hypnotic Gaze's attack is always melee)
+      if (!creature.creature.meleeAttack) {
+        addToast(`${creature.creature.name} has no melee attack`)
+        return
+      }
+
+      // Get valid targets within slideTargetSelectRange (with LOS)
+      const validTargets = gameState.getHypnoticGazeValidTargets(creature, card)
+
+      if (validTargets.length === 0) {
+        addToast(
+          `No valid targets in range for ${card.name} (${card.slideTargetSelectRange} squares, LOS required)`
+        )
+        return
+      }
+
+      // Enter targeting mode (reuses the generic order-card targeting infrastructure)
+      setSelectedOrderCard({ card, cardIndex })
+      setOrderCardTargetingMode(true)
+      setOrderCardValidTargets(validTargets)
+      addToast(
+        `👁️ ${card.name} targeting: Right-click on a highlighted enemy (${validTargets.length} targets)`
+      )
+      return
+    }
+
     // DAMAGE BOOST STANDARD CARDS: Power Attack, Hacking Frenzy, Killing Strike (melee), Gout of Fire (ranged)
     // These cards add bonus damage to melee/ranged attacks or deal flat damage
     // IMPORTANT: Exclude Charge cards (moveBeforeAttack === 'speed') and Shift+Attack cards (shiftBeforeAttack > 0)
@@ -6053,6 +6221,16 @@ function GameBoard({ onTurnInfoChange }) {
         const card = selectedOrderCard.card
         const caster = orderCardFilterCreature
 
+        // Check if this is Hypnotic Gaze (or another pre-attack slide card) - enters slide-picker mode
+        if (card.slideTargetBeforeAttack > 0) {
+          // Clear targeting mode first - handleHypnoticGazeTargetSelected takes over with attack-slide mode
+          setSelectedOrderCard(null)
+          setOrderCardTargetingMode(false)
+          setOrderCardValidTargets([])
+          handleHypnoticGazeTargetSelected(caster, target, card, selectedOrderCard.cardIndex)
+          return
+        }
+
         // Check if this is a Web card
         if (card.name.toUpperCase().includes('WEB')) {
           // Apply Web using gameState method
@@ -6356,6 +6534,15 @@ function GameBoard({ onTurnInfoChange }) {
       const isValidSlamTile = slamValidTiles.some((t) => t.x === tile.x && t.y === tile.y)
       if (isValidSlamTile) {
         handleSlamTileSelect(tile.x, tile.y)
+        return
+      }
+    }
+
+    // Handle ATTACK + SLIDE tile selection (Blast of Force post-hit, Hypnotic Gaze pre-attack)
+    if (attackSlideMode && attackSlideValidTiles.length > 0) {
+      const isValidSlideTile = attackSlideValidTiles.some((t) => t.x === tile.x && t.y === tile.y)
+      if (isValidSlideTile) {
+        handleAttackSlideTileSelect(tile.x, tile.y)
         return
       }
     }
@@ -6700,6 +6887,35 @@ function GameBoard({ onTurnInfoChange }) {
     setPendingRightClickAttack,
     setCombatPanelMode,
     setCombatHighlightCreatures,
+    setRenderCounter,
+  })
+
+  // ATTACK + SLIDE ability handlers (Blast of Force, Hypnotic Gaze - Phase STD-8) - extracted hook.
+  // Same late-placement reasoning as useConfusionGaze above: depends on executeAttackAfterDefense.
+  const {
+    handleHypnoticGazeTargetSelected,
+    handleAttackSlideTileSelect,
+    handleHypnoticGazeConfirmAttack,
+    handleAIAttackSlideDecision,
+  } = useAttackAndSlide({
+    gameState,
+    addToast,
+    isPlayerHuman,
+    showInsubstantialNotification,
+    handleOpponentDrawEffect,
+    executeAttackAfterDefense,
+    attackSlideMode,
+    attackSlidePending,
+    setAttackSlidePending,
+    setAttackSlideMode,
+    attackSlideValidTiles,
+    setAttackSlideValidTiles,
+    pendingAttack,
+    setPendingAttack,
+    setCombatPanelMode,
+    setCombatHighlightCreatures,
+    closeCombatPanel,
+    setAiDeathQueue,
     setRenderCounter,
   })
 
@@ -7190,7 +7406,7 @@ function GameBoard({ onTurnInfoChange }) {
         const { attackerInstance, target, slideDestination } = gazeAction
 
         // Execute the slide
-        const slideResult = gameState.executeConfusionGazeSlide(target, slideDestination)
+        const slideResult = gameState.executeSlide(target, slideDestination)
         addToast(
           `😵 AI: ${attackerInstance.creature.name} uses CONFUSION GAZE! Slides ${target.creature.name} to (${slideResult.newPos.x}, ${slideResult.newPos.y})`
         )
@@ -7225,6 +7441,68 @@ function GameBoard({ onTurnInfoChange }) {
               : 'All creatures destroyed!'
           addToast(
             `🏳️ ${gameState.players[target.owner].commander.name} has been eliminated! ${reason}`
+          )
+        }
+      }
+
+      // ============================================
+      // HYPNOTIC GAZE AI EXECUTION (Phase STD-8)
+      // Process Hypnotic Gaze actions immediately (slide + attack)
+      // ============================================
+      const hypnoticGazeActions = actions.filter((action) => action.type === 'hypnotic_gaze')
+      for (const gazeAction of hypnoticGazeActions) {
+        const { attackerInstance, defenderInstance, slideDestination, card } = gazeAction
+
+        // Discard the card from hand (card is committed at this point)
+        const gazeAttackerPlayer = gameState.players[attackerInstance.owner]
+        const gazeCardIdx = gazeAttackerPlayer.orderHand.findIndex((c) => c.id === card.id)
+        if (gazeCardIdx !== -1) {
+          gazeAttackerPlayer.orderHand.splice(gazeCardIdx, 1)
+        }
+
+        // Execute the slide (if a destination was found - target may be fully boxed in)
+        if (slideDestination) {
+          const slideResult = gameState.executeSlide(defenderInstance, slideDestination)
+          addToast(
+            `👁️ AI: ${attackerInstance.creature.name} uses ${card.name}! Slides ${defenderInstance.creature.name} to (${slideResult.newPos.x}, ${slideResult.newPos.y})`
+          )
+        }
+
+        // Execute the attack using the dedicated method (always lands, no adjacency re-check)
+        const gazeAttackResult = gameState.applyHypnoticGazeWithDefense(
+          attackerInstance,
+          defenderInstance,
+          0,
+          card.meleeDamageBonus || 0
+        )
+
+        // Mark attacker as attacked and tap if moved
+        attackerInstance.hasAttackedThisTurn = true
+        if (attackerInstance.hasMovedThisTurn) {
+          attackerInstance.tap()
+        }
+
+        let gazeMessage = `👁️ HYPNOTIC GAZE: ${attackerInstance.creature.name} strikes ${defenderInstance.creature.name} for ${gazeAttackResult.damage} damage!`
+        if (gazeAttackResult.destroyed) {
+          gazeMessage += ` ${defenderInstance.creature.name} was destroyed!`
+          if (gazeAttackResult.moraleChange) {
+            gazeMessage += ` Morale changes: Attacker +${gazeAttackResult.moraleChange.attacker}, Defender ${gazeAttackResult.moraleChange.defender}`
+          }
+        } else {
+          gazeMessage += ` ${defenderInstance.creature.name} has ${gazeAttackResult.remainingHP} HP remaining.`
+        }
+        addToast(gazeMessage)
+
+        // Check for elimination
+        gameState.checkGameOver()
+        const gazeEliminationResult = gameState.checkAndEliminatePlayer(defenderInstance.owner)
+        if (gazeEliminationResult.eliminated) {
+          const reason =
+            gazeEliminationResult.reason === 'morale'
+              ? 'Morale reduced to 0!'
+              : 'All creatures destroyed!'
+          addToast(
+            `🏳️ ${gameState.players[defenderInstance.owner].commander.name} has been eliminated! ${reason}`
           )
         }
       }
@@ -7729,6 +8007,8 @@ function GameBoard({ onTurnInfoChange }) {
           confusionGazePending={confusionGazePending}
           slamMode={slamMode}
           slamValidTiles={slamValidTiles}
+          attackSlideMode={attackSlideMode}
+          attackSlideValidTiles={attackSlideValidTiles}
           shiftSelectionMode={shiftSelectionMode}
           shiftValidTiles={shiftValidTiles}
           shiftAttackMode={shiftAttackMode}
@@ -7770,6 +8050,7 @@ function GameBoard({ onTurnInfoChange }) {
           currentPlayerId={currentPlayerId}
           gameState={gameState}
           handleConfusionGazeConfirmAttack={handleConfusionGazeConfirmAttack}
+          handleHypnoticGazeConfirmAttack={handleHypnoticGazeConfirmAttack}
           handleDefenseSelected={handleDefenseSelected}
           handleDragEnd={handleDragEnd}
           handleDragStart={handleDragStart}

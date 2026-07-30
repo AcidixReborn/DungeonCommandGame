@@ -20,6 +20,8 @@ function BoardGridArea({
   confusionGazePending,
   slamMode,
   slamValidTiles,
+  attackSlideMode,
+  attackSlideValidTiles,
   shiftSelectionMode,
   shiftValidTiles,
   shiftAttackMode,
@@ -101,6 +103,12 @@ function BoardGridArea({
               // SLAM HIGHLIGHTS: Show valid slam destinations (uses movement color)
               // ============================================
               const isSlamTile = slamMode && slamValidTiles.some((t) => t.x === x && t.y === y)
+
+              // ============================================
+              // ATTACK + SLIDE HIGHLIGHTS: Show valid slide destinations (Blast of Force, Hypnotic Gaze)
+              // ============================================
+              const isAttackSlideTile =
+                attackSlideMode && attackSlideValidTiles.some((t) => t.x === x && t.y === y)
 
               // ============================================
               // CLOUD OF BATS SHIFT HIGHLIGHTS: Show valid shift destinations
@@ -381,6 +389,7 @@ function BoardGridArea({
                   isConfusionGazeSlide={isConfusionGazeSlide}
                   isConfusionGazeAttack={isConfusionGazeAttack}
                   isSlamTile={isSlamTile}
+                  isAttackSlideTile={isAttackSlideTile}
                   isSummonSpiderHighlight={isSummonSpiderHighlight}
                   summonSpiderFactionColor={summonSpiderFactionColor}
                   isLichNecromancerHighlight={isLichNecromancerHighlight}

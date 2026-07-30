@@ -91,4 +91,4 @@ The codebase is TypeScript except `GameBoard.jsx` and its extracted-but-still-JS
 - **No UI-level test coverage.** The 52 Vitest tests characterize the engine; nothing automates the React component tree or user interactions.
 - **UI is not responsive/fit-to-screen** yet — the live demo looks best in fullscreen (F11) at typical desktop resolutions.
 - **Single JS bundle** (~1 MB minified) — not yet code-split; fine for a demo, would want `manualChunks`/dynamic imports before it mattered in practice.
-- **~155 Order Cards remain unimplemented** (STD-8 onward through MIN-13) — see [docs/Order-Card-Implementation-Plan.md](docs/Order-Card-Implementation-Plan.md), which was deliberately left untouched throughout this modernization effort and is the map back to resuming that work.
+- **~152 Order Cards remain unimplemented** (STD-9 onward through MIN-13) — see [docs/Order-Card-Implementation-Plan.md](docs/Order-Card-Implementation-Plan.md), which was deliberately left untouched throughout this modernization effort and is the map back to resuming that work.

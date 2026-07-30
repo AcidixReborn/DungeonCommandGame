@@ -262,7 +262,7 @@ export function useConfusionGaze({
     if (!isValidSlide) return
 
     // Execute the slide
-    const slideResult = gameState.executeConfusionGazeSlide(target, { x: tile.x, y: tile.y })
+    const slideResult = gameState.executeSlide(target, { x: tile.x, y: tile.y })
     addToast(
       `😵 Slid ${target.creature.name} from (${slideResult.oldPos.x}, ${slideResult.oldPos.y}) to (${slideResult.newPos.x}, ${slideResult.newPos.y})`
     )

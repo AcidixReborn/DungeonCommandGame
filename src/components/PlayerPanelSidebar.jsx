@@ -16,6 +16,7 @@ function PlayerPanelSidebar({
   currentPlayerId,
   gameState,
   handleConfusionGazeConfirmAttack,
+  handleHypnoticGazeConfirmAttack,
   handleDefenseSelected,
   handleDragEnd,
   handleDragStart,
@@ -133,12 +134,15 @@ function PlayerPanelSidebar({
                   ? handleHiddenBladeConfirmAttack
                   : pendingAttack?.isConfusionGaze
                     ? handleConfusionGazeConfirmAttack
-                    : confirmRightClickAttack
+                    : pendingAttack?.isHypnoticGaze
+                      ? handleHypnoticGazeConfirmAttack
+                      : confirmRightClickAttack
             }
             onCancelAttack={
               pendingAttack?.isFlashingBlades ||
               pendingAttack?.isHiddenBlade ||
-              pendingAttack?.isConfusionGaze
+              pendingAttack?.isConfusionGaze ||
+              pendingAttack?.isHypnoticGaze
                 ? null
                 : cancelRightClickAttack
             }

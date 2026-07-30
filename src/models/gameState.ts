@@ -1943,13 +1943,13 @@ export class GameState {
   }
 
   /**
-   * Execute the slide portion of CONFUSION GAZE
-   * Moves the target creature to the destination tile
+   * Execute a slide, moving the target creature to the destination tile.
+   * Shared by CONFUSION GAZE, Blast of Force, and Hypnotic Gaze.
    * @param {CreatureInstance} targetInstance - The creature being slid
    * @param {Object} destination - The destination {x, y}
    * @returns {Object} { oldPos, newPos }
    */
-  executeConfusionGazeSlide(targetInstance, destination) {
+  executeSlide(targetInstance, destination) {
     const oldPos = { ...targetInstance.position }
     const oldTile = this.getTile(oldPos.x, oldPos.y)
     const newTile = this.getTile(destination.x, destination.y)
@@ -1966,6 +1966,43 @@ export class GameState {
     targetInstance.position = { x: destination.x, y: destination.y }
 
     return { oldPos, newPos: { x: destination.x, y: destination.y } }
+  }
+
+  /**
+   * Get valid initial targets for Hypnotic Gaze (enemies within card.slideTargetSelectRange with LOS).
+   * Mirrors getWebValidTargets, just with a card-driven range instead of a fixed 10.
+   * Big O: O(e * d^2) where e = enemy creatures, d = range
+   * @param {CreatureInstance} casterInstance - The creature using Hypnotic Gaze
+   * @param {OrderCard} card - The Hypnotic Gaze order card (for slideTargetSelectRange)
+   * @returns {Array} Array of valid target CreatureInstances
+   */
+  getHypnoticGazeValidTargets(casterInstance, card) {
+    if (!casterInstance?.position) return []
+
+    const casterPos = casterInstance.position
+    const range = card?.slideTargetSelectRange || 5
+    const validTargets = []
+
+    for (const [playerId, player] of Object.entries(this.players)) {
+      if (playerId === casterInstance.owner) continue // Skip own creatures
+
+      for (const enemy of player.creaturesInPlay) {
+        if (!enemy.position) continue
+
+        const dx = Math.abs(enemy.position.x - casterPos.x)
+        const dy = Math.abs(enemy.position.y - casterPos.y)
+        const distance = Math.max(dx, dy) // Chebyshev distance for grid
+
+        if (distance > range) continue
+
+        const hasLOS = this.hasLineOfSight(casterInstance, enemy, casterInstance.owner)
+        if (!hasLOS) continue
+
+        validTargets.push(enemy)
+      }
+    }
+
+    return validTargets
   }
 
   /**
@@ -2218,6 +2255,135 @@ export class GameState {
       // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
       if (targetInstance.position && this.checkUntapOnAdjacentKill) {
         const untapResult = this.checkUntapOnAdjacentKill(
+          targetInstance.position,
+          defenderOwner,
+          attackerOwner,
+          false // Not killed by Bugbear directly
+        )
+      }
+    }
+
+    return {
+      success: true,
+      damage: finalDamage,
+      originalDamage: BASE_DAMAGE,
+      destroyed: wasDestroyed,
+      moraleChange,
+      remainingHP: Math.max(0, targetInstance.currentHP),
+      damageReduced: damageReduction,
+      shieldBlockReduction,
+    }
+  }
+
+  /**
+   * Apply Hypnotic Gaze damage with defense reduction (Curse of Undeath order card).
+   * The target was already slid before this attack, and the melee attack always resolves
+   * regardless of whether the slide left the target adjacent - mirrors applyConfusionGazeWithDefense,
+   * which has the same "melee attack that doesn't require adjacency" shape.
+   * @param {CreatureInstance} attackerInstance - The creature using Hypnotic Gaze (for base melee damage)
+   * @param {CreatureInstance} targetInstance - The creature receiving damage
+   * @param {number} damageReduction - Amount of damage prevented by defense
+   * @param {number} damageBoostBonus - Bonus damage from the card (Hypnotic Gaze = 20)
+   * @returns {Object} { success, damage, destroyed, moraleChange, remainingHP }
+   */
+  applyHypnoticGazeWithDefense(attackerInstance, targetInstance, damageReduction = 0, damageBoostBonus = 0) {
+    const baseDamage = attackerInstance.creature.meleeAttack?.damage || 0
+    const BASE_DAMAGE = baseDamage + damageBoostBonus
+    const actualDamage = Math.max(0, BASE_DAMAGE - damageReduction)
+
+    if (!targetInstance) {
+      return { success: false, message: 'Invalid target' }
+    }
+
+    // If all damage was prevented, no effect
+    if (actualDamage <= 0) {
+      return {
+        success: true,
+        damage: 0,
+        destroyed: false,
+        moraleChange: { attacker: 0, defender: 0 },
+        remainingHP: targetInstance.currentHP,
+        damageReduced: damageReduction,
+      }
+    }
+
+    const attackerOwner = attackerInstance.owner
+    const defenderOwner = targetInstance.owner
+
+    // Check INSUBSTANTIAL before applying Hypnotic Gaze damage
+    if (this.canUseInsubstantial(targetInstance)) {
+      const blocked = this.useInsubstantial(targetInstance, actualDamage, attackerOwner)
+      if (blocked) {
+        return {
+          success: true,
+          damage: 0,
+          destroyed: false,
+          damageBlocked: actualDamage,
+          insubstantialUsed: true,
+          moraleChange: { attacker: 0, defender: 0 },
+          remainingHP: targetInstance.currentHP,
+        }
+      }
+    }
+
+    // Check SHIELD BLOCK passive (Dwarven Defender aura for adjacent Adventurers)
+    const shieldBlockReduction = this.getShieldBlockReduction(targetInstance)
+    const finalDamage = Math.max(0, actualDamage - shieldBlockReduction)
+
+    // If all damage was prevented by SHIELD BLOCK, no effect
+    if (finalDamage <= 0) {
+      return {
+        success: true,
+        damage: 0,
+        destroyed: false,
+        moraleChange: { attacker: 0, defender: 0 },
+        remainingHP: targetInstance.currentHP,
+        damageReduced: damageReduction,
+        shieldBlockReduction,
+      }
+    }
+
+    // Apply damage using takeDamage (with SHIELD BLOCK reduction)
+    const wasDestroyed = targetInstance.takeDamage(finalDamage)
+
+    let moraleChange = { attacker: 0, defender: 0 }
+
+    if (wasDestroyed) {
+      // Clear the tile occupant first
+      if (targetInstance.position) {
+        const tile = this.getTile(targetInstance.position.x, targetInstance.position.y)
+        if (tile) {
+          tile.occupant = null
+        }
+      }
+
+      // Remove from battlefield
+      const defenderPlayer = this.players[defenderOwner]
+      const index = defenderPlayer.creaturesInPlay.findIndex(
+        (c) => c.instanceId === targetInstance.instanceId
+      )
+      if (index !== -1) {
+        defenderPlayer.creaturesInPlay.splice(index, 1)
+      }
+
+      // Add creature CARD to graveyard (not instance)
+      defenderPlayer.creatureGraveyard.push(targetInstance.creature)
+
+      // Defender loses morale equal to creature's level
+      defenderPlayer.loseMorale(targetInstance.creature.level)
+
+      // Attacker gains +1 morale
+      const attackerPlayer = this.players[attackerOwner]
+      attackerPlayer.gainMorale(1)
+
+      moraleChange = {
+        attacker: +1,
+        defender: -targetInstance.creature.level,
+      }
+
+      // UNTAP ON KILL: Check if Bugbear Berserker should untap from this kill
+      if (targetInstance.position && this.checkUntapOnAdjacentKill) {
+        this.checkUntapOnAdjacentKill(
           targetInstance.position,
           defenderOwner,
           attackerOwner,

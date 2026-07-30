@@ -148,6 +148,10 @@ export class SimpleAI {
       // Example: Charge (Blood of Gruumsh)
       if (card.moveBeforeAttack === 'speed') continue
 
+      // EXCLUDE Hypnotic Gaze-style cards - they require choosing a target within range and
+      // sliding it BEFORE the attack, handled by getHypnoticGazeCards/evaluateHypnoticGazeAttack instead
+      if (card.slideTargetBeforeAttack > 0) continue
+
       // AFFINITY CHECK: Cards with affinityRequired + affinityOverridesRequirements
       // Creature MUST have matching type, level/ability requirements are bypassed
       if (card.affinityRequired && card.affinityOverridesRequirements) {
@@ -619,6 +623,97 @@ export class SimpleAI {
     }
 
     return bestOption
+  }
+
+  /**
+   * Get all valid Hypnotic Gaze-style order cards for a creature (Phase STD-8)
+   * These cards: choose an enemy within slideTargetSelectRange, slide it BEFORE
+   * the attack, then melee attack with a damage bonus (attack always lands,
+   * even if the slide leaves the target non-adjacent)
+   *
+   * @param {CreatureInstance} creature - The creature that would use the card
+   * @param {Array} orderHand - Player's current order card hand
+   * @returns {Array} Array of { card, cardIndex, meleeDamageBonus } objects
+   */
+  getHypnoticGazeCards(creature, orderHand) {
+    if (!creature || !orderHand || orderHand.length === 0) return []
+
+    const creatureLevel = creature.creature.level || 1
+    const creatureAbilities = creature.creature.abilityScores || []
+
+    const validCards = []
+
+    for (let i = 0; i < orderHand.length; i++) {
+      const card = orderHand[i]
+
+      // Must be a STANDARD action card with slideTargetBeforeAttack
+      if (card.actionType !== 'STANDARD') continue
+      if (!card.slideTargetBeforeAttack || card.slideTargetBeforeAttack <= 0) continue
+
+      // Check level requirement
+      if (creatureLevel < card.level) continue
+
+      // Check ability requirement
+      if (card.abilityRequired && card.abilityRequired !== 'ANY') {
+        const hasAbility = creatureAbilities.includes(card.abilityRequired)
+        if (!hasAbility) continue
+      }
+
+      // Creature must not be tapped (STANDARD action requires untapped)
+      if (creature.isTapped) continue
+
+      // Creature must have melee attack (Hypnotic Gaze's attack is always melee)
+      if (!creature.creature.meleeAttack) continue
+
+      validCards.push({
+        card,
+        cardIndex: i,
+        meleeDamageBonus: card.meleeDamageBonus || 0,
+      })
+    }
+
+    // Sort by damage bonus (highest first)
+    validCards.sort((a, b) => b.meleeDamageBonus - a.meleeDamageBonus)
+
+    return validCards
+  }
+
+  /**
+   * Evaluate a Hypnotic Gaze-style card: pick the weakest valid target within range,
+   * then a random valid slide destination (mirrors Confusion Gaze's AI heuristic)
+   *
+   * @param {CreatureInstance} creature - The creature using the card
+   * @param {Object} cardInfo - Card info from getHypnoticGazeCards
+   * @returns {Object|null} { target, slideDestination, damage, card, cardIndex } or null
+   */
+  evaluateHypnoticGazeAttack(creature, cardInfo) {
+    if (!creature || !cardInfo) return null
+
+    const card = cardInfo.card
+
+    const validTargets = this.gameState.getHypnoticGazeValidTargets(creature, card)
+    if (validTargets.length === 0) return null
+
+    // Select weakest target (matches Confusion Gaze's AI target-selection heuristic)
+    const target = validTargets.reduce(
+      (weakest, current) => (current.currentHP < weakest.currentHP ? current : weakest),
+      validTargets[0]
+    )
+
+    const slideTiles = this.gameState.getValidSlideTiles(target, card.slideTargetBeforeAttack)
+    const slideDestination =
+      slideTiles.length > 0 ? slideTiles[Math.floor(Math.random() * slideTiles.length)] : null
+
+    const baseDamage = creature.creature.meleeAttack?.damage || 0
+    const damage = baseDamage + cardInfo.meleeDamageBonus
+
+    return {
+      target,
+      slideDestination,
+      damage,
+      card,
+      cardIndex: cardInfo.cardIndex,
+    }
   }
 
   /**
@@ -1133,6 +1228,44 @@ export class SimpleAI {
                 hasAttackIntention = true // Counts as attack action
                 continue // Don't fall through to normal attack
               }
+            }
+          }
+        }
+
+        // ============================================
+        // HYPNOTIC GAZE CHECK: Try to use this order card before normal attack
+        // Hard AI only (card-driven ability, gated like other damage-boost cards)
+        // ============================================
+        if (this.canUseDamageBoostCards()) {
+          const player = this.gameState.players[this.playerId]
+          const hypnoticGazeCards = this.getHypnoticGazeCards(creature, player.orderHand)
+
+          if (hypnoticGazeCards.length > 0) {
+            let bestGaze = null
+            for (const cardInfo of hypnoticGazeCards) {
+              const option = this.evaluateHypnoticGazeAttack(creature, cardInfo)
+              if (option && (!bestGaze || option.damage > bestGaze.damage)) {
+                bestGaze = option
+              }
+            }
+
+            if (bestGaze) {
+              logger.ai(
+                `HYPNOTIC GAZE: ${creature.creature.name} using ${bestGaze.card.name} on ${bestGaze.target.creature.name}`
+              )
+
+              actions.push({
+                type: 'hypnotic_gaze',
+                attackerInstance: creature,
+                defenderInstance: bestGaze.target,
+                slideDestination: bestGaze.slideDestination,
+                card: bestGaze.card,
+                cardIndex: bestGaze.cardIndex,
+                damage: bestGaze.damage,
+              })
+              didAction = true
+              hasAttackIntention = true // Counts as attack action
+              continue // Don't fall through to normal attack
             }
           }
         }
