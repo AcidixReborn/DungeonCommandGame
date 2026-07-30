@@ -116,12 +116,14 @@ Each entry is a pure extraction (same logic, same behavior) of one self-containe
 
 ---
 
-## Phase F: CI/CD
+## Phase F: CI/CD ✅ COMPLETE
 
 | Item                                                                                              | Status |
 | ------------------------------------------------------------------------------------------------- | ------ |
-| Add `.github/workflows/ci.yml` running `tsc --noEmit`, ESLint, Vitest, `npm run build` on push/PR | ⬜     |
-| Add CI status badge to `README.md`                                                                | ⬜     |
+| Add `.github/workflows/ci.yml` running `tsc --noEmit`, ESLint, Vitest, `npm run build` on push/PR | ✅ Single `ci` job on `ubuntu-latest`, Node 22 (LTS) with npm cache, triggered on push/PR to `main`. Runs `npm ci` then `typecheck` → `lint` → `test` → `build` in sequence, matching the exact `package.json` scripts already verified throughout Phases B-E. |
+| Add CI status badge to `README.md`                                                                | ✅ Badge added at the top of `README.md`, linking to the workflow's Actions page. |
+
+**Note**: the workflow only actually runs once pushed to GitHub - all commits from Phase 0 onward are still local-only on `main` (never pushed this session). The badge will show "no status"/unknown until the first push triggers a run.
 
 ---
 

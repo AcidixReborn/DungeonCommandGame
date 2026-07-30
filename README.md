@@ -1,5 +1,7 @@
 # Dungeon Command - Digital Edition
 
+[![CI](https://github.com/AcidixReborn/DungeonCommandGame/actions/workflows/ci.yml/badge.svg)](https://github.com/AcidixReborn/DungeonCommandGame/actions/workflows/ci.yml)
+
 A digital implementation of the Wizards of the Coast board game "Dungeon Command" for personal use.
 
 ## 🎮 Current Status: PLAYABLE ALPHA
