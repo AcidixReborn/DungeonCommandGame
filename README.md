@@ -5,6 +5,7 @@
 A digital implementation of the Wizards of the Coast board game "Dungeon Command" for personal use.
 
 **▶️ [Play the live demo](https://acidixreborn.github.io/DungeonCommandGame/)** - runs entirely in your browser, no install needed.
+> Tip: press <kbd>F11</kbd> for fullscreen after it loads - the UI isn't fit-to-screen responsive yet, so fullscreen looks noticeably cleaner.
 
 ## 🎮 Current Status: PLAYABLE ALPHA
 
