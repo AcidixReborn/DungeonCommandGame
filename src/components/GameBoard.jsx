@@ -535,35 +535,6 @@ function GameBoard({ onTurnInfoChange }) {
     setRenderCounter,
   })
 
-  // RANGED SPLASH damage handlers (ACID BREATH / EXPLOSIVE BOLTS) + Savage Demise resolution - extracted hook
-  const {
-    handleRangedSplashDefenseSelected,
-    handleSavageDemiseResolution,
-    handleRangedSplashDefenseComplete,
-    handleAIRangedSplashDefense,
-    checkAndProcessRangedSplash,
-  } = useRangedSplashDefense({
-    gameState,
-    gameConfig,
-    addToast,
-    isPlayerHuman,
-    handleOpponentDrawEffect,
-    closeCombatPanel,
-    pendingAttack,
-    setPendingAttack,
-    rangedSplashAttackInfo,
-    setRangedSplashAttackInfo,
-    pendingRangedSplashTargets,
-    setPendingRangedSplashTargets,
-    currentRangedSplashIndex,
-    setCurrentRangedSplashIndex,
-    setShowRangedSplashDefensePanel,
-    setCombatPanelMode,
-    savageDemisePending,
-    clearSavageDemiseState,
-    setRenderCounter,
-  })
-
   // Alias healingTouchData fields to match existing variable names
   const healingTouchHealer = healingTouchData?.healer || null
   const healingTouchTarget = healingTouchData?.target || null
@@ -768,6 +739,39 @@ function GameBoard({ onTurnInfoChange }) {
       executeRecoilDraw(targetPlayerId, cardName, defenderPlayerId, attackerPlayerId)
     }
   }
+
+  // RANGED SPLASH damage handlers (ACID BREATH / EXPLOSIVE BOLTS) + Savage Demise resolution -
+  // extracted hook. Placed here (not with the other early hooks) because it depends on
+  // handleOpponentDrawEffect, a plain function defined just above - the call site needs it
+  // already assigned, unlike a deferred closure. (This was the bug behind the Electron crash:
+  // the call was originally placed before handleOpponentDrawEffect's definition.)
+  const {
+    handleRangedSplashDefenseSelected,
+    handleSavageDemiseResolution,
+    handleRangedSplashDefenseComplete,
+    handleAIRangedSplashDefense,
+    checkAndProcessRangedSplash,
+  } = useRangedSplashDefense({
+    gameState,
+    gameConfig,
+    addToast,
+    isPlayerHuman,
+    handleOpponentDrawEffect,
+    closeCombatPanel,
+    pendingAttack,
+    setPendingAttack,
+    rangedSplashAttackInfo,
+    setRangedSplashAttackInfo,
+    pendingRangedSplashTargets,
+    setPendingRangedSplashTargets,
+    currentRangedSplashIndex,
+    setCurrentRangedSplashIndex,
+    setShowRangedSplashDefensePanel,
+    setCombatPanelMode,
+    savageDemisePending,
+    clearSavageDemiseState,
+    setRenderCounter,
+  })
 
   /**
    * Execute the Recoil draw and handle reveal timing
